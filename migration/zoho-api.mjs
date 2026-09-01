@@ -1,5 +1,8 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { parseCsvRecords } from './src/csv.mjs';
+import { apiRecordToExportRow, toCsv } from './src/to-csv.mjs';
+import { buildFieldMap, unmatchedColumns } from './src/api-field-names.mjs';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -135,9 +138,41 @@ async function downloadAttachment(base, moduleName, parentId, attachmentId, dest
 
 function save(name, rows) {
   mkdirSync(OUT_DIR, { recursive: true });
-  const path = join(OUT_DIR, `${name}.json`);
+  const path = join(OUT_DIR, 'api-raw', `${name}.json`);
+  mkdirSync(join(OUT_DIR, 'api-raw'), { recursive: true });
   writeFileSync(path, JSON.stringify(rows, null, 2));
   console.log(`  wrote ${rows.length} record(s) to ${path}`);
+}
+
+// The importer reads the export CSV shape. Writing that shape here means the API
+// path and the hand-export path feed one importer rather than two, which is the
+// whole point: the API is only a faster way to get the same files.
+function saveAsExportCsv(exportFileName, records) {
+  const template = join(OUT_DIR, exportFileName);
+  if (!existsSync(template)) {
+    console.warn(
+      `  cannot write ${exportFileName}: no existing export to take the header from.\n` +
+        '    Put one hand-made export in place once so the column order is known, or pass --headers-from.',
+    );
+    return null;
+  }
+  const { header } = parseCsvRecords(readFileSync(template, 'utf8'));
+  const fieldMap = buildFieldMap(header);
+  const rows = records.map((r) => apiRecordToExportRow(r, fieldMap));
+
+  const missing = unmatchedColumns(header, records);
+  const out = join(OUT_DIR, 'api-csv', exportFileName);
+  mkdirSync(join(OUT_DIR, 'api-csv'), { recursive: true });
+  writeFileSync(out, toCsv(header, rows));
+  console.log(`  wrote ${rows.length} row(s) to ${out}`);
+  if (missing.length) {
+    console.warn(
+      `    ${missing.length} of ${header.length} column(s) matched no API field and are blank.\n` +
+        '    These are name guesses that need correcting in src/api-field-names.mjs:\n' +
+        missing.map((c) => `      ${c}`).join('\n'),
+    );
+  }
+  return { rows: rows.length, missing: missing.length };
 }
 
 const RECRUIT_MODULES = ['Candidates', 'Job_Openings', 'Applications', 'Clients', 'Contacts', 'Notes'];
@@ -155,6 +190,7 @@ async function main() {
       const rows = await fetchModule(RECRUIT, m);
       save(`recruit_${m}`, rows);
       summary[`recruit_${m}`] = rows.length;
+      if (m === 'Notes') saveAsExportCsv('Notes_001.csv', rows);
 
       if (m === 'Candidates' && rows.length) {
         const ids = rows.map((r) => r.id).filter(Boolean);
@@ -162,10 +198,18 @@ async function main() {
         const detail = await fetchWithSubforms(RECRUIT, m, ids);
         save('recruit_Candidates_detail', detail);
         summary.recruit_Candidates_detail = detail.length;
+        // The detail records carry the Education and Experience subforms, which is
+        // the reason to fetch per record at all.
+        saveAsExportCsv('Candidates_001.csv', detail);
+        const withEdu = detail.filter((r) => Array.isArray(r.Educational_Details) && r.Educational_Details.length).length;
+        const withExp = detail.filter((r) => Array.isArray(r.Experience_Details) && r.Experience_Details.length).length;
+        console.log(`  subforms present: ${withEdu} with education, ${withExp} with experience`);
+        summary.subforms = { education: withEdu, experience: withExp };
 
         const atts = await fetchAttachmentsFor(RECRUIT, m, ids);
         save('recruit_Candidate_Attachments', atts);
         summary.recruit_Candidate_Attachments = atts.length;
+        saveAsExportCsv('Attachments_001.csv', atts.map((a) => ({ ...a, Parent_Id: a.__parentId })));
 
         if (WITH_FILES) {
           let ok = 0;

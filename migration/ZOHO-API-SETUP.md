@@ -98,13 +98,42 @@ The per-candidate detail and attachment calls are the expensive part: one call e
 candidate, so 75 candidates is roughly 150 calls plus the list pages. `--with-files`
 adds one more call per attachment.
 
-## What to do with it afterwards
+## How this fits with the importer
 
-`zoho-api.mjs` writes JSON; `import.mjs` currently reads the CSV shape. The JSON is
-richer, particularly for the subforms, so once a pull succeeds the mappers need a small
-JSON path alongside the CSV one rather than a rewrite. The field names in the API match
-the CSV column names closely, and the mapping decisions in the field-mapping workbook
-still hold.
+**The API does not replace the importer.** The file-based importer stays the way data
+gets into FOOS. The API is only a faster way of getting the same files, without asking
+anyone to run an export by hand.
+
+So `zoho-api.mjs` writes two things:
+
+| Path | What it is |
+| :---- | :---- |
+| `migration/zoho-exports/api-csv/` | The same CSV shape the hand exports have, ready for `import.mjs` with no changes |
+| `migration/zoho-exports/api-raw/` | The raw JSON, kept because it is richer and worth having if a mapping question comes up |
+
+The CSV writer takes its column order from an existing hand export of the same name, so
+keep one of each in `migration/zoho-exports/` as the header template. It converts Zoho's
+ISO-8601 timestamps back to the `MM/DD/YYYY hh:mm AM/PM` the exports use, and flattens
+`{id, name}` lookups to the display name, so the importer's parser needs no second code
+path.
+
+To use a pull:
+
+```sh
+node migration/zoho-api.mjs --limit 5                       # prove access first
+node migration/zoho-api.mjs                                 # full pull
+node migration/import.mjs --dir migration/zoho-exports/api-csv   # dry run on it
+```
+
+### The field-name caveat
+
+Zoho's API field names are usually the display label with underscores, but not always,
+and there are 110 candidate columns. Rather than invent all of them, the tool derives
+each name and then **reports every export column that matched no API field on any
+record**. Those are the wrong guesses, and they are the ones to correct in
+`src/api-field-names.mjs` once you have a real pull in front of you. Blank columns are
+therefore visible rather than silent, which is the failure mode that matters: a silently
+blank `Rating` column would look like a clean import and lose the grading.
 
 ## Least-privilege note
 
