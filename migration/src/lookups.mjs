@@ -52,7 +52,11 @@ const IDENTITY_PATTERNS = [
 ];
 
 export function looksLikeIdentityDocument(fileName) {
-  const name = fileName ?? '';
+  // Zoho prefixes every filename with its record id and an underscore, and `_` is
+  // a word character, so \b never matches between them: "<id>_Passport - X.pdf"
+  // failed every pattern anchored with \b. Underscores and hyphens are normalised
+  // to spaces first. This was caught by the dry run flagging 4 of 8 known files.
+  const name = (fileName ?? '').replace(/[_-]+/g, ' ');
   return IDENTITY_PATTERNS.some((re) => re.test(name));
 }
 

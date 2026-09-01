@@ -114,7 +114,12 @@ function tally(name) {
 }
 
 function note(bucket, key) {
-  bucket[key] = (bucket[key] ?? 0) + 1;
+  // Reasons that name a specific record collapse into one bucket. Without this a
+  // run produces one line per distinct parent id and the real signal is lost.
+  const grouped = key
+    .replace(/Zrecruit_[0-9]+/g, '<id>')
+    .replace(/zcrm_[0-9]+/g, '<id>');
+  bucket[grouped] = (bucket[grouped] ?? 0) + 1;
 }
 
 function countFields(t, obj) {
@@ -149,6 +154,10 @@ async function importCandidates(lookups, unresolved, idMaps) {
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
+      // A dry run writes nothing, so nothing lands in zoho_id_map and every note
+      // and attachment would fail parent resolution. Standing in a placeholder id
+      // lets the rest of the run be exercised for real.
+      if (!known) existing.set(mapped.zohoId, `dry-run:${mapped.zohoId}`);
       continue;
     }
 
@@ -328,7 +337,16 @@ async function main() {
 
   const want = (name) => ENTITIES === 'all' || ENTITIES.split(',').includes(name);
 
-  if (want('candidates')) await importCandidates(lookups, unresolved, idMaps);
+  // Notes and attachments resolve their parent through the candidate id map. In a
+  // dry run nothing is written, so candidates are always mapped first to stand in
+  // the placeholder ids; otherwise asking for one downstream entity on its own
+  // reports every row as an unimported parent, which looks like a failure and is
+  // not one.
+  const needCandidatesForParents = !APPLY && (want('notes') || want('attachments'));
+  if (want('candidates') || needCandidatesForParents) {
+    await importCandidates(lookups, unresolved, idMaps);
+    if (!want('candidates')) delete report.entities.candidates;
+  }
   if (want('notes')) await importNotes(lookups, unresolved, idMaps);
   if (want('attachments')) await importAttachments(lookups, unresolved, idMaps);
 
@@ -362,8 +380,7 @@ async function main() {
         `${String(t.skipped).padStart(4)} skipped  ${String(t.failed).padStart(3)} failed`,
     );
     for (const [reason, n] of Object.entries(t.skipReasons)) {
-      const safe = SHOW_NAMES ? reason : reason.replace(/Zrecruit_[0-9]+/g, 'Zrecruit_<id>');
-      console.log(`${' '.repeat(18)}skip x${n}: ${safe}`);
+      console.log(`${' '.repeat(18)}skip x${n}: ${reason}`);
     }
     if (t.identityDocuments) {
       console.log(`${' '.repeat(18)}${t.identityDocuments} identity/employment record(s) held back`);
