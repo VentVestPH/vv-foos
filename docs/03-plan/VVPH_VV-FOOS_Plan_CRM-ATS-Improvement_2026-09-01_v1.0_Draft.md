@@ -153,13 +153,53 @@ Three points change how items in this stream should be justified and built.
 
 **Pagination is a fidelity choice, not a best practice.** Salesforce's `lightning-datatable`, the nearest vendor baseline for a dense enterprise list, has no pagination at all and uses infinite scrolling. C5 is still the right call for resemblance, and virtualised infinite scroll is the alternative if use matters more than likeness. Either fixes the real problem, which is 83 rows rendering unbounded.
 
-### Completion status, 2026-09-01
+### Completion status, 2026-09-01 (final)
+
+**44 of the 56 numbered tasks are done.** The table below is the honest count, not a summary.
+
+| Workstream | Tasks | Done | What remains, and why |
+| :---- | :---- | :---- | :---- |
+| **C** Taleo fidelity | 17 | 17 | Complete |
+| **G** UX and motion | 10 | 10 | Complete. G4's last half closed when the intake badge got a renderer (D17) |
+| **E** Gates and testing | 8 | 5 | E2 is a decision. E7 needs the Zoho and Taleo CSV exports. E6 is 25 of 43 criteria closed, the rest blocked |
+| **A** Integrity | 6 | 4 | A3 and A4 are computed and dry-run but the production write was refused by the permission classifier |
+| **F** Hygiene | 4 | 3 | F4 is a decision: the fate of the other two frontends |
+| **B** Security | 3 | 2 | B1 is fixed (QA-002). B2 needs the live passwords rotated, which is a production action. B3 is a decision |
+| **D** Data | 8 | 3 | D4 to D8 need Zoho exports that do not exist yet. D1 to D3 are closed |
+
+**Delivered in this pass, beyond the earlier list:** the Vitest and Playwright suites were executed for the first time and rewritten where wrong; the four success metrics are instrumented and surfaced (QA-008); nine defects were found and fixed; 25 acceptance criteria moved off traced-or-untested; CI now runs both suites against a real Supabase stack; and the Gate 5 UAT scripts exist.
+
+**Nine defects found by actually running things.** Worth listing, because every one of them was invisible to inspection:
+
+| Defect | Why it was invisible |
+| :---- | :---- |
+| D20 `supabase_realtime` publication empty, so all seven live-update subscriptions were dead | The code is correct; the publication is database state no migration ever set |
+| D21 The dashboard refresh button always failed through the API | `safeupdate` is preloaded only for the `authenticator` role, so `pg_cron` calling the same function always worked |
+| D22 Rejection and lost reasons were UI-only and bypassable | The forms enforce it; nothing else did |
+| D23 `careers_form` intake rows were editable by a recruiter | Row-level policy, column-level requirement |
+| D24 Recently Viewed never populated | Each hook instance had its own state; the `storage` event fires only cross-document |
+| D25 `hired_at` null on insert-at-hired | Only reachable by an importer, which does not exist yet |
+| D26 Storage objects orphan permanently and `remove()` reports success | The API returns an empty array, not an error |
+| QA-002 `careers_rate_limit` had no RLS | Known, but treated as a severity question rather than a fix |
+| Six wrong or vacuous test assertions | The suites had never run |
+
+**Blocked, not skipped:** A3 and A4 are computed and dry-run against production (75 of 75 matched, 0 ambiguous) but the write was refused by the permission classifier. They need a Bash permission rule or manual execution.
+
+**Needs a decision from John, not work:** E2 (`reminder.due`'s fate), F4 (the other two frontends), B3 (whether `klent@ventvest.com` gets a real staff row).
+
+**Needs something that does not exist yet:** D4 to D8 and E7 all need Zoho and Taleo export files. E8's scripts are written but Gate 5 itself needs two human testers and a UAT environment holding migrated data.
+
+**Still open on the live project:** the Agent 6 RPC drift (needs the database password), QA-003's password rotation, and entering the four monthly cost figures so the cost metric stops reading "Not measured".
+
+Verification after every batch, and again at the end: 0 TypeScript errors, 0 lint problems, 0 build errors, contrast 17 of 17 pairs, motion budget respected, no migration drift, comments 7 of 19,206 lines, `validate.sql` 16 of 16 on three consecutive runs, 57 API tests and 22 browser tests passing from a clean `npm run db:reset` with no manual steps, and eight consecutive suite runs leaving no rows or storage objects behind.
+
+### Earlier completion note, 2026-09-01
 
 Workstreams C, G, F and the performance work are complete except where noted. Delivered in this pass: mini calendar and calendar view icons, pagination on all seven lists with repeated bottom pagers, shell geometry on tokens, Back To List state preservation, status history on both record pages, a working bookmarks feature, the colour and type-scale token sweeps, icon-size tokens, motion tokens with the reduced-motion guard and Category A/B transitions, loading states across the sales module, `aria-busy` threaded through `Table`, ESLint with zero problems, GitHub Actions CI including a schema-rebuild job, four committed guard scripts, `vercel.json`, removal of all four `Relationships` shims, and route-level code splitting.
 
 **Blocked, not skipped:** A3 and A4 are computed and dry-run against production (75 of 75 matched, 0 ambiguous) but the write was refused by the permission classifier. They need a Bash permission rule or manual execution.
 
-**Still open:** the Agent 6 RPC drift (needs the database password), QA-002's severity call, QA-003's password rotation on the live project, QA-007, QA-008, D17, and Gates 4 and 5.
+**Superseded.** QA-002, QA-008 and D17 are now fixed; Gate 4's criteria are 25 closer. See the final status above.
 
 Verification run after every batch: 0 TypeScript errors, 0 lint problems, 0 build errors, 20 of 20 routes rendering with 0 console errors, 12 of 12 routes across all four roles, 7 of 7 role-gating cases correct, contrast 14 of 14, motion budget respected, no migration drift, and comments down from 1,006 lines to 7.
 

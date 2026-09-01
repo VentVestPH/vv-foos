@@ -1,6 +1,6 @@
 # VV-FOOS Documentation Index
 
-**Project:** VentVest Front Office OS (VV-FOOS) · **Last updated:** 2026-09-01 (external research folded in)
+**Project:** VentVest Front Office OS (VV-FOOS) · **Last updated:** 2026-09-01 (test suites executed for the first time; 25 acceptance criteria closed; Gate 5 UAT scripts added)
 
 Documentation for the FOOS CRM and ATS improvement programme. Project documents follow the VVPH ISO naming convention (`VVPH_<ProjectCode>_<DocType>_<Descriptive-Name>_<YYYY-MM-DD>_v<major.minor>_<Status>.<ext>`). Folders are numbered in reading order.
 
@@ -19,6 +19,8 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | How to add polish without breaking the replica | `06-ux-and-motion/…Spec_UX-and-Motion-Discovery…` |
 | How to run the app locally without touching live data | `07-environments/…Doc_Local-Development-Environment…` |
 | What was measured and what got faster | `08-performance/…Report_Performance-Baseline-and-Optimisation…` |
+| The human checks left before cutover | `09-uat/…Script_Gate-5-UAT…` |
+| Which acceptance criteria are actually verified | `../tests/RETEST_MATRIX.md` |
 | Which source document governs a question | `05-reference/…Index_Drive-Source-Documents…` |
 
 ## 01-current-state
@@ -66,6 +68,12 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | Document | Contents |
 | :---- | :---- |
 | `VVPH_VV-FOOS_Report_Performance-Baseline-and-Optimisation_2026-09-01_v1.0_Draft.md` | Sourcemap-attributed bundle composition, the code-splitting and webfont changes, before/after timings under throttling, remaining ceilings, and the four committed guard scripts |
+
+## 09-uat
+
+| Document | Contents |
+| :---- | :---- |
+| `VVPH_VV-FOOS_Script_Gate-5-UAT_2026-09-01_v1.0_Draft.md` | 79 numbered steps: a recruiter script for the ATS, a BD script for the CRM, the Google integration checks, and the exit criteria. Covers only what a person must judge, since 57 API tests and 22 browser tests now cover the mechanical guarantees. Includes the known-open items testers will notice, so they do not write them up |
 
 ## 05-reference
 
