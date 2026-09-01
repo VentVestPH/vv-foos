@@ -9,9 +9,10 @@
   ],
   "scripts": {
     "db:push": "supabase db push",
-    "db:reset": "supabase db reset",
+    "db:reset": "supabase db reset && node scripts/post-reset.mjs",
     "db:validate": "psql \"$DATABASE_URL\" -f supabase/tests/validate.sql",
     "test": "npm run test --workspace=tests",
-    "test:e2e": "npm run e2e --workspace=tests"
+    "test:e2e": "npm run e2e --workspace=tests",
+    "db:seed:personas": "node scripts/post-reset.mjs --personas-only"
   }
 }

@@ -1,37 +1,45 @@
 import { expect, test } from '@playwright/test';
-
-const BD_EMAIL = 'ben.demo@ventvest.com';
-// SECURITY (QA-003): no literal fallback. The old default was a working
-// credential against the live project. See tests/env.ts.
-const TEST_PASSWORD = (() => {
-  const value = process.env.FOOS_QA_TEST_PASSWORD;
-  if (!value) throw new Error('FOOS_QA_TEST_PASSWORD is not set (see tests/.env.example)');
-  return value;
-})();
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 
 test.describe('CRM deals', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.getByLabel(/email/i).fill(BD_EMAIL);
-    await page.getByLabel(/password/i).fill(TEST_PASSWORD);
-    await page.getByRole('button', { name: /sign in|log in/i }).click();
-    await expect(page).toHaveURL(/\/(?!login)/, { timeout: 10000 });
+    await signIn(page, PERSONA_EMAILS.bd);
   });
 
-  test('deals list renders kanban with stage columns', async ({ page }) => {
-    await page.goto('/sales/deals');
-    await expect(page.getByRole('heading', { name: /deals/i })).toBeVisible();
-    await expect(page.getByText(/lead/i).first()).toBeVisible();
+  test('deals list renders the kanban board with stage columns', async ({ page }) => {
+    await gotoAsSignedIn(page, '/sales/deals');
+    await expect(page.getByRole('heading', { name: /^Deals/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Kanban' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Table' })).toBeVisible();
+    await expect(page.locator('body')).toContainText(/lead/i, { timeout: 15000 });
+  });
+
+  test('switching to table view renders a table', async ({ page }) => {
+    await gotoAsSignedIn(page, '/sales/deals');
+    await page.getByRole('button', { name: 'Table' }).click();
+    await expect(page.locator('.table-wrap table')).toBeVisible({ timeout: 15000 });
   });
 
   test('drill-through query params pre-filter the deals list', async ({ page }) => {
-    await page.goto('/sales/deals?stage=negotiation');
-    // Table view makes the applied filter easiest to assert against.
-    await page.getByRole('button', { name: /table/i }).click();
-    const rows = page.locator('.table-wrap tbody tr');
-    const count = await rows.count();
+    await gotoAsSignedIn(page, '/sales/deals?stage=negotiation');
+    await page.getByRole('button', { name: 'Table' }).click();
+    await expect(page.locator('.table-wrap table')).toBeVisible({ timeout: 15000 });
+
+    await expect(page.locator('.filter-rail select').filter({ hasText: /negotiation/i })).toHaveValue(
+      'negotiation',
+    );
+
+    const dataRows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
+    const count = await dataRows.count();
     for (let i = 0; i < count; i++) {
-      await expect(rows.nth(i)).toContainText(/negotiation/i);
+      await expect(dataRows.nth(i)).toContainText(/negotiation/i);
     }
+  });
+
+  test('an unfiltered deals table shows every seeded deal', async ({ page }) => {
+    await gotoAsSignedIn(page, '/sales/deals');
+    await page.getByRole('button', { name: 'Table' }).click();
+    const dataRows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
+    await expect(dataRows).toHaveCount(2);
   });
 });

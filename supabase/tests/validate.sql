@@ -82,15 +82,35 @@ begin
   if not exists (select 1 from deals where display_code = 'DEAL-0002') then
     raise exception 'FAIL 4: seed deal DEAL-0002 not found';
   end if;
-  insert into requisitions (title, status, is_test) values ('Validation req', 'draft', true)
-  returning display_code into code;
-  if code !~ '^REQ-\d{4}$' or code <= 'REQ-0003' then
-    raise exception 'FAIL 4: unexpected next requisition code %', code;
-  end if;
-  insert into tickets (subject) values ('Validation ticket') returning display_code into code;
-  if code <> 'TKT-0001' then
-    raise exception 'FAIL 4: first ticket code was %, expected TKT-0001', code;
-  end if;
+  -- Asserts format and monotonic progression, not an absolute first value, and
+  -- removes its own rows. Checking for a literal TKT-0001 made this script
+  -- pass only against a database on which no ticket had ever been created:
+  -- a second run got TKT-0002 and failed.
+  declare
+    req_id uuid;
+    tkt_id uuid;
+    prev_max text;
+  begin
+    select max(display_code) into prev_max from requisitions;
+    insert into requisitions (title, status, is_test) values ('Validation req', 'draft', true)
+    returning id, display_code into req_id, code;
+    if code !~ '^REQ-\d{4}$' or code <= prev_max then
+      raise exception 'FAIL 4: unexpected next requisition code % (previous max %)', code, prev_max;
+    end if;
+    delete from requisitions where id = req_id;
+
+    select max(display_code) into prev_max from tickets;
+    insert into tickets (subject) values ('Validation ticket')
+    returning id, display_code into tkt_id, code;
+    if code !~ '^TKT-\d{4}$' then
+      raise exception 'FAIL 4: unexpected ticket code format %', code;
+    end if;
+    if prev_max is not null and code <= prev_max then
+      raise exception 'FAIL 4: ticket code % did not advance past %', code, prev_max;
+    end if;
+    delete from tickets where id = tkt_id;
+  end;
+
   raise notice 'PASS 4: display codes format and progress correctly (REQ/APP/DEAL/TKT)';
 end $$;
 
@@ -132,6 +152,12 @@ declare
 begin
   select id into app from applications where display_code = 'APP-0001';  -- stage 'received'
 
+  -- Force the baseline stage before measuring, so a re-run still performs a
+  -- real transition. Previously this assumed APP-0001 was still at 'received';
+  -- on a second run it was already 'screening', the trigger correctly did
+  -- nothing, and the stale stage_changed_at failed the check.
+  update applications set stage = 'received' where id = app and stage <> 'received';
+
   select count(*) into audits from audit_log where table_name = 'applications' and record_id = app and action = 'update';
   update applications set stage = 'screening' where id = app;
 
@@ -151,6 +177,7 @@ begin
 
   -- hired path
   select id into app from applications where display_code = 'APP-0006';  -- stage 'offer'
+  update applications set stage = 'offer' where id = app and stage <> 'offer';
   update applications set stage = 'hired' where id = app;
   select hired_at into hired from applications where id = app;
   if hired is null then
@@ -404,5 +431,21 @@ begin
   raise notice 'PASS 14: is_test purge deletes clean across people/requisitions/deals/companies (rolled back)';
 end $$;
 rollback;
+
+-- 15. Teardown ---------------------------------------------------------------
+-- Checks 7, 10 and 12 insert intake_items to prove the outbox triggers and the
+-- sourcer/recruiter RLS boundaries. They are removed here rather than inline
+-- because 10 and 12 run under an impersonated role whose DELETE policy does not
+-- cover them. Left behind, they accumulated one row per check per run and
+-- skewed dash.data_quality_dedup_rate, whose denominator is the week's intake.
+do $$
+declare
+  removed int;
+begin
+  delete from intake_items
+   where full_name in ('Validation Person', 'Sourcer Intake OK', 'Recruiter Intake OK', 'Should Fail');
+  get diagnostics removed = row_count;
+  raise notice 'PASS 15: teardown removed % validation intake_items row(s)', removed;
+end $$;
 
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;

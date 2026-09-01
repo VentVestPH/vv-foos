@@ -23,3 +23,7 @@ supabase/functions/**/node_modules/
 
 # OS
 .DS_Store
+
+# Playwright run artifacts (traces, screenshots, error contexts)
+tests/test-results/
+tests/playwright-report/

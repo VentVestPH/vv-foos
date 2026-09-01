@@ -14,6 +14,8 @@ let reqId: string;
 let personId: string;
 let appId: string;
 let companyId: string;
+let declinePersonId: string | null = null;
+let declineAppId: string | null = null;
 
 describe('Cross-module flow: hired → contact promotion', () => {
   beforeAll(async () => {
@@ -52,10 +54,15 @@ describe('Cross-module flow: hired → contact promotion', () => {
 
   afterAll(async () => {
     const admin = await clientAs('admin');
-    await admin.from('contact_profiles').delete().eq('person_id', personId);
-    await admin.from('applications').delete().eq('id', appId);
-    await admin.from('candidate_profiles').delete().eq('person_id', personId);
-    await admin.from('people').delete().eq('id', personId);
+    for (const id of [declineAppId, appId]) {
+      if (id) await admin.from('applications').delete().eq('id', id);
+    }
+    for (const id of [declinePersonId, personId]) {
+      if (!id) continue;
+      await admin.from('contact_profiles').delete().eq('person_id', id);
+      await admin.from('candidate_profiles').delete().eq('person_id', id);
+      await admin.from('people').delete().eq('id', id);
+    }
     await admin.from('requisitions').delete().eq('id', reqId);
     await admin.from('companies').delete().eq('id', companyId);
   });
@@ -106,7 +113,7 @@ describe('Cross-module flow: hired → contact promotion', () => {
     expect(profiles?.[0].company_id).toBe(companyId); // defaulted from the requisition's company
   });
 
-  it('declining the prompt leaves no contact_profile but the event stays logged', async () => {
+  it('declining the prompt after a received-to-hired transition leaves no contact_profile but the event stays logged', async () => {
     // Exercised against a second application so it doesn't collide with the
     // accept case above (contact_profiles has one row per person_id).
     const admin = await clientAs('admin');
@@ -115,28 +122,68 @@ describe('Cross-module flow: hired → contact promotion', () => {
       .insert({ first_name: 'Qa', last_name: 'HiredFlowDecline', is_test: true })
       .select('id')
       .single();
-    await admin.from('candidate_profiles').insert({ person_id: person2!.id });
+    declinePersonId = person2!.id;
+    await admin.from('candidate_profiles').insert({ person_id: declinePersonId });
+
     const { data: app2 } = await admin
       .from('applications')
-      .insert({ requisition_id: reqId, person_id: person2!.id, stage: 'hired' })
+      .insert({ requisition_id: reqId, person_id: declinePersonId, stage: 'received' })
       .select('id')
       .single();
+    declineAppId = app2!.id;
+    const { error: advanceErr } = await admin
+      .from('applications')
+      .update({ stage: 'hired' })
+      .eq('id', declineAppId);
+    expect(advanceErr).toBeNull();
 
     const { data: events } = await admin
       .from('events_outbox')
       .select('id')
-      .eq('aggregate_id', app2!.id)
+      .eq('aggregate_id', declineAppId)
       .eq('event_name', 'application.hired');
     expect(events && events.length).toBeGreaterThan(0); // event still logged
 
     const { data: profile } = await admin
       .from('contact_profiles')
       .select('person_id')
-      .eq('person_id', person2!.id);
+      .eq('person_id', declinePersonId);
     expect(profile).toHaveLength(0); // decline = no insert, nothing to assert beyond absence
+  });
 
-    await admin.from('applications').delete().eq('id', app2!.id);
-    await admin.from('candidate_profiles').delete().eq('person_id', person2!.id);
-    await admin.from('people').delete().eq('id', person2!.id);
+  it('an imported application inserted already at hired gets hired_at, application.created, and no application.hired (migration 20260901000001)', async () => {
+    const admin = await clientAs('admin');
+    const { data: person3 } = await admin
+      .from('people')
+      .insert({ first_name: 'Qa', last_name: 'HiredFlowImport', is_test: true })
+      .select('id')
+      .single();
+    const importPersonId = person3!.id;
+    const { data: app3 } = await admin
+      .from('applications')
+      .insert({ requisition_id: reqId, person_id: importPersonId, stage: 'hired' })
+      .select('id, hired_at')
+      .single();
+
+    try {
+      expect(app3?.hired_at).not.toBeNull();
+
+      const { data: hiredEvents } = await admin
+        .from('events_outbox')
+        .select('id')
+        .eq('aggregate_id', app3!.id)
+        .eq('event_name', 'application.hired');
+      expect(hiredEvents).toHaveLength(0);
+
+      const { data: createdEvents } = await admin
+        .from('events_outbox')
+        .select('id')
+        .eq('aggregate_id', app3!.id)
+        .eq('event_name', 'application.created');
+      expect(createdEvents).toHaveLength(1);
+    } finally {
+      await admin.from('applications').delete().eq('id', app3!.id);
+      await admin.from('people').delete().eq('id', importPersonId);
+    }
   });
 });

@@ -34,7 +34,17 @@ import 'dotenv/config';
 import { clientAs, SUPABASE_ANON_KEY, SUPABASE_URL } from '../env';
 
 const PARSER_URL = `${SUPABASE_URL}/functions/v1/intake-email-parser`;
-const INTAKE_SECRET = process.env.FOOS_INTAKE_PARSER_SECRET;
+const INTAKE_SECRET = (() => {
+  const value = process.env.FOOS_INTAKE_PARSER_SECRET;
+  if (!value) {
+    throw new Error(
+      'FOOS_INTAKE_PARSER_SECRET is not set. intake-email-parser fails closed and returns 503 ' +
+        'without INTAKE_EMAIL_PARSER_SECRET configured, so this test needs the matching value. ' +
+        'See supabase/functions/.env.example and tests/.env.example.',
+    );
+  }
+  return value;
+})();
 
 // A minimal, valid PDF so the parser's resume-extension check and Storage
 // upload both succeed against a real (tiny, synthetic) file.
@@ -57,7 +67,7 @@ describe('Mocked Gmail: intake-email-parser webhook contract', () => {
       headers: {
         'Content-Type': 'application/json',
         apikey: SUPABASE_ANON_KEY,
-        ...(INTAKE_SECRET ? { 'x-intake-secret': INTAKE_SECRET } : {}),
+        'x-intake-secret': INTAKE_SECRET,
       },
       body: JSON.stringify({
         staffId: 'a0000000-0000-4000-8000-000000000002', // Rita, recruiter
@@ -80,21 +90,23 @@ describe('Mocked Gmail: intake-email-parser webhook contract', () => {
     expect(body.intakeItemId ?? body.id).toBeTruthy();
     createdIntakeItemId = body.intakeItemId ?? body.id;
 
-    const { data: item } = await admin
+    const { data: item, error: itemErr } = await admin
       .from('intake_items')
-      .select('channel, status, target_type, full_name')
+      .select('channel, status, target_type, full_name, parsed, raw_payload')
       .eq('id', createdIntakeItemId!)
       .single();
+    expect(itemErr).toBeNull();
     expect(item?.channel).toBe('email');
-    expect(item?.target_type).toBe('candidate'); // subject/body contain "resume"/"position" hints
+    expect(item?.target_type).toBe('candidate');
     expect(item?.full_name).toContain('QA Mock Candidate');
 
-    const { data: attachments } = await admin
-      .from('attachments')
-      .select('kind, filename')
-      .eq('parent_id', createdIntakeItemId!);
-    expect(attachments && attachments.length).toBeGreaterThan(0);
-    expect(attachments?.[0].kind).toBe('resume');
+    const parsed = item?.parsed as { attachments?: { kind: string; filename: string }[] } | null;
+    expect(parsed?.attachments?.length ?? 0).toBeGreaterThan(0);
+    expect(parsed?.attachments?.[0].kind).toBe('resume');
+    expect(parsed?.attachments?.[0].filename).toBe('resume.pdf');
+
+    const raw = item?.raw_payload as { attachment_filenames?: string[] } | null;
+    expect(raw?.attachment_filenames).toContain('resume.pdf');
   });
 
   it('rejects a payload missing message.from', async () => {
@@ -103,7 +115,7 @@ describe('Mocked Gmail: intake-email-parser webhook contract', () => {
       headers: {
         'Content-Type': 'application/json',
         apikey: SUPABASE_ANON_KEY,
-        ...(INTAKE_SECRET ? { 'x-intake-secret': INTAKE_SECRET } : {}),
+        'x-intake-secret': INTAKE_SECRET,
       },
       body: JSON.stringify({ staffId: 'a0000000-0000-4000-8000-000000000002', label: 'x', message: { id: 'bad' } }),
     });

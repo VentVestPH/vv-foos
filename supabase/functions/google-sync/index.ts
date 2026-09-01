@@ -234,8 +234,19 @@ Deno.serve(async (req) => {
       .maybeSingle();
     syncSecret = (secretRow?.value as { secret?: string } | null)?.secret ?? null;
   }
-  if (syncSecret) {
-    if (req.headers.get("x-sync-secret") !== syncSecret) return json({ error: "Unauthorized" }, 401);
+  if (!syncSecret) {
+    console.error("google-sync: no sync secret configured; refusing all requests");
+    return json(
+      {
+        error:
+          "Endpoint is not configured. Set GOOGLE_SYNC_SECRET, or an integration_settings row " +
+          "(staff_id null, key 'google_sync_secret'), before use.",
+      },
+      503,
+    );
+  }
+  if (req.headers.get("x-sync-secret") !== syncSecret) {
+    return json({ error: "Unauthorized" }, 401);
   }
   let body: { staffId?: string } = {};
   try {

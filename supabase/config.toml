@@ -433,3 +433,26 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# Per-function JWT verification, mirroring the hosted project
+# (mebfbbvrqdctamnzvbbs) as measured on 2026-09-01 by an unauthenticated GET
+# against each deployed function: 200/302/405 means the request reached the
+# function body, so verify_jwt is off there; 401 means the gateway rejected it.
+# Without these, local Edge Functions reject the anonymous requests that the
+# public careers page and the webhook endpoints depend on, and the e2e and
+# mocked-webhook tests fail in a way that does not reproduce against the
+# deployed project.
+[functions.careers-page]
+verify_jwt = false
+
+[functions.careers-apply]
+verify_jwt = false
+
+[functions.google-oauth-callback]
+verify_jwt = false
+
+[functions.google-sync]
+verify_jwt = false
+
+[functions.intake-email-parser]
+verify_jwt = false

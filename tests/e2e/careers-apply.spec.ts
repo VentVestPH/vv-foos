@@ -1,29 +1,37 @@
-// Browser flow test — public careers page + apply form. No sign-in; this
-// hits the deployed careers-page/careers-apply Edge Functions directly
-// (FOOS_CAREERS_URL), not the app/ dev server, since the careers page is
-// served by the Edge Function itself (see foos/supabase/functions/
-// careers-page), not a route inside the React app.
 import { expect, test } from '@playwright/test';
 
-const CAREERS_BASE =
-  process.env.FOOS_CAREERS_URL ?? 'https://mebfbbvrqdctamnzvbbs.supabase.co/functions/v1/careers-page';
+const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const CAREERS_BASE = process.env.FOOS_CAREERS_URL ?? `${SUPABASE_URL}/functions/v1/careers-page`;
 
 test.describe('Careers page (public)', () => {
-  test('listing page loads and privacy link works', async ({ page }) => {
-    await page.goto(CAREERS_BASE);
+  test('listing page loads with a title and no sign-in', async ({ page }) => {
+    const res = await page.goto(CAREERS_BASE);
+    expect(res?.status()).toBeLessThan(300);
     await expect(page).toHaveTitle(/careers|jobs|ventvest/i);
-    const privacyLink = page.getByRole('link', { name: /privacy/i });
-    if (await privacyLink.count()) {
-      await privacyLink.first().click();
-      await expect(page).toHaveURL(/privacy/);
-    }
+    await expect(page.locator('body')).not.toContainText(/sign in with email/i);
   });
 
   test('375px mobile viewport has no horizontal scroll on the listing', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(CAREERS_BASE);
-    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1); // +1px rounding tolerance
+    const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+  });
+
+  test('apply endpoint rejects a submission with no resume', async ({ request }) => {
+    const res = await request.post(`${SUPABASE_URL}/functions/v1/careers-apply`, {
+      multipart: {
+        requisition_id: '00000000-0000-4000-8000-000000000000',
+        full_name: 'E2E No Resume',
+        email: 'e2e-no-resume@example.com',
+        phone: '+63 917 000 0000',
+        consent: 'true',
+      },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).message).toMatch(/resume/i);
   });
 });

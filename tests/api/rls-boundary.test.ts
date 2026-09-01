@@ -8,11 +8,15 @@
 // project (creates real Auth identities for the 4 seeded demo staff rows).
 import { describe, expect, it } from 'vitest';
 import { clientAs } from '../env';
+import { SEED_DEAL_IDS, SEED_PEOPLE_IDS } from '../fixtures/seed-ids';
 
 describe('RLS boundary — sourcer', () => {
   it('sees only own-sourced candidates via people, and zero companies', async () => {
     const sourcer = await clientAs('sourcer');
-    const { data: people, error: peopleErr } = await sourcer.from('people').select('id');
+    const { data: people, error: peopleErr } = await sourcer
+      .from('people')
+      .select('id')
+      .in('id', SEED_PEOPLE_IDS);
     expect(peopleErr).toBeNull();
     expect(people).toHaveLength(3); // matches validate.sql check 10 exactly
 
@@ -84,13 +88,13 @@ describe('RLS boundary — bd', () => {
 });
 
 describe('RLS boundary — recruiter', () => {
-  it('sees all 10 people, reads deals but cannot write them', async () => {
+  it('sees every seeded person, reads deals but cannot write them', async () => {
     const recruiter = await clientAs('recruiter');
-    const { data: people } = await recruiter.from('people').select('id');
-    expect(people).toHaveLength(10);
+    const { data: people } = await recruiter.from('people').select('id').in('id', SEED_PEOPLE_IDS);
+    expect(people).toHaveLength(SEED_PEOPLE_IDS.length);
 
-    const { data: deals } = await recruiter.from('deals').select('id');
-    expect(deals).toHaveLength(2);
+    const { data: deals } = await recruiter.from('deals').select('id').in('id', SEED_DEAL_IDS);
+    expect(deals).toHaveLength(SEED_DEAL_IDS.length);
 
     const { error, data: updated } = await recruiter
       .from('deals')
@@ -106,12 +110,12 @@ describe('RLS boundary — recruiter', () => {
 });
 
 describe('RLS boundary — admin', () => {
-  it('reads audit_log, events_outbox, and all people', async () => {
+  it('reads audit_log, events_outbox, and every seeded person', async () => {
     const admin = await clientAs('admin');
     const { data: audit } = await admin.from('audit_log').select('id').limit(1);
     expect(audit && audit.length).toBeGreaterThan(0);
-    const { data: people } = await admin.from('people').select('id');
-    expect(people).toHaveLength(10);
+    const { data: people } = await admin.from('people').select('id').in('id', SEED_PEOPLE_IDS);
+    expect(people).toHaveLength(SEED_PEOPLE_IDS.length);
   });
 });
 

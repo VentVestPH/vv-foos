@@ -1,49 +1,42 @@
-// Browser flow test — ATS: sign in as recruiter, open a requisition's
-// pipeline, confirm the kanban/table views render and a card is draggable.
-// Runs against a local `npm run dev` instance (see playwright.config.ts) —
-// same "drive the real app, not just the API" principle as Agent 6's live
-// testing, applied to a repeatable automated spec instead of a one-off
-// manual click-through.
 import { expect, test } from '@playwright/test';
-
-const RECRUITER_EMAIL = 'rita.demo@ventvest.com';
-// SECURITY (QA-003): no literal fallback. The old default was a working
-// credential against the live project. See tests/env.ts.
-const TEST_PASSWORD = (() => {
-  const value = process.env.FOOS_QA_TEST_PASSWORD;
-  if (!value) throw new Error('FOOS_QA_TEST_PASSWORD is not set (see tests/.env.example)');
-  return value;
-})();
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 
 test.describe('ATS pipeline', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.getByLabel(/email/i).fill(RECRUITER_EMAIL);
-    await page.getByLabel(/password/i).fill(TEST_PASSWORD);
-    await page.getByRole('button', { name: /sign in|log in/i }).click();
-    await expect(page).toHaveURL(/\/(?!login)/, { timeout: 10000 });
+    await signIn(page, PERSONA_EMAILS.recruiter);
   });
 
   test('requisition list loads and opens a record', async ({ page }) => {
-    await page.goto('/recruit/requisitions');
-    await expect(page.getByRole('heading', { name: /requisitions/i })).toBeVisible();
+    await gotoAsSignedIn(page, '/recruit/requisitions');
+    await expect(page.getByRole('heading', { name: /^Requisitions/ })).toBeVisible();
     const firstRow = page.locator('.table-wrap tbody tr').first();
-    await expect(firstRow).toBeVisible({ timeout: 10000 });
-    await firstRow.click();
-    await expect(page).toHaveURL(/\/recruit\/requisitions\/[a-f0-9-]+/);
+    await expect(firstRow).toBeVisible({ timeout: 15000 });
+    await firstRow.locator('.link-btn').first().click();
+    await expect(page).toHaveURL(/\/recruit\/requisitions\/[0-9a-f-]{36}/);
   });
 
-  test('candidate list shows star grading and filters', async ({ page }) => {
-    await page.goto('/recruit/candidates');
-    await expect(page.getByRole('heading', { name: /candidates/i })).toBeVisible();
+  test('candidate list shows the filter rail and rows', async ({ page }) => {
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    await expect(page.getByRole('heading', { name: /^Candidates/ })).toBeVisible();
     await expect(page.locator('.filter-rail')).toBeVisible();
+    await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 15000 });
   });
 
-  test('pipeline board renders both table and kanban views', async ({ page }) => {
-    await page.goto('/recruit/requisitions');
+  test('requisition record renders its application pipeline', async ({ page }) => {
+    await gotoAsSignedIn(page, '/recruit/requisitions');
     const firstRow = page.locator('.table-wrap tbody tr').first();
-    await firstRow.click();
-    // ApplicationPipeline renders inside the requisition record page.
-    await expect(page.locator('body')).toContainText(/pipeline/i, { timeout: 10000 });
+    await expect(firstRow).toBeVisible({ timeout: 15000 });
+    await firstRow.locator('.link-btn').first().click();
+    await expect(page).toHaveURL(/\/recruit\/requisitions\/[0-9a-f-]{36}/);
+    await expect(page.locator('body')).toContainText(/pipeline/i, { timeout: 15000 });
+  });
+
+  test('list pages paginate without a full reload', async ({ page }) => {
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 15000 });
+    const pager = page.locator('.taleo-pager');
+    if (await pager.count()) {
+      await expect(pager.first()).toContainText(/\d+\s*-\s*\d+\s+of\s+\d+/);
+    }
   });
 });

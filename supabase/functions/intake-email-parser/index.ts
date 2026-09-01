@@ -118,11 +118,15 @@ function base64ToBytes(b64: string): Uint8Array {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  if (SHARED_SECRET) {
-    const provided = req.headers.get("x-intake-secret");
-    if (provided !== SHARED_SECRET) {
-      return json({ error: "Unauthorized" }, 401);
-    }
+  if (!SHARED_SECRET) {
+    console.error("intake-email-parser: INTAKE_EMAIL_PARSER_SECRET is not set; refusing all requests");
+    return json(
+      { error: "Endpoint is not configured. Set INTAKE_EMAIL_PARSER_SECRET before use." },
+      503,
+    );
+  }
+  if (req.headers.get("x-intake-secret") !== SHARED_SECRET) {
+    return json({ error: "Unauthorized" }, 401);
   }
 
   let body: ParserBody;

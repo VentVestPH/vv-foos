@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import 'dotenv/config';
 
 const PORT = Number(process.env.FOOS_PORT ?? 5175);
 const BASE_URL = process.env.FOOS_BASE_URL ?? `http://localhost:${PORT}`;
