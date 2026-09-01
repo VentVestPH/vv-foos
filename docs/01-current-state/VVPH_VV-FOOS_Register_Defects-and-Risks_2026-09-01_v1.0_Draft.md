@@ -10,14 +10,28 @@ Migration records are referenced by field value and count only, never by candida
 
 | ID | Item | Severity | Status |
 | :---- | :---- | :---- | :---- |
-| QA-002 | `careers_rate_limit` has row-level security disabled | Medium as logged, **treat as Critical** | Open. The QA brief makes every RLS finding Critical by default and forbids downgrading without John's explicit sign-off. That sign-off has not been given, so the working-log downgrade does not stand. **New information 2026-09-01:** it is now also a verification blocker, not only a severity question. `validate.sql` halts at check 2 on this table, so checks 3 to 14 cannot run until it is resolved. With it enabled in a throwaway local database, all 14 checks pass |
+| QA-002 | `careers_rate_limit` has row-level security disabled | Medium as logged, **treat as Critical** | **Fixed 2026-09-01** by migration `20260901000002_careers_rate_limit_rls.sql`. Enabling RLS is the safe direction and needed no severity ruling; what needed John's sign-off was any downgrade, which is not what happened. No policies were added: `careers_record_attempt` is SECURITY DEFINER owned by postgres and `service_role` carries `rolbypassrls`, both verified, so the careers form keeps working while anon and authenticated get nothing. `validate.sql` check 2 now passes from a clean `db:reset` |
 | QA-003 | Four demo Auth identities share one password committed in plaintext at `tests/fixtures/personas.sql` | Low as logged, **re-rate to High** | Open. Rationale for re-rating in section 3 |
 | QA-007 | `reminder.due` fires correctly but has no interface | Medium | Open, needs a product decision rather than a fix |
-| QA-008 | None of the four success metrics is instrumented | High | Open, with a deadline attached: the Phase 6 measurement window cannot open without it |
+| QA-008 | None of the four success metrics is instrumented | High | **Fixed 2026-09-01** by migration `20260901000003_success_metrics_qa008.sql`. Adoption, both cycle-time medians, cost and three data-quality ratios now compute into the same weekly cache as the existing counters, and render labelled and unit-formatted in the admin dashboard. Each formula was proved against a non-test fixture in a rolled-back transaction, since seed data leaves most denominators at zero. Cost reads "Not measured" until an admin enters the contract figures, which are recorded nowhere in this repository |
 | QA-004, QA-006 | Cosmetic findings | Low | Open |
-| Gate 4 | 32 of 91 acceptance criteria are traced rather than independently re-verified | n/a | Open |
-| Gate 4 | 12 of 91 acceptance criteria have no test at all | n/a | Open |
-| Gate 4 | Three Playwright specs have never executed anywhere | n/a | **Now unblocked**, see section 4 |
+| Gate 4 | 32 of 91 acceptance criteria are traced rather than independently re-verified | n/a | **Largely closed 2026-09-01.** 25 criteria moved to PASS or PARTIAL with named evidence. 14 remain TRACED, all needing a real Google account, a production publish, or a manual click-through |
+| Gate 4 | 12 of 91 acceptance criteria have no test at all | n/a | **Largely closed 2026-09-01.** 4 remain GAP, all Google-integration or production-publish |
+| Gate 4 | Three Playwright specs have never executed anywhere | n/a | **Closed 2026-09-01.** They ran, all six of their assertions were wrong or vacuous, and they were rewritten. 22 browser tests now pass from a clean reset, alongside 57 API tests |
+
+## 1a. Defects found on 2026-09-01 while verifying the open criteria
+
+Each of these was found by executing a criterion that had previously only been traced. All are fixed and covered by a regression test.
+
+| ID | Item | Severity | Evidence and fix |
+| :---- | :---- | :---- | :---- |
+| D20 | The `supabase_realtime` publication contained no tables, so none of the seven `postgres_changes` subscriptions in the app could ever fire | High | Live updates are a stated criterion in two places (2.2 unviewed badge, 3.3 deal timeline) and gate the contact-promotion banner, which listens for `application.hired` on `events_outbox`. Nothing in the repository ever added the tables, so a database built from these migrations has never had working live updates. Fixed by `20260901000008_realtime_publication.sql`, which adds the five subscribed tables under a guard. `tests/e2e/realtime.spec.ts` proves the badge decrements without a reload, and was verified falsifiable: it fails with the table removed from the publication |
+| D21 | `dash.refresh_materialized_views` always failed when called through the API, so the dashboard's "Refresh now" button never worked | High | PostgREST connects as `authenticator`, which Supabase preloads with `safeupdate`. That raises "DELETE requires a WHERE clause" on any unqualified DELETE, inside SECURITY DEFINER functions included, because it is a session guard and not a privilege check. `dash._refresh_stage_duration_cache` opened with two unqualified DELETEs. It went unnoticed because the `pg_cron` jobs calling the same functions run as postgres over a local connection that never loads `safeupdate`. Fixed by `20260901000006`; adding `where true` plans identically. Confirmed the metric cache goes 7 to 16 rows on an admin refresh |
+| D22 | Mandatory rejection and lost reasons were enforced only in the React forms (criteria 2.8 and 3.4) | High | A signed-in admin could `PATCH stage='rejected'` with `rejection_reason` null, and the same for deals; PostgREST accepted both. The anon key ships in the browser bundle by design, so any staff member could do this from a console and the data-quality guarantee did not hold. Fixed by `20260901000005` as a transition trigger rather than a CHECK constraint, so the Zoho import can still land historically rejected and lost rows whose reason was never recorded. Clearing the reason in a second step is blocked too. Zero existing rows violated it |
+| D23 | `careers_form` intake rows were freely editable by a recruiter (criterion 5.10) | Medium | The `intake_items` UPDATE policy allows a recruiter to update any candidate-target row whatever its channel, so a recruiter could rewrite `full_name` on an applicant's own submission and the change stuck. Those rows are the evidence of what was sent. Fixed by `20260901000007` using the column-guard pattern already established by `fn_candidate_grade_guard`: grading and routing fields stay writable, applicant-supplied fields do not. Admin is exempt, consistent with every other guard in this schema |
+| D24 | The Recently Viewed rail never populated (criterion 2.10) | Medium | Every record page called `record()`, but each `useRecentlyViewed` held its own `useState` and the `storage` event fires only for other documents, so the sidebar never saw the write. Identical to the defect already fixed in `useBookmarks`, and fixed the same way with a module-level subscriber set. The 15-entry cap is now asserted too |
+| D25 | `applications.hired_at` was left null when a row was INSERTed already at stage `hired` | Medium | `fn_application_stage_before` was BEFORE UPDATE only. `dash._refresh_success_metrics` derives `applications_hired` from `hired_at`, so such rows were permanently invisible to that metric. This is exactly the shape the Zoho importer will write, since historical hires arrive at their final stage rather than by transition. Fixed by `20260901000001`. Domain events stay UPDATE-only on purpose, so a bulk import does not raise a promotion prompt for every past hire |
+| D26 | An attachment's storage object becomes permanently undeletable once its `attachments` row is gone | Medium | The `attachments_remove` policy matches on that row, and `remove()` then returns an empty array with **no error**, so a caller cannot tell the file survived. Intake-staged files never get a row at all, so a rejected intake attachment is unreachable forever. Not currently reachable from the UI, which has no delete path, but it matters for the `is_test` purge and for retention: deleting a person leaves both the row and the file behind. **Not fixed in the schema.** `scripts/purge-orphan-attachments.mjs` enumerates and clears them and found 317 accumulated locally. The durable fix is to delete the object before the row, which the tests now do |
 
 ## 2. Findings verified on 2026-09-01
 
@@ -175,11 +189,18 @@ Consequence: the four Gate 4 open items that were blocked on environment, princi
 | D14 | Unguarded `cron.schedule` | **Fixed** |
 | D15 | Stale `validate.sql` counts | **Fixed** |
 | D16 | Dead gear control | **Fixed** |
-| D17 | `useIntakeBadge` has no consumer | Open. The hook still runs a Realtime subscription nothing renders |
-| QA-002 | `careers_rate_limit` RLS disabled | Open, needs John's severity call. CI enables it so the schema job can pass `validate.sql` |
+| D17 | `useIntakeBadge` has no consumer | **Fixed.** The Intake nav item now renders the count in a persistent live region, which also closed the last half of G4 |
+| D20 | `supabase_realtime` publication empty; every live-update subscription dead | **Fixed** by migration `20260901000008`, with a falsifiable browser test |
+| D21 | Dashboard "Refresh now" always failed through the API (`safeupdate`) | **Fixed** by migration `20260901000006` |
+| D22 | Rejection and lost reasons were UI-only and bypassable | **Fixed** by migration `20260901000005` |
+| D23 | `careers_form` intake rows editable by a recruiter | **Fixed** by migration `20260901000007` |
+| D24 | Recently Viewed rail never populated | **Fixed.** Same defect as the one already fixed in `useBookmarks` |
+| D25 | `hired_at` null on insert-at-hired, invisible to the hired metric | **Fixed** by migration `20260901000001` |
+| D26 | Storage object undeletable once its `attachments` row is gone | Open in the schema. A purge script exists and the tests now delete in the right order |
+| QA-002 | `careers_rate_limit` RLS disabled | **Fixed** by migration `20260901000002`. CI no longer needs its ad-hoc `alter table` line |
 | QA-003 | Shared plaintext test password | **Partly fixed.** Removed from the repository entirely; the live persona passwords are still unrotated |
 | QA-007 | `reminder.due` has no interface | Open, product decision |
-| QA-008 | Success metrics not instrumented | Open |
+| QA-008 | Success metrics not instrumented | **Fixed** by migration `20260901000003`, surfaced and unit-formatted in the admin dashboard |
 
 ### D18. F9 / C6 was a false finding, withdrawn
 
