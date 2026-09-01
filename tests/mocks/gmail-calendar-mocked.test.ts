@@ -56,6 +56,30 @@ describe('Mocked Gmail: intake-email-parser webhook contract', () => {
   afterAll(async () => {
     if (!createdIntakeItemId) return;
     const admin = await clientAs('admin');
+
+    const { data: item } = await admin
+      .from('intake_items')
+      .select('parsed')
+      .eq('id', createdIntakeItemId)
+      .maybeSingle();
+    const staged = (item?.parsed as { attachments?: { storage_path?: string }[] } | null)?.attachments ?? [];
+    const stagedPaths = staged.map((a) => a.storage_path).filter((p): p is string => Boolean(p));
+
+    for (const path of stagedPaths) {
+      const { data: temp } = await admin
+        .from('attachments')
+        .insert({
+          storage_path: path,
+          parent_type: 'intake_item',
+          parent_id: createdIntakeItemId,
+          kind: 'resume',
+        })
+        .select('id')
+        .single();
+      await admin.storage.from('attachments').remove([path]);
+      if (temp) await admin.from('attachments').delete().eq('id', temp.id);
+    }
+
     await admin.from('attachments').delete().eq('parent_id', createdIntakeItemId);
     await admin.from('intake_items').delete().eq('id', createdIntakeItemId);
   });

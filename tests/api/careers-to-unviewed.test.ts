@@ -25,7 +25,7 @@ function requireDisposableProject() {
 const APPLY_URL = `${SUPABASE_URL}/functions/v1/careers-apply`;
 const TEST_EMAIL = 'qa-careers-flow-test@ventvest.com';
 
-const RUN_IP = `203.0.113.${1 + Math.floor(Math.random() * 250)}`;
+const RUN_IP = `test-${Math.random().toString(36).slice(2, 10)}-intake`;
 
 const MINIMAL_PDF = new Uint8Array([
   0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a, 0x25, 0x25, 0x45, 0x4f, 0x46, 0x0a,
@@ -64,6 +64,12 @@ describe('Cross-module flow: careers form → recruiter unviewed queue', () => {
     for (const row of strays ?? []) {
       await admin.from('applications').delete().eq('person_id', row.id);
       await admin.from('candidate_profiles').delete().eq('person_id', row.id);
+      const { data: files } = await admin
+        .from('attachments')
+        .select('storage_path')
+        .eq('parent_id', row.id);
+      const paths = (files ?? []).map((f) => f.storage_path).filter(Boolean);
+      if (paths.length) await admin.storage.from('attachments').remove(paths);
       await admin.from('attachments').delete().eq('parent_id', row.id);
       await admin.from('people').delete().eq('id', row.id);
     }

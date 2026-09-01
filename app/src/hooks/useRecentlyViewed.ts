@@ -14,6 +14,8 @@ export interface RecentItem {
 
 const MAX_ITEMS = 15;
 
+const listeners = new Set<() => void>();
+
 function storageKey(staffId: string | null): string {
   return `foos.recentlyViewed.${staffId ?? 'anon'}`;
 }
@@ -23,10 +25,19 @@ function readStore(key: string): RecentItem[] {
     const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as RecentItem[]) : [];
+    return Array.isArray(parsed) ? (parsed as RecentItem[]).slice(0, MAX_ITEMS) : [];
   } catch {
     return [];
   }
+}
+
+function writeStore(key: string, value: RecentItem[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value.slice(0, MAX_ITEMS)));
+  } catch {
+    return;
+  }
+  listeners.forEach((notify) => notify());
 }
 
 export function useRecentlyViewed() {
@@ -35,31 +46,37 @@ export function useRecentlyViewed() {
   const [items, setItems] = useState<RecentItem[]>(() => readStore(key));
 
   useEffect(() => {
-    setItems(readStore(key));
+    const sync = () => setItems(readStore(key));
+    sync();
+    listeners.add(sync);
     const onStorage = (e: StorageEvent) => {
-      if (e.key === key) setItems(readStore(key));
+      if (e.key === key) sync();
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return () => {
+      listeners.delete(sync);
+      window.removeEventListener('storage', onStorage);
+    };
   }, [key]);
 
   const record = useCallback(
     (item: Omit<RecentItem, 'viewedAt'>) => {
       const next: RecentItem[] = [
         { ...item, viewedAt: new Date().toISOString() },
-        ...readStore(key).filter(
-          (i) => !(i.type === item.type && i.id === item.id),
-        ),
+        ...readStore(key).filter((i) => !(i.type === item.type && i.id === item.id)),
       ].slice(0, MAX_ITEMS);
-      localStorage.setItem(key, JSON.stringify(next));
-      setItems(next);
+      writeStore(key, next);
     },
     [key],
   );
 
   const clear = useCallback(() => {
-    localStorage.removeItem(key);
-    setItems([]);
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      return;
+    }
+    listeners.forEach((notify) => notify());
   }, [key]);
 
   return { items, record, clear };

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const CAREERS_BASE = process.env.FOOS_CAREERS_URL ?? `${SUPABASE_URL}/functions/v1/careers-page`;
 
-const RUN_IP = `203.0.113.${1 + Math.floor(Math.random() * 250)}`;
+const RUN_IP = `test-${Math.random().toString(36).slice(2, 10)}-e2e`;
 
 test.describe('Careers page (public)', () => {
   test('listing page loads with a title and no sign-in', async ({ page }) => {
