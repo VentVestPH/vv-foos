@@ -1,8 +1,9 @@
--- Add the five subscribed tables to the supabase_realtime publication.
+-- Add the seven subscribed tables to the supabase_realtime publication.
 --
--- Seven components subscribe to postgres_changes: RequisitionListPage,
+-- Nine components subscribe to postgres_changes: RequisitionListPage,
 -- CandidateListPage, ApplicationPipeline, RequisitionRecordPage,
--- HiredPromotionListener, the intake badge hook and the dashboard hooks.
+-- HiredPromotionListener, the intake badge hook, the dashboard hooks, and the
+-- My Reminders and My Tasks panels.
 -- Verified on a migration-built database on 2026-09-01: the
 -- supabase_realtime publication contained zero tables, so not one of those
 -- subscriptions could ever fire. Nothing in the repository added them, so a
@@ -35,7 +36,9 @@ begin
     'application_views',
     'candidate_profiles',
     'intake_items',
-    'events_outbox'
+    'events_outbox',
+    'reminders',
+    'tasks'
   ]
   loop
     if not exists (

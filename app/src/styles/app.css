@@ -1605,3 +1605,70 @@ summary:focus-visible,
   text-align: center;
   vertical-align: middle;
 }
+
+.reminders-heading {
+  margin: var(--sp-2) 0 var(--sp-1);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.reminder-count {
+  display: inline-block;
+  min-width: 16px;
+  margin-left: var(--sp-1);
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--status-danger-bg);
+  color: var(--danger);
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  text-align: center;
+}
+
+.reminder-list,
+.task-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reminder-row,
+.task-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr minmax(5rem, auto) auto;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-row {
+  grid-template-columns: minmax(9rem, auto) 1fr minmax(5rem, auto) auto auto;
+}
+
+.reminder-row:last-child,
+.task-row:last-child {
+  border-bottom: 0;
+}
+
+.reminder-row.is-due .reminder-when,
+.task-row.is-overdue .task-due {
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.reminder-when,
+.task-due,
+.reminder-related,
+.task-related,
+.task-priority {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.reminder-related,
+.task-related,
+.task-priority {
+  text-transform: capitalize;
+}

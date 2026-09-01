@@ -6,6 +6,8 @@ import { RecordSection } from '../components/ui/RecordPage';
 import { TaleoPlaceholderAction, usePlaceholder } from '../shell/TaleoPlaceholder';
 import { HomeIcon, PipelineIcon, PieChartIcon, GearIcon } from '../shell/icons';
 import { DashboardWidgetsPanel } from '../modules/dashboards';
+import { MyReminders } from './MyReminders';
+import { MyTasks } from './MyTasks';
 
 export function DashboardPage() {
   const [params] = useSearchParams();
@@ -85,6 +87,10 @@ function MyViewTab() {
         </div>
       </RecordSection>
 
+      <RecordSection title="My Reminders" defaultOpen>
+        <MyReminders />
+      </RecordSection>
+
       <RecordSection title="My Tasks" defaultOpen>
         <div className="record-section-inline-actions">
           {}
@@ -94,7 +100,7 @@ function MyViewTab() {
             Include Onboarding/Offboarding Tasks
           </label>
         </div>
-        <p>Task list is empty.</p>
+        <MyTasks />
       </RecordSection>
 
       <RecordSection title="Onboarding Employees" defaultOpen={false}>
