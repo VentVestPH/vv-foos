@@ -1,8 +1,3 @@
-// Per-requisition application pipeline (brief instructions 8, 9, 11):
-// synchronized table + kanban over the locked APPLICATION_STAGES, rejection
-// dialog, hired → promotion prompt, unviewed tracking via application_views.
-// Stage writes are plain UPDATEs — DB triggers own audit/activity/outbox.
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -38,12 +33,11 @@ interface PipelineProps {
   requisition: Requisition;
   companies: Company[];
   sources: Source[];
-  /** Recruiters and admins edit; sourcers and mobile viewports are read-only. */
+
   canEdit: boolean;
-  /** Mobile renders the table only — no drag. */
+
   mobile: boolean;
-  /** Bumped by the record page's "Next Steps: Add new candidate" link to
-   *  open this same dialog from outside — real behavior, not a placeholder. */
+
   addSignal?: number;
 }
 
@@ -85,19 +79,15 @@ export function ApplicationPipeline({
   const navigate = useNavigate();
   const { staff } = useSession();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  // Opens the same "Add candidate" dialog as the in-pipeline button when the
-  // record page's "Next Steps: Add new candidate" link is clicked. Skips the
-  // initial mount (addSignal starts undefined/0) so it never opens on load.
+
   useEffect(() => {
     if (addSignal) setAdding(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addSignal]);
   const [apps, setApps] = useState<Application[]>([]);
   const [people, setPeople] = useState<Map<string, Person>>(new Map());
   const [viewedAt, setViewedAt] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
-  // Dialog state
   const [rejectTarget, setRejectTarget] = useState<Application | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [promoteTarget, setPromoteTarget] = useState<Application | null>(null);
@@ -144,7 +134,6 @@ export function ApplicationPipeline({
     void load();
   }, [load]);
 
-  // Live refresh on application.created / application.stage_changed.
   useEffect(() => {
     const channel = supabase
       .channel(`recruit-pipeline-${requisition.id}`)
@@ -201,7 +190,6 @@ export function ApplicationPipeline({
 
   const totalUnviewed = rows.filter((r) => r.unviewed).length;
 
-  /** Opening an application marks it viewed for me, then opens the candidate. */
   const openCandidate = useCallback(
     async (row: AppRow) => {
       if (staff) {
@@ -225,7 +213,6 @@ export function ApplicationPipeline({
       stage: ApplicationStage,
       extra: Partial<{ rejection_reason: string; hired_at: string }> = {},
     ) => {
-      // Plain UPDATE — triggers write status_change activity, audit_log, outbox.
       const { error: err } = await supabase
         .from('applications')
         .update({
@@ -263,8 +250,6 @@ export function ApplicationPipeline({
         void writeStage(app, 'hired', { hired_at: new Date().toISOString() }).then(
           (ok) => {
             if (ok) {
-              // application.hired fires from the trigger; this renders the
-              // cross-module promotion prompt (create contact_profile).
               setPromoteCompanyId(requisition.company_id ?? '');
               setPromoteMsg(null);
               setPromoteTarget(app);
@@ -719,8 +704,7 @@ function AddCandidateDialog({
 
   const add = async (personId: string, sourceId: string | null) => {
     setBusy(true);
-    // One application per person per requisition — a duplicate surfaces the
-    // existing application instead of an error dump.
+
     const dupe = existing.find((a) => a.person_id === personId);
     if (dupe) {
       onDuplicate(dupe);

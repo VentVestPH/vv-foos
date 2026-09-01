@@ -1,3 +1,5 @@
+import { CalendarViewIcons } from './CalendarViewIcons';
+import { MiniCalendar } from './MiniCalendar';
 import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { RecordSection } from '../components/ui/RecordPage';
@@ -5,25 +7,6 @@ import { TaleoPlaceholderAction, usePlaceholder } from '../shell/TaleoPlaceholde
 import { HomeIcon, PipelineIcon, PieChartIcon, GearIcon } from '../shell/icons';
 import { DashboardWidgetsPanel } from '../modules/dashboards';
 
-/**
- * Home route ("/") — Taleo-exact dashboard shell (redesign prompt section
- * 8.1). navConfig.ts already routes Home/Pipeline/Reports here with a `tab`
- * query param; this component switches on that param to render one of three
- * Taleo states while staying a single component tree/route:
- *
- *   - no tab / tab=home  -> "My View" — Taleo accordion empty-states for
- *     features FOOS doesn't implement yet (calendar, tasks, onboarding,
- *     interviews). These are legitimate Taleo empty panels per instruction
- *     3 ("every visible section must appear"), not deletions.
- *   - tab=pipeline        -> Agent 7's five live dashboards + admin-gated
- *     Experiment metrics, each in its own RecordSection accordion instead
- *     of the former modern dashboard-card grid. Same Supabase queries,
- *     drill-through, CSV export, and Realtime refresh as before.
- *   - tab=reports         -> decorative Taleo "Run Report" chrome (category
- *     toggles/tabs are all FOOS-TBD placeholders) followed by the *same*
- *     real widgets panel, so the executive dashboards stay reachable from
- *     the Reports primary-nav tab per the prompt's explicit instruction.
- */
 export function DashboardPage() {
   const [params] = useSearchParams();
   const tab = params.get('tab');
@@ -60,8 +43,7 @@ function MyViewTab() {
             <h1>
               My View: {staffName} ({roleLabel} at VentVest)
             </h1>
-            {/* FOOS has a single dashboard, so this is a decorative Taleo
-                control — FOOS-TBD if a second dashboard view is ever built. */}
+            {}
             <TaleoPlaceholderAction
               label="Switch to My Dashboard"
               variant="ghost"
@@ -79,25 +61,33 @@ function MyViewTab() {
         aria-disabled
         onClick={() => show('Dashboard settings')}
       >
-        {/* FOOS-TBD: no configurable dashboard-panel layout yet. */}
+        {}
         <GearIcon size={16} />
       </button>
 
       <RecordSection title="My Calendar" defaultOpen>
         <div className="record-section-inline-actions">
-          {/* FOOS-TBD: no calendar/event module yet. */}
+          {}
           <TaleoPlaceholderAction label="New Event" variant="ghost" size="sm" />
           <span className="record-section-divider" aria-hidden="true">|</span>
-          {/* FOOS-TBD: interview scheduling isn't reachable from the dashboard yet. */}
+          {}
           <TaleoPlaceholderAction label="Schedule interview" variant="ghost" size="sm" />
         </div>
-        <p>Today {todayLabel}.</p>
-        <p>No events scheduled.</p>
+        <div className="taleo-calendar-body">
+          <div className="taleo-calendar-main">
+            <div className="taleo-calendar-toolbar">
+              <span>Today {todayLabel}.</span>
+              <CalendarViewIcons />
+            </div>
+            <p>No events scheduled.</p>
+          </div>
+          <MiniCalendar />
+        </div>
       </RecordSection>
 
       <RecordSection title="My Tasks" defaultOpen>
         <div className="record-section-inline-actions">
-          {/* FOOS-TBD: no task-list module yet. */}
+          {}
           <TaleoPlaceholderAction label="New Task" variant="ghost" size="sm" />
           <label className="taleo-disabled-checkbox">
             <input type="checkbox" disabled aria-disabled="true" />
@@ -117,7 +107,7 @@ function MyViewTab() {
 
       <RecordSection title="My Interviews" defaultOpen={false}>
         <div className="record-section-inline-actions">
-          {/* FOOS-TBD: no interview-scheduling module yet. */}
+          {}
           <TaleoPlaceholderAction label="Schedule interview" variant="ghost" size="sm" />
         </div>
         <p>There are currently no interviews scheduled.</p>

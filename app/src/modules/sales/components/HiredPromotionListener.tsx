@@ -1,10 +1,3 @@
-// Realtime receiver for application.hired (architecture section 4/6). The
-// outbox trigger inserts the event; this listener shows BD/admin users a
-// promotion prompt that routes to /sales/promote with the payload's
-// person_id and suggested company_id. It never queries requisitions or any
-// candidate table — everything it needs rides in the event payload, and
-// Realtime respects RLS on events_outbox.
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -79,7 +72,6 @@ export function HiredPromotionListener() {
     setPrompts((prev) => prev.filter((p) => p.eventId !== eventId));
   };
 
-  // Show one prompt at a time; the rest queue behind it.
   const current = prompts[0];
 
   return (

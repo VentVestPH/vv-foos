@@ -12,13 +12,12 @@ import type { StaffRole, Tables } from '../lib/database.types';
 type Staff = Tables<'staff'>;
 
 interface SessionState {
-  /** Supabase auth session; null when signed out. */
   session: Session | null;
-  /** The signed-in user's staff row (staff.id = auth.users.id); null until loaded. */
+
   staff: Staff | null;
-  /** Role from staff.role. RLS is the real boundary; this only shapes the UI. */
+
   role: StaffRole | null;
-  /** True while the initial session + staff lookup is in flight. */
+
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -90,7 +89,6 @@ export function useSession(): SessionState {
   return useContext(SessionContext);
 }
 
-/** Current user's role, or null while loading / signed out. */
 export function useRole(): StaffRole | null {
   return useContext(SessionContext).role;
 }

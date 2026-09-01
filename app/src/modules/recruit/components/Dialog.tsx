@@ -7,7 +7,6 @@ interface DialogProps {
   onClose: () => void;
 }
 
-/** Modal used for rejection reasons, promotion prompts, and saved-view names. */
 export function Dialog({ title, children, footer, onClose }: DialogProps) {
   return (
     <div

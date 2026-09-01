@@ -1,7 +1,3 @@
-// Hand-derived from foos/supabase/migrations/ (Agent 1, Gate 1 schema).
-// Column names match the SQL exactly. If a migration changes, this file changes
-// with it in the same commit — modules must not fork their own copies.
-
 export type Json =
   | string
   | number
@@ -9,8 +5,6 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[];
-
-// Enums (migration 02)
 
 export type StaffRole = 'admin' | 'recruiter' | 'sourcer' | 'bd';
 
@@ -73,10 +67,7 @@ export type AttachmentKind = 'resume' | 'cover' | 'contract' | 'offer' | 'other'
 
 export type ApproverType = 'requisition' | 'offer';
 
-// companies.types is text[] constrained by check, not a Postgres enum.
 export type CompanyType = 'client' | 'employer' | 'prospect';
-
-// Shapes of the jsonb array columns on people
 
 export interface PersonEmail {
   type: string;
@@ -88,8 +79,6 @@ export interface PersonPhone {
   number: string;
 }
 
-// Fixed 2026-07-25 per the Zoho Recruit migration plan — every entry carries
-// exactly these five keys (nulls where the source export had no value yet).
 export interface PersonEducation {
   university: string | null;
   bachelor_discipline: string | null;
@@ -98,20 +87,11 @@ export interface PersonEducation {
   other_degrees: string | null;
 }
 
-// Shape not yet finalized — Zoho's Experience Details export currently has
-// linking columns only, so this is always `[]` until it's re-exported with
-// full fields. Kept loose (rather than a rigid interface) so the UI renders
-// whatever keys eventually show up instead of assuming a shape with no data
-// to confirm it against.
 export type PersonExperience = Record<string, Json | undefined>;
-
-// Table row types. `Row` is what a select returns; `Insert` marks columns with
-// defaults or null as optional; `Update` makes everything optional.
 
 export interface Database {
   public: {
     Tables: {
-      // --- Shared core (migration 04) ---
       staff: {
         Row: {
           id: string;
@@ -132,6 +112,7 @@ export interface Database {
           is_active?: boolean;
         };
         Update: Partial<Database['public']['Tables']['staff']['Insert']>;
+        Relationships: [];
       };
       people: {
         Row: {
@@ -183,6 +164,7 @@ export interface Database {
           experience?: Json;
         };
         Update: Partial<Database['public']['Tables']['people']['Insert']>;
+        Relationships: [];
       };
       companies: {
         Row: {
@@ -214,6 +196,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['companies']['Insert']>;
+        Relationships: [];
       };
       sources: {
         Row: {
@@ -225,6 +208,7 @@ export interface Database {
           name: string;
         };
         Update: Partial<Database['public']['Tables']['sources']['Insert']>;
+        Relationships: [];
       };
       candidate_statuses: {
         Row: {
@@ -242,6 +226,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['candidate_statuses']['Insert']
         >;
+        Relationships: [];
       };
       audit_log: {
         Row: {
@@ -263,6 +248,7 @@ export interface Database {
           at?: string;
         };
         Update: Partial<Database['public']['Tables']['audit_log']['Insert']>;
+        Relationships: [];
       };
       events_outbox: {
         Row: {
@@ -284,9 +270,9 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['events_outbox']['Insert']
         >;
+        Relationships: [];
       };
 
-      // --- ATS module (migration 05) ---
       candidate_profiles: {
         Row: {
           person_id: string;
@@ -329,6 +315,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['candidate_profiles']['Insert']
         >;
+        Relationships: [];
       };
       requisitions: {
         Row: {
@@ -358,7 +345,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          display_code?: string; // database sequence; never generate client-side
+          display_code?: string;
           job_code?: string | null;
           title: string;
           description?: string | null;
@@ -384,6 +371,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['requisitions']['Insert']
         >;
+        Relationships: [];
       };
       requisition_owners: {
         Row: {
@@ -397,6 +385,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['requisition_owners']['Insert']
         >;
+        Relationships: [];
       };
       requisition_approvers: {
         Row: {
@@ -416,6 +405,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['requisition_approvers']['Insert']
         >;
+        Relationships: [];
       };
       applications: {
         Row: {
@@ -453,6 +443,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['applications']['Insert']
         >;
+        Relationships: [];
       };
       application_views: {
         Row: {
@@ -468,6 +459,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['application_views']['Insert']
         >;
+        Relationships: [];
       };
       intake_items: {
         Row: {
@@ -507,9 +499,9 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['intake_items']['Insert']
         >;
+        Relationships: [];
       };
 
-      // --- CRM module (migration 06) ---
       contact_profiles: {
         Row: {
           person_id: string;
@@ -528,6 +520,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['contact_profiles']['Insert']
         >;
+        Relationships: [];
       };
       deals: {
         Row: {
@@ -565,6 +558,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['deals']['Insert']>;
+        Relationships: [];
       };
       tickets: {
         Row: {
@@ -592,9 +586,9 @@ export interface Database {
           assignee_id?: string | null;
         };
         Update: Partial<Database['public']['Tables']['tickets']['Insert']>;
+        Relationships: [];
       };
 
-      // --- Engagement (migration 07) ---
       activities: {
         Row: {
           id: string;
@@ -629,6 +623,7 @@ export interface Database {
           created_by?: string | null;
         };
         Update: Partial<Database['public']['Tables']['activities']['Insert']>;
+        Relationships: [];
       };
       tasks: {
         Row: {
@@ -652,6 +647,7 @@ export interface Database {
           related_id?: string | null;
         };
         Update: Partial<Database['public']['Tables']['tasks']['Insert']>;
+        Relationships: [];
       };
       reminders: {
         Row: {
@@ -673,6 +669,7 @@ export interface Database {
           status?: ReminderStatus;
         };
         Update: Partial<Database['public']['Tables']['reminders']['Insert']>;
+        Relationships: [];
       };
       attachments: {
         Row: {
@@ -700,9 +697,9 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['attachments']['Insert']
         >;
+        Relationships: [];
       };
 
-      // --- Gate 2 approved additions (migration 08) ---
       ats_saved_views: {
         Row: {
           id: string;
@@ -727,6 +724,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['ats_saved_views']['Insert']
         >;
+        Relationships: [];
       };
       intake_mapping_templates: {
         Row: {
@@ -750,6 +748,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['intake_mapping_templates']['Insert']
         >;
+        Relationships: [];
       };
       integration_settings: {
         Row: {
@@ -769,6 +768,7 @@ export interface Database {
         Update: Partial<
           Database['public']['Tables']['integration_settings']['Insert']
         >;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
@@ -777,7 +777,7 @@ export interface Database {
         Args: { prefix: string };
         Returns: string;
       };
-      // --- Agent 4 (careers) dedup + rate-limit RPCs, migration 20260725000001 ---
+
       find_person_by_email: {
         Args: { p_email: string };
         Returns: string | null;
@@ -786,7 +786,7 @@ export interface Database {
         Args: { p_url: string };
         Returns: string | null;
       };
-      // --- Agent 5 (intake) atomic import/reject, migration 20260725000002 ---
+
       import_intake_item: {
         Args: {
           p_intake_id: string;
@@ -828,8 +828,6 @@ export interface Database {
   };
 }
 
-// Convenience aliases so modules can write `Tables<'deals'>` instead of the
-// full indexed-access path.
 export type Tables<T extends keyof Database['public']['Tables']> =
   Database['public']['Tables'][T]['Row'];
 export type TablesInsert<T extends keyof Database['public']['Tables']> =
@@ -837,8 +835,6 @@ export type TablesInsert<T extends keyof Database['public']['Tables']> =
 export type TablesUpdate<T extends keyof Database['public']['Tables']> =
   Database['public']['Tables'][T]['Update'];
 
-// Locked stage orders (architecture section 2). Kanban boards and pipeline
-// tables read these; do not reorder or extend.
 export const REQUISITION_STATUSES: RequisitionStatus[] = [
   'draft',
   'waiting_approval',

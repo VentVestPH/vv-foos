@@ -2,11 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { db as supabase } from './db';
 import type { IntakeItem } from './lib';
 
-/**
- * Live "pending + parsed" count for the nav badge, per instruction 1 — driven
- * by Realtime on intake_items inserts/updates. RLS already scopes rows to
- * what the current user may see, so the count never leaks across roles.
- */
 export function useIntakeBadge() {
   const [count, setCount] = useState(0);
 
@@ -42,10 +37,9 @@ export interface IntakeFilters {
   status?: string;
   batchLabel?: string;
   submittedBy?: string;
-  showAll?: boolean; // default view hides imported/rejected
+  showAll?: boolean;
 }
 
-/** Queue list with filters — newest first. RLS narrows rows per role. */
 export function useIntakeQueue(filters: IntakeFilters) {
   const [items, setItems] = useState<IntakeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +98,6 @@ interface DedupInput {
   linkedin_url?: string | null;
 }
 
-/** Dedup check (instruction 6): normalized email first, linkedin_url second. */
 export async function checkDedup(item: DedupInput): Promise<DedupMatch | null> {
   const parsed = (item.parsed ?? {}) as Record<string, unknown>;
   const email =

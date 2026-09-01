@@ -1,6 +1,3 @@
-// Agent 6 settings module — small pure helpers, kept separate from the
-// component so the connect/disconnect logic is easy to unit-test later.
-
 export type GoogleTier = 'base' | 'send' | 'calendar';
 
 export interface GoogleTokensSummary {

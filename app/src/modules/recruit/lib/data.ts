@@ -1,7 +1,3 @@
-// Shared data helpers for the ATS module (Agent 2).
-// All queries are flat selects joined client-side; volumes are modest
-// (architecture section 9) and flat queries keep the typed client honest.
-
 import { useEffect, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase as sharedClient } from '../../../lib/supabase';
@@ -14,11 +10,6 @@ import type {
   RequisitionStatus,
   Tables,
 } from '../../../lib/database.types';
-
-// The shared Database type carries no Relationships metadata, which makes
-// supabase-js collapse table types to `never`. This maps the canonical type
-// (no fork — a change there flows through here) into the shape the client
-// expects, and re-exports the same client instance with working types.
 
 type TablesWithRelationships = {
   [K in keyof Database['public']['Tables']]: Database['public']['Tables'][K] & {
@@ -75,18 +66,12 @@ export function personEducation(p: Person): PersonEducation[] {
     : [];
 }
 
-/**
- * Zoho's Experience Details export currently has linking columns only, so
- * this is always `[]` in practice until it's re-exported with full fields
- * (per the migration plan). Kept loose-typed for the same reason.
- */
 export function personExperience(p: Person): PersonExperience[] {
   return Array.isArray(p.experience)
     ? (p.experience as unknown as PersonExperience[])
     : [];
 }
 
-/** Chunked `in` fetch — keeps URLs sane on bigger id sets. */
 export async function fetchPeopleByIds(ids: string[]): Promise<Person[]> {
   const out: Person[] = [];
   for (let i = 0; i < ids.length; i += 200) {
@@ -133,12 +118,6 @@ export function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-/**
- * Legal requisition transitions (brief instruction 4, locked):
- * draft → waiting_approval → open → on_hold → filled → closed,
- * plus open ↔ on_hold and open → filled or closed.
- * waiting_approval → draft is the rejection path.
- */
 export const REQ_TRANSITIONS: Record<RequisitionStatus, RequisitionStatus[]> = {
   draft: ['waiting_approval'],
   waiting_approval: ['open', 'draft'],
@@ -187,10 +166,6 @@ export interface Lookups {
   error: string | null;
 }
 
-/**
- * Shared lookup tables. candidate_statuses come from the DB, ordered by
- * sort_order, labels verbatim — never hardcoded or prettified.
- */
 export function useLookups(): Lookups {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [staffList, setStaffList] = useState<StaffRow[]>([]);
@@ -233,7 +208,6 @@ export function useLookups(): Lookups {
   return { companies, staff: staffList, sources, statuses, loading, error };
 }
 
-/** Mobile viewports are read-only in v1 — no forms, no drag. */
 export function useIsMobile(): boolean {
   const [mobile, setMobile] = useState(
     () =>

@@ -3,12 +3,9 @@ import type { StaffRole } from '../lib/database.types';
 export interface PrimaryNavItem {
   label: string;
   to: string;
-  /** Roles that see this tab. RLS remains the real boundary — this is UI
-   *  courtesy only, per architecture section 5. */
+
   roles: StaffRole[];
-  /** True for routes this tab should also be considered "active" on, beyond
-   *  an exact/prefix match on `to` (e.g. Home/Pipeline both point at `/`
-   *  but are distinguished by a query param). */
+
   isActive?: (pathname: string, search: string) => boolean;
   homeIcon?: boolean;
 }
@@ -17,13 +14,6 @@ const ALL: StaffRole[] = ['admin', 'recruiter', 'sourcer', 'bd'];
 const ATS: StaffRole[] = ['admin', 'recruiter', 'sourcer'];
 const CRM: StaffRole[] = ['admin', 'recruiter', 'bd'];
 
-/**
- * The Taleo primary horizontal nav, in the exact order the redesign prompt
- * specifies (section 5.2), with FOOS's own extensions (Deals, Tickets,
- * Intake) slotted in per its explicit placement rules — Deals/Tickets after
- * Contacts, Intake after Candidates. Settings is deliberately NOT a tab here
- * (prompt: reached via the utility-header gear + Administration menu).
- */
 export const PRIMARY_NAV: PrimaryNavItem[] = [
   {
     label: 'Home',

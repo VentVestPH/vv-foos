@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 interface ModalProps {
   title: string;
   children: ReactNode;
-  /** Omit to make the dialog blocking (no overlay-click or X close). */
+
   onClose?: () => void;
 }
 

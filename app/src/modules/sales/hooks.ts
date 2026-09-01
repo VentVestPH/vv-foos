@@ -3,11 +3,9 @@ import { db as supabase } from './db';
 import { useRole } from '../../auth/SessionProvider';
 import type { Company, Staff } from './lib';
 
-// Small lookup tables (12 staff, ~42 companies) cached per app session.
 let staffCache: Staff[] | null = null;
 let companyCache: Company[] | null = null;
 
-/** All staff rows — readable by every role per the section 5 matrix. */
 export function useStaffList() {
   const [staff, setStaff] = useState<Staff[]>(staffCache ?? []);
 
@@ -44,7 +42,6 @@ export function useStaffList() {
   };
 }
 
-/** Companies for pickers, cached. Pass refreshKey to force a reload. */
 export function useCompanyOptions(refreshKey = 0) {
   const [companies, setCompanies] = useState<Company[]>(companyCache ?? []);
 
@@ -79,11 +76,6 @@ export function useCompanyOptions(refreshKey = 0) {
   };
 }
 
-/**
- * Whether the current user can create/edit CRM records. Section 5 matrix:
- * admin and bd are full on companies/deals/contact_profiles; recruiter is
- * read-only; sourcer never reaches these routes. UI courtesy — RLS enforces.
- */
 export function useCanEditCrm(): boolean {
   const role = useRole();
   return role === 'admin' || role === 'bd';

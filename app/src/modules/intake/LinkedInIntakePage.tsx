@@ -9,17 +9,6 @@ import { db as supabase } from './db';
 import { StarGrade } from './components/StarGrade';
 import { InboxIcon } from '../../shell/icons';
 
-/**
- * LinkedIn link intake — the Deniece/VVPH sourcing workflow (instruction 4).
- * Paste one or many URLs with a batch label; candidate rows then run through
- * a focused one-item-at-a-time grading view before they're importable.
- * Contact rows skip grading entirely.
- *
- * Redesign (prompt section 8.8): new-requisition form archetype — sectioned
- * form with RecordSection bars and a repeated Save/Continue + Cancel + Reset
- * action row. Reset is real: it restores the blank initial-state values
- * below without touching any staged data.
- */
 const EMPTY_URLS = '';
 const EMPTY_BATCH_LABEL = '';
 const EMPTY_TARGET_TYPE: 'candidate' | 'contact' = 'candidate';
@@ -38,7 +27,6 @@ export function LinkedInIntakePage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Per-item fields for the current candidate/contact being entered/graded.
   const [name, setName] = useState('');
   const [headline, setHeadline] = useState('');
   const [company, setCompany] = useState('');
@@ -91,7 +79,7 @@ export function LinkedInIntakePage() {
       })),
     );
     resetItemFields();
-    setStage(targetType === 'candidate' ? 'grading' : 'grading'); // both walk the entry step; contacts skip grading UI below
+    setStage(targetType === 'candidate' ? 'grading' : 'grading');
     setIndex(0);
   }
 

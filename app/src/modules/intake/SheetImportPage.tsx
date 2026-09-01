@@ -34,10 +34,6 @@ interface MappingTemplate {
   target_type: 'candidate' | 'contact';
 }
 
-/**
- * Sheet/Excel-from-URL importer (instruction 5): fetch -> map columns ->
- * saved templates -> full preview with dedup flags -> commit.
- */
 export function SheetImportPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('url');
@@ -79,7 +75,7 @@ export function SheetImportPage() {
       return;
     }
     setFetched(data as FetchResult);
-    // Suggest a template whose source_hint matches the URL host/sheet.
+
     const suggested = templates.find(
       (t) => t.source_hint && data.suggestedTemplateHint?.toLowerCase().includes(t.source_hint.toLowerCase()),
     );

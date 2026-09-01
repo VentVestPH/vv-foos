@@ -4,13 +4,6 @@ import { TaleoPlaceholderAction } from '../../shell/TaleoPlaceholder';
 import { GearIcon } from '../../shell/icons';
 import { GoogleIntegrationCard } from './GoogleIntegrationCard';
 
-/**
- * Administration: Settings (prompt section 8.9). Reached from the
- * utility-header gear and Administration dropdown (already wired in the
- * shell — not touched here). The real Google Integration card keeps its
- * connect/sync/disconnect logic completely unchanged; only its surrounding
- * chrome is restyled to the Taleo section/card look via settings.css.
- */
 export function SettingsPage() {
   return (
     <RecordPage title="Administration: Settings" icon={<GearIcon size={40} />}>

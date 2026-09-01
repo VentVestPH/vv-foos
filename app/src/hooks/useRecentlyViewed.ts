@@ -2,13 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 
 export interface RecentItem {
-  /** Record type, e.g. 'candidate' | 'requisition' | 'company' | 'contact' | 'deal'. */
   type: string;
-  /** Record UUID. */
+
   id: string;
-  /** Display label shown in the rail. */
+
   label: string;
-  /** Route to navigate to on click. Defaults to nothing if the caller renders its own link. */
+
   href?: string;
   viewedAt: string;
 }
@@ -30,11 +29,6 @@ function readStore(key: string): RecentItem[] {
   }
 }
 
-/**
- * Recently Viewed rail state, persisted in localStorage keyed by staff id.
- * Record pages call `record({ type, id, label, href })` on mount; the nav rail
- * renders `items`. Storage events keep multiple tabs in step.
- */
 export function useRecentlyViewed() {
   const { staff } = useSession();
   const key = storageKey(staff?.id ?? null);

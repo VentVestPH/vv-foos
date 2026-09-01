@@ -17,22 +17,10 @@ export interface TimelineItem {
   subject: string | null;
   body?: string | null;
   occurred_at: string;
-  /** Extra meta on the right (e.g. author name). */
+
   meta?: ReactNode;
 }
 
-/**
- * C7 / D13. These were previously text glyphs: one emoji ('📅'), four dingbats,
- * and the literal two-letter avatar 'in' for InMail. The redesign prompt
- * section 6 forbids that outright: "Do not use letter avatars such as R, C, Co,
- * or emoji as final icons." Timeline renders on candidate, contact, company,
- * deal and requisition record pages, so it was visible across the product.
- *
- * Now lucide-react, which is Feather-derived stroke line art and therefore the
- * same family as Taleo's own thin-line glyphs and as the existing local set in
- * shell/icons.tsx. strokeWidth is 1.6 to match that set exactly; Lucide's
- * default of 2 reads heavier than both Taleo and the rest of this shell.
- */
 const KIND_ICONS: Record<ActivityKind, LucideIcon> = {
   email: Mail,
   call: Phone,
@@ -72,10 +60,6 @@ function dayLabel(iso: string): string {
   });
 }
 
-/**
- * Activity feed grouped by day, newest first, one icon per activity kind.
- * Feed it rows from `activities` scoped to the current record.
- */
 export function Timeline({ items }: { items: TimelineItem[] }) {
   if (items.length === 0) {
     return <div className="timeline-empty">No activity yet.</div>;

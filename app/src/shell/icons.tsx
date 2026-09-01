@@ -1,10 +1,3 @@
-/**
- * Small local outline-SVG icon set for the Taleo-replica shell (redesign
- * prompt section 6: "use thin outline icons… if no icon library exists,
- * implement a small local SVG set"). Every icon is stroke-only,
- * currentColor, 24x24 viewBox, no fill — matches the thin line-art style
- * seen throughout the Taleo screenshots. Sized via the `size` prop.
- */
 import type { SVGProps } from 'react';
 
 interface IconProps extends SVGProps<SVGSVGElement> {

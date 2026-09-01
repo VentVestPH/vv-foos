@@ -5,17 +5,10 @@ import type { StaffRole } from '../lib/database.types';
 
 interface RequireAuthProps {
   children: ReactNode;
-  /** When set, only these roles may enter; others are sent to /. */
+
   roles?: StaffRole[];
 }
 
-/**
- * Route guard. Unauthenticated users go to /login (with the intended path
- * preserved so login can return them). Authenticated users whose staff row is
- * missing see a hold screen — an account exists in Auth but not in staff, so
- * an admin has to add them. Role checks here are a UI convenience; RLS in
- * Postgres is the actual boundary (architecture section 5).
- */
 export function RequireAuth({ children, roles }: RequireAuthProps) {
   const { session, staff, role, loading } = useSession();
   const location = useLocation();

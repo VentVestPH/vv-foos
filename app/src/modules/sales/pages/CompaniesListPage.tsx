@@ -1,12 +1,3 @@
-// Accounts list (Taleo screenshot 09_Taleo_Accounts_Home.png, redesign
-// prompt section 8.4). "Accounts" is a UI label only — the route, table,
-// and every handler below still operate on `companies`. Taleo column order
-// (ID / Account Name / Last updated / City / State-Territory / Phone /
-// Type) leads, remaining real FOOS columns (Website, Owner) follow. Type/
-// owner/location filters move under Advanced Search. "Delete" has no
-// bulk-delete handler in this codebase, so it renders as a centralized
-// TaleoPlaceholderAction — nothing here mutates data.
-
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -16,6 +7,7 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
+import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
 import { HandshakeIcon } from '../../../shell/icons';
 import { useCanEditCrm, useStaffList } from '../hooks';
@@ -28,6 +20,7 @@ const TYPE_OPTIONS = [
 ];
 
 export function CompaniesListPage() {
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const canEdit = useCanEditCrm();
   const { staffName, staffOptions } = useStaffList();
@@ -40,12 +33,16 @@ export function CompaniesListPage() {
 
   useEffect(() => {
     let cancelled = false;
+      setLoading(true);
     supabase
       .from('companies')
       .select('*')
       .order('name')
       .then(({ data }) => {
-        if (!cancelled) setCompanies(data ?? []);
+        if (!cancelled) {
+            setCompanies(data ?? []);
+            setLoading(false);
+          }
       });
     return () => {
       cancelled = true;
@@ -149,7 +146,6 @@ export function CompaniesListPage() {
     },
   ];
 
-  // Test-flagged rows stay out of the export by default.
   const exportRows = visible
     .filter((c) => !c.is_test)
     .map((c) => ({
@@ -163,6 +159,8 @@ export function CompaniesListPage() {
       owner: staffName(c.owner_id),
     }));
 
+  const pager = usePagination(visible);
+
   return (
     <ListPage
       title="Accounts: Home"
@@ -173,8 +171,7 @@ export function CompaniesListPage() {
       searchPlaceholder="Search companies…"
       actions={
         canEdit ? (
-          // Real "New company" route/handler — only the visible label reads
-          // "New Account" per the redesign prompt (section 8.4).
+
           <Button variant="primary" onClick={() => navigate('/sales/companies/new')}>
             New Account
           </Button>
@@ -211,25 +208,38 @@ export function CompaniesListPage() {
       exportFilename="companies.csv"
     >
       <div className="record-action-bar taleo-list-action-bar">
-        {/* FOOS-TBD: no bulk-delete handler exists yet for companies/accounts. */}
+        {}
         <TaleoPlaceholderAction
           label="Delete"
           detail="Bulk delete isn't implemented for accounts yet."
         />
       </div>
 
-      <div className="taleo-pager">
-        {visible.length > 0
-          ? `1-${visible.length} of ${companies.length}`
-          : `0 of ${companies.length}`}
-      </div>
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
+      />
 
       <Table
+        busy={loading}
         columns={columns}
-        rows={visible}
+        rows={pager.pageRows}
         rowKey={(c) => c.id}
         onRowClick={(c) => navigate(`/sales/companies/${c.id}`)}
-        emptyText="No companies match."
+        emptyText={loading ? 'Loading…' : "No companies match."}
+      />
+
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
       />
     </ListPage>
   );

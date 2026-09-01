@@ -9,7 +9,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   options: SelectOption[];
-  /** Text for an empty first option, e.g. "All statuses". Omit for none. */
+
   placeholder?: string;
 }
 

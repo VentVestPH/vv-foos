@@ -1,6 +1,3 @@
-// ATS module entry (Agent 2). The integrator mounts <RecruitRoutes /> at
-// /recruit/* in App.tsx and merges recruitNavItems into the shell nav.
-
 import { Navigate, Route, Routes } from 'react-router-dom';
 import type { StaffRole } from '../../lib/database.types';
 import './recruit.css';
@@ -10,7 +7,6 @@ import { RequisitionRecordPage } from './requisitions/RequisitionRecordPage';
 import { CandidateListPage } from './candidates/CandidateListPage';
 import { CandidateRecordPage } from './candidates/CandidateRecordPage';
 
-/** Route tree for /recruit/*. */
 export function RecruitRoutes() {
   return (
     <Routes>
@@ -39,7 +35,6 @@ export interface RecruitNavItem {
   roles: StaffRole[];
 }
 
-/** Nav entries — roles per the architecture section 5 matrix (bd sees none). */
 export const recruitNavItems: RecruitNavItem[] = [
   {
     label: 'Requisitions',

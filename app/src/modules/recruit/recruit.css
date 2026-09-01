@@ -1,7 +1,3 @@
-/* ATS module styles (Agent 2). Tokens only — no hard-coded colors. */
-
-/* ------------------------------------------------------------ dialogs */
-
 .rq-overlay {
   position: fixed;
   inset: 0;
@@ -39,7 +35,7 @@
   margin-left: auto;
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: var(--fs-lg);
   line-height: 1;
   color: var(--text-secondary);
   cursor: pointer;
@@ -66,8 +62,6 @@
   border-top: 1px solid var(--border);
 }
 
-/* ------------------------------------------------------------ stars */
-
 .star-grade {
   display: inline-flex;
   gap: 2px;
@@ -92,8 +86,6 @@
   font-size: var(--fs-section);
 }
 
-/* ------------------------------------------------------------ chips, banners */
-
 .chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -108,13 +100,13 @@
   color: var(--slate);
   border-radius: 999px;
   padding: 2px var(--sp-1);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   white-space: nowrap;
 }
 
 .dnc-banner {
   background: var(--danger);
-  color: #fff;
+  color: var(--surface);
   border-radius: var(--radius);
   padding: var(--sp-1) var(--sp-2);
   font-weight: 600;
@@ -126,8 +118,6 @@
   margin: 0;
 }
 
-/* ------------------------------------------------------------ saved views */
-
 .saved-views {
   display: flex;
   align-items: center;
@@ -137,8 +127,6 @@
 .saved-views select {
   min-width: 160px;
 }
-
-/* ------------------------------------------------------------ forms */
 
 .rq-form {
   background: var(--surface);
@@ -203,8 +191,6 @@
   gap: var(--sp-1);
 }
 
-/* ------------------------------------------------------------ record layout */
-
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -266,8 +252,6 @@
   min-width: 0;
 }
 
-/* ------------------------------------------------------------ toolkit panels */
-
 .panel-stack {
   display: flex;
   flex-direction: column;
@@ -325,8 +309,6 @@
   border-radius: var(--radius);
 }
 
-/* ------------------------------------------------------------ pipeline */
-
 .pipeline-head {
   display: flex;
   align-items: center;
@@ -355,7 +337,7 @@
 
 .pipeline-toggle button.active {
   background: var(--primary);
-  color: #fff;
+  color: var(--surface);
 }
 
 .shortlist-btn {
@@ -433,10 +415,6 @@
   color: var(--primary-deep);
 }
 
-/* ------------------------------------------------------------ Taleo requisitions redesign */
-
-/* Requisition list — Candidates / Next Steps cells, Advanced Search, bars */
-
 .taleo-candidates-cell {
   display: inline-flex;
   align-items: center;
@@ -492,8 +470,6 @@
   gap: var(--sp-1);
 }
 
-/* Requisition record — Next Steps line, back-to-list, editor toolbar */
-
 .taleo-next-steps {
   display: flex;
   flex-wrap: wrap;
@@ -524,13 +500,13 @@
   border: 1px solid var(--border);
   border-bottom: none;
   border-radius: var(--radius) var(--radius) 0 0;
-  background: var(--taleo-canvas, #eee);
+  background: var(--taleo-canvas, var(--canvas));
 }
 
 .rq-editor-toolbar-btn {
   min-width: 32px;
   padding: 2px 6px !important;
-  font-size: 11px !important;
+  font-size: var(--fs-xs) !important;
 }
 
 .rq-form textarea#req-description {
@@ -538,19 +514,12 @@
   border-radius: 0 0 var(--radius) var(--radius);
 }
 
-/* ------------------------------------------------------------ Taleo candidates redesign */
-
-/* Decorative flag column header (candidate list, screenshot 08) — static,
-   no click handler, not a control, so it does not route through
-   TaleoPlaceholderAction. */
 .cand-flag-col {
   color: var(--taleo-icon, var(--text-secondary));
   display: inline-flex;
   align-items: center;
 }
 
-/* Resume column icon — dim when no resume attachment exists on the row,
-   full color when a real resume is on file. */
 .cand-resume-icon {
   color: var(--taleo-icon, var(--primary));
   display: inline-flex;
@@ -570,8 +539,6 @@
 .cand-second-search-fields input {
   min-width: 160px;
 }
-
-/* ------------------------------------------------------------ mobile read-only */
 
 @media (max-width: 640px) {
   .rq-form-actions,

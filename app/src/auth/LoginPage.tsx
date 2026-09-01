@@ -27,7 +27,7 @@ export function LoginPage() {
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
-        queryParams: { hd: 'ventvest.com' }, // hosted-domain hint; Supabase enforces the restriction server-side
+        queryParams: { hd: 'ventvest.com' },
       },
     });
     if (err) setError(err.message);

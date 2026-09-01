@@ -1,17 +1,16 @@
-// Tickets — read-only list stub (schema-only in v1). No create, no
-// transitions, no SLA logic; the CS module builds workflows later.
-
 import { useEffect, useMemo, useState } from 'react';
 import { db as supabase } from '../db';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
+import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
 import { TicketIcon } from '../../../shell/icons';
 import { useCompanyOptions, useStaffList } from '../hooks';
 import { fmtDate, type Ticket } from '../lib';
 
 export function TicketsListPage() {
+  const [loading, setLoading] = useState(true);
   const { staffName } = useStaffList();
   const { companyName } = useCompanyOptions();
 
@@ -20,11 +19,15 @@ export function TicketsListPage() {
 
   useEffect(() => {
     let cancelled = false;
+      setLoading(true);
     supabase
       .from('tickets')
       .select('*')
       .then(({ data }) => {
-        if (!cancelled) setTickets(data ?? []);
+        if (!cancelled) {
+            setTickets(data ?? []);
+            setLoading(false);
+          }
       });
     return () => {
       cancelled = true;
@@ -69,6 +72,8 @@ export function TicketsListPage() {
     },
   ];
 
+  const pager = usePagination(visible);
+
   return (
     <ListPage
       title="Tickets: Home"
@@ -78,8 +83,6 @@ export function TicketsListPage() {
       onSearchChange={setSearch}
       searchPlaceholder="Search tickets…"
       actions={
-        // FOOS-TBD: no ticket-creation flow exists yet — the Customer
-        // Success module adds create, transitions, and SLA handling later.
         <TaleoPlaceholderAction
           label="New Ticket"
           variant="primary"
@@ -87,15 +90,30 @@ export function TicketsListPage() {
         />
       }
     >
-      <div className="taleo-pager">
-        {visible.length > 0 ? `1-${visible.length} of ${tickets.length}` : `0 of ${tickets.length}`}
-      </div>
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
+      />
 
       <Table
+        busy={loading}
         columns={columns}
-        rows={visible}
+        rows={pager.pageRows}
         rowKey={(t) => t.id}
-        emptyText="No tickets. Ticket workflows arrive with the CS module."
+        emptyText={loading ? 'Loading…' : "No tickets. Ticket workflows arrive with the CS module."}
+      />
+
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
       />
       <div className="sales-panel-note">
         Read-only in v1 — the Customer Success module adds create, transitions,

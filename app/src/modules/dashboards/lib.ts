@@ -1,9 +1,3 @@
-// Shared types, date-range math, and small formatters for the five
-// dashboards + the admin Experiment metrics panel. Row shapes mirror the
-// `dash` schema views exactly (see foos/supabase/migrations/
-// 20260725000004_agent7_dash_schema.sql) — they are not derived from
-// database.types.ts because that file only covers the public schema.
-
 export interface AtsFunnelRow {
   application_id: string;
   display_code: string;
@@ -127,8 +121,8 @@ export type DateRangePreset = '7' | '30' | '90' | 'quarter' | 'custom';
 
 export interface DateRange {
   preset: DateRangePreset;
-  from: string; // YYYY-MM-DD, inclusive
-  to: string; // YYYY-MM-DD, inclusive
+  from: string;
+  to: string;
 }
 
 function isoDate(d: Date): string {
@@ -158,7 +152,6 @@ export function rangeForPreset(
 
 export const DEFAULT_RANGE: DateRange = rangeForPreset('30');
 
-/** CSV filename per the brief's pattern: foos-<dashboard>-<widget>-<daterange>.csv */
 export function exportFilename(
   dashboard: string,
   widget: string,
@@ -181,7 +174,6 @@ export function fmtMoney(n: number | null, currency = 'USD'): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
 }
 
-/** Groups rows into stable-ordered {label, count} buckets for bar widgets. */
 export function countBy<T>(
   rows: T[],
   key: (row: T) => string,

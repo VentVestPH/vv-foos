@@ -3,14 +3,6 @@ import { useSession } from '../auth/SessionProvider';
 import { usePlaceholder } from './TaleoPlaceholder';
 import { BookmarkIcon, MegaphoneIcon, GearIcon, BarChartIcon } from './icons';
 
-/**
- * Taleo utility header (redesign prompt section 5.1): white header, ~72px,
- * VENTVEST / Front Office OS wordmark left, four shortcut icons + Web
- * Support/Administration/Help/Logout right. Logout stays wired to the real
- * sign-out handler; everything else routes through the centralized
- * placeholder (or, for Administration, links to the real /settings route
- * plus a placeholder menu for items FOOS doesn't have).
- */
 export function TaleoUtilityHeader() {
   const { staff, signOut } = useSession();
   const { show } = usePlaceholder();

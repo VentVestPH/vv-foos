@@ -21,16 +21,11 @@ export interface KanbanCard {
 }
 
 interface KanbanBoardProps {
-  /** Columns in locked stage order (architecture section 2). */
   stages: KanbanStage[];
   cards: KanbanCard[];
-  /**
-   * Called when a card is dropped on another column. The caller performs the
-   * single stage write (and any blocking dialog, e.g. rejection_reason)
-   * before updating its own state — no optimistic batching here.
-   */
+
   onMove: (cardId: string, toStage: string) => void;
-  /** Optional per-column header extras, e.g. an UnviewedBadge. */
+
   columnExtras?: (stageKey: string) => ReactNode;
 }
 
@@ -82,17 +77,12 @@ function Column({
   );
 }
 
-/**
- * Generic kanban: one droppable column per stage, draggable cards, a single
- * onMove callback per drop. Modules feed it applications or deals.
- */
 export function KanbanBoard({
   stages,
   cards,
   onMove,
   columnExtras,
 }: KanbanBoardProps) {
-  // Small activation distance so plain clicks on card content still work.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );

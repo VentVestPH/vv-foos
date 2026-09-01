@@ -22,11 +22,6 @@ export function Badge({ tone = 'neutral', children, title }: BadgeProps) {
   );
 }
 
-/**
- * Maps the locked stage/status values (architecture section 2) to badge tones:
- * won/hired/placed/filled/resolved -> success, on_hold/pending -> warning,
- * rejected/lost -> danger, open/active stages -> primary, the rest neutral.
- */
 export function statusTone(status: string): BadgeTone {
   switch (status) {
     case 'hired':
@@ -56,7 +51,6 @@ export function statusTone(status: string): BadgeTone {
   }
 }
 
-/** Badge preset for stage/status values. */
 export function StatusBadge({ status }: { status: string }) {
   return <Badge tone={statusTone(status)}>{status.replace(/_/g, ' ')}</Badge>;
 }

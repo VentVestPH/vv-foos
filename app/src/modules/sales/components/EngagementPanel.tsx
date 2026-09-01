@@ -1,11 +1,3 @@
-// The engagement toolkit (architecture "Person record capabilities"),
-// reused on contact (person), company, and deal records: unified Timeline
-// plus side panels for Notes, Calls, Meetings, Events, Emails, Tasks,
-// Reminders, and Files. Every panel maps to an existing Gate 1 table —
-// activities / tasks / reminders / attachments. Nothing candidate-shaped
-// is queried or rendered here (no candidate_profiles, no resumes tab in
-// BD-facing views); RLS enforces the boundary underneath.
-
 import { useCallback, useEffect, useState } from 'react';
 import { db as supabase } from '../db';
 import { useSession } from '../../../auth/SessionProvider';
@@ -31,7 +23,7 @@ export type EngagementParent = 'person' | 'company' | 'deal';
 interface EngagementPanelProps {
   relatedType: EngagementParent;
   relatedId: string;
-  /** Bump to force a refetch (e.g. after a deal stage change). */
+
   refreshKey?: number;
 }
 
@@ -104,7 +96,6 @@ export function EngagementPanel({
   const [quickAdd, setQuickAdd] = useState<QuickAddKind>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Quick-add form fields.
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [dueDate, setDueDate] = useState('');

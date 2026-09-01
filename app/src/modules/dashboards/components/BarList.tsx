@@ -1,9 +1,3 @@
-// Hand-rolled horizontal bar list — no charting library is installed
-// anywhere in this app yet (package.json is outside this module's write
-// boundary, same rule the other modules follow), so every dashboard visual
-// here is plain CSS bars over the locked design tokens rather than a new
-// dependency. Good enough for stage counts / source splits at this volume.
-
 interface BarListProps {
   items: { label: string; count: number; tone?: 'primary' | 'success' | 'warning' | 'danger' }[];
   onBarClick?: (label: string) => void;

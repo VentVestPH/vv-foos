@@ -2,10 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 import { Input } from '../components/ui/Input';
 
-/**
- * Top bar: global search stub plus the user menu. The search input records
- * intent only for now — Agent 7 wires it to real cross-entity search.
- */
 export function TopBar() {
   const { staff, role, signOut } = useSession();
   const [query, setQuery] = useState('');

@@ -1,24 +1,6 @@
-// Candidate record (brief instruction 7): identity + profile, unified
-// timeline plus the Gate 1 nine-panel toolkit, all backed by activities /
-// tasks / reminders / attachments. Changing status_id is a plain UPDATE —
-// the trigger fires candidate.status_changed.
-//
-// Redesign (Taleo screenshots 22-26, prompt section 8.3): the former
-// two-column "identity + profile / timeline + tabs" layout is now a single
-// stacked column of RecordSections in Taleo order (Requisition Summary ->
-// Candidate Information -> Main Status Details -> Resume and Cover Letter ->
-// Resume Preview -> Attachments -> Requisition Details -> Web Links ->
-// Source -> Tracking -> Contact Log -> Events -> Tasks -> Reminders ->
-// History Log/Timeline). Every Gate 1 toolkit panel (ActivityPanel,
-// AttachmentsPanel, EventsPanel, TasksPanel, RemindersPanel) and every real
-// handler (grading, profile save, Send Email/Schedule Meeting Google
-// integration, attachments, timeline) is unchanged — only which section
-// wraps it moved. Source/Requisition Details/Tracking are read-only recaps
-// of data already editable in Candidate Information/Main Status Details, so
-// nothing is duplicated as a separate mutation path.
-
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useBackToList } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -99,10 +81,10 @@ function toDraft(p: CandidateProfile): ProfileDraft {
 }
 
 export function CandidateRecordPage() {
+  const backToList = useBackToList('/recruit/candidates');
   const { id } = useParams();
   const personId = id ?? '';
   const [params] = useSearchParams();
-  const navigate = useNavigate();
   const role = useRole();
   const { staff } = useSession();
   const mobile = useIsMobile();
@@ -119,10 +101,6 @@ export function CandidateRecordPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  // Send email / schedule meeting (Agent 6). Both call the connected staff
-  // user's own Google account via gmail-send / calendar-create-meeting;
-  // errors (not connected, scope not granted) surface inline rather than
-  // failing silently.
   const [showSendEmail, setShowSendEmail] = useState(false);
   const [emailTo, setEmailTo] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
@@ -177,7 +155,6 @@ export function CandidateRecordPage() {
     void load();
   }, [load]);
 
-  // Recently Viewed rail entry on visit.
   useEffect(() => {
     if (person) {
       record({
@@ -190,7 +167,6 @@ export function CandidateRecordPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [person?.id]);
 
-  // Arriving from a pipeline marks the application viewed (unviewed tracking).
   useEffect(() => {
     const applicationId = params.get('application');
     if (!applicationId || !staff) return;
@@ -214,7 +190,7 @@ export function CandidateRecordPage() {
 
   const saveProfile = useCallback(async () => {
     if (!profile || !draft) return;
-    // Sourcers may only write the grade fields (RLS enforces the rest).
+
     const patch = canEditProfile
       ? {
           status_id: draft.status_id || null,
@@ -348,8 +324,7 @@ export function CandidateRecordPage() {
   const events = meetings.filter(
     (a) => Array.isArray(a.attendees) && (a.attendees as unknown[]).length > 0,
   );
-  // Logged meetings with no invited attendees are plain contact-log entries,
-  // not calendar Events (redesign section order: Contact Log vs. Events).
+
   const plainMeetings = meetings.filter((a) => !events.includes(a));
   const emails = activities.filter((a) => a.kind === 'email');
   const files = engagement.attachments;
@@ -415,20 +390,18 @@ export function CandidateRecordPage() {
           View Resume
         </Button>
       ) : (
-        /* FOOS-TBD: no resume on file — nothing to view. */
+
         <TaleoPlaceholderAction
           label="View Resume"
           size="sm"
           detail="No resume is on file for this candidate yet."
         />
       )}
-      {/* FOOS-TBD: no printable-resume rendering exists yet. */}
+      {}
       <TaleoPlaceholderAction label="Print Resume" size="sm" />
-      {/* FOOS-TBD: no "submit to requisition" workflow exists on the
-          candidate record yet — candidates are linked to requisitions via
-          the requisition's own Next Steps / Add candidate flow. */}
+      {}
       <TaleoPlaceholderAction label="Submit" size="sm" />
-      {/* FOOS-TBD: no additional record-level actions implemented yet. */}
+      {}
       <TaleoPlaceholderAction label="More" size="sm" caret />
       {canGrade && draft && (
         <Button size="sm" variant="primary" onClick={() => void saveProfile()}>
@@ -447,7 +420,7 @@ export function CandidateRecordPage() {
         <>
           {profile?.star_grade != null && <StarGrade value={profile.star_grade} />}
           {person.is_test && <Badge tone="outline">Test data</Badge>}
-          {/* FOOS-TBD: no flag concept exists on candidate_profiles/people yet. */}
+          {}
           <button
             type="button"
             className="link-btn"
@@ -460,13 +433,12 @@ export function CandidateRecordPage() {
           <button
             type="button"
             className="link-btn taleo-back-to-list"
-            onClick={() => navigate('/recruit/candidates')}
+            onClick={backToList}
           >
             Back To List
           </button>
           <span className="text-secondary">|</span>
-          {/* FOOS-TBD: no prev/next paging within the current list view is
-              implemented yet. */}
+          {}
           <button
             type="button"
             className="link-btn"
@@ -812,9 +784,7 @@ export function CandidateRecordPage() {
         </RecordSection>
       )}
 
-      {/* Resume and Cover Letter — Taleo's literal fields here are links
-          (LinkedIn Public/Recruiter, Online Resume, ZI/Twitter), not a file
-          upload panel. File upload lives in Attachments below. */}
+      {}
       <RecordSection title="Resume and Cover Letter">
         <dl className="info-grid">
           {person.linkedin_public_url && (

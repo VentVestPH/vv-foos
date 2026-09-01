@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-/** Right-side detail drawer, shared shell for the item detail view. */
 export function Drawer({
   title,
   onClose,

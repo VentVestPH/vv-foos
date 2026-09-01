@@ -4,9 +4,6 @@ import { db as supabase } from './db';
 
 let staffCache: { id: string; full_name: string }[] | null = null;
 
-/** Staff-name lookup for the Activity dashboard — same cached-lookup
- * pattern as sales/hooks.ts useStaffList(), duplicated locally rather than
- * imported cross-module (each module owns its own read-only lookups). */
 export function useStaffNames() {
   const [staff, setStaff] = useState(staffCache ?? []);
 
@@ -32,10 +29,6 @@ export function useStaffNames() {
   return (id: string | null | undefined) => (id ? (byId.get(id) ?? '—') : '—');
 }
 
-/** Every authenticated staff member sees dashboards — RLS on the underlying
- * `dash.*` views is the real boundary (a sourcer's vw_ats_funnel query only
- * ever returns their own-sourced applications, a bd user's is empty, etc.).
- * This hook is only a UI courtesy, same convention as useCanEditCrm(). */
 export function useCanViewDashboards(): boolean {
   return useRole() !== null;
 }
@@ -55,13 +48,6 @@ const WATCHED_EVENTS = new Set([
   'intake_item.imported',
 ]);
 
-/**
- * Realtime refresh trigger (brief instruction: "no manual reload"). Listens
- * to events_outbox inserts (RLS-scoped like every other Realtime use in this
- * app — see HiredPromotionListener/useIntakeBadge) and calls `onChange`
- * debounced 5s after the last matching event, rather than diffing individual
- * rows — dashboards re-run their own aggregate queries on change.
- */
 export function useOutboxRefresh(onChange: () => void): void {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;

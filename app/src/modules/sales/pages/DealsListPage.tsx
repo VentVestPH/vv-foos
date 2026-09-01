@@ -1,8 +1,3 @@
-// Deal pipeline: kanban over the locked DEAL_STAGES plus a table view.
-// Stage moves are plain UPDATEs — Agent 1's triggers own the status_change
-// activity, audit_log row, and deal.stage_changed event. Moving to lost
-// blocks on a lost_reason dialog; won gets a quiet notice, nothing louder.
-
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -13,6 +8,7 @@ import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { Table, type TableColumn } from '../../../components/ui/Table';
+import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { LostReasonDialog } from '../components/LostReasonDialog';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
 import { BriefcaseIcon } from '../../../shell/icons';
@@ -37,13 +33,16 @@ export function DealsListPage() {
   const [pendingLost, setPendingLost] = useState<Deal | null>(null);
   const [wonNotice, setWonNotice] = useState<string | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
+    setLoading(true);
     const { data } = await supabase
       .from('deals')
       .select('*')
       .order('updated_at', { ascending: false });
     setDeals(data ?? []);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -97,7 +96,6 @@ export function DealsListPage() {
     const deal = deals.find((d) => d.id === dealId);
     if (!deal || deal.stage === toStage) return;
     if (toStage === 'lost') {
-      // Blocking dialog — no reason, no write.
       setPendingLost(deal);
       return;
     }
@@ -203,6 +201,8 @@ export function DealsListPage() {
       owner: staffName(d.owner_id),
     }));
 
+  const pager = usePagination(visible);
+
   return (
     <>
       <ListPage
@@ -268,16 +268,23 @@ export function DealsListPage() {
         exportFilename="deals.csv"
       >
         <div className="record-action-bar taleo-list-action-bar">
-          {/* FOOS-TBD: no bulk-delete handler exists yet for deals. */}
+          {}
           <TaleoPlaceholderAction
             label="Delete"
             detail="Bulk delete isn't implemented for deals yet."
           />
         </div>
 
-        <div className="taleo-pager">
-          {visible.length > 0 ? `1-${visible.length} of ${deals.length}` : `0 of ${deals.length}`}
-        </div>
+        {view === 'table' && (
+          <TaleoPager
+            from={pager.from}
+            to={pager.to}
+            total={pager.total}
+            page={pager.page}
+            pageCount={pager.pageCount}
+            onPage={pager.setPage}
+          />
+        )}
 
         {moveError && <div className="form-error">{moveError}</div>}
         {view === 'kanban' ? (
@@ -288,11 +295,23 @@ export function DealsListPage() {
           />
         ) : (
           <Table
+            busy={loading}
             columns={columns}
-            rows={visible}
+            rows={pager.pageRows}
             rowKey={(d) => d.id}
             onRowClick={(d) => navigate(`/sales/deals/${d.id}`)}
-            emptyText="No deals match."
+            emptyText={loading ? 'Loading…' : 'No deals match.'}
+          />
+        )}
+
+        {view === 'table' && (
+          <TaleoPager
+            from={pager.from}
+            to={pager.to}
+            total={pager.total}
+            page={pager.page}
+            pageCount={pager.pageCount}
+            onPage={pager.setPage}
           />
         )}
       </ListPage>

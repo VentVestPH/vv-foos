@@ -1,10 +1,3 @@
-// Agent 7 — dashboards module root. Mounted at "/" (replaces the Agent-7
-// placeholder in src/pages/DashboardPage.tsx) rather than a new top-level
-// route, since navConfig.ts's "Dashboards" nav item already points at "/".
-// One shared date-range filter drives all five dashboards; tabs switch which
-// one renders rather than five separate routes, matching the brief's
-// "global date-range filter... shared across all dashboards" instruction.
-
 import { useState } from 'react';
 import { useSession } from '../../auth/SessionProvider';
 import { DateRangeFilter } from './components/DateRangeFilter';

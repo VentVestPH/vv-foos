@@ -8,18 +8,6 @@ import {
   BookIcon,
 } from '../shell/icons';
 
-/**
- * Taleo-complete static shells for the four primary-nav tabs FOOS doesn't
- * implement yet: Employees, Onboard/Offboard, Users, Courses (redesign
- * prompt section 8.10). Each reproduces its screenshot's title, icon,
- * description, action bar, and table/empty-state exactly, with every
- * action routed through the centralized TaleoPlaceholderAction so nothing
- * here pretends to work. Reports reuses the Dashboard route instead of a
- * page here (section 8.1/8.10).
- *
- * FOOS-TBD: replace with real modules if/when these tracks get built.
- */
-
 type ModuleKey = 'employees' | 'onboard' | 'users' | 'courses';
 
 const MODULES: Record<
@@ -137,10 +125,7 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
         </div>
       )}
 
-      {/* C7/D13: was a text gear glyph, and onClick={() => undefined} made this
-          a dead control that bypassed the centralized placeholder entirely,
-          which the redesign prompt forbids ("centralize the placeholder
-          behavior rather than duplicating alerts throughout the app"). */}
+      {}
       <button
         type="button"
         className="taleo-gear-btn"

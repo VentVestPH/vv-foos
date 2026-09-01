@@ -1,7 +1,3 @@
-// Client-side CSV export of rows already held in memory. Because rows arrive
-// through RLS-filtered queries, the export can never contain more than the
-// user is allowed to read.
-
 function escapeCell(value: unknown): string {
   if (value === null || value === undefined) return '';
   const s =

@@ -1,7 +1,3 @@
-/* Dashboards (Agent 7) module styles. Consumes the Gate 1 tokens only — no
-   hard-coded colors. Everything is prefixed .dash- to stay out of the
-   shared stylesheet's way. */
-
 .dash-home-head {
   display: flex;
   align-items: center;

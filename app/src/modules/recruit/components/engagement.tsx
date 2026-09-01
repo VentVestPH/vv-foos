@@ -1,8 +1,3 @@
-// Engagement toolkit shared by candidate and requisition records.
-// Panels map exactly to the Gate 1 contract: activities / tasks / reminders /
-// attachments. Status-change activities, audit_log, and events_outbox rows are
-// trigger-owned — nothing here writes them.
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
@@ -164,7 +159,6 @@ export function useEngagement(parentType: 'person' | 'requisition', parentId: st
   };
 }
 
-/** Upload to the `attachments` bucket, then register the attachments row. */
 export async function uploadAttachment(
   parent: EngagementParent,
   file: File,
@@ -208,7 +202,6 @@ interface ActivityPanelProps {
   onCreate: (kind: ActivityKind, subject: string, body: string) => Promise<void>;
 }
 
-/** List + inline create form for one activity kind (note/call/meeting). */
 export function ActivityPanel({
   items,
   kind,
@@ -272,7 +265,6 @@ export function ActivityPanel({
   );
 }
 
-/** Calendar-sourced events: meetings carrying an attendees payload. */
 export function EventsPanel({ items }: { items: Activity[] }) {
   if (items.length === 0) {
     return <p className="text-secondary">No calendar events linked yet.</p>;
@@ -455,11 +447,11 @@ export function RemindersPanel({
 interface AttachmentsPanelProps {
   items: Attachment[];
   parent: EngagementParent;
-  /** Locks the upload kind (e.g. `resume` on the Resumes panel). */
+
   fixedKind?: AttachmentKind;
   allowUpload: boolean;
   onChanged: () => Promise<void>;
-  /** Inline preview of the newest item (resume preview on the record). */
+
   preview?: boolean;
 }
 
@@ -549,7 +541,6 @@ export function AttachmentsPanel({
   );
 }
 
-/** Inline preview of the current (newest) resume via a signed URL. */
 export function ResumePreview({ attachment }: { attachment: Attachment }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {

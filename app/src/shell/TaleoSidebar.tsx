@@ -4,12 +4,6 @@ import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { usePlaceholder } from './TaleoPlaceholder';
 import { ChevronLeftIcon, SearchIcon, PersonIcon, GearIcon } from './icons';
 
-/**
- * Persistent left sidebar (redesign prompt section 5.3): Quick Search panel
- * over a Recently Viewed panel, both with the steel-blue header band.
- * Expanded is the default state; collapse just narrows the rail (content
- * hides via CSS) rather than unmounting anything, so state isn't lost.
- */
 export function TaleoSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [keywords, setKeywords] = useState('');
@@ -23,9 +17,7 @@ export function TaleoSidebar() {
     e.preventDefault();
     const q = keywords || [firstName, lastName].filter(Boolean).join(' ');
     if (!q.trim()) return;
-    // Real, working connection to the existing candidate list + its
-    // already-implemented search/filter behavior (prompt: "connect quick
-    // search to existing candidate navigation/filtering when practical").
+
     navigate(`/recruit/candidates?search=${encodeURIComponent(q)}`);
   };
 

@@ -1,6 +1,3 @@
-// Shared helpers for the CRM (sales) module. Reads only the Gate 1 types —
-// no candidate-shaped types are imported anywhere in this module.
-
 import type {
   Json,
   PersonEmail,
@@ -19,7 +16,6 @@ export type Reminder = Tables<'reminders'>;
 export type Attachment = Tables<'attachments'>;
 export type Staff = Tables<'staff'>;
 
-/** Display name from a people row. */
 export function personName(
   p: Pick<Person, 'first_name' | 'last_name'> | null | undefined,
 ): string {
@@ -28,7 +24,6 @@ export function personName(
   return name || '(no name)';
 }
 
-/** Parse the people.emails jsonb array defensively. */
 export function emailList(emails: Json): PersonEmail[] {
   if (!Array.isArray(emails)) return [];
   return emails.filter(
@@ -39,7 +34,6 @@ export function emailList(emails: Json): PersonEmail[] {
   );
 }
 
-/** Parse the people.phones jsonb array defensively. */
 export function phoneList(phones: Json): PersonPhone[] {
   if (!Array.isArray(phones)) return [];
   return phones.filter(
@@ -62,7 +56,6 @@ export function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
-/** "City, State, Country" with the blanks dropped. */
 export function locationLabel(row: {
   city: string | null;
   state: string | null;
@@ -87,32 +80,25 @@ export function fmtMoney(
   currency: string | null,
 ): string {
   if (value === null || value === undefined) return '—';
-  if (currency) {
-    try {
-      return new Intl.NumberFormat(undefined, {
-        style: 'currency',
-        currency,
-        maximumFractionDigits: 0,
-      }).format(value);
-    } catch {
-      // Unknown currency code — fall through to the plain format.
-    }
+  if (currency && /^[A-Za-z]{3}$/.test(currency)) {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value);
   }
   return `${currency ? currency + ' ' : ''}${value.toLocaleString()}`;
 }
 
-/** Currencies the BD team quotes in. Free-form values migrate as-is. */
 export const CURRENCIES = ['PHP', 'USD', 'AUD', 'NZD', 'SGD', 'EUR', 'GBP'];
 
 export const TASK_PRIORITIES = ['low', 'normal', 'high'];
 
-/** lead → Lead, phone_screen → Phone screen. */
 export function stageLabel(stage: string): string {
   const s = stage.replace(/_/g, ' ');
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Local date (yyyy-mm-dd) for date-input defaults. */
 export function todayISO(): string {
   const d = new Date();
   const mm = String(d.getMonth() + 1).padStart(2, '0');

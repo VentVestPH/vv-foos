@@ -1,8 +1,3 @@
-// Contacts = people rows that carry a contact_profiles row. The query starts
-// from contact_profiles and joins people/companies client-side, so a BD user
-// never asks for people outside their RLS window (and nothing
-// candidate-shaped is ever requested).
-
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -11,6 +6,7 @@ import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
+import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
 import { ContactCardIcon } from '../../../shell/icons';
 import { useCanEditCrm, useCompanyOptions } from '../hooks';
@@ -34,6 +30,7 @@ interface ContactRow {
 }
 
 export function ContactsListPage() {
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const canEdit = useCanEditCrm();
   const { companyName, companyOptions } = useCompanyOptions();
@@ -45,6 +42,7 @@ export function ContactsListPage() {
 
   useEffect(() => {
     let cancelled = false;
+      setLoading(true);
 
     async function load() {
       const { data: profiles } = await supabase
@@ -173,6 +171,8 @@ export function ContactsListPage() {
       since_date: r.profile.since_date,
     }));
 
+  const pager = usePagination(visible);
+
   return (
     <ListPage
       title="Contacts: Home"
@@ -209,15 +209,13 @@ export function ContactsListPage() {
       exportFilename="contacts.csv"
     >
       <div className="record-action-bar taleo-list-action-bar">
-        {/* FOOS-TBD: no list-level bulk email handler exists — the real,
-            working Send Email is on the contact record page, wired to the
-            Google integration. */}
+        {}
         <TaleoPlaceholderAction
           label="Send Email"
           size="sm"
           detail="Bulk email from the contact list isn't implemented — open a contact record to send a real email."
         />
-        {/* FOOS-TBD: no bulk-delete handler exists yet for contacts. */}
+        {}
         <TaleoPlaceholderAction
           label="Delete"
           size="sm"
@@ -225,16 +223,31 @@ export function ContactsListPage() {
         />
       </div>
 
-      <div className="taleo-pager">
-        {visible.length > 0 ? `1-${visible.length} of ${rows.length}` : `0 of ${rows.length}`}
-      </div>
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
+      />
 
       <Table
+        busy={loading}
         columns={columns}
-        rows={visible}
+        rows={pager.pageRows}
         rowKey={(r) => r.profile.person_id}
         onRowClick={(r) => navigate(`/sales/contacts/${r.profile.person_id}`)}
-        emptyText="No contacts match."
+        emptyText={loading ? 'Loading…' : "No contacts match."}
+      />
+
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
       />
     </ListPage>
   );

@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 export interface SidePanelTab {
   key: string;
   label: string;
-  /** Count shown next to the label; omit to hide. */
+
   count?: number;
   content: ReactNode;
 }
@@ -13,12 +13,6 @@ interface SidePanelTabsProps {
   defaultTab?: string;
 }
 
-/**
- * Tabbed side panels for the person-record toolkit — the Gate 1 nine:
- * Notes, Calls, Meetings, Events, Emails, Tasks, Reminders, Files, Resumes.
- * Each panel maps to an existing table (activities/tasks/reminders/attachments);
- * modules supply the content, this component only renders the frame.
- */
 export function SidePanelTabs({ tabs, defaultTab }: SidePanelTabsProps) {
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.key ?? '');
   const current = tabs.find((t) => t.key === active) ?? tabs[0];
@@ -49,7 +43,6 @@ export function SidePanelTabs({ tabs, defaultTab }: SidePanelTabsProps) {
   );
 }
 
-/** The nine person-record panel keys, in Gate 1 order. */
 export const PERSON_TOOLKIT_TABS = [
   'notes',
   'calls',

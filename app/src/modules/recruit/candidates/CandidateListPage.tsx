@@ -1,23 +1,6 @@
-// Candidate list (brief instruction 6): people joined to candidate_profiles,
-// structured grade columns, verbatim candidate_statuses labels from the DB,
-// saved views, CSV export, inline grade edit within the RLS matrix
-// (sourcers only on their own sourced rows).
-//
-// Redesign (Taleo screenshot 08_Taleo_Cand_Home.png, prompt section 8.3):
-// Taleo column order (checkbox / flag / Name / Last updated / Resume /
-// Location / Source / Initial Date / Grade / Grade comment / Main status /
-// Requisitions) leads, remaining real FOOS columns (Current title, Current
-// employer, Sourcer, Flags) follow. A real First Name / Last Name second
-// search row ANDs with the live main search. "Send Email"/"View
-// Resume"/"Print Resume"/"Submit"/"More"/"Mark as…"/"Change Main Status
-// to…" have no list-level bulk handler in this codebase (email/resume are
-// per-record only — see CandidateRecordPage), so they render as centralized
-// TaleoPlaceholderAction controls. Every existing filter/search/saved-view/
-// grade-edit/export/query-param behavior is unchanged, just restyled and
-// moved under Advanced Search.
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useListLink } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -25,6 +8,7 @@ import { Select } from '../../../components/ui/Select';
 import { Badge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
+import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction, usePlaceholder } from '../../../shell/TaleoPlaceholder';
 import { FlagIcon, GearIcon, PersonIcon, ResumeIcon } from '../../../shell/icons';
 import { Dialog } from '../components/Dialog';
@@ -86,11 +70,6 @@ interface CandRow extends Record<string, unknown> {
   emails: string;
 }
 
-// Taleo column order (screenshot 08): Name, Last updated, Resume, Location,
-// Source, Initial Date, Grade, Grade comment, Main status, Requisitions —
-// real FOOS columns (Current title/employer, Sourcer, Flags) follow.
-// Checkbox and the decorative flag column are chrome, not data, and are not
-// part of this list (no column-visibility toggle, no CSV export for them).
 const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
   { key: 'name', header: 'Name' },
   { key: 'updated_at', header: 'Last updated' },
@@ -111,6 +90,7 @@ const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
 const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
 export function CandidateListPage() {
+  const openRecord = useListLink();
   const navigate = useNavigate();
   const role = useRole();
   const { staff } = useSession();
@@ -120,8 +100,7 @@ export function CandidateListPage() {
   const [params] = useSearchParams();
 
   const [search, setSearch] = useState('');
-  // Real second Taleo search row (First Name / Last Name) — ANDs with the
-  // main live search rather than being decorative.
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [filters, setFilters] = useState<CandFilters>(() => ({
@@ -176,7 +155,6 @@ export function CandidateListPage() {
     void load();
   }, [load]);
 
-  // intake_item.imported lands as new candidate_profiles rows; refresh live.
   useEffect(() => {
     const channel = supabase
       .channel('recruit-candidate-list')
@@ -208,7 +186,6 @@ export function CandidateListPage() {
     [reqs],
   );
 
-  /** Grade-edit rights per the RLS matrix (UI courtesy; RLS is the boundary). */
   const canGrade = useCallback(
     (profile: CandidateProfile) =>
       !mobile &&
@@ -229,7 +206,6 @@ export function CandidateListPage() {
       const p = people.get(prof.person_id);
       const flags: string[] = [];
       if (prof.do_not_contact) flags.push('Do not contact');
-      if (prof.salary_flag) flags.push(`Salary: ${prof.salary_flag}`);
       return {
         id: prof.person_id,
         name: p ? personName(p) : '…',
@@ -244,7 +220,7 @@ export function CandidateListPage() {
         grade_comment: prof.grade_comment ?? '',
         current_title: prof.current_title ?? '',
         current_employer: prof.current_employer ?? '',
-        // Verbatim label from candidate_statuses — never renamed or prettified.
+
         status: prof.status_id ? (statusLabel.get(prof.status_id) ?? '') : '',
         source: prof.source_id ? (sourceName.get(prof.source_id) ?? '') : '',
         initial_date: prof.initial_date ?? '',
@@ -291,7 +267,7 @@ export function CandidateListPage() {
           `${r.name} ${r.emails} ${r.current_title} ${r.current_employer}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      // Second Taleo search row — real ANDed filter, not decorative.
+
       if (
         firstName.trim() &&
         !r.first_name.toLowerCase().includes(firstName.trim().toLowerCase())
@@ -322,10 +298,6 @@ export function CandidateListPage() {
   );
 
   const columns = useMemo<TableColumn<CandRow>[]>(() => {
-    // Decorative flag column (Taleo screenshot 08) — a static header icon,
-    // no text label, no click handler. It's chrome, not a data column: it
-    // isn't in COLUMN_DEFS, isn't part of the column-visibility toggle or
-    // CSV export, and always renders regardless of visibleCols.
     const flagCol: TableColumn<CandRow> = {
       key: 'flagcol',
       header: (
@@ -457,6 +429,8 @@ export function CandidateListPage() {
     return [flagCol, ...defs.filter((c) => visibleCols.includes(c.key))];
   }, [visibleCols, profiles, canGrade, updateGrade, navigate]);
 
+  const pager = usePagination(filtered);
+
   const currentState = useCallback(
     (): ViewState => ({
       filters: { ...filters } as unknown as Record<string, string>,
@@ -496,8 +470,7 @@ export function CandidateListPage() {
             onChange={(e) => setLastName(e.target.value)}
             aria-label="Last name"
           />
-          {/* Decorative — the two fields already filter live, same rationale
-              as the main search row's Go! button above. */}
+          {}
           <button type="button" className="btn btn-secondary btn-sm taleo-go-btn">
             Go!
           </button>
@@ -630,41 +603,54 @@ export function CandidateListPage() {
       )}
 
       <div className="record-action-bar taleo-list-action-bar">
-        {/* FOOS-TBD: bulk/list-level email send has no handler — real
-            Send Email lives on the record page (CandidateRecordPage), wired
-            to the Google integration. */}
+        {}
         <TaleoPlaceholderAction
           label="Send Email"
           size="sm"
           detail="Bulk email from the candidate list isn't implemented — open a candidate record to send a real email."
         />
-        {/* FOOS-TBD: no list-level resume viewer; resume preview/download
-            exists per-candidate on the record page. */}
+        {}
         <TaleoPlaceholderAction label="View Resume" size="sm" />
-        {/* FOOS-TBD: no printable-resume rendering exists yet. */}
+        {}
         <TaleoPlaceholderAction label="Print Resume" size="sm" />
-        {/* FOOS-TBD: no "submit to requisition" bulk workflow exists yet. */}
+        {}
         <TaleoPlaceholderAction label="Submit" size="sm" />
-        {/* FOOS-TBD: no additional list-level actions implemented yet. */}
+        {}
         <TaleoPlaceholderAction label="More" size="sm" caret />
         <CandidateGearButton />
-        {/* FOOS-TBD: no bulk "mark as" flag exists on candidate_profiles. */}
+        {}
         <TaleoPlaceholderAction label="Mark as…" size="sm" caret />
-        {/* FOOS-TBD: no bulk main-status update handler; status changes
-            happen one candidate at a time via the record page's Candidate
-            Profile section. */}
+        {}
         <TaleoPlaceholderAction label="Change Main Status to…" size="sm" caret />
       </div>
 
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
+      />
+
       <Table
         columns={columns}
-        rows={filtered}
+        rows={pager.pageRows}
         rowKey={(r) => r.id}
         selectable
         selected={selected}
         onSelectionChange={setSelected}
-        onRowClick={(r) => navigate(`/recruit/candidates/${r.id}`)}
+        onRowClick={(r) => openRecord(`/recruit/candidates/${r.id}`)}
         emptyText="No candidates match."
+      />
+
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
       />
 
       {commentEdit && (
@@ -701,9 +687,6 @@ export function CandidateListPage() {
   );
 }
 
-/** Column-configuration gear (redesign prompt section 7.3). Candidates
- *  already has a real "Columns" checkbox list in Advanced Search above, so
- *  this points there rather than duplicating that control. */
 function CandidateGearButton() {
   const { show } = usePlaceholder();
   return (

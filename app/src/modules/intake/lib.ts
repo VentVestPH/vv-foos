@@ -1,7 +1,3 @@
-// Shared types and small helpers for the Intake module (Agent 5).
-// Enums/statuses are locked (architecture section 1) — do not add channels,
-// statuses, or target types here.
-
 import {
   AtSign,
   Globe,
@@ -14,24 +10,11 @@ import type { Tables } from '../../lib/database.types';
 
 export type IntakeItem = Tables<'intake_items'>;
 
-/**
- * C7 / D13. This was a map of letter and symbol avatars: 'in', '@', '#', 'star'
- * and an ellipsis. The redesign prompt section 6 forbids exactly that ("Do not
- * use letter avatars such as R, C, Co, or emoji as final icons"), and 'in' for
- * LinkedIn was the clearest case of it in the codebase.
- *
- * Lucide, at strokeWidth 1.6 to match shell/icons.tsx.
- *
- * Note: Lucide removed brand icons (Linkedin, Facebook, ...) in v1 for
- * trademark reasons, so the LinkedIn channel uses the generic Link2 mark. If a
- * real LinkedIn glyph is ever wanted it has to be a local SVG in
- * shell/icons.tsx, not a Lucide import.
- */
 export const CHANNEL_ICON: Record<IntakeItem['channel'], LucideIcon> = {
   linkedin_url: Link2,
   email: AtSign,
   sheet_import: Sheet,
-  careers_form: Globe,   // public careers page: auto-imported, read-only here
+  careers_form: Globe,
   manual: PencilLine,
 };
 
@@ -79,7 +62,6 @@ export function primaryEmail(item: IntakeItem): string | null {
   return null;
 }
 
-/** Grading required before import: linkedin_url channel + candidate target only. */
 export function requiresGradingBeforeImport(item: IntakeItem): boolean {
   return item.channel === 'linkedin_url' && item.target_type === 'candidate';
 }
@@ -88,7 +70,6 @@ export function isGraded(item: IntakeItem): boolean {
   return item.status === 'graded' || item.star_grade != null;
 }
 
-/** Careers-form rows are read-only here — Agent 4 already auto-imported them. */
 export function isReadOnly(item: IntakeItem): boolean {
   return item.channel === 'careers_form';
 }

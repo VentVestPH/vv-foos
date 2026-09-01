@@ -1,13 +1,3 @@
-// New / edit requisition form (brief instruction 3). Covers every
-// requisitions field with structured pay inputs and required marks.
-// display_code comes from the database sequence — never sent on insert.
-//
-// Redesign (Taleo screenshots 16/17, prompt section 8.2): Taleo section
-// bars "Requisition Owner(s):" / "Requisition Information:" / "Description:"
-// / "Approvers:", Save/Cancel/Reset repeated top and bottom, and a real
-// Reset that restores the form to what it looked like on load (or to a
-// blank draft on the New form) without touching the database.
-
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRole } from '../../../auth/SessionProvider';
@@ -86,9 +76,6 @@ export function RequisitionFormPage() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(!editing);
 
-  // Snapshot of "what the form looked like on load" — a real Reset restores
-  // exactly this (blank draft defaults for New, loaded record for Edit)
-  // rather than merely clearing fields.
   const [initialForm, setInitialForm] = useState<FormState>(EMPTY);
   const [initialOwnerIds, setInitialOwnerIds] = useState<string[]>([]);
   const [initialApprovers, setInitialApprovers] = useState<ApproverDraft[]>([]);
@@ -212,7 +199,6 @@ export function RequisitionFormPage() {
           .eq('id', id);
         if (err) throw new Error(err.message);
       } else {
-        // status defaults to draft in the schema; display_code is sequence-owned.
         const { data, error: err } = await supabase
           .from('requisitions')
           .insert({ ...payload, status: 'draft' })
@@ -222,7 +208,6 @@ export function RequisitionFormPage() {
         reqId = data.id;
       }
 
-      // Owners: reconcile against the original set.
       const removedOwners = originalOwners.filter((s) => !ownerIds.includes(s));
       const addedOwners = ownerIds.filter((s) => !originalOwners.includes(s));
       for (const staffId of removedOwners) {
@@ -240,7 +225,6 @@ export function RequisitionFormPage() {
         if (err) throw new Error(err.message);
       }
 
-      // Approvers: add/remove by (staff, type); existing rows keep decisions.
       const keyOf = (a: { staff_id: string; approver_type: ApproverType }) =>
         `${a.staff_id}|${a.approver_type}`;
       const currentKeys = new Set(approvers.map(keyOf));
@@ -458,11 +442,7 @@ export function RequisitionFormPage() {
             <label className="field-label" htmlFor="req-description">
               Description
             </label>
-            {/* Decorative rich-text toolbar (Taleo screenshot 17) — the
-                underlying control is a plain textarea, so every button here
-                is a no-op placeholder. FOOS-TBD: wire a real rich-text
-                editor if the description ever needs formatting beyond
-                plain text. */}
+            {}
             <div className="rq-editor-toolbar" role="toolbar" aria-label="Text formatting (not available)">
               {['Undo', 'Redo', 'Bold', 'Italic', 'Underline', 'Bullet list', 'Numbered list', 'Link'].map(
                 (label) => (

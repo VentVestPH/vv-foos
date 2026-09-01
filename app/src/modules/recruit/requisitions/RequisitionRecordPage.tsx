@@ -1,20 +1,6 @@
-// Requisition record (brief instructions 4, 5): sticky action bar with
-// lifecycle controls and approver flow, information grid, description,
-// owners, approvers with decision state, engagement toolkit, pipeline.
-// Status changes are plain UPDATEs — Agent 1's triggers write the
-// status_change activity, audit_log row, and requisition.status_changed event.
-//
-// Redesign (Taleo screenshots 18-21, prompt section 8.2): Taleo action bar
-// (Edit/Send To/Forms/Printable View/More) repeated top and bottom, a plain
-// "Next Steps:" line under the action bar, and the section sequence Owner(s)
-// -> Information -> Description -> Attachments -> Accounts/Company ->
-// Contacts -> Tasks -> Reminders -> Comments -> History Log -> Tracking ->
-// Approvals -> Application Pipeline. Every real FOOS handler (lifecycle
-// transitions, publish, approve/reject, engagement panels, pipeline) is
-// unchanged — only the chrome and section grouping moved.
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useBackToList } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import type { RequisitionStatus, TablesUpdate } from '../../../lib/database.types';
 import { Button } from '../../../components/ui/Button';
@@ -49,6 +35,7 @@ import {
 import { ApplicationPipeline } from './ApplicationPipeline';
 
 export function RequisitionRecordPage() {
+  const backToList = useBackToList('/recruit/requisitions');
   const { id } = useParams();
   const requisitionId = id ?? '';
   const navigate = useNavigate();
@@ -101,8 +88,6 @@ export function RequisitionRecordPage() {
     void load();
   }, [load]);
 
-  // Real candidate count for the "Next Steps" line, kept live via Realtime —
-  // same table/filter pattern used by the list page and pipeline.
   const loadPipelineCount = useCallback(async () => {
     if (!requisitionId) return;
     const { count, error: err } = await supabase
@@ -136,7 +121,6 @@ export function RequisitionRecordPage() {
     };
   }, [requisitionId, loadPipelineCount]);
 
-  // Recently Viewed rail entry on visit.
   useEffect(() => {
     if (req) {
       record({
@@ -146,7 +130,7 @@ export function RequisitionRecordPage() {
         href: `/recruit/requisitions/${req.id}`,
       });
     }
-    // record is stable per staff key; req?.id guards duplicates.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [req?.id]);
 
@@ -223,7 +207,6 @@ export function RequisitionRecordPage() {
         return;
       }
       if (decision === 'rejected') {
-        // Any rejection returns the requisition to draft, decision visible.
         const { error: err2 } = await supabase
           .from('requisitions')
           .update({ status: 'draft' })
@@ -259,9 +242,6 @@ export function RequisitionRecordPage() {
     pipelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  /** A "Next Steps" shortcut for a lifecycle target: real when the
-   *  transition is currently legal (same `changeStatus` the action bar
-   *  uses), otherwise a plain disabled label — never a fake action. */
   const lifecycleNextStep = (target: RequisitionStatus, label: string) => {
     if (canEdit && lifecycleTargets.includes(target)) {
       const gated = target === 'open' && !allApproved;
@@ -324,7 +304,7 @@ export function RequisitionRecordPage() {
           <button
             type="button"
             className="link-btn taleo-back-to-list"
-            onClick={() => navigate('/recruit/requisitions')}
+            onClick={backToList}
           >
             Back To List
           </button>
@@ -432,8 +412,7 @@ export function RequisitionRecordPage() {
       </RecordSection>
 
       <RecordSection title="Contacts" defaultOpen={false}>
-        {/* FOOS-TBD: requisitions have no contact-linking model yet — the
-            people involved are tracked as owners/approvers instead. */}
+        {}
         <p className="text-secondary">No contacts attached.</p>
         <TaleoPlaceholderAction label="Attach Contact" size="sm" variant="ghost" />
         <TaleoPlaceholderAction label="New Contact" size="sm" variant="ghost" />

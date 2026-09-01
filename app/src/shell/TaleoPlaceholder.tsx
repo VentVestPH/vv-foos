@@ -7,20 +7,6 @@ import {
   type ReactNode,
 } from 'react';
 
-/**
- * Centralized "not available in this MVP" placeholder (redesign prompt
- * section 2, "Unimplemented controls"). Every screenshot-accurate control
- * that isn't wired to real FOOS behavior routes through this one modal
- * instead of a scattered `alert()` or a silently-broken handler, so:
- *   - it never mutates data or shows a fake success state;
- *   - it never navigates to a broken route;
- *   - there is exactly one place to later wire real behavior in.
- *
- * Usage: wrap the app in <TaleoPlaceholderProvider>, then call
- * usePlaceholder() anywhere and invoke show('Send To') on click. Or use the
- * <TaleoPlaceholderAction label="Send To" /> button below for the common
- * case of "a button that does nothing but announce itself yet".
- */
 interface PlaceholderContextValue {
   show: (action: string, detail?: string) => void;
 }
@@ -67,7 +53,7 @@ export function TaleoPlaceholderProvider({
             <div className="taleo-placeholder-body">
               This action is not available in the current FOOS MVP.
               {state.detail ? ` ${state.detail}` : ''}
-              {/* FOOS-TBD: wire real behavior for this control. */}
+              {}
             </div>
             <div className="taleo-placeholder-footer">
               <button
@@ -94,12 +80,6 @@ export function usePlaceholder() {
   return ctx;
 }
 
-/**
- * Drop-in button for a screenshot-accurate control with no wired behavior
- * yet. Renders exactly like a normal Taleo action-bar button (so it "looks
- * real", per the prompt) but only ever opens the centralized placeholder.
- * FOOS-TBD: replace with a real handler once the action is implemented.
- */
 export function TaleoPlaceholderAction({
   label,
   detail,
@@ -107,11 +87,7 @@ export function TaleoPlaceholderAction({
   size,
   caret = false,
   className,
-  // Every TaleoPlaceholderAction is by definition an action that cannot run,
-  // so aria-disabled defaults to true (redesign prompt section 2). Pass
-  // ariaDisabled={false} for the rare placeholder that should not announce
-  // itself as unavailable. The control stays tabbable either way, so keyboard
-  // users can still reach it and get the explanatory modal.
+
   ariaDisabled = true,
 }: {
   label: string;

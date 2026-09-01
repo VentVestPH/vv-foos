@@ -3,13 +3,6 @@ import { useRole } from '../auth/SessionProvider';
 import { primaryNavForRole } from './navConfig';
 import { HomeIcon } from './icons';
 
-/**
- * Taleo primary horizontal nav (redesign prompt section 5.2): steel-blue
- * band, tabs in the exact specified order, active tab rendered as a
- * light-gray rectangle cut into the band (no pill, no underline). Home is
- * icon-only. Role filtering mirrors the original vertical nav's
- * sectionsForRole — RLS remains the real boundary.
- */
 export function TaleoPrimaryNav() {
   const role = useRole();
   const location = useLocation();

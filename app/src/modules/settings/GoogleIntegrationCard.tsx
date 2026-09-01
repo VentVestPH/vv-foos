@@ -1,10 +1,5 @@
 import { Check, Minus } from 'lucide-react';
 
-/**
- * C7/D13. These were the text glyphs U+2713 and an em dash used as status
- * marks. Same class as the Timeline emoji map: a character standing in for an
- * icon. aria-label carries the meaning, since a bare mark is not readable.
- */
 function ScopeMark({ granted }: { granted: boolean }) {
   const Icon = granted ? Check : Minus;
   return (
@@ -15,19 +10,6 @@ function ScopeMark({ granted }: { granted: boolean }) {
     />
   );
 }
-
-// Agent 6 — Settings surface, instruction 12: "connect button, scope status,
-// label picker, sync indicator, template manager." This card covers the
-// connect/disconnect + scope-status half; label picker and template manager
-// are noted as follow-ups in the module README (they read/write
-// integration_settings rows Agent 6's brief describes but aren't part of
-// the OAuth/sync/send critical path).
-//
-// NOT YET LIVE-TESTABLE end-to-end: google-oauth-start/callback need
-// GOOGLE_OAUTH_CLIENT_ID/SECRET/REDIRECT_URI set as function secrets first
-// (see VVPH_VV-FOOS_Doc_Google-OAuth-Setup). The status/disconnect calls
-// below work today against the deployed get_my_google_status /
-// disconnect_my_google RPCs regardless.
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -54,7 +36,6 @@ export function GoogleIntegrationCard() {
     void reload();
   }, []);
 
-  // google-oauth-callback redirects back here with ?google=connected|error.
   useEffect(() => {
     const google = params.get('google');
     if (!google) return;

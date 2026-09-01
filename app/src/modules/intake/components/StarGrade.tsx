@@ -1,12 +1,3 @@
-// Small local copy of the 1–3 star grade control (recruit module owns the
-// original; module boundaries mean this one stays intake-local rather than
-// cross-importing another module's component).
-//
-// Redesign (prompt section 8.8): same 1-3 star value semantics and onClick
-// handlers as before — only the visual mark changed, from an emoji glyph to
-// a restrained outline star in Taleo blue/gold (filled when graded, outline
-// otherwise), rendered as inline SVG so it stays crisp at any size.
-
 interface StarGradeProps {
   value: number | null;
   onChange?: (value: number | null) => void;

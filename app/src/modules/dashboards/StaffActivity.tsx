@@ -1,8 +1,3 @@
-// Dashboard 4 — Recruiter/Sourcer Activity. Business rule from the brief:
-// counts only, no ranking or leaderboard coloring — so rows are sorted
-// alphabetically by staff name, never by count descending, and BarList gets
-// no tone-by-rank treatment.
-
 import { useCallback, useEffect, useState } from 'react';
 import { dashDb } from './db';
 import { Widget } from './components/Widget';
@@ -27,7 +22,7 @@ function countByStaff(
   }
   return [...counts.entries()]
     .map(([id, count]) => ({ label: nameOf(id), count }))
-    .sort((a, b) => a.label.localeCompare(b.label)); // alphabetical, never by count
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 export function StaffActivity({ range }: { range: DateRange }) {

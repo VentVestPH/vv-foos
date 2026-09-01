@@ -1,12 +1,3 @@
-// Shared "real widgets, Taleo chrome" panel used by both the Pipeline tab
-// and the Reports tab of DashboardPage.tsx (redesign prompt section 8.1:
-// "Existing FOOS executive widgets and drill-through links must remain
-// available... Reports can be a dashboard state selected by the Reports
-// primary tab"). Same five live Agent-7 dashboards + admin-gated Experiment
-// metrics, each recomposed into a RecordSection accordion instead of the
-// former dash-tabs/dash-grid layout — no query, drill-through, export, or
-// Realtime behavior changes, only composition/chrome.
-
 import { useState } from 'react';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { DateRangeFilter } from './components/DateRangeFilter';

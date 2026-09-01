@@ -1,12 +1,5 @@
 import { useEffect } from 'react';
 
-/**
- * WCAG 2.2 SC 2.4.11: keeps the sticky .record-action-bar from completely
- * covering the keyboard-focused element. scroll-padding-top (app.css) handles
- * the scrolling case; this handles a target already visible behind the bar,
- * where no scroll occurs so scroll-padding never engages.
- * See docs/02-taleo-fidelity/ for the measurements.
- */
 const STICKY_SELECTOR = '.record-action-bar';
 
 export function useStickyFocusGuard(): void {
@@ -19,7 +12,7 @@ export function useStickyFocusGuard(): void {
       if (!scroller) return;
 
       const sticky = scroller.querySelector<HTMLElement>(STICKY_SELECTOR);
-      // The bar's own controls are not obscured by it.
+
       if (!sticky || sticky.contains(el)) return;
 
       const target = el.getBoundingClientRect();

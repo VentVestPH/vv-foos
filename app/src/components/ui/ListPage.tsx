@@ -5,45 +5,30 @@ import { downloadCsv } from '../../lib/csv';
 
 interface ListPageProps {
   title: string;
-  /** Large blue outline entity icon at left (Taleo page-header pattern). */
+
   icon?: ReactNode;
-  /** One-line descriptive text under the title (Taleo page-header pattern). */
+
   description?: string;
-  /** Live search — filters as the user types, no "Go!" button. */
+
   search: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
-  /**
-   * Optional second Taleo search row rendered directly under the main
-   * `Search:` row (e.g. Candidates' First Name / Last Name fields, redesign
-   * prompt section 7.2). Callers wire the fields into their own filter
-   * state; omitted, nothing renders and existing callers are unaffected.
-   */
+
   secondSearchRow?: ReactNode;
-  /** Filter controls rendered in the left rail. */
+
   filterRail?: ReactNode;
-  /** Saved-views control (dropdown + save button); modules supply their own. */
+
   savedViewsSlot?: ReactNode;
-  /** Extra head actions (e.g. "New requisition"). */
+
   actions?: ReactNode;
-  /** The table (usually <Table />). */
+
   children: ReactNode;
-  /** Rows currently visible after filtering; exported as CSV. */
+
   exportRows?: Record<string, unknown>[];
   exportColumns?: { key: string; header: string }[];
   exportFilename?: string;
 }
 
-/**
- * Standard list layout: title + actions, live search, saved-views slot,
- * filter rail on the left, table on the right, CSV export of visible rows.
- * The export only ever holds RLS-filtered rows already on the client.
- *
- * `icon`/`description` are optional — when supplied the title row renders
- * as the Taleo entity-list page header (icon + "Entity: Home" + one-line
- * description, redesign prompt section 7.1); omitted, the header falls
- * back to the plain title row so other callers are unaffected.
- */
 export function ListPage({
   title,
   icon,
@@ -90,10 +75,7 @@ export function ListPage({
             aria-label={`Search ${title}`}
           />
         </div>
-        {/* Decorative — the input already filters live as you type, so Go!
-            has nothing to do; it exists only to match the Taleo search
-            pattern (redesign prompt section 7.2). Not a placeholder: it
-            never claims to do anything the input hasn't already done. */}
+        {}
         <button type="button" className="btn btn-secondary btn-sm taleo-go-btn">
           Go!
         </button>

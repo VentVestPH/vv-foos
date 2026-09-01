@@ -46,7 +46,6 @@ export function CompanyRecordPage() {
   const [requisitions, setRequisitions] = useState<RequisitionLite[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  // BD has no RLS read on requisitions — never even issue the query for bd.
   const canSeeRequisitions = role === 'admin' || role === 'recruiter';
 
   useEffect(() => {

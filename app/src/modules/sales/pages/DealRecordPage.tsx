@@ -1,9 +1,3 @@
-// Deal record: every field editable (for admin/bd), activity timeline, and
-// the engagement toolkit. Stage saves are plain UPDATEs — the DB triggers
-// write the status_change activity/audit/outbox rows; after a save we just
-// refetch, so the new status_change shows without a page reload. Moving to
-// lost blocks on the lost_reason dialog here too.
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -39,7 +33,6 @@ export function DealRecordPage() {
   const [loaded, setLoaded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Editable draft fields.
   const [name, setName] = useState('');
   const [companyId, setCompanyId] = useState('');
   const [contactId, setContactId] = useState('');
@@ -95,7 +88,6 @@ export function DealRecordPage() {
     }
   }, [deal, record]);
 
-  // Primary contact options follow the selected company.
   useEffect(() => {
     if (!companyId) {
       setCompanyContacts([]);
@@ -187,7 +179,7 @@ export function DealRecordPage() {
     }
     const movedToWon = stage === 'won' && deal.stage !== 'won';
     await load();
-    setRefreshKey((k) => k + 1); // timeline picks up the trigger-written status_change
+    setRefreshKey((k) => k + 1);
     if (movedToWon) setNotice(`${deal.display_code} — won.`);
   };
 
@@ -197,7 +189,6 @@ export function DealRecordPage() {
       return;
     }
     if (stage === 'lost' && deal.stage !== 'lost') {
-      // No reason, no transition — dialog gates the write.
       setPendingLostReason(true);
       return;
     }

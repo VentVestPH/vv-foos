@@ -20,16 +20,12 @@ import { Drawer } from './Drawer';
 interface ItemDrawerProps {
   item: IntakeItem;
   onClose: () => void;
-  /** Data changed but the drawer should stay open (e.g. grade saved). */
+
   onSaved: () => void;
-  /** Terminal action completed (import/reject) — parent closes the drawer. */
+
   onDone: () => void;
 }
 
-/**
- * Item detail drawer (instruction 2): raw/parsed view, dedup panel, grading
- * panel for candidate items, and the action bar (Import / Reject / Edit).
- */
 export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) {
   const parsed = parsedOf(item);
   const [dedup, setDedup] = useState<DedupMatch | null | undefined>(undefined);

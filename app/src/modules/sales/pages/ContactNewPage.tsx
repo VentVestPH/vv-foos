@@ -1,8 +1,3 @@
-// New contact form with the dedup hint: on email entry we look for an
-// existing people row with that normalized address (jsonb contains on
-// people.emails). If one exists, the form offers to link a contact_profile
-// to the existing person instead of inserting a duplicate people row.
-
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -40,9 +35,6 @@ export function ContactNewPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Real Reset — restores the blank-draft defaults without touching the
-  // database (redesign prompt section 8.2's Reset requirement, applied to
-  // the Contacts new-record archetype).
   const resetForm = () => {
     setFirstName('');
     setLastName('');
@@ -62,8 +54,7 @@ export function ContactNewPage() {
     const normalized = normalizeEmail(email);
     if (!normalized || normalized === checkedEmail) return;
     setCheckedEmail(normalized);
-    // jsonb contains: people.emails @> [{"address": "<normalized>"}].
-    // RLS scopes the result — a BD user only sees people they may read.
+
     const { data: people } = await supabase
       .from('people')
       .select('*')
@@ -95,8 +86,6 @@ export function ContactNewPage() {
     since_date: sinceDate || null,
   });
 
-  /** Dedup path: add a contact_profile to the existing person — no new
-   *  people row, nothing copied. */
   const linkExisting = async (m: DedupMatch) => {
     setSaving(true);
     setError(null);

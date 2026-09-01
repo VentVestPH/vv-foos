@@ -2,15 +2,14 @@ import { useMemo, useState, type ReactNode } from 'react';
 
 export interface TableColumn<T> {
   key: string;
-  /** Usually plain text; icon-only decorative headers (e.g. Taleo's flag
-   *  column) may pass a ReactNode instead. */
+
   header: ReactNode;
   sortable?: boolean;
-  /** Value used for sorting; defaults to row[key]. */
+
   sortValue?: (row: T) => string | number | null;
-  /** Cell renderer; defaults to String(row[key]). */
+
   render?: (row: T) => ReactNode;
-  /** Cap long text at two lines with expand-on-click. */
+
   capped?: boolean;
   width?: string;
 }
@@ -19,21 +18,19 @@ interface TableProps<T> {
   columns: TableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
-  /** Adds a leading checkbox column and reports selected row keys. */
+
   selectable?: boolean;
   selected?: Set<string>;
   onSelectionChange?: (selected: Set<string>) => void;
-  /** Alternating row background. On by default — Taleo tables are subtly
-   *  zebra-striped throughout (redesign default; the original ATS brief
-   *  had this off by default). */
+
   zebra?: boolean;
   onRowClick?: (row: T) => void;
   emptyText?: string;
+  busy?: boolean;
 }
 
 type SortDir = 'asc' | 'desc';
 
-/** Two-line text cap with expand-on-click (architecture section 7). */
 export function CappedCell({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   if (!text) return null;
@@ -61,6 +58,7 @@ export function Table<T>({
   zebra = true,
   onRowClick,
   emptyText = 'No records.',
+  busy,
 }: TableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -120,7 +118,7 @@ export function Table<T>({
 
   return (
     <div className="table-wrap">
-      <table className={zebra ? 'table zebra' : 'table'}>
+      <table className={zebra ? 'table zebra' : 'table'} aria-busy={busy || undefined}>
         <thead>
           <tr>
             {selectable && (

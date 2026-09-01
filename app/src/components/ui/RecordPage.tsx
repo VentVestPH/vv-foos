@@ -1,14 +1,13 @@
 import { useState, type ReactNode } from 'react';
 
 interface RecordPageProps {
-  /** Human-facing code, e.g. REQ-0001. Optional (people have none). */
   code?: string;
   title: string;
-  /** Large blue outline entity icon at left (Taleo page-header pattern). */
+
   icon?: ReactNode;
-  /** Status chips and similar, rendered next to the title. */
+
   titleExtras?: ReactNode;
-  /** Sticky single action bar — no duplicated toolbars (section 7). */
+
   actionBar?: ReactNode;
   children: ReactNode;
 }
@@ -41,7 +40,6 @@ interface RecordSectionProps {
   children: ReactNode;
 }
 
-/** Collapsible titled section inside a RecordPage. */
 export function RecordSection({
   title,
   defaultOpen = true,

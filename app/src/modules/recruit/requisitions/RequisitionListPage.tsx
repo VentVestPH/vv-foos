@@ -1,19 +1,6 @@
-// Requisition list — live search, filter rail, saved views, CSV export,
-// per-row "n Unviewed" badges derived from application_views, live via
-// Realtime on applications (brief instructions 1, 2, 9, 11).
-//
-// Redesign (Taleo screenshot 07_Taleo_Req_Home.png, prompt section 8.2):
-// Taleo column order (Job Code / ID / Title / Candidates / Last updated /
-// Location / Status / Requisition Owners / Next Steps) leads, remaining
-// real FOOS columns (Company, Openings, Opened) follow. "Delete"/"Forms"/
-// "Change status to…" have no bulk-action handlers in this codebase, so
-// they render as centralized TaleoPlaceholderAction controls — the
-// checkbox column exists for Taleo's visual pattern only, no bulk mutation
-// is wired to it. Every existing filter/search/saved-view/export/query-param
-// behavior is unchanged, just restyled and moved under "Advanced Search".
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useListLink } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { REQUISITION_STATUSES } from '../../../lib/database.types';
 import { Button } from '../../../components/ui/Button';
@@ -23,6 +10,7 @@ import { StatusBadge } from '../../../components/ui/Badge';
 import { UnviewedBadge } from '../../../components/ui/UnviewedBadge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
+import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
 import { BriefcaseIcon, PersonIcon } from '../../../shell/icons';
 import {
@@ -93,6 +81,7 @@ const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 type AppSlim = Pick<Application, 'id' | 'requisition_id' | 'stage_changed_at'>;
 
 export function RequisitionListPage() {
+  const openRecord = useListLink();
   const navigate = useNavigate();
   const role = useRole();
   const { staff } = useSession();
@@ -172,8 +161,6 @@ export function RequisitionListPage() {
     void loadApps();
   }, [loadApps]);
 
-  // Unviewed counters refresh live (application.created / stage_changed land
-  // as row changes on applications; views change when someone opens one).
   useEffect(() => {
     const channel = supabase
       .channel('recruit-req-list')
@@ -276,6 +263,8 @@ export function RequisitionListPage() {
     });
     return sortRows(base, sort);
   }, [rows, reqs, owners, filters, search, sort]);
+
+  const pager = usePagination(filtered);
 
   const columns = useMemo<TableColumn<ReqRow>[]>(() => {
     const defs: TableColumn<ReqRow>[] = [
@@ -525,18 +514,14 @@ export function RequisitionListPage() {
 
       {canBulk && (
         <div className="record-action-bar taleo-list-action-bar">
-          {/* FOOS-TBD: no bulk-delete handler exists yet — wire a real
-              multi-row delete once the product decides what "delete" means
-              for requisitions (soft delete vs. hard delete vs. close). */}
+          {}
           <TaleoPlaceholderAction
             label="Delete"
             detail="Bulk delete isn't implemented for requisitions yet."
           />
-          {/* FOOS-TBD: Taleo's "Forms" (offer/req forms) has no FOOS equivalent. */}
+          {}
           <TaleoPlaceholderAction label="Forms" />
-          {/* FOOS-TBD: no bulk status-change handler exists; status changes
-              happen one requisition at a time via the record page's
-              lifecycle buttons (see RequisitionRecordPage). */}
+          {}
           <TaleoPlaceholderAction
             label="Change status to…"
             caret
@@ -545,21 +530,33 @@ export function RequisitionListPage() {
         </div>
       )}
 
-      <div className="taleo-pager">
-        {filtered.length > 0
-          ? `1-${filtered.length} of ${rows.length}`
-          : `0 of ${rows.length}`}
-      </div>
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
+      />
 
       <Table
         columns={columns}
-        rows={filtered}
+        rows={pager.pageRows}
         rowKey={(r) => r.id}
         selectable={canBulk}
         selected={selected}
         onSelectionChange={setSelected}
-        onRowClick={(r) => navigate(`/recruit/requisitions/${r.id}`)}
+        onRowClick={(r) => openRecord(`/recruit/requisitions/${r.id}`)}
         emptyText="No requisitions match."
+      />
+
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
       />
     </ListPage>
   );

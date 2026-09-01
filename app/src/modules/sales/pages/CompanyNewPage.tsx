@@ -31,9 +31,6 @@ export function CompanyNewPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Real Reset — restores the blank-draft defaults without touching the
-  // database (redesign prompt section 8.2's Reset requirement, applied
-  // here to the Accounts new-record archetype).
   const resetForm = () => {
     setName('');
     setTypes(INITIAL_TYPES);

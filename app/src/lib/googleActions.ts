@@ -1,12 +1,3 @@
-// Agent 6 client helpers — thin wrappers around gmail-send and
-// calendar-create-meeting, shared by any module with a record view that
-// wants a "Send email" / "Schedule meeting" action (recruit candidates,
-// sales contacts/deals, ...). Both Edge Functions require the caller's own
-// scope to be granted (send / calendar) — see /settings.
-//
-// Kept in src/lib (not a module) since this crosses the recruit/sales
-// boundary the same way the shared UI components do.
-
 import { supabase } from './supabase';
 
 interface EdgeResult<T> {
@@ -17,18 +8,14 @@ interface EdgeResult<T> {
 async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<EdgeResult<T>> {
   const { data, error } = await supabase.functions.invoke<T & { error?: string }>(fn, { body });
   if (error) {
-    // supabase-js surfaces non-2xx responses as a generic FunctionsHttpError;
-    // the useful message is in the body, which the client library still
-    // exposes via error.context (a Response) when available.
     let message = error.message;
-    try {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx) {
-        const body = await ctx.clone().json();
-        if (body?.error) message = body.error;
-      }
-    } catch {
-      // fall back to error.message
+    const ctx = (error as { context?: Response }).context;
+    if (ctx) {
+      const body = await ctx
+        .clone()
+        .json()
+        .catch(() => null);
+      if (body?.error) message = body.error;
     }
     return { data: null, error: message };
   }

@@ -1,8 +1,3 @@
-// Dashboard 5 — Requisition Aging. dash.vw_requisition_aging is
-// security_invoker so unviewed_applications/i_am_owner are computed against
-// the caller's own auth.uid() automatically — no parameter needed. Rows over
-// the configurable threshold (dash.thresholds, seeded 14 days) are flagged.
-
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashDb } from './db';

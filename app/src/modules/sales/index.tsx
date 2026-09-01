@@ -1,6 +1,3 @@
-// CRM module (Agent 3) mount point. The integrator wires SalesRoutes into
-// App.tsx at /sales/* and merges salesNavItems into the shell nav.
-
 import { Navigate, Route, Routes } from 'react-router-dom';
 import type { StaffRole } from '../../lib/database.types';
 import './sales.css';
@@ -23,7 +20,6 @@ export interface SalesNavItem {
   roles: StaffRole[];
 }
 
-// Section 5 matrix: admin/bd full on CRM tables, recruiter read; sourcer none.
 const CRM_ROLES: StaffRole[] = ['admin', 'recruiter', 'bd'];
 
 export const salesNavItems: SalesNavItem[] = [

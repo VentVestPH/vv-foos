@@ -2,10 +2,6 @@ import type { ReactNode } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { downloadCsv } from '../../../lib/csv';
 
-/** Per-widget chrome: title, last-refreshed timestamp, CSV export of the
- * post-filter/post-RLS rows already held on the client — brief instruction
- * 8 ("per-widget CSV export... filename pattern foos-<dashboard>-<widget>-
- * <daterange>.csv"). */
 export function Widget({
   title,
   lastRefreshed,

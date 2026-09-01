@@ -11,8 +11,6 @@ const PRESETS: { value: DateRangePreset; label: string }[] = [
   { value: 'custom', label: 'Custom' },
 ];
 
-/** Global date-range filter, one instance per dashboard page — brief
- * instruction: presets 7/30/90/quarter/custom, default 30. */
 export function DateRangeFilter({
   range,
   onChange,

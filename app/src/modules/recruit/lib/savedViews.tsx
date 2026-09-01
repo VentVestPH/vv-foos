@@ -1,6 +1,3 @@
-// Saved views over ats_saved_views (Gate 2 migration). RLS scopes rows to
-// staff_id = auth.uid(); the .eq('staff_id', …) here is belt and braces.
-
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from '../../../auth/SessionProvider';
 import type { Json } from '../../../lib/database.types';
@@ -96,14 +93,13 @@ export function useSavedViews(entity: 'requisition' | 'candidate') {
 
 interface SavedViewsControlProps {
   views: SavedView[];
-  /** Snapshot of the current filters + visible columns + sort. */
+
   currentState: () => ViewState;
   onApply: (state: ViewState) => void;
   onSave: (name: string, state: ViewState) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
 }
 
-/** Dropdown of saved views plus save/delete, for the ListPage saved-views slot. */
 export function SavedViewsControl({
   views,
   currentState,

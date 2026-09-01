@@ -1,14 +1,3 @@
-// Hired → contact promotion receiver (cross-module contract 1). Reached
-// from the application.hired prompt with ?personId=…&companyId=…&since=….
-// Accepting adds a contact_profiles row to the SAME person — no new people
-// row, nothing copied. If a contact_profile already exists, the page offers
-// to update company/title instead of inserting.
-//
-// Note on RLS: the suggested company comes in via query params (from the
-// event payload / the ATS side), so BD never queries requisitions here. A
-// BD user may also be unable to read the people row until the profile
-// exists — the page handles a hidden person gracefully.
-
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -96,7 +85,7 @@ export function PromoteContactPage() {
       title: title.trim() || null,
       since_date: sinceDate || null,
     };
-    // Existing profile → update, never a second row. One person, one identity.
+
     const { error: writeError } = existing
       ? await supabase
           .from('contact_profiles')

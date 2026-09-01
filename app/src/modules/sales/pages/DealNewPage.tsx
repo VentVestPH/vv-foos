@@ -1,7 +1,3 @@
-// New-deal form. The DEAL-#### display code comes from the database
-// sequence — the insert never sends one. Stage defaults to lead, owner to
-// the signed-in user.
-
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -43,9 +39,6 @@ export function DealNewPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Real Reset — restores the blank-draft defaults without touching the
-  // database (redesign prompt section 8.2's Reset requirement, applied to
-  // the Deals new-record archetype).
   const resetForm = () => {
     setName('');
     setCompanyId(initialCompanyId);
@@ -63,7 +56,6 @@ export function DealNewPage() {
     if (staff && !ownerId) setOwnerId(staff.id);
   }, [staff, ownerId]);
 
-  // Primary contact list is filtered to the chosen company's contacts.
   useEffect(() => {
     if (!companyId) {
       setContactOptions([]);
@@ -121,7 +113,7 @@ export function DealNewPage() {
         company_id: companyId,
         primary_contact_id: contactId || null,
         owner_id: ownerId || staff?.id || null,
-        // stage omitted — defaults to lead in the schema.
+
         value: value === '' ? null : Number(value),
         currency: currency || null,
         probability: probability === '' ? null : Number(probability),

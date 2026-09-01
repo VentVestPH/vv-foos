@@ -1,9 +1,3 @@
-// Intake module (Agent 5) entry point. Mount IntakeRoutes at /intake/* in
-// App.tsx. Unlike ATS/CRM, this route is shared across both modules — the
-// queue serves sourcers/recruiters (candidate rows) and bd (contact rows) —
-// so it's a top-level mount, not nested under /recruit or /sales. RLS on
-// intake_items (section 5) is what actually scopes each role's rows.
-
 import { Route, Routes } from 'react-router-dom';
 import './intake.css';
 import { QueueListPage } from './QueueListPage';

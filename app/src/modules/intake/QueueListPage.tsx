@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { ListPage } from '../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../components/ui/Table';
+import { TaleoPager, usePagination } from '../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction, usePlaceholder } from '../../shell/TaleoPlaceholder';
 import { GearIcon, InboxIcon } from '../../shell/icons';
 import { useIntakeQueue } from './hooks';
@@ -16,7 +17,6 @@ import {
 } from './lib';
 import { ItemDrawer } from './components/ItemDrawer';
 
-/** Unified review queue over intake_items (instruction 1). */
 export function QueueListPage() {
   const { show } = usePlaceholder();
   const [search, setSearch] = useState('');
@@ -92,6 +92,8 @@ export function QueueListPage() {
     },
   ];
 
+  const pager = usePagination(filtered);
+
   return (
     <ListPage
       title="Intake: Home"
@@ -108,8 +110,7 @@ export function QueueListPage() {
           <Link to="/intake/sheet">
             <Button size="sm">Import a sheet</Button>
           </Link>
-          {/* FOOS-TBD: no bulk "More" menu exists yet for the intake queue
-              (e.g. bulk reject, bulk re-assign batch). */}
+          {}
           <TaleoPlaceholderAction label="More" caret size="sm" />
           <button
             type="button"
@@ -188,15 +189,30 @@ export function QueueListPage() {
       ]}
       exportFilename="intake-queue.csv"
     >
-      <div className="taleo-pager">
-        {filtered.length > 0 ? `1-${filtered.length} of ${items.length}` : `0 of ${items.length}`}
-      </div>
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
+      />
       <Table
+        busy={loading}
         columns={columns}
-        rows={filtered}
+        rows={pager.pageRows}
         rowKey={(r) => r.id}
         onRowClick={(r) => setSelectedId(r.id)}
         emptyText={loading ? 'Loading…' : 'Nothing in the queue.'}
+      />
+
+      <TaleoPager
+        from={pager.from}
+        to={pager.to}
+        total={pager.total}
+        page={pager.page}
+        pageCount={pager.pageCount}
+        onPage={pager.setPage}
       />
       {selectedId &&
         (() => {

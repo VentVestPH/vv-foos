@@ -1,8 +1,3 @@
-// Dashboard 1 — Pipeline by Stage (brief section on the ATS + CRM funnels).
-// Row-level dash.vw_ats_funnel / dash.vw_crm_funnel queries, aggregated
-// client-side so the date-range filter and per-widget CSV export both work
-// off the same RLS-filtered rows already on the client.
-
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashDb } from './db';

@@ -1,8 +1,3 @@
-// Dashboard 2 — Time-in-Stage. Backed by dash.mv_stage_durations, the one
-// audit_log-derived exception in the brief: pre-aggregated by a definer
-// refresh job (every 15 min via pg_cron, or the admin "Refresh now" button),
-// and exposes only stage names/durations/display_codes — no actor identity.
-
 import { useCallback, useEffect, useState } from 'react';
 import { dashDb } from './db';
 import { Widget } from './components/Widget';

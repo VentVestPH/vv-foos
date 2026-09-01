@@ -3,16 +3,11 @@ import { Button } from '../../../components/ui/Button';
 import { Modal } from './Modal';
 
 interface LostReasonDialogProps {
-  /** e.g. "DEAL-0007 · Acme retainer" */
   dealLabel: string;
   onConfirm: (reason: string) => void;
   onCancel: () => void;
 }
 
-/**
- * Blocking dialog for the lead → lost transition. No reason, no write —
- * the stage UPDATE only happens through onConfirm with a non-empty reason.
- */
 export function LostReasonDialog({
   dealLabel,
   onConfirm,

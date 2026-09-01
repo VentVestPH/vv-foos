@@ -1,7 +1,3 @@
-// Dashboard 3 — Source Effectiveness. Two lenses per the brief: intake
-// channel (dash.vw_source_effectiveness) and sources.name / candidate source
-// (reuses dash.vw_ats_funnel.source_name — no separate view needed).
-
 import { useCallback, useEffect, useState } from 'react';
 import { dashDb } from './db';
 import { Widget } from './components/Widget';

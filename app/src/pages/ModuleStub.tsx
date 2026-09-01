@@ -3,10 +3,6 @@ interface ModuleStubProps {
   agent: string;
 }
 
-/**
- * Placeholder for an unbuilt module mount point. Agent 2 replaces the
- * /recruit/* mount, Agent 3 the /sales/* mount — see App.tsx.
- */
 export function ModuleStub({ moduleName, agent }: ModuleStubProps) {
   return (
     <div className="stub-panel">

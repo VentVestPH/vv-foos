@@ -1,9 +1,3 @@
-// Admin-only "Experiment metrics" panel — a 6th, separate panel per the
-// brief, explicitly not one of the five numbered dashboards. One row per
-// metric per week from dash.vw_success_metrics, gated by a security-barrier
-// view (get_my_role() = 'admin') rather than RLS, since materialized views
-// can't carry row policies directly.
-
 import { useCallback, useEffect, useState } from 'react';
 import { dashDb } from './db';
 import { Widget } from './components/Widget';

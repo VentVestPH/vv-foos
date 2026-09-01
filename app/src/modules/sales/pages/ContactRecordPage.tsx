@@ -1,8 +1,3 @@
-// Contact record = person fields + contact_profile (company, title) + the
-// full engagement toolkit. This page renders no candidate fields and issues
-// no candidate/requisition/application queries — for a person who is both
-// candidate and contact, BD sees only the contact side (RLS mirrors this).
-
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db as supabase } from '../db';
@@ -49,9 +44,6 @@ export function ContactRecordPage() {
   const [editSince, setEditSince] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Send email / schedule meeting (Agent 6) — same pattern as the ATS
-  // candidate record page; calls the connected staff user's own Google
-  // account via gmail-send / calendar-create-meeting.
   const [showSendEmail, setShowSendEmail] = useState(false);
   const [emailTo, setEmailTo] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
