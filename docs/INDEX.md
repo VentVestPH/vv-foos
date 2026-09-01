@@ -25,6 +25,7 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | Document | Contents |
 | :---- | :---- |
 | `VVPH_VV-FOOS_Report_System-Inventory-and-Verified-State_2026-09-01_v1.0_Draft.md` | Frontends, toolchain, routes, backend, live data counts, accounts, environment variables, and the settings no migration can apply |
+| `VVPH_VV-FOOS_Report_Drive-Review-and-Meeting-Reconciliation_2026-09-01_v1.0_Draft.md` | Full read of every Drive document (22 files, the workbook, all six CSV exports), reconciled against the 2026-09-01 meeting summary. Grades each meeting claim as confirmed, contradicted, internally inconsistent, or correct-with-caveat |
 | `VVPH_VV-FOOS_Register_Defects-and-Risks_2026-09-01_v1.0_Draft.md` | Gate 4 items carried forward, thirteen findings verified 2026-09-01, the QA-003 re-rating, and the environment blockers now cleared |
 
 ## 02-taleo-fidelity
@@ -69,7 +70,7 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 
 | Path | Contents |
 | :---- | :---- |
-| `../VVPH_VV-FOOS_Report_Drive-Review-and-Meeting-Reconciliation_2026-09-01_v1.0_Draft.md` | Full read of every Drive document, reconciled against the 2026-09-01 meeting summary. Grades each meeting claim as confirmed, contradicted, internally inconsistent, or correct-with-caveat |
+| `../README.md` | Setup, migration order, and the local validation loop |
 | `../CLAUDE.md` | Repository guidance for future Claude Code sessions |
 
 ## Authority order

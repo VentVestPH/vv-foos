@@ -2,7 +2,7 @@
 
 **Project:** VV-FOOS · **Date:** 2026-09-01 · v1.0 Draft
 
-A snapshot of what exists and runs, verified on this machine against the live Supabase project rather than read from documentation. The narrative history of the project and the reconciliation against the 2026-09-01 meeting live in `VVPH_VV-FOOS_Report_Drive-Review-and-Meeting-Reconciliation_2026-09-01_v1.0_Draft.md` at the repository root.
+A snapshot of what exists and runs, verified on this machine against the live Supabase project rather than read from documentation. The narrative history of the project and the reconciliation against the 2026-09-01 meeting live in `VVPH_VV-FOOS_Report_Drive-Review-and-Meeting-Reconciliation_2026-09-01_v1.0_Draft.md`, alongside this document.
 
 ## 1. Frontends
 
