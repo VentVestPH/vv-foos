@@ -123,8 +123,6 @@ export interface CostInput {
   entered_at: string | null;
 }
 
-// ---------------------------------------------------------------- date range
-
 export type DateRangePreset = '7' | '30' | '90' | 'quarter' | 'custom';
 
 export interface DateRange {

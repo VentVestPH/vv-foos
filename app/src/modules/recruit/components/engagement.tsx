@@ -22,8 +22,6 @@ export interface EngagementParent {
   id: string;
 }
 
-// ---------------------------------------------------------------- data hook
-
 export function useEngagement(parentType: 'person' | 'requisition', parentId: string) {
   const { staff } = useSession();
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -166,8 +164,6 @@ export function useEngagement(parentType: 'person' | 'requisition', parentId: st
   };
 }
 
-// ---------------------------------------------------------------- storage
-
 /** Upload to the `attachments` bucket, then register the attachments row. */
 export async function uploadAttachment(
   parent: EngagementParent,
@@ -202,8 +198,6 @@ export function attachmentName(a: Attachment): string {
   const base = a.storage_path.split('/').pop() ?? a.storage_path;
   return base.replace(/^\d+_/, '');
 }
-
-// ---------------------------------------------------------------- panels
 
 interface ActivityPanelProps {
   items: Activity[];

@@ -10,9 +10,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// ---------------------------------------------------------------------------
 // Enums (migration 02)
-// ---------------------------------------------------------------------------
 
 export type StaffRole = 'admin' | 'recruiter' | 'sourcer' | 'bd';
 
@@ -78,9 +76,7 @@ export type ApproverType = 'requisition' | 'offer';
 // companies.types is text[] constrained by check, not a Postgres enum.
 export type CompanyType = 'client' | 'employer' | 'prospect';
 
-// ---------------------------------------------------------------------------
 // Shapes of the jsonb array columns on people
-// ---------------------------------------------------------------------------
 
 export interface PersonEmail {
   type: string;
@@ -109,10 +105,8 @@ export interface PersonEducation {
 // to confirm it against.
 export type PersonExperience = Record<string, Json | undefined>;
 
-// ---------------------------------------------------------------------------
 // Table row types. `Row` is what a select returns; `Insert` marks columns with
 // defaults or null as optional; `Update` makes everything optional.
-// ---------------------------------------------------------------------------
 
 export interface Database {
   public: {

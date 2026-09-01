@@ -1360,26 +1360,10 @@ a:hover {
   margin-left: var(--sp-1);
 }
 
-/* ---------------------------------------------------------------------------
-   WCAG 2.2 SC 2.4.11 Focus Not Obscured (Minimum), Level AA.
-
-   .record-action-bar is position:sticky/top:0 and measures 48px. Record pages
-   stack up to 15 accordion sections beneath it, so tabbing UPWARD from a lower
-   section scrolls the focus target under the bar and completely hides it.
-   That is W3C Technique F110, Example 2, verbatim.
-
-   scroll-padding-top is the sufficient technique named by F110. 56px = the
-   48px bar plus an 8px gap so the focused control is not flush against it.
-
-   Re-measure if the utility header height changes (fidelity item C3).
-   Verify by tabbing a record page in BOTH directions: F110's test procedure
-   requires both, and a forward-only pass will miss this.
-   --------------------------------------------------------------------------- */
-/* The scrolling element is main.shell-content, NOT the document: the shell
-   pins the header/nav/sidebar and scrolls only the content pane, so
-   scroll-padding on html has no effect (verified: html does not scroll,
-   .shell-content has scrollHeight 2945 vs clientHeight 784). Put the padding
-   on the actual scroll container. */
+/* WCAG 2.2 SC 2.4.11 (F110): the sticky .record-action-bar is 48px and can
+   completely cover the focused element. 56px = bar + 8px gap. The scrolling
+   element is .shell-content, not the document, so padding on html alone does
+   nothing. Re-measure if the header height changes. */
 .shell-content {
   scroll-padding-top: 56px;
 }
@@ -1389,21 +1373,8 @@ html {
   scroll-padding-top: 56px;
 }
 
-/* ---------------------------------------------------------------------------
-   G1 / G2 / G3: interaction states.
-
-   Discovery on 2026-09-01 found :focus-visible, :active and [aria-disabled]
-   with ZERO occurrences across all seven stylesheets. None of this adds motion;
-   it is feedback the replica was missing, not decoration.
-   --------------------------------------------------------------------------- */
-
-/* G1. One explicit keyboard focus ring, rather than relying on the user-agent
-   default whose colour we do not control. SC 2.4.7 requires a visible
-   indicator; SC 1.4.11 requires the indicator itself to reach 3:1. Our ring
-   uses --taleo-primary (#3679b5), which is 4.61:1 on white.
-   :focus-visible, not :focus, so the ring appears for keyboard users and not
-   on mouse click. Text inputs still show it on click because the spec matches
-   :focus-visible for elements that take keyboard input. */
+/* SC 2.4.7 + 1.4.11: --taleo-primary is 4.61:1 on white. :focus-visible so the
+   ring is keyboard-only; text inputs still show it on click per spec. */
 a:focus-visible,
 button:focus-visible,
 summary:focus-visible,
@@ -1412,10 +1383,7 @@ summary:focus-visible,
   outline-offset: 1px;
 }
 
-/* G2. Pressed state. Clicking previously gave no acknowledgement at all.
-   Taleo's bordered buttons visibly depressed, so this is fidelity as much as
-   feedback. Colour only, no transform and no transition: motion arrives later
-   under G5 with its reduced-motion guard, and this must not depend on it. */
+/* Colour only, no transition: this must not depend on the motion tokens. */
 .btn:active:not(:disabled):not([aria-disabled='true']) {
   background: var(--taleo-row-hover);
   border-color: var(--taleo-primary-hover);
@@ -1430,10 +1398,8 @@ summary:focus-visible,
   background: var(--taleo-nested-section);
 }
 
-/* G3. Screenshot-accurate controls that have no FOOS behaviour behind them.
-   The redesign prompt asks for aria-disabled "where the action cannot safely
-   run" while keeping the control looking real. They stay tabbable on purpose,
-   so a keyboard user can still reach one and be told it is unavailable. */
+/* Placeholder controls stay tabbable on purpose: a keyboard user must be able
+   to reach one and be told it is unavailable. */
 [aria-disabled='true'] {
   opacity: 0.72;
   cursor: default;

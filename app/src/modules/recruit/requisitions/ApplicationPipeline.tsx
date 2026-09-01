@@ -659,8 +659,6 @@ export function ApplicationPipeline({
   );
 }
 
-// ---------------------------------------------------------------- add dialog
-
 interface AddCandidateDialogProps {
   requisition: Requisition;
   existing: Application[];

@@ -15,7 +15,6 @@ import type {
   Tables,
 } from '../../../lib/database.types';
 
-// ---------------------------------------------------------------- client
 // The shared Database type carries no Relationships metadata, which makes
 // supabase-js collapse table types to `never`. This maps the canonical type
 // (no fork — a change there flows through here) into the shape the client
@@ -51,8 +50,6 @@ export type ApplicationView = Tables<'application_views'>;
 export type ApproverRow = Tables<'requisition_approvers'>;
 export type OwnerRow = Tables<'requisition_owners'>;
 export type SavedView = Tables<'ats_saved_views'>;
-
-// ---------------------------------------------------------------- people
 
 export function personName(
   p: Pick<Person, 'first_name' | 'middle_name' | 'last_name' | 'headline'>,
@@ -104,8 +101,6 @@ export async function fetchPeopleByIds(ids: string[]): Promise<Person[]> {
   return out;
 }
 
-// ---------------------------------------------------------------- formatting
-
 export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -138,8 +133,6 @@ export function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-// ---------------------------------------------------------------- lifecycle
-
 /**
  * Legal requisition transitions (brief instruction 4, locked):
  * draft → waiting_approval → open → on_hold → filled → closed,
@@ -164,8 +157,6 @@ export const REQ_ACTION_LABELS: Record<RequisitionStatus, string> = {
   closed: 'Close requisition',
 };
 
-// ---------------------------------------------------------------- sorting
-
 export interface SortState {
   key: string;
   dir: 'asc' | 'desc';
@@ -186,8 +177,6 @@ export function sortRows<T extends Record<string, unknown>>(
     return String(va ?? '').localeCompare(String(vb ?? '')) * dir;
   });
 }
-
-// ---------------------------------------------------------------- lookups
 
 export interface Lookups {
   companies: Company[];
@@ -243,8 +232,6 @@ export function useLookups(): Lookups {
 
   return { companies, staff: staffList, sources, statuses, loading, error };
 }
-
-// ---------------------------------------------------------------- viewport
 
 /** Mobile viewports are read-only in v1 — no forms, no drag. */
 export function useIsMobile(): boolean {
