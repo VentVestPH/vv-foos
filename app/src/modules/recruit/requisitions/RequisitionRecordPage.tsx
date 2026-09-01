@@ -6,6 +6,7 @@ import type { RequisitionStatus, TablesUpdate } from '../../../lib/database.type
 import { Button } from '../../../components/ui/Button';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
+import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
@@ -445,6 +446,10 @@ export function RequisitionRecordPage() {
           allowCreate={!mobile}
           onCreate={engagement.addActivity}
         />
+      </RecordSection>
+
+      <RecordSection title="Status History" defaultOpen={false}>
+        <StatusHistory changes={engagement.activities.filter((a) => a.kind === 'status_change')} />
       </RecordSection>
 
       <RecordSection title="History Log / Timeline" defaultOpen={false}>

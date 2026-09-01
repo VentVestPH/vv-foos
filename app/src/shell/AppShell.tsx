@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { TaleoUtilityHeader } from './TaleoUtilityHeader';
 import { TaleoPrimaryNav } from './TaleoPrimaryNav';
 import { TaleoSidebar } from './TaleoSidebar';
+import { BookmarkBar } from './BookmarkBar';
 import { useStickyFocusGuard } from './useStickyFocusGuard';
 
 export function AppShell() {
@@ -19,6 +20,7 @@ export function AppShell() {
           </main>
         </div>
       </div>
+      <BookmarkBar />
     </div>
   );
 }

@@ -1520,3 +1520,59 @@ summary:focus-visible,
 .table tbody tr:has(input[type='checkbox']:checked) {
   background: var(--taleo-row-hover);
 }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.taleo-bookmark-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  flex-wrap: wrap;
+  padding: var(--sp-half) var(--sp-2);
+  background: var(--surface);
+  border-top: 1px solid var(--taleo-border);
+}
+
+.taleo-bookmark {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--taleo-border);
+  border-radius: var(--radius);
+  background: var(--canvas);
+}
+
+.taleo-bookmark.is-current {
+  background: var(--taleo-row-hover);
+  border-color: var(--taleo-primary);
+}
+
+.taleo-bookmark button {
+  padding: 2px var(--sp-1);
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  color: var(--taleo-link);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.taleo-bookmark-remove {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px !important;
+  color: var(--text-secondary) !important;
+}
+
+.taleo-utility-icon.is-active {
+  color: var(--taleo-primary);
+}

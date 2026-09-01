@@ -18,6 +18,7 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | Which icons Kappa uses, and whether to copy them | `04-research/…Report_Icon-Strategy-and-Kappa-Comparison…` |
 | How to add polish without breaking the replica | `06-ux-and-motion/…Spec_UX-and-Motion-Discovery…` |
 | How to run the app locally without touching live data | `07-environments/…Doc_Local-Development-Environment…` |
+| What was measured and what got faster | `08-performance/…Report_Performance-Baseline-and-Optimisation…` |
 | Which source document governs a question | `05-reference/…Index_Drive-Source-Documents…` |
 
 ## 01-current-state
@@ -59,6 +60,12 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | Document | Contents |
 | :---- | :---- |
 | `VVPH_VV-FOOS_Doc_Local-Development-Environment_2026-09-01_v1.0_Draft.md` | Running local Supabase, the 553xx port map and why it differs, what `config.toml` fixes permanently (QA-001), the verification results, and the dev-versus-production env split for Vercel or Fly |
+
+## 08-performance
+
+| Document | Contents |
+| :---- | :---- |
+| `VVPH_VV-FOOS_Report_Performance-Baseline-and-Optimisation_2026-09-01_v1.0_Draft.md` | Sourcemap-attributed bundle composition, the code-splitting and webfont changes, before/after timings under throttling, remaining ceilings, and the four committed guard scripts |
 
 ## 05-reference
 

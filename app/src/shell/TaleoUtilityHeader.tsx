@@ -1,7 +1,8 @@
+import { BookmarkToggle } from './BookmarkBar';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 import { usePlaceholder } from './TaleoPlaceholder';
-import { BookmarkIcon, MegaphoneIcon, GearIcon, BarChartIcon } from './icons';
+import { MegaphoneIcon, GearIcon, BarChartIcon } from './icons';
 
 export function TaleoUtilityHeader() {
   const { staff, signOut } = useSession();
@@ -32,16 +33,7 @@ export function TaleoUtilityHeader() {
       </div>
 
       <div className="taleo-utility-actions">
-        <button
-          type="button"
-          className="taleo-utility-icon"
-          aria-label="Bookmarks"
-          title="Bookmarks"
-          aria-disabled
-          onClick={() => show('Bookmarks')}
-        >
-          <BookmarkIcon />
-        </button>
+        <BookmarkToggle />
         <button
           type="button"
           className="taleo-utility-icon"

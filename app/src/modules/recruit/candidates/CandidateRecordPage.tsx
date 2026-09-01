@@ -7,6 +7,7 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
+import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { SidePanelTabs } from '../../../components/ui/SidePanelTabs';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
@@ -1034,6 +1035,10 @@ export function CandidateRecordPage() {
           onCreate={engagement.addReminder}
           onDismiss={engagement.dismissReminder}
         />
+      </RecordSection>
+
+      <RecordSection title="Status History" defaultOpen={false}>
+        <StatusHistory changes={activities.filter((a) => a.kind === 'status_change')} />
       </RecordSection>
 
       <RecordSection title="History Log / Timeline">

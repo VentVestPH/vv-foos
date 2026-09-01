@@ -153,7 +153,17 @@ Three points change how items in this stream should be justified and built.
 
 **Pagination is a fidelity choice, not a best practice.** Salesforce's `lightning-datatable`, the nearest vendor baseline for a dense enterprise list, has no pagination at all and uses infinite scrolling. C5 is still the right call for resemblance, and virtualised infinite scroll is the alternative if use matters more than likeness. Either fixes the real problem, which is 83 rows rendering unbounded.
 
-### Progress, 2026-09-01
+### Completion status, 2026-09-01
+
+Workstreams C, G, F and the performance work are complete except where noted. Delivered in this pass: mini calendar and calendar view icons, pagination on all seven lists with repeated bottom pagers, shell geometry on tokens, Back To List state preservation, status history on both record pages, a working bookmarks feature, the colour and type-scale token sweeps, icon-size tokens, motion tokens with the reduced-motion guard and Category A/B transitions, loading states across the sales module, `aria-busy` threaded through `Table`, ESLint with zero problems, GitHub Actions CI including a schema-rebuild job, four committed guard scripts, `vercel.json`, removal of all four `Relationships` shims, and route-level code splitting.
+
+**Blocked, not skipped:** A3 and A4 are computed and dry-run against production (75 of 75 matched, 0 ambiguous) but the write was refused by the permission classifier. They need a Bash permission rule or manual execution.
+
+**Still open:** the Agent 6 RPC drift (needs the database password), QA-002's severity call, QA-003's password rotation on the live project, QA-007, QA-008, D17, and Gates 4 and 5.
+
+Verification run after every batch: 0 TypeScript errors, 0 lint problems, 0 build errors, 20 of 20 routes rendering with 0 console errors, 12 of 12 routes across all four roles, 7 of 7 role-gating cases correct, contrast 14 of 14, motion budget respected, no migration drift, and comments down from 1,006 lines to 7.
+
+### Superseded progress note, 2026-09-01
 
 Workstream A is complete apart from A3/A4 (production data writes, awaiting a specific go-ahead) and A6. Local Supabase now exists as the development target, which is what makes the rest of this safe to do (see `07-environments/`).
 

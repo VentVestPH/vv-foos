@@ -154,3 +154,37 @@ Consequence: the four Gate 4 open items that were blocked on environment, princi
 6. QA-008, success-metric instrumentation, before the Phase 6 window.
 7. D6 through D8, D12 and D13, the Taleo fidelity gaps. D13 should be taken with the icon decision, since replacing the emoji map is the trigger for adopting an icon library.
 8. D2, D4, D9, then the remaining Low items.
+
+## 6. Status as of the 2026-09-01 implementation pass
+
+| ID | Item | Status |
+| :---- | :---- | :---- |
+| D1 | Star grades lost on 75 migrated candidates | **Prepared, blocked.** The fix is computed and dry-run: 75 of 75 matched by email or name, 0 ambiguous, 0 test rows touched, 37 grade updates and 74 date corrections. Execution is a write to the live database and was refused by the permission classifier. Needs a Bash permission rule or manual execution |
+| D2 | `Initial Date` mis-parsed | **Prepared, blocked.** Same dry-run. All four source formats (`6/26`, `5/26`, `26-Jun`, `26-May`) now parse; 74 of 75 resolve |
+| D3 | Two migrations absent from source control | **Fixed.** Reconstructed and verified; `check-migrations.mjs` reports no drift |
+| D4 | Zoho source-name mismatch | Open, cosmetic |
+| D5 | Four WCAG AA contrast failures | **Fixed.** `check-contrast.mjs` reports 14 of 14 passing |
+| D6 | Missing calendar affordances | **Fixed.** Mini month calendar and six view icons; home viewport fill 53% to 61% |
+| D7 | No bottom action bar or pager | **Fixed.** Pager repeated below every one of seven lists |
+| D8 | Candidate list unpaginated | **Fixed.** All seven lists page at 20 |
+| D9 | `people.experience` missing from Insert | Withdrawn, was a false finding |
+| D10 | Emoji and letter avatars as icons | **Fixed** across six sites |
+| D11 | Sticky bar risks SC 2.4.11 | **Fixed.** Verified tabbing both directions on both record pages |
+| D12 | Back To List discards list state | **Fixed.** Verified by round trip |
+| D13 | Same as D10 | **Fixed** |
+| D14 | Unguarded `cron.schedule` | **Fixed** |
+| D15 | Stale `validate.sql` counts | **Fixed** |
+| D16 | Dead gear control | **Fixed** |
+| D17 | `useIntakeBadge` has no consumer | Open. The hook still runs a Realtime subscription nothing renders |
+| QA-002 | `careers_rate_limit` RLS disabled | Open, needs John's severity call. CI enables it so the schema job can pass `validate.sql` |
+| QA-003 | Shared plaintext test password | **Partly fixed.** Removed from the repository entirely; the live persona passwords are still unrotated |
+| QA-007 | `reminder.due` has no interface | Open, product decision |
+| QA-008 | Success metrics not instrumented | Open |
+
+### D18. F9 / C6 was a false finding, withdrawn
+
+I reported the candidate list's flag column as being in the wrong position, last instead of second. It is not: the component builds its columns as `[flagCol, ...defs]`, so the flag affordance is already first. The trailing column headed "Flags" is a separate do-not-contact badge, which is a data column. The error came from reading rendered header *text*, and the flag column's header is an icon with no text.
+
+### D19. Spacing was already tokenised; the type scale was the gap
+
+I wrote in the plan that raw `px` spacing was "the real gap" against colour. Measuring properly: 218 spacing declarations already used `var()` tokens, and only 38 raw `px` remained, mostly deliberate small values. The genuine gap was `font-size`, with 22 raw values across eight distinct sizes. That is now an eight-step named scale with zero raw font sizes.
