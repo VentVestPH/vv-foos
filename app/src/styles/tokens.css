@@ -1,0 +1,72 @@
+/* Taleo-replica design tokens — VVPH_VV-FOOS_Prompt_Taleo-Exact-UI-Redesign
+   section 6, as calibrated against the screenshots in Taleo Screenshots/.
+   This file is intentionally NOT visually authoritative on its own (per the
+   prompt's section 3 hierarchy) — the screenshots are the source of truth;
+   this is just where their calibrated values live so components never
+   hard-code colors. foos_redesign_2 only; /foos and /foos_redesign are
+   untouched and keep the original modern token set. */
+
+:root {
+  /* ---- Taleo palette ---- */
+  --taleo-nav: #427d98;              /* primary horizontal nav band. WCAG: white text = 4.55:1 (was #4b8dab at 3.69:1, failed AA) */
+  --taleo-sidebar-header: #577995;   /* Quick Search / Recently Viewed header band. WCAG: white text = 4.59:1 (was #5b7f9c at 4.23:1, failed AA) */
+  --taleo-section: #a9c6dc;          /* accordion / record-section header band */
+  --taleo-nested-section: #8fb3cc;   /* nested sub-panel header (e.g. Requisition Details inside Candidate) */
+  --taleo-link: #1b6fc9;
+  --taleo-primary: #3679b5;          /* solid Save-button blue */
+  --taleo-primary-hover: #2e6da4;
+  --taleo-brand-red: #e11b16;        /* VENTVEST wordmark */
+  --taleo-logout: #c0392b;
+  --taleo-danger: #d40000;
+  --taleo-count: #7fba36;            /* candidate-count green badge */
+  --taleo-canvas: #eeeeee;           /* page background behind white panels */
+  --taleo-surface: #ffffff;
+  --taleo-row-alt: #f7f7f7;
+  --taleo-row-hover: #e8f1f7;
+  --taleo-border: #d5d5d5;           /* panel edges and table rules. Decorative, so SC 1.4.11 does not apply */
+  --taleo-control-border: #8f8f8f;   /* input/select/textarea boundaries. 3.23:1 on white, per SC 1.4.11 (was a hard-coded #999 at 2.85:1) */
+  --taleo-text: #222222;
+  --taleo-text-secondary: #5f5f5f;
+  --taleo-icon: #4a7098;
+  --taleo-active-tab-bg: #e8ecef;    /* active primary-nav tab rectangle */
+  --taleo-radius: 2px;
+  --taleo-font: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+
+  /* ---- Mapped onto the app's original semantic names so every module
+     component (Button, Table, RecordSection, Badge, list-page, kanban,
+     timeline, side-tabs, forms) picks up the Taleo look with zero
+     structural changes — see app.css. ---- */
+  --primary: var(--taleo-link);
+  --primary-deep: var(--taleo-primary-hover);
+  --slate: var(--taleo-nav);
+  --surface: var(--taleo-surface);
+  --canvas: var(--taleo-canvas);
+  --section-tint: var(--taleo-section);
+  --success: var(--taleo-count);
+  --warning: #d97706;
+  --danger: var(--taleo-danger);
+  --text: var(--taleo-text);
+  --text-secondary: var(--taleo-text-secondary);
+  --border: var(--taleo-border);
+  --control-border: var(--taleo-control-border);
+
+  /* Shape and depth — flat, sharp, no shadow */
+  --radius: var(--taleo-radius);
+  --shadow: none;
+
+  /* Type */
+  --font: var(--taleo-font);
+  --fs-page-title: 26px;    /* regular weight, ~28-32px native-scale target */
+  --fs-section: 16px;       /* bold */
+  --fs-body: 14px;
+  --fs-meta: 13px;
+
+  /* Spacing — unchanged 8px grid, Taleo density comes from padding choices
+     in app.css, not from shrinking this scale. */
+  --sp-1: 8px;
+  --sp-2: 16px;
+  --sp-3: 24px;
+  --sp-4: 32px;
+  --sp-half: 4px;
+  --cell-pad: 10px;
+}

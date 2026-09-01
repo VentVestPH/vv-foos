@@ -1,0 +1,17 @@
+{
+  "name": "ventvest-foos-redesign-2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VentVest Front Office OS - Taleo-exact UI redesign frontend (interchangeable with /foos, same Supabase backend). Dev server on port 5175. See VVPH_VV-FOOS_Prompt_Taleo-Exact-UI-Redesign_2026-07-25_v1.0_Draft.md.",
+  "workspaces": [
+    "app",
+    "tests"
+  ],
+  "scripts": {
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:validate": "psql \"$DATABASE_URL\" -f supabase/tests/validate.sql",
+    "test": "npm run test --workspace=tests",
+    "test:e2e": "npm run e2e --workspace=tests"
+  }
+}

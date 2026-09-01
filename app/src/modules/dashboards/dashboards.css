@@ -1,0 +1,176 @@
+/* Dashboards (Agent 7) module styles. Consumes the Gate 1 tokens only — no
+   hard-coded colors. Everything is prefixed .dash- to stay out of the
+   shared stylesheet's way. */
+
+.dash-home-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-2);
+}
+
+.dash-daterange {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.dash-tabs {
+  display: flex;
+  gap: var(--sp-half);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.dash-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-body);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.dash-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+.dash-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--sp-2);
+}
+
+.dash-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--sp-2);
+}
+
+.dash-widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
+}
+
+.dash-widget-head h3 {
+  font-size: var(--fs-section);
+  margin: 0;
+}
+
+.dash-widget-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.dash-widget-refreshed {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+}
+
+.dash-widget-note {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  margin-top: var(--sp-1);
+}
+
+.dash-kpi-row {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.dash-kpi {
+  display: flex;
+  flex-direction: column;
+  background: var(--section-tint);
+  border-radius: var(--radius);
+  padding: var(--sp-1) var(--sp-2);
+  min-width: 140px;
+}
+
+.dash-kpi-label {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+}
+
+.dash-kpi-value {
+  font-size: var(--fs-page-title);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dash-kpi-hint {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+}
+
+.dash-barlist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+}
+
+.dash-barlist-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 40px;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.dash-barlist-row.clickable {
+  cursor: pointer;
+}
+
+.dash-barlist-label {
+  font-size: var(--fs-meta);
+  text-transform: capitalize;
+  color: var(--text);
+}
+
+.dash-barlist-track {
+  background: var(--canvas);
+  border-radius: var(--radius);
+  height: 14px;
+  overflow: hidden;
+}
+
+.dash-barlist-fill {
+  height: 100%;
+  background: var(--primary);
+}
+
+.dash-barlist-fill.tone-success {
+  background: var(--success);
+}
+
+.dash-barlist-fill.tone-warning {
+  background: var(--warning);
+}
+
+.dash-barlist-fill.tone-danger {
+  background: var(--danger);
+}
+
+.dash-barlist-count {
+  font-size: var(--fs-meta);
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.dash-empty {
+  color: var(--text-secondary);
+  font-size: var(--fs-body);
+}

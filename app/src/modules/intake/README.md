@@ -1,0 +1,132 @@
+# Intake module (Agent 5)
+
+The single front door through which every new candidate and contact enters
+FOOS: the review queue, its channels (LinkedIn paste, sheet import, email —
+mocked pending Agent 6, careers-form read-only), dedup, grading, and the
+atomic import step. Mounted at `/intake/*` — top-level, not nested under
+`/recruit` or `/sales`, because it's genuinely shared: sourcers and
+recruiters work candidate rows, bd works contact rows. RLS on `intake_items`
+(architecture section 5) is the real boundary; the route accepts all four
+roles and lets Postgres decide what each one sees.
+
+## Routes
+
+| Route | Screen |
+|---|---|
+| `/intake` | Queue list — filters, live badge, item detail drawer |
+| `/intake/linkedin` | Paste LinkedIn URLs, batch label, grading flow (Deniece/VVPH workflow) |
+| `/intake/sheet` | Google Sheet / hosted .xlsx import — fetch, map, preview, commit |
+
+## Edge Functions (`foos/supabase/functions/`)
+
+- **`intake-sheet-fetch`** — authenticated. Fetches a Google Sheet or hosted
+  .xlsx/.csv URL, parses the header + up to 500 rows, returns columns + rows
+  so the client can show a 10-row sample immediately and a full preview
+  later without a second fetch.
+- **`intake-sheet-commit`** — authenticated, runs as the calling staff
+  user's own JWT (not service role) so the existing `intake_items` RLS
+  policies decide what they're allowed to stage. Writes one row per record
+  and optionally saves the column mapping as an `intake_mapping_templates`
+  row.
+- **`intake-email-parser`** — the agreed handoff contract with Agent 6
+  (brief: "agree the interface before either side builds"). Unauthenticated
+  by design (Agent 6's backend watch calls it server-to-server, not from a
+  browser session) but gated by a shared secret header
+  (`x-intake-secret`, set as a function secret `INTAKE_EMAIL_PARSER_SECRET`).
+  **Independently testable right now** — see "Testing the email channel
+  without Agent 6" below. Full request/response contract is documented in
+  the function's header comment.
+
+## Database (migration `20260725000002_intake_import.sql`)
+
+`intake_mapping_templates` and `integration_settings` already existed from
+Gate 2's approved additions (migration 08) — nothing new needed there. This
+migration adds the two functions the brief's "import is transactional"
+business rule requires:
+
+- **`import_intake_item(p_intake_id, p_mode, p_merge_person_id, p_company_id, p_new_company_name)`**
+  — security definer, does the whole candidate-or-contact import (person +
+  profile + staged attachments + intake_items update) in one plpgsql
+  function, so it either all succeeds or all rolls back. Also re-checks
+  authorization internally against the same rules as the `intake_items` RLS
+  policies, because a sourcer importing their own graded candidate has no
+  direct INSERT grant on `candidate_profiles` — this function is the
+  sanctioned path from "my graded intake item" to "a real candidate record."
+  Verified live against the deployed project (reject path, contact import
+  with company create+link, candidate import with the grading gate
+  correctly blocking an ungraded linkedin_url item, then succeeding after
+  grading) — test rows created and cleaned up, no test artifacts remain.
+- **`reject_intake_item(p_intake_id, p_reason)`** — sets status `rejected`
+  with a required reason; nothing is deleted.
+
+## Testing the email channel without Agent 6
+
+Agent 6 doesn't exist yet as a live integration. To exercise the email
+channel now, POST directly to the deployed function:
+
+```sh
+curl -X POST https://mebfbbvrqdctamnzvbbs.supabase.co/functions/v1/intake-email-parser \
+  -H "content-type: application/json" \
+  -H "x-intake-secret: <the secret you set>" \
+  -d '{
+    "staffId": "a0000000-0000-4000-8000-000000000002",
+    "label": "intake-test",
+    "message": {
+      "id": "test-message-001",
+      "from": "Jordan Candidate <jordan@example.com>",
+      "to": ["rita.demo@ventvest.com"],
+      "subject": "Application for Senior Data Engineer — resume attached",
+      "bodyText": "Hi, please find my resume attached for the role.",
+      "date": "2026-07-25T10:00:00Z",
+      "attachments": []
+    }
+  }'
+```
+
+This lands a `parsed` intake item with `channel=email`, inferred
+`target_type` (candidate, per the "resume/application" hint), and shows up
+in the queue exactly as it will once Agent 6's real Gmail watch calls the
+same endpoint.
+
+## Gate 3 demo script (run on `is_test = true` data where possible)
+
+Note: LinkedIn/sheet/email intake writes real (non-`is_test`) `people` rows
+by design — the import RPC always sets `is_test = false`, matching how a
+recruiter's real workday would import a real candidate. For a demo, either
+accept that the demo people are real-looking records to be cleaned up after,
+or manually flag them `is_test = true` post-import before Gate 3 sign-off.
+
+1. Go to `/intake/linkedin`. Paste five LinkedIn URLs, batch label "VVPH-3
+   demo", target Candidate. Stage the batch — five items appear in the
+   queue at `pending`, badge increments live.
+2. Walk the grading flow: grade three as 2★, one as 3★, one as 1★, each with
+   a comment. Saving each sets status `graded`.
+3. Back in the queue, open one graded item whose email or LinkedIn URL
+   matches an existing test person (seed one first if needed) — the dedup
+   panel shows the match and defaults to "merge."
+4. Merge that one; import the other four as new. Confirm all five now show
+   `imported` and appear in the ATS candidate list with grades, source
+   LinkedIn, and sourcer attribution intact.
+5. Test the email channel per "Testing the email channel without Agent 6"
+   above with an attachment (base64-encode a small PDF). Confirm the item
+   appears `parsed` in the queue with the resume staged; import it and
+   confirm the resume lands as an `attachments` row on the person.
+6. Go to `/intake/sheet`. Fetch a public Google Sheet of eight contacts, map
+   columns, save the mapping as a template, continue to preview — confirm
+   one duplicate is flagged. Import all — contacts exist with companies
+   matched or created.
+7. Reject one item with a reason; confirm it stays queryable with "Show
+   imported & rejected" toggled on.
+8. Throughout: watch the nav badge move live as items are staged and
+   imported.
+
+## Known gaps
+
+- Email channel is real code against the agreed contract but has no live
+  Gmail feed yet — Agent 6 supplies that. Testable manually now (above).
+- No manual-entry UI for `channel=manual` rows (brief marks this
+  out-of-scope for this brief; the queue already renders such rows without
+  choking on them).
+- Sheet import dedup check runs one RPC call per row client-side — fine at
+  the volumes in the brief (tens of rows), would need batching for very
+  large sheets.

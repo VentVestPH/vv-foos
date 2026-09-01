@@ -1,0 +1,352 @@
+/* CRM (Agent 3) module styles. Consumes the Gate 1 tokens only — no
+   hard-coded colors. Everything is prefixed .sales- to stay out of the
+   shared stylesheet's way. */
+
+/* --- Modal / blocking dialog --- */
+.sales-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 41, 55, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: var(--sp-2);
+}
+
+.sales-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.sales-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  background: var(--section-tint);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.sales-modal-head h2 {
+  font-size: var(--fs-section);
+  font-weight: 600;
+  margin: 0;
+}
+
+.sales-modal-x {
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.sales-modal-body {
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.sales-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+}
+
+.sales-textarea {
+  width: 100%;
+  min-height: 72px;
+  font: inherit;
+  font-size: var(--fs-body);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-1);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.sales-textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+/* --- Forms --- */
+.sales-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-3);
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.sales-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.sales-form-grid .sales-span-2 {
+  grid-column: span 2;
+}
+
+.sales-form-actions {
+  display: flex;
+  gap: var(--sp-1);
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-2);
+}
+
+.sales-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+
+/* --- Dedup hint on contact create --- */
+.sales-dedup {
+  border: 1px solid var(--warning);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.sales-dedup-title {
+  font-weight: 600;
+  color: var(--warning);
+  font-size: var(--fs-body);
+}
+
+.sales-dedup-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+  font-size: var(--fs-body);
+}
+
+/* --- Engagement toolkit layout --- */
+.sales-engagement {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  gap: var(--sp-2);
+  align-items: start;
+}
+
+.sales-engagement-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.sales-quickadd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.sales-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-panel-item {
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  font-size: var(--fs-body);
+}
+
+.sales-panel-item:last-child {
+  border-bottom: none;
+}
+
+.sales-panel-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+
+.sales-panel-item-title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sales-panel-item-meta {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  white-space: nowrap;
+}
+
+.sales-panel-item-body {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sales-panel-empty {
+  color: var(--text-secondary);
+  font-size: var(--fs-body);
+  padding: var(--sp-1) 0;
+}
+
+.sales-panel-note {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  padding-top: var(--sp-1);
+}
+
+/* --- Record header meta --- */
+.sales-record-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-2);
+}
+
+.sales-record-meta dt {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  margin: 0 0 var(--sp-half);
+}
+
+.sales-record-meta dd {
+  font-size: var(--fs-body);
+  color: var(--text);
+  margin: 0;
+}
+
+.sales-badges {
+  display: inline-flex;
+  gap: var(--sp-half);
+  flex-wrap: wrap;
+}
+
+/* --- Deals kanban --- */
+.sales-kanban-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.sales-kanban-card-code {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+}
+
+.sales-kanban-card-name {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sales-kanban-card-value {
+  color: var(--text);
+}
+
+.sales-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sales-view-toggle button {
+  border: none;
+  background: var(--surface);
+  padding: var(--sp-half) var(--sp-1);
+  font: inherit;
+  font-size: var(--fs-meta);
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.sales-view-toggle button.active {
+  background: var(--section-tint);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* --- Quiet won notice + promotion prompt banners --- */
+.sales-toast {
+  position: fixed;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  z-index: 70;
+  background: var(--surface);
+  border: 1px solid var(--success);
+  border-left: 4px solid var(--success);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+
+.sales-promote-banner {
+  position: fixed;
+  bottom: var(--sp-2);
+  right: var(--sp-2);
+  z-index: 70;
+  background: var(--surface);
+  border: 1px solid var(--primary);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--sp-2);
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-body);
+}
+
+.sales-promote-banner-actions {
+  display: flex;
+  gap: var(--sp-1);
+  justify-content: flex-end;
+}
+
+/* --- Tablet --- */
+@media (max-width: 1024px) {
+  .sales-engagement {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-form-grid .sales-span-2 {
+    grid-column: span 1;
+  }
+}

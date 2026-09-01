@@ -1,0 +1,21 @@
+-- Adds 'offer' to the attachment_kind enum.
+--
+-- PROVENANCE: this change was applied directly to the live project
+-- (mebfbbvrqdctamnzvbbs) on 2026-07-25 via the Supabase MCP connector, as
+-- migration "add_offer_attachment_kind", and was never committed here. This
+-- file reconstructs it so the repository can rebuild production. See
+-- docs/01-current-state/VVPH_VV-FOOS_Register_Defects-and-Risks (D3).
+--
+-- Reason for the value: Zoho Recruit's attachment categories include "Offer",
+-- which had no clean match in resume/cover/contract/other. See
+-- VVPH_VV-FOOS_Plan_Zoho-Recruit-Candidate-Migration section 2.2.
+--
+-- VERIFIED AGAINST PRODUCTION 2026-09-01: filtering attachments by
+-- kind=eq.offer returns a normal (empty) result set rather than an enum error,
+-- confirming the value is present live.
+--
+-- Kept in its own migration deliberately: PostgreSQL forbids using a new enum
+-- value in the same transaction that adds it, and Supabase runs each migration
+-- file in one transaction. Nothing below uses 'offer'.
+
+alter type public.attachment_kind add value if not exists 'offer';

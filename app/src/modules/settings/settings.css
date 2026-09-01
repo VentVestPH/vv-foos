@@ -1,0 +1,87 @@
+/* Settings module (Agent 6) styles. Tokens only.
+   Redesign (prompt section 8.9): page chrome now comes from RecordPage /
+   RecordSection (Taleo steel-blue section headers); this stylesheet only
+   restyles the Google Integration card's own chrome, which keeps its real
+   connect/sync/disconnect logic completely unchanged. */
+
+.settings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.settings-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-card-head h2 {
+  font-size: var(--fs-section);
+  font-weight: 600;
+  margin: 0;
+}
+
+.settings-status-pill {
+  font-size: var(--fs-meta);
+  padding: 2px 10px;
+  border-radius: var(--radius);
+}
+
+.settings-status-pill.on {
+  background: #ecfdf5;
+  color: var(--success);
+}
+
+.settings-status-pill.off {
+  background: var(--section-tint);
+  color: var(--text-secondary);
+}
+
+.settings-scope-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  font-size: var(--fs-body);
+}
+
+.settings-scope-list li.on {
+  color: var(--text);
+}
+
+.settings-scope-list li.off {
+  color: var(--text-secondary);
+}
+
+.settings-meta {
+  font-size: var(--fs-meta);
+}
+
+.settings-card-actions {
+  display: flex;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+}
+
+.settings-error {
+  background: #fef2f2;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: var(--radius);
+  padding: var(--sp-1);
+  font-size: var(--fs-meta);
+}
+
+.settings-other-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+}

@@ -1,0 +1,25 @@
+# Node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+
+# Environment. Real keys never enter git.
+.env
+.env.*
+!.env.example
+# app/.env.development is the LOCAL Supabase target and is meant to be shared:
+# it holds only the standard Supabase demo keys, which are byte-identical on
+# every machine and worthless off 127.0.0.1. Without this negation the '.env.*'
+# rule above silently swallows it, and a fresh clone has no dev configuration
+# at all — `npm run dev` would fail at boot in lib/supabase.ts.
+!.env.development
+
+# Supabase local dev temp
+supabase/.temp/
+supabase/.branches/
+supabase/functions/**/node_modules/
+
+# OS
+.DS_Store

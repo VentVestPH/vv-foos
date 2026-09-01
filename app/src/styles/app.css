@@ -1,0 +1,1440 @@
+@import './tokens.css';
+
+/* ------------------------------------------------------------------ base */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  color: var(--text);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-size: var(--fs-page-title);
+  font-weight: 400; /* Taleo page titles are regular weight, not bold */
+  margin: 0;
+}
+
+h2 {
+  font-size: var(--fs-section);
+  font-weight: 700;
+  margin: 0;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--primary-deep);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+}
+
+.full-center {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hold-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--sp-4);
+  max-width: 420px;
+}
+
+/* ------------------------------------------------------------------ shell */
+/* Taleo replica shell: white utility header, steel-blue horizontal primary
+   nav, persistent left sidebar (Quick Search + Recently Viewed), light-gray
+   main canvas. See TaleoAppShell.tsx / TaleoUtilityHeader.tsx /
+   TaleoPrimaryNav.tsx / TaleoSidebar.tsx. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.taleo-utility-header {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  background: var(--taleo-surface);
+  border-bottom: 2px solid #1a1a1a;
+  padding: 0 var(--sp-3);
+  flex-shrink: 0;
+  gap: var(--sp-3);
+}
+
+.taleo-brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.taleo-brand-word {
+  color: var(--taleo-brand-red);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.taleo-brand-sub {
+  color: var(--taleo-text-secondary);
+  font-size: 13px;
+}
+
+.taleo-utility-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  white-space: nowrap;
+}
+
+.taleo-utility-icon {
+  background: none;
+  border: none;
+  color: var(--taleo-icon);
+  cursor: pointer;
+  padding: var(--sp-half);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.taleo-utility-icon:hover {
+  color: var(--taleo-primary);
+}
+
+.taleo-utility-link {
+  color: var(--taleo-text);
+  font-size: var(--fs-body);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--sp-half);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.taleo-utility-link:hover {
+  color: var(--taleo-link);
+}
+
+.taleo-utility-caret {
+  font-size: 10px;
+}
+
+.taleo-logout {
+  background: var(--taleo-logout);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 8px 18px;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.taleo-logout:hover {
+  opacity: 0.9;
+}
+
+.taleo-utility-menu-wrap {
+  position: relative;
+}
+
+.taleo-utility-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--taleo-surface);
+  border: 1px solid var(--taleo-border);
+  min-width: 220px;
+  padding: var(--sp-1) 0;
+  z-index: 40;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* the one restrained overlay shadow the prompt allows, for menu/modal separation only */
+}
+
+.taleo-utility-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: var(--taleo-text);
+  padding: var(--sp-1) var(--sp-2);
+  cursor: pointer;
+}
+
+.taleo-utility-menu-item:hover {
+  background: var(--taleo-row-hover);
+}
+
+/* Primary horizontal nav */
+
+.taleo-primary-nav {
+  display: flex;
+  align-items: stretch;
+  background: var(--taleo-nav);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.taleo-primary-nav a,
+.taleo-primary-nav button.taleo-nav-tab {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-2);
+  min-height: 44px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.taleo-primary-nav a:hover,
+.taleo-primary-nav button.taleo-nav-tab:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.taleo-primary-nav a.active,
+.taleo-primary-nav button.taleo-nav-tab.active {
+  background: var(--taleo-active-tab-bg);
+  color: var(--taleo-text);
+  font-weight: 700;
+}
+
+.taleo-nav-home {
+  padding: 0 var(--sp-2) !important;
+}
+
+.taleo-nav-home svg {
+  display: block;
+}
+
+/* Left sidebar */
+
+.taleo-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.taleo-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--taleo-surface);
+  border-right: 1px solid var(--taleo-border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.taleo-sidebar.collapsed {
+  width: 32px;
+}
+
+.taleo-sidebar.collapsed .taleo-sidebar-panel-body,
+.taleo-sidebar.collapsed .taleo-sidebar-panel-title {
+  display: none;
+}
+
+.taleo-sidebar-panel {
+  border-bottom: var(--sp-1) solid var(--taleo-canvas);
+}
+
+.taleo-sidebar-panel-header {
+  display: flex;
+  align-items: center;
+  background: var(--taleo-sidebar-header);
+  color: #fff;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  padding: var(--sp-1) var(--sp-2);
+  min-height: 32px;
+}
+
+.taleo-sidebar-panel-title {
+  flex: 1;
+}
+
+.taleo-sidebar-collapse-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+}
+
+.taleo-sidebar-panel-body {
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.taleo-qs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.taleo-qs-label {
+  font-size: var(--fs-meta);
+  color: var(--taleo-text);
+}
+
+.taleo-qs-input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  border-bottom: 1px solid #999;
+  padding-bottom: 2px;
+}
+
+.taleo-qs-input-row input {
+  border: none;
+  outline: none;
+  flex: 1;
+  padding: 2px 0;
+  font-size: var(--fs-body);
+  font-family: inherit;
+  background: transparent;
+}
+
+.taleo-qs-search-icon {
+  color: var(--taleo-link);
+  flex-shrink: 0;
+}
+
+.taleo-qs-advanced-link {
+  color: var(--taleo-link);
+  font-size: var(--fs-meta);
+  align-self: flex-start;
+}
+
+.taleo-qs-divider {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: var(--sp-1) 0 0;
+  width: 100%;
+}
+
+.taleo-recent-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.taleo-recent-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid #eee;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.taleo-recent-item:last-child {
+  border-bottom: none;
+}
+
+.taleo-recent-icon {
+  color: var(--taleo-icon);
+  flex-shrink: 0;
+}
+
+.taleo-recent-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.taleo-recent-name {
+  color: var(--taleo-link);
+  font-weight: 700;
+  font-size: var(--fs-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taleo-recent-type {
+  color: var(--taleo-text-secondary);
+  font-size: 12px;
+}
+
+.taleo-recent-empty {
+  color: var(--taleo-text-secondary);
+  font-size: var(--fs-meta);
+}
+
+/* Main canvas */
+
+.shell-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--taleo-canvas);
+}
+
+.shell-content {
+  flex: 1;
+  overflow: auto;
+  padding: var(--sp-3);
+}
+
+/* ------------------------------------------------------------------ login */
+
+.login-page {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--canvas);
+}
+
+.login-card {
+  width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: var(--sp-1);
+}
+
+.login-brand h1 {
+  font-size: 18px;
+  margin-top: var(--sp-1);
+}
+
+.login-mark {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: var(--slate);
+  color: #fff;
+  font-weight: 600;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: var(--fs-meta);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ ui: buttons */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-half);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  padding: 9px 18px;
+  cursor: pointer;
+  line-height: 1.25;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-sm {
+  padding: 6px var(--sp-1);
+  font-size: var(--fs-meta);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* Taleo's only solid-filled button — reserved for the single most-committal
+   action per screen (Save, Logout). Everything else is the white/blue
+   outline "secondary" style below. */
+.btn-primary {
+  background: var(--taleo-primary);
+  color: #fff;
+  border-color: var(--taleo-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--taleo-primary-hover);
+  border-color: var(--taleo-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--taleo-surface);
+  color: var(--taleo-link);
+  border-color: var(--taleo-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--taleo-row-hover);
+}
+
+.btn-danger {
+  background: var(--taleo-logout);
+  color: #fff;
+  border-color: var(--taleo-logout);
+}
+
+.btn-danger:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--taleo-link);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--taleo-row-hover);
+}
+
+/* Dropdown-style action button (e.g. "More", "Change status to…") — same
+   outline button with a small blue caret fused to the end. */
+.btn-caret::after {
+  content: '\25BE';
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+/* ------------------------------------------------------------------ ui: fields */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+}
+
+.field-label {
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.field-required {
+  color: var(--danger);
+}
+
+.field input,
+.field select,
+.field textarea,
+.input {
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  padding: 8px var(--cell-pad);
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible,
+.input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+.field-error-text {
+  color: var(--danger);
+  font-size: var(--fs-meta);
+}
+
+/* ------------------------------------------------------------------ ui: badge */
+
+/* Taleo mostly renders status as plain colored text, not filled pill
+   chips — the one true pill in the reference is the green candidate-count
+   badge next to a person icon. badge-success keeps the pill for that; every
+   other variant is flattened to a small bordered rectangle or plain text
+   per the screenshots. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--taleo-radius);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.badge-neutral {
+  background: var(--taleo-surface);
+  color: var(--taleo-text-secondary);
+  border: 1px solid var(--taleo-border);
+}
+
+.badge-primary {
+  background: var(--taleo-surface);
+  color: var(--taleo-link);
+  border: 1px solid var(--taleo-primary);
+}
+
+.badge-success {
+  background: var(--taleo-count);
+  /* Text darkened rather than the green. Reaching AA with white text would
+     need the green 30% darker (#588225), which visibly departs from the Taleo
+     count badge. #222 on #7fba36 is 6.80:1; white was 2.34:1. */
+  color: var(--taleo-text);
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+
+.badge-warning {
+  background: var(--taleo-surface);
+  color: #a05a00;
+  border: 1px solid #d97706;
+}
+
+.badge-danger {
+  background: var(--taleo-surface);
+  color: var(--taleo-danger);
+  border: none;
+  font-weight: 700;
+}
+
+.badge-outline {
+  background: var(--taleo-surface);
+  color: var(--taleo-text-secondary);
+  border: 1px solid var(--taleo-border);
+}
+
+.unviewed-badge {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  color: var(--taleo-danger);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ ui: table */
+
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-body);
+}
+
+.table th {
+  background: var(--section-tint);
+  text-align: left;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  padding: var(--cell-pad);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+
+.table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.table th.sortable:hover {
+  color: var(--taleo-primary-hover);
+}
+
+.sort-arrow {
+  font-size: 9px;
+  margin-left: var(--sp-half);
+  color: var(--taleo-link);
+}
+
+.table td {
+  padding: var(--cell-pad);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table.zebra tbody tr:nth-child(even) {
+  background: var(--taleo-row-alt);
+}
+
+.table tbody tr:hover {
+  background: var(--taleo-row-hover);
+}
+
+.table .checkbox-col {
+  width: 36px;
+  text-align: center;
+}
+
+.cell-capped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.cell-expanded {
+  cursor: pointer;
+  white-space: pre-wrap;
+}
+
+.table-empty {
+  padding: var(--sp-3);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------------------ ui: list page */
+
+.list-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.list-page-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.list-page-head h1 {
+  margin-right: auto;
+}
+
+.list-page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.list-page-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.list-page-search input {
+  width: 100%;
+}
+
+.list-page-body {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+}
+
+.filter-rail {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.filter-rail h2 {
+  font-size: var(--fs-meta);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.list-page-table {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ ui: record page */
+
+.record-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.record-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.record-code {
+  color: var(--text-secondary);
+  font-size: var(--fs-section);
+}
+
+.record-action-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--sp-1) var(--sp-2);
+}
+
+.record-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.record-section-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: var(--sp-1);
+  background: var(--section-tint);
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-section);
+  font-weight: 700;
+  color: var(--text);
+  padding: 10px var(--sp-2);
+  cursor: pointer;
+  text-align: left;
+  min-height: 40px;
+}
+
+.record-section-chevron {
+  color: var(--taleo-nav);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.record-section-body {
+  padding: var(--sp-2);
+}
+
+/* ------------------------------------------------------------------ ui: kanban */
+
+.kanban {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: var(--sp-1);
+}
+
+.kanban-col {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+.kanban-col.drop-over {
+  border-color: var(--primary);
+  background: var(--section-tint);
+}
+
+.kanban-col-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--cell-pad);
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  background: var(--section-tint);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.kanban-col-count {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.kanban-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  overflow-y: auto;
+  min-height: 48px;
+}
+
+.kanban-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--cell-pad);
+  cursor: grab;
+}
+
+.kanban-card.dragging {
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ ui: timeline */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.timeline-day-label {
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.timeline-item {
+  display: flex;
+  gap: var(--cell-pad);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-item:last-child {
+  border-bottom: none;
+}
+
+.timeline-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--section-tint);
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.timeline-body {
+  min-width: 0;
+}
+
+.timeline-subject {
+  font-weight: 500;
+}
+
+.timeline-text {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  white-space: pre-wrap;
+  margin: var(--sp-half) 0 0;
+}
+
+.timeline-meta {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.timeline-empty {
+  color: var(--text-secondary);
+  padding: var(--sp-2) 0;
+}
+
+/* ------------------------------------------------------------------ ui: side panel tabs */
+
+.side-tabs {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.side-tabs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  background: var(--section-tint);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.side-tab {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  padding: var(--sp-1) var(--cell-pad);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-half);
+  border-bottom: 2px solid transparent;
+}
+
+.side-tab:hover {
+  color: var(--text);
+}
+
+.side-tab.active {
+  color: var(--primary-deep);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
+  background: var(--surface);
+}
+
+.side-tab-count {
+  background: var(--border);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.side-tabs-panel {
+  padding: var(--sp-2);
+  overflow-y: auto;
+}
+
+/* ------------------------------------------------------------------ pages */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.dashboard-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--sp-2);
+}
+
+.dashboard-card h2 {
+  margin-bottom: var(--sp-1);
+}
+
+.stub-panel {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-4);
+  text-align: center;
+  margin-top: var(--sp-2);
+}
+
+.stub-panel h1 {
+  font-size: var(--fs-section);
+}
+
+/* ------------------------------------------------------------------ responsive */
+
+@media (max-width: 900px) {
+  .list-page-body {
+    flex-direction: column;
+  }
+
+  .filter-rail {
+    width: 100%;
+  }
+
+  .shell-content {
+    padding: var(--sp-2);
+  }
+}
+
+/* ------------------------------------------------------------------ Taleo page header / search / pager / placeholder */
+
+.taleo-page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.taleo-page-icon {
+  color: var(--taleo-nav);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.taleo-page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.taleo-page-header-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.taleo-page-header-title-row h1 {
+  margin-right: auto;
+}
+
+.taleo-page-desc {
+  color: var(--taleo-text-secondary);
+  font-size: var(--fs-body);
+  margin: 4px 0 0;
+  max-width: 900px;
+}
+
+/* "Search:" label + boxed input + Go! button, the Taleo list-page pattern */
+.taleo-search-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.taleo-search-label {
+  font-size: var(--fs-body);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.taleo-search-row input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.taleo-go-btn {
+  flex-shrink: 0;
+}
+
+/* Optional second Taleo search row (e.g. Candidates' First/Last Name line) */
+.taleo-second-search-row {
+  margin-top: -4px;
+}
+
+.taleo-second-search-row .taleo-search-label {
+  min-width: 84px;
+}
+
+.taleo-pager {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.taleo-pager button {
+  background: none;
+  border: none;
+  color: var(--taleo-link);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 13px;
+}
+
+.taleo-pager button:disabled {
+  color: var(--taleo-border);
+  cursor: default;
+}
+
+/* Standalone configure-gear button that floats above a Taleo list/record
+   card, distinct from the utility-header gear. */
+.taleo-gear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--taleo-surface);
+  border: 1px solid var(--taleo-primary);
+  color: var(--taleo-primary);
+  border-radius: 2px;
+  cursor: pointer;
+  margin-bottom: var(--sp-1);
+}
+
+/* Centralized "not available in this MVP" placeholder — TaleoPlaceholderAction */
+.taleo-placeholder-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.taleo-placeholder-modal {
+  background: var(--taleo-surface);
+  border: 1px solid var(--taleo-border);
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.taleo-placeholder-titlebar {
+  background: var(--taleo-sidebar-header);
+  color: #fff;
+  font-weight: 700;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-body);
+}
+
+.taleo-placeholder-body {
+  padding: var(--sp-2);
+  color: var(--text);
+  font-size: var(--fs-body);
+}
+
+.taleo-placeholder-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2) var(--sp-2);
+}
+
+/* Module placeholder shell (Employees/Onboard/Users/Reports/Courses) */
+.taleo-module-placeholder-note {
+  color: var(--taleo-text-secondary);
+  font-size: var(--fs-meta);
+  font-style: normal;
+  padding: var(--sp-2);
+  border: 1px dashed var(--taleo-border);
+  background: var(--taleo-surface);
+}
+
+/* ------------------------------------------------------------------ Dashboard route (My View / Pipeline / Reports) */
+
+/* Inline "New Event | Schedule interview" style links inside a
+   RecordSection header/body, separated by thin dividers (section 9,
+   "inline action links separated by thin vertical dividers"). */
+.record-section-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.record-section-divider {
+  color: var(--taleo-border);
+}
+
+.taleo-disabled-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--taleo-text-secondary);
+  font-size: var(--fs-body);
+  margin-left: var(--sp-1);
+}
+
+.taleo-switch-dashboard-link {
+  margin-left: auto;
+}
+
+.dash-widgets-panel .dash-home-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--sp-2);
+}
+
+/* Reports tab decorative toggle/tab chrome (14_Taleo_Reports_Home.png) */
+.taleo-report-toggle-row,
+.taleo-report-tab-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
+}
+
+.taleo-report-tab-row {
+  margin-bottom: var(--sp-2);
+}
+
+.taleo-report-tab-gear {
+  margin-left: var(--sp-1);
+}
+
+/* ---------------------------------------------------------------------------
+   WCAG 2.2 SC 2.4.11 Focus Not Obscured (Minimum), Level AA.
+
+   .record-action-bar is position:sticky/top:0 and measures 48px. Record pages
+   stack up to 15 accordion sections beneath it, so tabbing UPWARD from a lower
+   section scrolls the focus target under the bar and completely hides it.
+   That is W3C Technique F110, Example 2, verbatim.
+
+   scroll-padding-top is the sufficient technique named by F110. 56px = the
+   48px bar plus an 8px gap so the focused control is not flush against it.
+
+   Re-measure if the utility header height changes (fidelity item C3).
+   Verify by tabbing a record page in BOTH directions: F110's test procedure
+   requires both, and a forward-only pass will miss this.
+   --------------------------------------------------------------------------- */
+/* The scrolling element is main.shell-content, NOT the document: the shell
+   pins the header/nav/sidebar and scrolls only the content pane, so
+   scroll-padding on html has no effect (verified: html does not scroll,
+   .shell-content has scrollHeight 2945 vs clientHeight 784). Put the padding
+   on the actual scroll container. */
+.shell-content {
+  scroll-padding-top: 56px;
+}
+
+/* Defensive: if a future layout scrolls the document instead. Harmless now. */
+html {
+  scroll-padding-top: 56px;
+}
+
+/* ---------------------------------------------------------------------------
+   G1 / G2 / G3: interaction states.
+
+   Discovery on 2026-09-01 found :focus-visible, :active and [aria-disabled]
+   with ZERO occurrences across all seven stylesheets. None of this adds motion;
+   it is feedback the replica was missing, not decoration.
+   --------------------------------------------------------------------------- */
+
+/* G1. One explicit keyboard focus ring, rather than relying on the user-agent
+   default whose colour we do not control. SC 2.4.7 requires a visible
+   indicator; SC 1.4.11 requires the indicator itself to reach 3:1. Our ring
+   uses --taleo-primary (#3679b5), which is 4.61:1 on white.
+   :focus-visible, not :focus, so the ring appears for keyboard users and not
+   on mouse click. Text inputs still show it on click because the spec matches
+   :focus-visible for elements that take keyboard input. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--taleo-primary);
+  outline-offset: 1px;
+}
+
+/* G2. Pressed state. Clicking previously gave no acknowledgement at all.
+   Taleo's bordered buttons visibly depressed, so this is fidelity as much as
+   feedback. Colour only, no transform and no transition: motion arrives later
+   under G5 with its reduced-motion guard, and this must not depend on it. */
+.btn:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--taleo-row-hover);
+  border-color: var(--taleo-primary-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--taleo-primary-hover);
+}
+
+.record-section-header:active,
+.table th.sortable:active {
+  background: var(--taleo-nested-section);
+}
+
+/* G3. Screenshot-accurate controls that have no FOOS behaviour behind them.
+   The redesign prompt asks for aria-disabled "where the action cannot safely
+   run" while keeping the control looking real. They stay tabbable on purpose,
+   so a keyboard user can still reach one and be told it is unavailable. */
+[aria-disabled='true'] {
+  opacity: 0.72;
+  cursor: default;
+}

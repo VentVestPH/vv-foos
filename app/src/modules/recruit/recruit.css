@@ -1,0 +1,582 @@
+/* ATS module styles (Agent 2). Tokens only — no hard-coded colors. */
+
+/* ------------------------------------------------------------ dialogs */
+
+.rq-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 41, 55, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: var(--sp-2);
+}
+
+.rq-dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 440px;
+  max-width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.rq-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--section-tint);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.rq-dialog-x {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--sp-half);
+}
+
+.rq-dialog-x:hover {
+  color: var(--text);
+}
+
+.rq-dialog-body {
+  padding: var(--sp-2);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.rq-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+
+/* ------------------------------------------------------------ stars */
+
+.star-grade {
+  display: inline-flex;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.star-grade .star {
+  color: var(--border);
+  font-size: var(--fs-body);
+  line-height: 1;
+}
+
+.star-grade .star.on {
+  color: var(--warning);
+}
+
+.star-grade.editable .star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 1px;
+  font-size: var(--fs-section);
+}
+
+/* ------------------------------------------------------------ chips, banners */
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-half);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-half);
+  background: var(--section-tint);
+  color: var(--slate);
+  border-radius: 999px;
+  padding: 2px var(--sp-1);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.dnc-banner {
+  background: var(--danger);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: var(--sp-1) var(--sp-2);
+  font-weight: 600;
+}
+
+.rq-error {
+  color: var(--danger);
+  font-size: var(--fs-meta);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------ saved views */
+
+.saved-views {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.saved-views select {
+  min-width: 160px;
+}
+
+/* ------------------------------------------------------------ forms */
+
+.rq-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  max-width: 920px;
+}
+
+.rq-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--sp-2);
+}
+
+.rq-form textarea {
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-1) var(--cell-pad);
+  resize: vertical;
+}
+
+.rq-form textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+.rq-checkline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-body);
+}
+
+.rq-checkbox-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 180px;
+  overflow-y: auto;
+  padding: var(--sp-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+}
+
+.rq-approver-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.rq-form-actions {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+/* ------------------------------------------------------------ record layout */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--sp-2);
+}
+
+.info-item dt {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  margin: 0 0 2px;
+}
+
+.info-item dd {
+  margin: 0;
+  font-size: var(--fs-body);
+  overflow-wrap: anywhere;
+}
+
+.approver-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.approver-line:last-child {
+  border-bottom: none;
+}
+
+.approver-name {
+  font-weight: 500;
+}
+
+.approver-actions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--sp-half);
+}
+
+.cand-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) 1fr;
+  gap: var(--sp-2);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .cand-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cand-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------ toolkit panels */
+
+.panel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.panel-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-form textarea {
+  font-family: inherit;
+  font-size: var(--fs-body);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-1) var(--cell-pad);
+  resize: vertical;
+}
+
+.panel-item {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--sp-1);
+}
+
+.panel-item:last-child {
+  border-bottom: none;
+}
+
+.panel-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  justify-content: space-between;
+}
+
+.panel-item-title {
+  font-weight: 500;
+}
+
+.panel-item-body {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  white-space: pre-wrap;
+  margin: var(--sp-half) 0 0;
+}
+
+.resume-preview {
+  width: 100%;
+  height: 480px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ------------------------------------------------------------ pipeline */
+
+.pipeline-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-2);
+}
+
+.pipeline-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.pipeline-toggle button {
+  border: none;
+  background: var(--surface);
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  padding: var(--sp-half) var(--sp-1);
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.pipeline-toggle button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.shortlist-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--fs-section);
+  color: var(--border);
+  padding: 0;
+  line-height: 1;
+}
+
+.shortlist-btn.on {
+  color: var(--warning);
+}
+
+.rank-input {
+  width: 56px;
+}
+
+.rank-input input,
+.next-step-input input {
+  width: 100%;
+  font-size: var(--fs-meta);
+  padding: var(--sp-half);
+}
+
+.next-step-input {
+  min-width: 120px;
+}
+
+.kanban-card-name {
+  font-weight: 500;
+  color: var(--primary);
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.kanban-card-meta {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  margin-top: var(--sp-half);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  flex-wrap: wrap;
+}
+
+.unviewed-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-btn:hover {
+  color: var(--primary-deep);
+}
+
+/* ------------------------------------------------------------ Taleo requisitions redesign */
+
+/* Requisition list — Candidates / Next Steps cells, Advanced Search, bars */
+
+.taleo-candidates-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-half);
+  color: var(--taleo-icon, var(--text-secondary));
+}
+
+.taleo-next-steps-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.taleo-list-action-bar,
+.taleo-record-bottom-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin: var(--sp-2) 0;
+}
+
+.taleo-advanced-search {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.taleo-advanced-search summary {
+  cursor: pointer;
+  padding: var(--sp-1);
+  font-weight: 600;
+  color: var(--taleo-link, var(--primary));
+  list-style: none;
+}
+
+.taleo-advanced-search summary::-webkit-details-marker {
+  display: none;
+}
+
+.taleo-advanced-search summary::before {
+  content: '▸ ';
+}
+
+.taleo-advanced-search[open] summary::before {
+  content: '▾ ';
+}
+
+.taleo-advanced-search-body {
+  padding: 0 var(--sp-1) var(--sp-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+/* Requisition record — Next Steps line, back-to-list, editor toolbar */
+
+.taleo-next-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-body);
+}
+
+.taleo-next-steps-label {
+  font-weight: 600;
+}
+
+.taleo-next-step-disabled {
+  color: var(--taleo-text-secondary, var(--text-secondary));
+}
+
+.taleo-back-to-list {
+  font-size: var(--fs-meta);
+  white-space: nowrap;
+}
+
+.rq-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: var(--sp-half);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--taleo-canvas, #eee);
+}
+
+.rq-editor-toolbar-btn {
+  min-width: 32px;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+}
+
+.rq-form textarea#req-description {
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ------------------------------------------------------------ Taleo candidates redesign */
+
+/* Decorative flag column header (candidate list, screenshot 08) — static,
+   no click handler, not a control, so it does not route through
+   TaleoPlaceholderAction. */
+.cand-flag-col {
+  color: var(--taleo-icon, var(--text-secondary));
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Resume column icon — dim when no resume attachment exists on the row,
+   full color when a real resume is on file. */
+.cand-resume-icon {
+  color: var(--taleo-icon, var(--primary));
+  display: inline-flex;
+}
+
+.cand-resume-icon.cand-resume-none {
+  color: var(--taleo-border, var(--border));
+}
+
+.cand-second-search-fields {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.cand-second-search-fields input {
+  min-width: 160px;
+}
+
+/* ------------------------------------------------------------ mobile read-only */
+
+@media (max-width: 640px) {
+  .rq-form-actions,
+  .record-action-bar .btn-primary,
+  .panel-form {
+    display: none;
+  }
+}
