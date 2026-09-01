@@ -13,6 +13,7 @@
     "db:validate": "psql \"$DATABASE_URL\" -f supabase/tests/validate.sql",
     "test": "npm run test --workspace=tests",
     "test:e2e": "npm run e2e --workspace=tests",
-    "db:seed:personas": "node scripts/post-reset.mjs --personas-only"
+    "db:seed:personas": "node scripts/post-reset.mjs --personas-only",
+    "db:add-staff": "node scripts/add-local-staff.mjs"
   }
 }

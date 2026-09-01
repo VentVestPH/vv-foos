@@ -60,9 +60,9 @@ export function useSavedViews(entity: 'requisition' | 'candidate') {
         staff_id: staff.id,
         entity,
         name,
-        filters: state.filters as unknown as Json,
-        columns: state.columns as unknown as Json,
-        sort: state.sort as unknown as Json,
+        filters: (state.filters ?? {}) as unknown as Json,
+        columns: (state.columns ?? []) as unknown as Json,
+        sort: (state.sort ?? []) as unknown as Json,
       });
       if (err) {
         setError(err.message);

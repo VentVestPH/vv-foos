@@ -26,11 +26,58 @@ function orphanPaths() {
       `select o.name from storage.objects o
         where o.bucket_id = '${BUCKET}'
           and not exists (select 1 from public.attachments a where a.storage_path = o.name)
-        order by o.created_at`,
+        union
+       select q.storage_path from public.attachment_deletion_queue q
+        where q.deleted_at is null
+          and exists (select 1 from storage.objects o2
+                       where o2.bucket_id = '${BUCKET}' and o2.name = q.storage_path)`,
     ],
     { encoding: 'utf8' },
   );
   return out.split('\n').map((l) => l.trim()).filter(Boolean);
+}
+
+function markDrained(paths) {
+  if (paths.length === 0) return;
+  const list = paths.map((p) => `'${p.replace(/'/g, "''")}'`).join(',');
+  execFileSync(
+    'psql',
+    [
+      DB_URL,
+      '-q',
+      '-c',
+      `update public.attachment_deletion_queue
+          set deleted_at = now()
+        where deleted_at is null and storage_path in (${list})`,
+    ],
+    { stdio: 'ignore' },
+  );
+}
+
+function reconcileAlreadyGone() {
+  const out = execFileSync(
+    'psql',
+    [
+      DB_URL,
+      '-At',
+      '-c',
+      `with gone as (
+         update public.attachment_deletion_queue q
+            set deleted_at = now()
+          where q.deleted_at is null
+            and not exists (select 1 from storage.objects o
+                             where o.bucket_id = '${BUCKET}' and o.name = q.storage_path)
+          returning 1)
+       select count(*) from gone`,
+    ],
+    { encoding: 'utf8' },
+  );
+  return Number(out.trim()) || 0;
+}
+
+const reconciled = reconcileAlreadyGone();
+if (reconciled > 0) {
+  console.log(`${reconciled} queue entr${reconciled === 1 ? 'y' : 'ies'} closed: the file was already gone.`);
 }
 
 const paths = orphanPaths();
@@ -61,6 +108,7 @@ if (authErr) {
 
 let deleted = 0;
 let failed = 0;
+const drained = [];
 for (const path of paths) {
   const { data: temp, error: insErr } = await sb
     .from('attachments')
@@ -84,7 +132,9 @@ for (const path of paths) {
     failed += 1;
   } else {
     deleted += 1;
+    drained.push(path);
   }
 }
+markDrained(drained);
 console.log(`Deleted ${deleted}, failed ${failed}.`);
 process.exit(failed > 0 ? 1 : 0);

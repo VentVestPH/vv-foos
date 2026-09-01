@@ -671,6 +671,26 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['reminders']['Insert']>;
         Relationships: [];
       };
+      attachment_deletion_queue: {
+        Row: {
+          id: string;
+          storage_path: string;
+          parent_type: string | null;
+          parent_id: string | null;
+          queued_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          storage_path: string;
+          parent_type?: string | null;
+          parent_id?: string | null;
+          queued_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['attachment_deletion_queue']['Insert']>;
+        Relationships: [];
+      };
       attachments: {
         Row: {
           id: string;

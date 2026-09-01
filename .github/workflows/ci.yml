@@ -116,6 +116,9 @@ jobs:
       - name: Browser flow tests
         run: npm run e2e --workspace=tests
 
+      - name: No attachment files were orphaned by the suites
+        run: node scripts/check-attachment-queue.mjs
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

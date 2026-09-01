@@ -290,7 +290,20 @@ begin
   if not exists (select 1 from staff where email = 'john@ventvest.com' and role = 'admin' and is_active) then
     raise exception 'FAIL 9: admin staff row for john@ventvest.com missing';
   end if;
-  if (select count(*) from staff) <> 4 then raise exception 'FAIL 9: staff count'; end if;
+  -- The four seeded demo staff must all be present and active. Deliberately not
+  -- an exact count: scripts/add-local-staff.sql exists so a developer or UAT
+  -- tester can work under their own named identity, and doing so must not fail
+  -- validation. staff has no is_test column, so any extra rows still have to be
+  -- removed by hand before cutover.
+  if (select count(*) from staff
+       where id in (
+         'a0000000-0000-4000-8000-000000000001',
+         'a0000000-0000-4000-8000-000000000002',
+         'a0000000-0000-4000-8000-000000000003',
+         'a0000000-0000-4000-8000-000000000004'
+       ) and is_active) <> 4 then
+    raise exception 'FAIL 9: the four seeded demo staff rows are not all present and active';
+  end if;
   if (select count(*) from companies where is_test) <> 5 then raise exception 'FAIL 9: companies count'; end if;
   if (select count(*) from people where is_test) <> 10 then raise exception 'FAIL 9: people count'; end if;
   if (select count(*) from candidate_profiles) <> 7 then raise exception 'FAIL 9: candidate_profiles count'; end if;
@@ -298,7 +311,7 @@ begin
   if (select count(*) from requisitions where display_code <= 'REQ-0003') <> 3 then raise exception 'FAIL 9: requisitions count'; end if;
   if (select count(*) from applications where display_code <= 'APP-0008') <> 8 then raise exception 'FAIL 9: applications count'; end if;
   if (select count(*) from deals) <> 2 then raise exception 'FAIL 9: deals count'; end if;
-  raise notice 'PASS 9: seed rows all present (12 sources, 18 statuses, 4 staff, 5 companies, 10 people, 3 reqs, 8 apps, 2 deals)';
+  raise notice 'PASS 9: seed rows all present (12 sources, 18 statuses, the 4 demo staff, 5 companies, 10 people, 3 reqs, 8 apps, 2 deals)';
 end $$;
 
 -- 10-13. RLS behavior, simulated via role + request.jwt.claims -----------------
@@ -431,6 +444,33 @@ begin
   raise notice 'PASS 14: is_test purge deletes clean across people/requisitions/deals/companies (rolled back)';
 end $$;
 rollback;
+
+-- 14b. Every policied table is actually reachable ----------------------------
+-- Postgres checks GRANTs before RLS, and migration 11 granted privileges with a
+-- one-time `grant all on all tables in schema public`. A table created in a
+-- later migration therefore has no grants and is invisible to the app whatever
+-- its policies say. Two tables are deliberately unreachable through PostgREST
+-- (careers_rate_limit is written only by a SECURITY DEFINER function, zoho_id_map
+-- only by the importer under service_role); everything else that carries a policy
+-- must also carry a grant.
+do $$
+declare
+  missing text;
+begin
+  select string_agg(c.relname, ', ' order by c.relname) into missing
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public'
+     and c.relkind = 'r'
+     and c.relrowsecurity
+     and exists (select 1 from pg_policy p where p.polrelid = c.oid)
+     and not has_table_privilege('authenticated', c.oid, 'SELECT')
+     and c.relname not in ('careers_rate_limit', 'zoho_id_map');
+  if missing is not null then
+    raise exception 'FAIL 14b: policied but ungranted, so unreachable through the API: %', missing;
+  end if;
+  raise notice 'PASS 14b: every policied table also carries an authenticated grant';
+end $$;
 
 -- 15. Teardown ---------------------------------------------------------------
 -- Checks 7, 8, 10 and 12 insert rows to prove the outbox triggers and the
