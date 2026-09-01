@@ -1,15 +1,30 @@
+import { Suspense, lazy, type ReactNode } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
 import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './auth/LoginPage';
 import { AppShell } from './shell/AppShell';
 import { TaleoPlaceholderProvider } from './shell/TaleoPlaceholder';
-import { DashboardPage } from './pages/DashboardPage';
-import { RecruitRoutes } from './modules/recruit';
-import { SalesRoutes } from './modules/sales';
-import { IntakeRoutes } from './modules/intake';
-import { SettingsRoutes } from './modules/settings';
-import { ModulePlaceholderRoutes } from './pages/TaleoModulePlaceholderPage';
+const DashboardPage = lazy(() =>
+  import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+);
+const RecruitRoutes = lazy(() =>
+  import('./modules/recruit').then((m) => ({ default: m.RecruitRoutes })),
+);
+const SalesRoutes = lazy(() =>
+  import('./modules/sales').then((m) => ({ default: m.SalesRoutes })),
+);
+const IntakeRoutes = lazy(() =>
+  import('./modules/intake').then((m) => ({ default: m.IntakeRoutes })),
+);
+const SettingsRoutes = lazy(() =>
+  import('./modules/settings').then((m) => ({ default: m.SettingsRoutes })),
+);
+const ModulePlaceholderRoutes = lazy(() =>
+  import('./pages/TaleoModulePlaceholderPage').then((m) => ({
+    default: m.ModulePlaceholderRoutes,
+  })),
+);
 
 /**
  * Route map.
@@ -22,6 +37,26 @@ import { ModulePlaceholderRoutes } from './pages/TaleoModulePlaceholderPage';
  * Role limits on the mounts mirror the section 5 matrix (bd has no ATS
  * access, sourcer has no CRM access). RLS remains the real boundary.
  */
+/**
+ * Route-level code splitting. Before this the whole application shipped as one
+ * 652 kB chunk, so a bd user who cannot see the ATS still downloaded it, and the
+ * login page downloaded every module. Each module is now its own chunk, fetched
+ * when its route is first visited.
+ *
+ * The fallback is deliberately a plain inline line of text, not a spinner or a
+ * skeleton. Redesign prompt section 9: "loading: small inline text or restrained
+ * spinner; do not replace the page with a giant loader". It renders inside the
+ * shell's content pane, so the header, nav and sidebar stay put and nothing
+ * shifts.
+ */
+function Lazy({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<div className="full-center text-secondary">Loading...</div>}>
+      {children}
+    </Suspense>
+  );
+}
+
 export default function App() {
   return (
     <SessionProvider>
@@ -37,12 +72,16 @@ export default function App() {
                 </RequireAuth>
               }
             >
-              <Route index element={<DashboardPage />} />
+              <Route index element={
+                  <Lazy>
+                    <Lazy><DashboardPage /></Lazy>
+                  </Lazy>
+                } />
               <Route
                 path="recruit/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer']}>
-                    <RecruitRoutes />
+                    <Lazy><RecruitRoutes /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -50,7 +89,7 @@ export default function App() {
                 path="sales/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'bd']}>
-                    <SalesRoutes />
+                    <Lazy><SalesRoutes /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -64,7 +103,7 @@ export default function App() {
                   // "not authorized" screen for a route that's genuinely
                   // cross-module rather than gating it to one side.
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer', 'bd']}>
-                    <IntakeRoutes />
+                    <Lazy><IntakeRoutes /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -72,7 +111,7 @@ export default function App() {
                 path="settings/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer', 'bd']}>
-                    <SettingsRoutes />
+                    <Lazy><SettingsRoutes /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -85,7 +124,7 @@ export default function App() {
                 path="employees/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer', 'bd']}>
-                    <ModulePlaceholderRoutes module="employees" />
+                    <Lazy><ModulePlaceholderRoutes module="employees" /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -93,7 +132,7 @@ export default function App() {
                 path="onboard/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer', 'bd']}>
-                    <ModulePlaceholderRoutes module="onboard" />
+                    <Lazy><ModulePlaceholderRoutes module="onboard" /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -101,7 +140,7 @@ export default function App() {
                 path="users/*"
                 element={
                   <RequireAuth roles={['admin']}>
-                    <ModulePlaceholderRoutes module="users" />
+                    <Lazy><ModulePlaceholderRoutes module="users" /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -109,7 +148,7 @@ export default function App() {
                 path="courses/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer', 'bd']}>
-                    <ModulePlaceholderRoutes module="courses" />
+                    <Lazy><ModulePlaceholderRoutes module="courses" /></Lazy>
                   </RequireAuth>
                 }
               />

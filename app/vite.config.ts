@@ -23,6 +23,18 @@ export default defineConfig({
     // mount, not a real permissions problem. emptyOutDir:false plus
     // per-build-hash filenames means Vite just adds new hashed assets
     // instead of needing to delete the old ones.
+    // Split long-lived vendor code from app code so an app change does not
+    // invalidate the browser cache for React and Supabase. Measured shares of
+    // the pre-split bundle: react-dom 20.2%, @supabase/auth-js 15.5%,
+    // realtime-js + phoenix 9.0%.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+        },
+      },
+    },
     outDir: 'dist-redesign-2',
     emptyOutDir: false,
   },
