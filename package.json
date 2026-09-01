@@ -8,7 +8,7 @@
     "tests"
   ],
   "scripts": {
-    "db:push": "supabase db push",
+    "db:push": "node scripts/confirm-production-push.mjs && supabase db push",
     "db:reset": "supabase db reset && node scripts/post-reset.mjs",
     "db:validate": "psql \"$DATABASE_URL\" -f supabase/tests/validate.sql",
     "test": "npm run test --workspace=tests",

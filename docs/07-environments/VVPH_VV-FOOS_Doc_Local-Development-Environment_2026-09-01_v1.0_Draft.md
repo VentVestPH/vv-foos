@@ -79,4 +79,44 @@ Platform variables override every file, so a deployed build picks up the hosted 
 
 Now that local works, the moment those definitions are available the migration can be written and tested here before it goes anywhere near production.
 
-**Not yet configured for hosting:** no `vercel.json`, `fly.toml` or `Dockerfile` exists. A Vite SPA needs a rewrite rule sending unmatched paths to `index.html`, otherwise all 12 client-side routes 404 on direct load or refresh. Worth adding before the first deploy, not before then.
+**Superseded:** `vercel.json` now exists with the SPA rewrite, immutable asset caching and security headers. Nothing is deployed to it.
+
+
+## Deployment state, verified 2026-09-01
+
+Everything done on 2026-09-01 was applied to the **local** stack only. Verified with `supabase migration list --linked`, which compares the repo against the hosted project's own migration ledger:
+
+| | Count |
+| :---- | :---- |
+| Migrations on both local and hosted | 12 (the July 11 set) |
+| In the repo, **not** on hosted | 14 |
+| On hosted, with no repo counterpart | 10 |
+
+All eight migrations written on 2026-09-01 (`20260901000001` to `20260901000008`) report `remote: ""`. **None of them is on the hosted project.** Neither are the Edge Function changes: the fail-closed guards on `intake-email-parser` and `google-sync` exist only in the repo, because `supabase functions deploy` was never run.
+
+Every schema change in that session was applied with an explicit local connection string, `postgresql://postgres:postgres@127.0.0.1:55322/postgres`. `supabase db reset` acts on the local database only; its own output says so.
+
+### This checkout is linked to production
+
+`supabase/.temp/project-ref` holds `mebfbbvrqdctamnzvbbs`, set on 2026-07-11. So `supabase db push` and any other `--linked` command target the **live** project, not a staging one. Treat `npm run db:push` as a production command.
+
+### `db push` is currently blocked, and that is a good thing
+
+A dry run refuses:
+
+```
+LegacyDbPushMissingLocalError: Remote migration versions not found in local migrations directory.
+```
+
+Ten migrations were applied to production through the MCP connector on 2026-07-25 under generated timestamps (`20260725061955` through `20260725130101`). The repo instead carries six hand-written files (`20260725000001` to `20260725000006`) that reconstruct the same objects under different names. The ledgers cannot be reconciled by name, so the CLI stops.
+
+**Do not follow the CLI's suggested fix without thinking.** It proposes `supabase migration repair --status reverted <the ten>` followed by `supabase db pull`. Marking them reverted and then pushing would attempt all six reconstruction files against a database where those objects already exist, which will fail partway through and may leave the schema half-changed.
+
+The safe order when the time comes:
+
+1. Get the database password and run `supabase db dump --linked` to capture what production actually has, including the two Agent 6 RPCs that exist in no migration.
+2. Reconcile the ledger deliberately, deciding per object whether the repo file or production is correct.
+3. Apply the eight September migrations to a throwaway copy of the production dump first, not to production.
+4. Only then push, and only the September set.
+
+Steps 1 and 2 are the outstanding Agent 6 RPC drift item. It is now also a prerequisite for deploying anything, not just a documentation gap.

@@ -23,7 +23,7 @@ npm run typecheck --workspace=app    # tsc --noEmit, the only static gate
 npm run build --workspace=app        # typecheck + vite build
 
 # Database (root scripts, need supabase CLI + $DATABASE_URL)
-npm run db:push                      # applies supabase/migrations/ in order
+npm run db:push                      # BLOCKED by a guard: this checkout is linked to the LIVE project
 npm run db:reset                     # migrations + seed, local
 npm run db:validate                  # supabase/tests/validate.sql
 
@@ -111,6 +111,16 @@ Screenshot-accurate controls that have no real FOOS behavior yet must route thro
 `supabase/functions/` holds careers (`careers-page`, `careers-apply`), intake (`intake-sheet-fetch`, `intake-sheet-commit`, `intake-email-parser`) and Google integration (`google-oauth-start`, `google-oauth-callback`, `google-sync`, `gmail-send`, `calendar-create-meeting`). `README.md` and `README-agent6.md` in that directory record each function's `verify_jwt` setting, deploy state, and secrets. Two rules learned the hard way there: any function a browser calls needs explicit `OPTIONS`/CORS handling, and `req.url`'s scheme cannot be trusted behind Supabase's proxy (`careers-page` hardcodes `https`, overridable via `CAREERS_PUBLIC_ORIGIN`).
 
 Functions that write on a user's behalf run under the caller's own JWT where RLS should decide (`intake-sheet-commit`); service-role use is confined to the public careers surface and outbox consumers.
+
+## Local versus production
+
+**This checkout is linked to the live project.** `supabase/.temp/project-ref` holds `mebfbbvrqdctamnzvbbs`, so every `--linked` command targets production. There is no staging project.
+
+Develop against the local stack: `supabase start`, then `npm run db:reset` (which also seeds the four test personas and restarts the edge runtime, since `db reset` otherwise leaves it holding stale connections to the storage container it just replaced and every upload fails with `StorageApiError 502`).
+
+`npm run db:push` is deliberately gated behind `scripts/confirm-production-push.mjs` and exits 1. Two reasons: it writes to the live project, and the migration ledgers do not line up. Ten migrations were applied to production through the MCP connector on 2026-07-25 under generated timestamps, while the repo carries six hand-written files reconstructing the same objects under different names. `supabase db push` refuses on its own with `LegacyDbPushMissingLocalError`; do not "fix" that with `migration repair --status reverted` without reading the Deployment state section of `docs/07-environments/`.
+
+As of 2026-09-01, the eight `20260901*` migrations and the Edge Function changes exist locally and in git only. Verified with `supabase migration list --linked`: all eight report an empty `remote`.
 
 ## Environment
 

@@ -10,7 +10,7 @@ Migration records are referenced by field value and count only, never by candida
 
 | ID | Item | Severity | Status |
 | :---- | :---- | :---- | :---- |
-| QA-002 | `careers_rate_limit` has row-level security disabled | Medium as logged, **treat as Critical** | **Fixed 2026-09-01** by migration `20260901000002_careers_rate_limit_rls.sql`. Enabling RLS is the safe direction and needed no severity ruling; what needed John's sign-off was any downgrade, which is not what happened. No policies were added: `careers_record_attempt` is SECURITY DEFINER owned by postgres and `service_role` carries `rolbypassrls`, both verified, so the careers form keeps working while anon and authenticated get nothing. `validate.sql` check 2 now passes from a clean `db:reset` |
+| QA-002 | `careers_rate_limit` has row-level security disabled | Medium as logged, **treat as Critical** | **Fixed 2026-09-01** by migration `20260901000002_careers_rate_limit_rls.sql`. No policies were added: `careers_record_attempt` is SECURITY DEFINER owned by postgres and `service_role` carries `rolbypassrls`, both verified, so the careers form keeps working while anon and authenticated get nothing. `validate.sql` check 2 now passes from a clean `db:reset`. **Severity corrected downward, see D27:** the exposure I described was not reachable. `anon` holds no SELECT, INSERT, UPDATE or DELETE grant on this table on either the local or the hosted project, so the missing RLS was a defence-in-depth gap rather than an open door |
 | QA-003 | Four demo Auth identities share one password committed in plaintext at `tests/fixtures/personas.sql` | Low as logged, **re-rate to High** | Open. Rationale for re-rating in section 3 |
 | QA-007 | `reminder.due` fires correctly but has no interface | Medium | Open, needs a product decision rather than a fix |
 | QA-008 | None of the four success metrics is instrumented | High | **Fixed 2026-09-01** by migration `20260901000003_success_metrics_qa008.sql`. Adoption, both cycle-time medians, cost and three data-quality ratios now compute into the same weekly cache as the existing counters, and render labelled and unit-formatted in the admin dashboard. Each formula was proved against a non-test fixture in a rolled-back transaction, since seed data leaves most denominators at zero. Cost reads "Not measured" until an admin enters the contract figures, which are recorded nowhere in this repository |
@@ -197,10 +197,22 @@ Consequence: the four Gate 4 open items that were blocked on environment, princi
 | D24 | Recently Viewed rail never populated | **Fixed.** Same defect as the one already fixed in `useBookmarks` |
 | D25 | `hired_at` null on insert-at-hired, invisible to the hired metric | **Fixed** by migration `20260901000001` |
 | D26 | Storage object undeletable once its `attachments` row is gone | Open in the schema. A purge script exists and the tests now delete in the right order |
-| QA-002 | `careers_rate_limit` RLS disabled | **Fixed** by migration `20260901000002`. CI no longer needs its ad-hoc `alter table` line |
+| QA-002 | `careers_rate_limit` RLS disabled | **Fixed** by migration `20260901000002`. CI no longer needs its ad-hoc `alter table` line. Severity was overstated by me and is corrected in D27: `anon` never held a SELECT grant on the table, so it was defence in depth, not an open door |
 | QA-003 | Shared plaintext test password | **Partly fixed.** Removed from the repository entirely; the live persona passwords are still unrotated |
 | QA-007 | `reminder.due` has no interface | Open, product decision |
 | QA-008 | Success metrics not instrumented | **Fixed** by migration `20260901000003`, surfaced and unit-formatted in the admin dashboard |
+
+### D27. QA-002's severity was overstated by me, and is corrected here
+
+When I fixed QA-002 I wrote that with the anon key alone "a visitor could read every recorded IP and delete rows to reset their own throttle". **That was wrong, and I inferred it rather than checking it.** Having row-level security disabled is not sufficient for exposure: the table-grant layer sits in front of it.
+
+Verified afterwards on both environments. On the hosted project every table returns `42501 permission denied for table` to an anon request, `careers_rate_limit` included, so `anon` has no SELECT at all there. Locally, `information_schema.role_table_grants` shows `anon` holding only `REFERENCES, TRIGGER, TRUNCATE` on that table, which are Supabase's default grants on any new table, and none of them is reachable through PostgREST, which exposes no verb for TRUNCATE.
+
+So the real finding is narrower than logged: **the missing RLS was a defence-in-depth gap, not an exploitable path.** Enabling it is still correct, because it is what `validate.sql` check 2 asserts and because relying on grants alone means one stray `GRANT SELECT ... TO anon` turns a non-issue into a live one. But it did not warrant Critical, and nobody's IP addresses were ever readable.
+
+The severity question John was asked to rule on is therefore moot: it was Medium at most, the fix is in, and no sign-off is needed for a fix that only removes access.
+
+I am recording this rather than quietly editing the earlier claim, because the earlier claim is already in the pushed commit message for `5ce206c`.
 
 ### D18. F9 / C6 was a false finding, withdrawn
 
