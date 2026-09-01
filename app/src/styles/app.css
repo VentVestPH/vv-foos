@@ -1576,3 +1576,17 @@ summary:focus-visible,
 .taleo-utility-icon.is-active {
   color: var(--taleo-primary);
 }
+
+.dash-gate-tag {
+  display: inline-block;
+  margin-left: var(--sp-1);
+  padding: 0 4px;
+  border: 1px solid var(--taleo-control-border);
+  border-radius: 2px;
+  background: var(--taleo-row-alt);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}

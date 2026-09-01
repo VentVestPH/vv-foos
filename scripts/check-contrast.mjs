@@ -18,6 +18,8 @@ const PAIRS = [
   ['body on hover row', '--taleo-text', '--taleo-row-hover', 4.5],
   ['control border', '--taleo-control-border', '--taleo-surface', 3.0],
   ['focus ring', '--taleo-primary', '--taleo-surface', 3.0],
+  ['gate tag text', '--taleo-text-secondary', '--taleo-row-alt', 4.5],
+  ['gate tag border', '--taleo-control-border', '--taleo-row-alt', 3.0],
 ];
 
 function readTokens(file) {
