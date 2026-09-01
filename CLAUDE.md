@@ -112,6 +112,32 @@ Screenshot-accurate controls that have no real FOOS behavior yet must route thro
 
 Functions that write on a user's behalf run under the caller's own JWT where RLS should decide (`intake-sheet-commit`); service-role use is confined to the public careers surface and outbox consumers.
 
+## Test suites and guards
+
+Both suites run against the local stack from a clean `npm run db:reset` with no manual steps. They are order-independent and leave no rows, storage objects or queue entries behind; that was verified over eight consecutive loops, not one run.
+
+```sh
+npm run test --workspace=tests     # 64 API/RLS tests (vitest, files run serially)
+npm run e2e  --workspace=tests     # 39 browser tests (playwright, 2 workers)
+psql "$DB_URL" -f supabase/tests/validate.sql   # 18 schema checks
+node scripts/check-attachment-queue.mjs         # no orphaned attachment files
+```
+
+Four things bite anyone adding tests here:
+
+- **Fixtures must be run-unique.** Cleanup by a shared prefix means two specs delete each other's rows. Every spec derives its tag from `process.pid` plus a random suffix.
+- **`datetime-local` inputs are local time.** Filling one from `toISOString()` puts the value hours out; on UTC+8 a "+1 hour" reminder lands in the past and the reminder sweep fires it. Use `localDateTimeValue()` from `tests/e2e/helpers.ts`.
+- **Playwright is capped at 2 workers** because the local Realtime container has a messages-per-second limit and every page subscribes. Symptom is `docker logs supabase_realtime_* | grep MessagePerSecondRateLimitReached` and live-update tests going stale.
+- **Vitest runs files serially** (`fileParallelism: false`) because the 10 MB oversized-resume case saturates the edge runtime enough that concurrent Edge Function calls return 503.
+
+Teardown belongs in `afterEach`/`afterAll`, never inline at the end of a test: a failing assertion aborts the rest of the block and the rows leak. Delete a storage object **before** its `attachments` row, or the file becomes unreachable (the DELETE policy matches on that row and `remove()` then returns an empty array with no error).
+
+`npm run db:add-staff` creates a named local account so work happens under a real identity instead of a shared demo persona:
+
+```sh
+FOOS_NEW_STAFF_PASSWORD='pick-one' npm run db:add-staff -- you@ventvest.com "Your Name" admin
+```
+
 ## Local versus production
 
 **This checkout is linked to the live project.** `supabase/.temp/project-ref` holds `mebfbbvrqdctamnzvbbs`, so every `--linked` command targets production. There is no staging project.

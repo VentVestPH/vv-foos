@@ -153,7 +153,38 @@ Three points change how items in this stream should be justified and built.
 
 **Pagination is a fidelity choice, not a best practice.** Salesforce's `lightning-datatable`, the nearest vendor baseline for a dense enterprise list, has no pagination at all and uses infinite scrolling. C5 is still the right call for resemblance, and virtualised infinite scroll is the alternative if use matters more than likeness. Either fixes the real problem, which is 83 rows rendering unbounded.
 
-### Completion status, 2026-09-01 (final)
+### Completion status, 2026-09-01 (final, second pass)
+
+**52 of the 56 numbered tasks are done.** Everything still open needs something this environment cannot supply.
+
+| Workstream | Tasks | Done | What remains, and why |
+| :---- | :---- | :---- | :---- |
+| **C** Taleo fidelity | 17 | 17 | Complete |
+| **G** UX and motion | 10 | 10 | Complete |
+| **E** Gates and testing | 8 | 7 | E7 needs the Zoho and Taleo CSV exports. E6 is 70 of 82 criteria PASS; the other 12 need a Google account, a production publish, a hosted sheet, or a human click-through |
+| **F** Hygiene | 4 | 3 | F4 is a decision: the fate of the other two frontends |
+| **B** Security | 3 | 2½ | B2 needs the live persona passwords rotated, which is a production action. B3's mechanical half is done (`npm run db:add-staff`); whether a production staff row is created is John's call |
+| **A** Integrity | 6 | 4 | A3 and A4 are computed and dry-run but the production write was refused by the permission classifier, and you have asked that production stay untouched |
+| **D** Data | 8 | 3 | D4 to D8 need Zoho exports that do not exist yet |
+
+E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
+
+**Twenty defects were found across the two passes, every one of them by running something rather than reading it.** Seven were database or environment state no migration set; six were guards that existed in one layer only; four were features that looked present and did nothing (the resume Current flag, Save view, My Tasks, the intake badge). Six more were in the tests themselves. The register lists them as D20 to D33 with QA-002, QA-007 and QA-008.
+
+Four of them would have reached production unnoticed, because inspection cannot see them:
+
+| Defect | Why reading the code would not have caught it |
+| :---- | :---- |
+| The `supabase_realtime` publication held no tables | Every subscription in the app is written correctly. The gap was database state |
+| The dashboard refresh button always failed | Only through PostgREST, because `safeupdate` is preloaded for that one role. `pg_cron` calling the same function always worked |
+| Save view failed on a NOT NULL column | The button, dialog and handler all exist and look right |
+| Every table created after migration 11 has no grants | Policies read correctly; Postgres checks GRANTs first |
+
+**Verification, run in loops rather than once.** Eight consecutive passes of all four gates clean: 64 API tests, 39 browser tests, 18 schema checks and the attachment-queue guard, from a clean `npm run db:reset` with no manual steps, leaving no rows, storage objects or queue entries behind. Getting there meant fixing six test-isolation bugs that a single run would never have exposed, including two specs that deleted each other's fixtures and a timezone bug that only appears east of UTC.
+
+Also holding: 0 TypeScript errors, 0 lint problems, 0 build errors, contrast 17 of 17 pairs, motion budget respected, no migration drift, comments 7 of 19,206 lines.
+
+### Superseded: first-pass completion status, 2026-09-01
 
 **44 of the 56 numbered tasks are done.** The table below is the honest count, not a summary.
 
