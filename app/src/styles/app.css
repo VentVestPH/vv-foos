@@ -1590,3 +1590,18 @@ summary:focus-visible,
   letter-spacing: 0.04em;
   vertical-align: middle;
 }
+
+.taleo-nav-badge {
+  display: inline-block;
+  min-width: 16px;
+  margin-left: 5px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--taleo-surface);
+  color: var(--taleo-nav);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  vertical-align: middle;
+}

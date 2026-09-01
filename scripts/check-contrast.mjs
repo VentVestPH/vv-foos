@@ -20,6 +20,7 @@ const PAIRS = [
   ['focus ring', '--taleo-primary', '--taleo-surface', 3.0],
   ['gate tag text', '--taleo-text-secondary', '--taleo-row-alt', 4.5],
   ['gate tag border', '--taleo-control-border', '--taleo-row-alt', 3.0],
+  ['nav badge count', '--taleo-nav', '--taleo-surface', 4.5],
 ];
 
 function readTokens(file) {

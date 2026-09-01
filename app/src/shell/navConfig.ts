@@ -8,6 +8,7 @@ export interface PrimaryNavItem {
 
   isActive?: (pathname: string, search: string) => boolean;
   homeIcon?: boolean;
+  badge?: 'intake';
 }
 
 const ALL: StaffRole[] = ['admin', 'recruiter', 'sourcer', 'bd'];
@@ -32,7 +33,7 @@ export const PRIMARY_NAV: PrimaryNavItem[] = [
   },
   { label: 'Requisitions', to: '/recruit/requisitions', roles: ATS },
   { label: 'Candidates', to: '/recruit/candidates', roles: ATS },
-  { label: 'Intake', to: '/intake', roles: ALL },
+  { label: 'Intake', to: '/intake', roles: ALL, badge: 'intake' },
   { label: 'Accounts', to: '/sales/companies', roles: CRM },
   { label: 'Contacts', to: '/sales/contacts', roles: CRM },
   { label: 'Deals', to: '/sales/deals', roles: CRM },

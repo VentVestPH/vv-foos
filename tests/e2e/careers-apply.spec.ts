@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test';
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const CAREERS_BASE = process.env.FOOS_CAREERS_URL ?? `${SUPABASE_URL}/functions/v1/careers-page`;
 
+const RUN_IP = `203.0.113.${1 + Math.floor(Math.random() * 250)}`;
+
 test.describe('Careers page (public)', () => {
   test('listing page loads with a title and no sign-in', async ({ page }) => {
     const res = await page.goto(CAREERS_BASE);
@@ -23,6 +25,7 @@ test.describe('Careers page (public)', () => {
 
   test('apply endpoint rejects a submission with no resume', async ({ request }) => {
     const res = await request.post(`${SUPABASE_URL}/functions/v1/careers-apply`, {
+      headers: { 'x-forwarded-for': RUN_IP },
       multipart: {
         requisition_id: '00000000-0000-4000-8000-000000000000',
         full_name: 'E2E No Resume',
