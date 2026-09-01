@@ -37,7 +37,7 @@ export function useIsAdmin(): boolean {
   return useRole() === 'admin';
 }
 
-const WATCHED_EVENTS = new Set([
+const WATCHED_EVENT_NAMES = [
   'application.created',
   'application.stage_changed',
   'application.hired',
@@ -46,7 +46,11 @@ const WATCHED_EVENTS = new Set([
   'deal.stage_changed',
   'intake_item.received',
   'intake_item.imported',
-]);
+] as const;
+
+const WATCHED_EVENTS = new Set<string>(WATCHED_EVENT_NAMES);
+
+const WATCHED_EVENT_FILTER = `event_name=in.(${WATCHED_EVENT_NAMES.join(',')})`;
 
 export function useOutboxRefresh(onChange: () => void): void {
   const onChangeRef = useRef(onChange);
@@ -58,7 +62,12 @@ export function useOutboxRefresh(onChange: () => void): void {
       .channel('dash-outbox-refresh')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'events_outbox' },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'events_outbox',
+          filter: WATCHED_EVENT_FILTER,
+        },
         (message) => {
           const row = message.new as { event_name?: string };
           if (!row.event_name || !WATCHED_EVENTS.has(row.event_name)) return;

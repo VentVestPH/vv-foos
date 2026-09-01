@@ -433,7 +433,7 @@ end $$;
 rollback;
 
 -- 15. Teardown ---------------------------------------------------------------
--- Checks 7, 10 and 12 insert intake_items to prove the outbox triggers and the
+-- Checks 7, 8, 10 and 12 insert rows to prove the outbox triggers and the
 -- sourcer/recruiter RLS boundaries. They are removed here rather than inline
 -- because 10 and 12 run under an impersonated role whose DELETE policy does not
 -- cover them. Left behind, they accumulated one row per check per run and
@@ -446,6 +446,10 @@ begin
    where full_name in ('Validation Person', 'Sourcer Intake OK', 'Recruiter Intake OK', 'Should Fail');
   get diagnostics removed = row_count;
   raise notice 'PASS 15: teardown removed % validation intake_items row(s)', removed;
+
+  delete from reminders where subject = 'Validation overdue reminder';
+  get diagnostics removed = row_count;
+  raise notice 'PASS 15: teardown removed % validation reminder(s)', removed;
 end $$;
 
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;

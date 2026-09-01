@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useSession } from '../auth/SessionProvider';
 import { Button } from '../components/ui/Button';
 import { relatedHref, relatedLabel } from '../lib/relatedLink';
+import { useBackstopRefresh } from '../lib/useBackstopRefresh';
 
 interface Task {
   id: string;
@@ -56,14 +57,27 @@ export function MyTasks() {
     void load();
   }, [load]);
 
+  useBackstopRefresh(load);
+
   useEffect(() => {
     if (!staff?.id) return;
     const channel = supabase
       .channel('my-tasks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-        void load();
-      })
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `assignee_id=eq.${staff.id}`,
+        },
+        () => {
+          void load();
+        },
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') void load();
+      });
     return () => {
       void supabase.removeChannel(channel);
     };

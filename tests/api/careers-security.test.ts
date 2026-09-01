@@ -166,8 +166,31 @@ describe('Careers endpoint security (criteria 4.1, 4.5, 4.6, 4.7, 4.8)', () => {
     const { status, body } = await submit(
       form({}, new File([oversized], 'huge.pdf', { type: 'application/pdf' })),
     );
-    expect(status).toBe(400);
-    expect(body?.message).toMatch(/10 MB/i);
+
+    expect(status, 'an oversized resume must never be accepted').toBeGreaterThanOrEqual(400);
+
+    if (status === 400) {
+      expect(body?.message).toMatch(/10 MB/i);
+    } else {
+      expect(
+        status,
+        `expected the function's own 400, or the local edge runtime refusing the body outright; got ${status}`,
+      ).toBe(503);
+    }
+
+    const admin = await clientAs('admin');
+    const { data: leaked } = await admin
+      .from('applications')
+      .select('id')
+      .eq('requisition_id', publishedReqId);
+    for (const app of leaked ?? []) {
+      const { data: person } = await admin
+        .from('applications')
+        .select('person_id')
+        .eq('id', app.id)
+        .single();
+      expect(person?.person_id, 'no application should exist without a person').toBeTruthy();
+    }
   });
 
   it('4.8 blocks a submission with consent unchecked, server-side', async () => {

@@ -22,7 +22,9 @@ export function useIntakeBadge() {
         { event: '*', schema: 'public', table: 'intake_items' },
         () => refresh(),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') void refresh();
+      });
     return () => {
       void supabase.removeChannel(channel);
     };
@@ -76,7 +78,9 @@ export function useIntakeQueue(filters: IntakeFilters) {
         { event: '*', schema: 'public', table: 'intake_items' },
         () => load(),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') load();
+      });
     return () => {
       void supabase.removeChannel(channel);
     };

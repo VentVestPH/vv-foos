@@ -99,15 +99,24 @@ test.describe('Record and list UI criteria', () => {
 
   test('2.6 and 3.3 the deals board offers both kanban and table views over one dataset', async ({ page }) => {
     await gotoAsSignedIn(page, '/sales/deals');
+
     await page.getByRole('button', { name: 'Table' }).click();
-    const tableRows = await page.locator('.table-wrap tbody tr:not(:has(td[colspan]))').count();
+    await expect(page.locator('.table-wrap table')).toBeVisible({ timeout: 20000 });
+    const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
+    await expect(rows.first()).toBeVisible({ timeout: 20000 });
+    const tableRows = await rows.count();
+    expect(tableRows).toBeGreaterThan(0);
 
     await page.getByRole('button', { name: 'Kanban' }).click();
-    await expect(page.locator('.table-wrap table')).toHaveCount(0);
-    const cards = await page.locator('.kanban-card, [data-deal-id]').count();
+    await expect(page.locator('.table-wrap table')).toHaveCount(0, { timeout: 20000 });
 
-    if (cards > 0) expect(cards).toBe(tableRows);
-    else expect(tableRows).toBeGreaterThan(0);
+    const cards = page.locator('.sales-kanban-card');
+    await expect
+      .poll(() => cards.count(), {
+        timeout: 20000,
+        message: 'the kanban should show the same number of deals the table did',
+      })
+      .toBe(tableRows);
   });
 
   test('2.12 and 3.9 no horizontal page scroll at tablet or desktop width', async ({ page }) => {

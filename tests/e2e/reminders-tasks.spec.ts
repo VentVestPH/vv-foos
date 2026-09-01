@@ -1,13 +1,14 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn, waitForRealtime } from './helpers';
 
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
 const RECRUITER_STAFF_ID = 'a0000000-0000-4000-8000-000000000002';
 const SEED_PERSON = 'b0000000-0000-4000-8000-000000000001';
-const TAG = 'QA E2E Reminder';
-const TASK_TAG = 'QA E2E Task';
+const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+const TAG = `QA RemTask Reminder ${RUN}`;
+const TASK_TAG = `QA RemTask Task ${RUN}`;
 
 async function apiAs(email: string): Promise<SupabaseClient> {
   const client = createClient(SUPABASE_URL, ANON_KEY);
@@ -80,16 +81,19 @@ test.describe('QA-007: reminder.due and tasks have an interface', () => {
   });
 
   test('a reminder firing elsewhere reaches an open dashboard without a reload', async ({ page }) => {
+    test.setTimeout(90000);
     const admin = await apiAs(PERSONA_EMAILS.admin);
     await cleanup(admin);
 
     await signIn(page, PERSONA_EMAILS.recruiter);
+    const realtimeReady = waitForRealtime(page);
     await gotoAsSignedIn(page, '/');
     const panel = page.locator('.reminders-panel');
     await expect(panel).toBeVisible({ timeout: 20000 });
     await expect(panel.getByText(`${TAG} live`)).toHaveCount(0);
+    await realtimeReady;
 
-    await admin.from('reminders').insert({
+    const { error: insErr } = await admin.from('reminders').insert({
       staff_id: RECRUITER_STAFF_ID,
       subject: `${TAG} live`,
       remind_at: new Date(Date.now() - 60000).toISOString(),
@@ -97,9 +101,33 @@ test.describe('QA-007: reminder.due and tasks have an interface', () => {
       related_id: null,
       status: 'pending',
     });
-    await admin.rpc('fn_fire_due_reminders');
+    expect(insErr).toBeNull();
 
-    await expect(panel.getByText(`${TAG} live`)).toBeVisible({ timeout: 25000 });
+    const { error: fireErr } = await admin.rpc('fn_fire_due_reminders');
+    expect(fireErr).toBeNull();
+
+    await expect
+      .poll(
+        async () => {
+          const { data } = await admin
+            .from('reminders')
+            .select('status')
+            .eq('subject', `${TAG} live`);
+          return data?.[0]?.status ?? null;
+        },
+        { timeout: 20000, message: 'the reminder should be marked fired before the UI can show it' },
+      )
+      .toBe('fired');
+
+    const liveRow = panel.locator('.reminder-row', { hasText: `${TAG} live` });
+    await expect
+      .poll(() => liveRow.count(), {
+        timeout: 45000,
+        message:
+          'the fired reminder should reach an open dashboard with no reload, ' +
+          'either from the realtime event or from the 20s backstop refresh',
+      })
+      .toBe(1);
     await expect(panel.getByRole('heading', { name: /Due now/ })).toBeVisible();
   });
 

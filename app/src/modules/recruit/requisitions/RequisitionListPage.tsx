@@ -171,14 +171,21 @@ export function RequisitionListPage() {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'application_views' },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'application_views',
+          filter: staff ? `staff_id=eq.${staff.id}` : undefined,
+        },
         () => void loadApps(),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') void loadApps();
+      });
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [loadApps]);
+  }, [loadApps, staff]);
 
   const companyName = useMemo(
     () => new Map(lookups.companies.map((c) => [c.id, c.name])),

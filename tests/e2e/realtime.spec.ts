@@ -1,12 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn, waitForRealtime } from './helpers';
 
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
 const RECRUITER_STAFF_ID = 'a0000000-0000-4000-8000-000000000002';
+const TAG = `QA Realtime Req ${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 
-async function apiAs(email: string) {
+async function apiAs(email: string): Promise<SupabaseClient> {
   const client = createClient(SUPABASE_URL, ANON_KEY);
   const { error } = await client.auth.signInWithPassword({
     email,
@@ -17,43 +18,80 @@ async function apiAs(email: string) {
 }
 
 test.describe('Live updates without a reload (criterion 2.2)', () => {
-  test('the unviewed badge decrements when a view is recorded elsewhere', async ({ page }) => {
+  test('the unviewed badge on a requisition clears when a view is recorded elsewhere', async ({
+    page,
+  }) => {
     const admin = await apiAs(PERSONA_EMAILS.admin);
+    const title = `${TAG} ${Date.now()}`;
+    let reqId: string | null = null;
+    let personId: string | null = null;
+    let appId: string | null = null;
 
-    await admin.from('application_views').delete().eq('staff_id', RECRUITER_STAFF_ID);
+    try {
+      const { data: req, error: reqErr } = await admin
+        .from('requisitions')
+        .insert({ title, status: 'open', is_test: true })
+        .select('id')
+        .single();
+      expect(reqErr).toBeNull();
+      reqId = req!.id;
 
-    const { data: apps, error: appsErr } = await admin
-      .from('applications')
-      .select('id, requisition_id')
-      .limit(50);
-    expect(appsErr).toBeNull();
-    expect((apps ?? []).length).toBeGreaterThan(0);
+      const { data: person } = await admin
+        .from('people')
+        .insert({ first_name: 'Qa', last_name: 'RealtimeProbe', is_test: true })
+        .select('id')
+        .single();
+      personId = person!.id;
 
-    await signIn(page, PERSONA_EMAILS.recruiter);
-    await gotoAsSignedIn(page, '/recruit/requisitions');
+      const { data: app } = await admin
+        .from('applications')
+        .insert({ requisition_id: reqId, person_id: personId, stage: 'received' })
+        .select('id')
+        .single();
+      appId = app!.id;
 
-    const badges = page.locator('.unviewed-badge');
-    await expect(badges.first()).toBeVisible({ timeout: 20000 });
+      await admin
+        .from('application_views')
+        .delete()
+        .eq('application_id', appId)
+        .eq('staff_id', RECRUITER_STAFF_ID);
 
-    const readTotal = async () => {
-      const texts = await badges.allInnerTexts();
-      return texts.reduce((sum, t) => sum + (Number(/(\d+)/.exec(t)?.[1] ?? 0) || 0), 0);
-    };
-    const before = await readTotal();
-    expect(before).toBeGreaterThan(0);
+      await signIn(page, PERSONA_EMAILS.recruiter);
+      const realtimeReady = waitForRealtime(page);
+      await gotoAsSignedIn(page, '/recruit/requisitions');
+      await realtimeReady;
 
-    const recruiter = await apiAs(PERSONA_EMAILS.recruiter);
-    const { error: viewErr } = await recruiter.from('application_views').upsert({
-      application_id: apps![0].id,
-      staff_id: RECRUITER_STAFF_ID,
-      last_viewed_at: new Date().toISOString(),
-    });
-    expect(viewErr).toBeNull();
+      const row = page.locator('.table-wrap tbody tr', { hasText: title });
+      await expect(row).toHaveCount(1, { timeout: 25000 });
+      await expect(row.locator('.unviewed-badge')).toHaveCount(1, { timeout: 25000 });
+      await expect(row.locator('.unviewed-badge')).toContainText('1');
 
-    await expect
-      .poll(readTotal, { timeout: 25000, message: 'unviewed total should drop without a reload' })
-      .toBeLessThan(before);
+      const recruiter = await apiAs(PERSONA_EMAILS.recruiter);
+      const recordView = async () =>
+        recruiter.from('application_views').upsert({
+          application_id: appId,
+          staff_id: RECRUITER_STAFF_ID,
+          last_viewed_at: new Date().toISOString(),
+        });
 
-    await admin.from('application_views').delete().eq('staff_id', RECRUITER_STAFF_ID);
+      const { error: viewErr } = await recordView();
+      expect(viewErr).toBeNull();
+
+      await expect
+        .poll(
+          async () => {
+            const gone = (await row.locator('.unviewed-badge').count()) === 0;
+            if (!gone) await recordView();
+            return gone;
+          },
+          { timeout: 30000, message: 'the badge should clear without a reload' },
+        )
+        .toBe(true);
+    } finally {
+      if (appId) await admin.from('application_views').delete().eq('application_id', appId);
+      if (appId) await admin.from('applications').delete().eq('id', appId);
+      if (personId) await admin.from('people').delete().eq('id', personId);
+      if (reqId) await admin.from('requisitions').delete().eq('id', reqId);
+    }
   });
 });

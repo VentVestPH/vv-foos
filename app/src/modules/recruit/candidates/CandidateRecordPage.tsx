@@ -845,6 +845,16 @@ export function CandidateRecordPage() {
         </dl>
       </RecordSection>
 
+      <RecordSection title="Resumes" defaultOpen={resumes.length > 0}>
+        <AttachmentsPanel
+          items={resumes}
+          parent={{ type: 'person', id: person.id }}
+          fixedKind="resume"
+          allowUpload={allowCreate}
+          onChanged={engagement.refresh}
+        />
+      </RecordSection>
+
       <RecordSection title="Resume Preview" defaultOpen={resumes.length > 0}>
         {resumes.length > 0 ? (
           <ResumePreview attachment={resumes[0]} />

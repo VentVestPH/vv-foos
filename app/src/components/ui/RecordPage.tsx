@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 interface RecordPageProps {
   code?: string;
@@ -46,12 +46,21 @@ export function RecordSection({
   children,
 }: RecordSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const userToggled = useRef(false);
+
+  useEffect(() => {
+    if (!userToggled.current) setOpen(defaultOpen);
+  }, [defaultOpen]);
+
   return (
     <section className="record-section">
       <button
         type="button"
         className="record-section-header"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          userToggled.current = true;
+          setOpen((v) => !v);
+        }}
         aria-expanded={open}
       >
         <span className="record-section-chevron" aria-hidden="true">
