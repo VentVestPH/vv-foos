@@ -211,7 +211,7 @@ export function DealsListPage() {
   return (
     <>
       <ListPage
-        title="Deals: Home"
+        title="Deals"
         icon={<BriefcaseIcon size={40} />}
         description="Deals are the sales opportunities you are working with companies and contacts to close."
         search={search}

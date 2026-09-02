@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
 
 test.describe('ATS pipeline', () => {
   test.beforeEach(async ({ page }) => {
@@ -18,7 +18,7 @@ test.describe('ATS pipeline', () => {
   test('candidate list shows the filter rail and rows', async ({ page }) => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     await expect(page.getByRole('heading', { name: /^Candidates/ })).toBeVisible();
-    await expect(page.locator('.filter-rail')).toBeVisible();
+    await openFilterRail(page);
     await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 15000 });
   });
 

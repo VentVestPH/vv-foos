@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
 
 test.describe('Record and list UI criteria', () => {
   test.beforeEach(async ({ page }) => {
@@ -94,7 +94,7 @@ test.describe('Record and list UI criteria', () => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     await expect(page.getByRole('button', { name: 'Save view', exact: true })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Export CSV', exact: true })).toBeEnabled();
-    await expect(page.locator('.filter-rail')).toBeVisible();
+    await openFilterRail(page);
   });
 
   test('2.6 and 3.3 the deals board offers both kanban and table views over one dataset', async ({ page }) => {

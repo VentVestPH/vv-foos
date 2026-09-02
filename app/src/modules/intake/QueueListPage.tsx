@@ -96,7 +96,7 @@ export function QueueListPage() {
 
   return (
     <ListPage
-      title="Intake: Home"
+      title="Intake"
       icon={<InboxIcon size={40} />}
       description="Intake is where new candidates and contacts arrive from LinkedIn, spreadsheets, email, and the careers page before they're merged or imported."
       search={search}

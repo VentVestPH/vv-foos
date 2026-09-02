@@ -387,7 +387,7 @@ export function RequisitionListPage() {
 
   return (
     <ListPage
-      title="Requisitions: Home"
+      title="Requisitions"
       icon={<BriefcaseIcon size={40} />}
       description="Requisitions are all of the job openings you want to track in Front Office OS and post on your careers website."
       search={search}

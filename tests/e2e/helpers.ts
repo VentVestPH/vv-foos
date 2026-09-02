@@ -87,3 +87,12 @@ export async function waitForRealtime(page: Page, timeout = 20000): Promise<bool
   await page.waitForTimeout(500);
   return joined;
 }
+
+export async function openFilterRail(page: Page): Promise<void> {
+  const toggle = page.getByRole('button', { name: /Search these records|Hide search options/ });
+  await expect(toggle).toBeVisible({ timeout: 25000 });
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
+    await toggle.click();
+  }
+  await expect(page.locator('.filter-rail')).toBeVisible({ timeout: 25000 });
+}

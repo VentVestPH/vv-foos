@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
 
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
@@ -85,7 +85,7 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
     const page = await context.newPage();
     await signIn(page, PERSONA_EMAILS.sourcer);
     await gotoAsSignedIn(page, '/recruit/candidates');
-    await expect(page.locator('.filter-rail')).toBeVisible({ timeout: 25000 });
+    await openFilterRail(page);
     await expect(page.locator('option', { hasText: VIEW_NAME })).toHaveCount(0);
     await context.close();
   });

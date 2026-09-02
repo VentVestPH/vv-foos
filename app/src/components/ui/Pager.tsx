@@ -42,9 +42,6 @@ export function Pager({ from, to, total, page, pageCount, onPage }: PagerProps) 
 
   return (
     <div className="fo-pager">
-      <span className="fo-pager-count">
-        {total === 0 ? '0 of 0' : `${from}-${to} of ${total}`}
-      </span>
       {pageCount > 1 && (
         <span className="fo-pager-controls">
           <button type="button" onClick={() => onPage(0)} disabled={atStart} aria-label="First page">
@@ -58,9 +55,13 @@ export function Pager({ from, to, total, page, pageCount, onPage }: PagerProps) 
           >
             &lsaquo;
           </button>
-          <span className="fo-pager-pos" aria-live="polite">
-            {page + 1} / {pageCount}
-          </span>
+        </span>
+      )}
+      <span className="fo-pager-count">
+        {total === 0 ? '0 of 0' : `${from}-${to} of ${total}`}
+      </span>
+      {pageCount > 1 && (
+        <span className="fo-pager-controls">
           <button
             type="button"
             onClick={() => onPage(page + 1)}
@@ -77,6 +78,9 @@ export function Pager({ from, to, total, page, pageCount, onPage }: PagerProps) 
           >
             &raquo;
           </button>
+          <span className="fo-pager-pos" aria-live="polite">
+            {page + 1} / {pageCount}
+          </span>
         </span>
       )}
     </div>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from './Button';
 import { Input } from './Input';
 import { downloadCsv } from '../../lib/csv';
@@ -45,6 +45,8 @@ export function ListPage({
   exportColumns,
   exportFilename,
 }: ListPageProps) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   return (
     <div className="list-page">
       {icon ? (
@@ -102,9 +104,22 @@ export function ListPage({
           {secondSearchRow}
         </div>
       )}
+      {filterRail && (
+        <div className="list-page-filter-toggle">
+          <button
+            type="button"
+            className="link-btn"
+            aria-expanded={filtersOpen}
+            aria-controls="list-filter-rail"
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            {filtersOpen ? 'Hide search options' : 'Search these records'}
+          </button>
+        </div>
+      )}
       <div className="list-page-body">
-        {filterRail && (
-          <aside className="filter-rail">
+        {filterRail && filtersOpen && (
+          <aside className="filter-rail" id="list-filter-rail">
             <h2>Filters</h2>
             {filterRail}
           </aside>

@@ -357,13 +357,13 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**87½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**91½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
 | Workstream | Tasks | Done | What remains, and why |
 | :---- | :---- | :---- | :---- |
-| **C** Taleo fidelity | 17 | 17 | Complete |
+| **C** Taleo fidelity | 17 | 17 | Complete. The remaining fidelity items were tracked in section 8.3 and are now closed too |
 | **G** UX and motion | 10 | 10 | Complete by task. Coverage was narrower than that read, and H1 to H6 closed it |
 | **E** Gates and testing | 8 | 7½ | E7 is rehearsed on every export that exists; job openings, education and experience have no data to rehearse. E6 is 70 of 82 criteria PASS; the other 12 need a Google account, a production publish, a hosted sheet, or a human click-through |
 | **F** Hygiene | 4 | 4 | Complete. F4 decided: archive the other two frontends, delete only on confirmation |
@@ -478,7 +478,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **87½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **91½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -502,12 +502,15 @@ State after the 2026-09-02 passes and the seven audits. **87½ of 136 tasks done
 - [ ] **O6** Confirm backups and point-in-time recovery on the live project
 - [ ] **O7** Note `@dnd-kit/core` as a watch item: latest version, but unpublished for 21 months
 
-### 8.3 Frontend fidelity, still outstanding
+### 8.3 Frontend fidelity
 
-- [ ] Table cell content should be bold, as it is in every Taleo screenshot
-- [ ] The filter rail squeezes the table; Taleo's table is full width
-- [ ] Titles read "Candidates: Home"; Taleo uses "Candidates: <requisition>" or just the module name
-- [ ] Pager needs the chevrons and export icon above the table
+Closed 2026-09-02, and the table chrome was corrected against sampled pixels rather than against my reading of the screenshots.
+
+- [x] Table cell content is bold, as it is in every Taleo screenshot
+- [x] The filter rail no longer squeezes the table. It is a disclosure, collapsed by default, opened by a "Search these records" link that mirrors Taleo's "Search these Candidates". Taleo has no in-content filter panel at all, so the default view now matches and filtering is one click away
+- [x] All seven list titles drop the invented ": Home" suffix
+- [x] The pager puts first and previous before the count and next and last after it, which is Taleo's arrangement, not ours
+- [x] **Table colours corrected from sampled pixels.** I had assumed the blue section tint was right for table headers. Sampling `22_Taleo_Cand_List_1.png` directly says otherwise: the header is `#ffffff` with `#333333` text, rows alternate `#fafafa` and `#ffffff`, and the page band behind them is `#f0f0f0`. Ours had a blue header, `#f7f7f7` zebra and an `#eeeeee` canvas. All four now match exactly, verified by reading the rendered `backgroundColor` back out of the browser. The blue band stays where the screenshots actually use it, on record section headers
 - [ ] **N9** There is no `@media print` rule anywhere, and the replica renders a "Printable View" control
 
 ### 8.4 Product capability, your call on value rather than a technical decision

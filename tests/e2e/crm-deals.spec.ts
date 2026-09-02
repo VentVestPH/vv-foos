@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
 
 test.describe('CRM deals', () => {
   test.beforeEach(async ({ page }) => {
@@ -25,6 +25,7 @@ test.describe('CRM deals', () => {
     await page.getByRole('button', { name: 'Table' }).click();
     await expect(page.locator('.table-wrap table')).toBeVisible({ timeout: 15000 });
 
+    await openFilterRail(page);
     await expect(page.locator('.filter-rail select').filter({ hasText: /negotiation/i })).toHaveValue(
       'negotiation',
     );

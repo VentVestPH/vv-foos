@@ -457,7 +457,7 @@ export function CandidateListPage() {
 
   return (
     <ListPage
-      title="Candidates: Home"
+      title="Candidates"
       icon={<PersonIcon size={40} />}
       description="Candidates are all of the people you want to track in Front Office OS who are either applicants, employee referrals, sourced prospects, agency submissions, etc."
       search={search}

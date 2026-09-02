@@ -10,9 +10,10 @@
   --fo-logout: #c0392b;
   --fo-danger: #d40000;
   --fo-count: #7fba36;
-  --fo-canvas: #eeeeee;
+  --fo-canvas: #f0f0f0;
   --fo-surface: #ffffff;
-  --fo-row-alt: #f7f7f7;
+  --fo-row-alt: #fafafa;
+  --fo-table-head: #ffffff;
   --fo-row-hover: #f0f6fb;
   --fo-border: #d5d5d5;
   --fo-control-border: #8f8f8f;

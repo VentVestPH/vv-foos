@@ -77,7 +77,7 @@ export function TicketsListPage() {
 
   return (
     <ListPage
-      title="Tickets: Home"
+      title="Tickets"
       icon={<TicketIcon size={40} />}
       description="Tickets are the customer support and account issues your team is tracking in Front Office OS."
       search={search}

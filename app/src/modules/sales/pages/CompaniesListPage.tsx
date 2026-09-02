@@ -163,7 +163,7 @@ export function CompaniesListPage() {
 
   return (
     <ListPage
-      title="Accounts: Home"
+      title="Accounts"
       icon={<HandshakeIcon size={40} />}
       description="Accounts are the companies and organizations involved with your business such as employers, customers, search firms, agencies, etc."
       search={search}

@@ -681,13 +681,13 @@ a:hover {
 }
 
 .table th {
-  background: var(--section-tint);
+  background: var(--fo-table-head);
   text-align: left;
   font-weight: 700;
   font-size: var(--fs-body);
   color: var(--text);
   padding: var(--cell-pad);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--rule);
   white-space: nowrap;
   position: sticky;
   top: 0;
@@ -712,6 +712,14 @@ a:hover {
   padding: var(--cell-pad);
   border-bottom: 1px solid var(--border);
   vertical-align: top;
+  font-weight: 600;
+}
+
+.table td .cell-capped,
+.table td .cell-expanded,
+.table td .badge,
+.table td .chip {
+  font-weight: 400;
 }
 
 .table tr:last-child td {
@@ -1825,4 +1833,12 @@ summary:focus-visible,
 .error-boundary-actions {
   display: flex;
   gap: var(--sp-1);
+}
+
+.list-page-filter-toggle {
+  padding: 0 0 var(--sp-1);
+}
+
+.list-page-filter-toggle .link-btn {
+  font-weight: 700;
 }
