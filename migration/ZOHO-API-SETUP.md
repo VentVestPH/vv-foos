@@ -69,15 +69,18 @@ Everything happens at `api-console.zoho.com`, logged in with **your own** Zoho a
    Set the duration to 10 minutes and give any description. Pick the correct
    **portal/organisation** if you are asked, since you have access to John's.
 4. Copy the **grant code**. It is single-use and expires in 10 minutes.
-5. Exchange it for a refresh token straight away. Replace the three values and run:
+5. Exchange it for a refresh token straight away, with `migration/zoho-refresh-token.mjs` rather than a raw curl. The script does the exchange, then proves the token by minting an access token from it and reading Recruit's module list, and it names the cause of each Zoho error rather than leaving you with a bare code:
 
    ```sh
-   curl -s -X POST 'https://accounts.zoho.com/oauth/v2/token' \
-     -d 'grant_type=authorization_code' \
-     -d 'client_id=YOUR_CLIENT_ID' \
-     -d 'client_secret=YOUR_CLIENT_SECRET' \
-     -d 'code=YOUR_GRANT_CODE'
+   export ZOHO_DC=com                 # or eu, in, com.au, jp, ca
+   export ZOHO_CLIENT_ID='1000.XXXX'
+   export ZOHO_CLIENT_SECRET='xxxx'
+   export ZOHO_RECRUIT_ORG_ID=748xxxxxx     # optional, enables the Recruit read check
+
+   node migration/zoho-refresh-token.mjs PASTE_GRANT_CODE_HERE
    ```
+
+   It prints only the refresh token, because that is the one new value, and never echoes the client secret back to the terminal. `invalid_code` means the code was reused or the 10 minutes elapsed. `invalid_client` has two causes and the script lists both: a wrong client id first, a `ZOHO_DC` mismatch second. If Zoho accepts the code but returns no refresh token, the Self Client was created for client credentials, which needs no refresh token at all: use "The short way" above.
 
    The response contains `refresh_token`. **That value does not expire** and is
    equivalent to standing access to both systems, so treat it like a password.
