@@ -320,6 +320,27 @@ Added 2026-09-02. These came from asking what nobody had looked at yet, rather t
 
 **Status 2026-09-02.** All open. O1 is the cheapest way to stop a single bad value taking down the product, and it pairs with N2.
 
+### Workstream Q. Product capability, as distinct from defects
+
+Added 2026-09-02. Everything above this point is either a defect or a fidelity gap. This workstream is the other axis: what would make the product better for the people who use it all day. **These are proposals, not findings.** They need John's call on value, not a technical decision, and none of them is a bug.
+
+Each was verified against the code rather than assumed.
+
+| # | Task | What exists already | Est. |
+| :---- | :---- | :---- | :---- |
+| Q1 | Make the bulk actions real: "Mark as", "Change Main Status to" and "Send Email" on the candidate list | **The plumbing is already there and unused.** `Table` supports `selectable`, `selected` and `onSelectionChange`, so the checkbox column works, but all three bulk buttons route through `PlaceholderAction`. Selecting twenty candidates and advancing them together is the single most repeated action in an ATS, and right now it is twenty separate record visits. Highest value per hour of work in this plan | 2 d |
+| Q2 | A merge path for two existing candidate records | Deduplication exists **only at intake**: `QueueListPage` and `ItemDrawer` handle it, and `intake_items.duplicate_of` records it. Nothing merges two people rows that are already in the system. Duplicate candidates are the classic way an ATS's data quality decays, and the importer will create some the first time a Zoho record matches an existing person imperfectly | 3 d |
+| Q3 | Cross-entity global search | The sidebar Quick Search is hardcoded to candidates on every route, which is L10 as a defect. As a capability, the gap is bigger: there is no way to search requisitions, companies, contacts or deals from anywhere. Fixing L10 and building Q3 are the same piece of work, so they should be done together | 3 d |
+| Q4 | Email templates | No template support anywhere in `recruit` or `settings`. `GoogleIntegrationCard` sends through the user's real Gmail, so the transport is built; what is missing is not having to retype the same outreach. Acceptance criterion 6.5 assumes templates exist, which is worth flagging as a scope mismatch rather than a test failure | 2 d |
+| Q5 | Shareable saved views | Saved views are per-user by design, and an e2e test asserts that another staff member cannot see one. That is correct as security. As a capability it means a team cannot agree on a shortlist: "the roles Amir is screening" has to be rebuilt by each person | 1 d |
+| Q6 | Keyboard-first list navigation | Recruiters live in these lists. The measured cost today is 75 tab stops to reach the first data row. `/` to focus search, `j` and `k` to move rows, `Enter` to open, would change how the product feels more than any animation in workstream G | 2 d |
+| Q7 | A candidate-facing application status page | `careers-apply` accepts an application and the applicant then hears nothing until a human writes. A status link removes the "did you get my CV" email, which is the highest-volume inbound message any ATS receives | 2 d |
+| Q8 | Usable on a phone | L9 as a defect is "the layout does not reflow below 900px". As a capability it is bigger: a recruiter cannot look at a candidate between meetings. Whether that matters is a product judgement, not an accessibility one | 1 w |
+
+**Status 2026-09-02.** All open, none started, none of them a defect. Q1 is the recommendation: the selection plumbing is built, the buttons are already on screen in the right places, and it removes the most repeated manual work in the product.
+
+**Deliberately not proposed:** interview scheduling with availability picking, offer management, and scheduled report delivery. All three are real ATS features and all three are larger than the remaining calendar, so proposing them before October would be dishonest about what fits.
+
 ### Workstream C notes from external research
 
 Three points change how items in this stream should be justified and built.
@@ -332,7 +353,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**79½ of 127 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**79½ of 135 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -352,6 +373,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **M** Security and public surface | 10 | 3½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
 | **N** Code and stylesheet architecture | 10 | 0 | New from the audits. N2 has a live crash behind it |
 | **O** Resilience and handover | 8 | 0 | New. O1: there is no error boundary anywhere, so any render throw blanks the app |
+| **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -452,7 +474,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the six audits. **79½ of 127 tasks done.** Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the six audits. **79½ of 135 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -489,7 +511,20 @@ State after the 2026-09-02 passes and the six audits. **79½ of 127 tasks done.*
 - [ ] Pager needs the chevrons and export icon above the table
 - [ ] **N9** There is no `@media print` rule anywhere, and the replica renders a "Printable View" control
 
-### 8.4 Architecture, each needs a decision first
+### 8.4 Product capability, your call on value rather than a technical decision
+
+- [ ] **Q1** Make the bulk actions real. The selection plumbing and the buttons already exist; only the behaviour is missing. Recommended first
+- [ ] **Q3** Cross-entity global search, done together with L10
+- [ ] **Q2** A merge path for two existing candidate records
+- [ ] **Q6** Keyboard-first list navigation
+- [ ] **Q4** Email templates
+- [ ] **Q5** Shareable saved views
+- [ ] **Q7** A candidate-facing application status page
+- [ ] **Q8** Usable on a phone, the capability framing of L9
+- [ ] Dependency licence compliance, for the handover
+- [ ] Candidate data retention and an erasure path
+
+### 8.5 Architecture, each needs a decision first
 
 - [ ] **N3** Adopt `@layer` and split `app.css` by concern. Three named source-order hazards must be resolved first
 - [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
@@ -510,7 +545,7 @@ State after the 2026-09-02 passes and the six audits. **79½ of 127 tasks done.*
 - [ ] **O5** Decide the session policy: no idle timeout on a product holding candidate PII
 - [ ] **O8** Audit the storage bucket policies and limits
 
-### 8.5 Waiting on one authorised command from you
+### 8.6 Waiting on one authorised command from you
 
 Each is written, proven locally and idempotent, and refuses a non-local target without `--allow-remote`.
 
@@ -519,7 +554,7 @@ Each is written, proven locally and idempotent, and refuses a non-local target w
 - [ ] **B3** Whether a production `staff` row is created for you
 - [ ] **K10** Authenticated Core Web Vitals. Needs either the live credentials or a decision to measure the local stack instead, which measures loopback latency
 
-### 8.6 Waiting on data or credentials only you can supply
+### 8.7 Waiting on data or credentials only you can supply
 
 - [ ] **D11** A Zoho Self Client. **Unblocked as of 2026-09-02:** the client-credentials flow works and a token was proven against Recruit. Needs the client id, secret and the two org ids to run unattended
 - [ ] **D2 to D5** Job openings, education, experience, attachment bytes. All arrive with D11
@@ -530,7 +565,7 @@ Each is written, proven locally and idempotent, and refuses a non-local target w
 
 Detail on the parked items is in `VVPH_VV-FOOS_Register_Parked-and-Blocked-Items_2026-09-02_v1.0_Draft.md`.
 
-### 8.7 Closed on 2026-09-02
+### 8.8 Closed on 2026-09-02
 
 - [x] **H1 to H7** Icons on lucide, StarGrade merged, `EMPTY_CELL`, the two missing G6 interactions, six dead motion selectors repaired, `rgba()` tokenised, the real logo
 - [x] **J1 to J11** Every cleanup item, five stale `CLAUDE.md` statements, and a comment guard that was a no-op in CI
@@ -540,7 +575,7 @@ Detail on the parked items is in `VVPH_VV-FOOS_Register_Parked-and-Blocked-Items
 - [x] **M1 to M3** An open redirect, the security headers, invalid JobPosting structured data
 - [x] **The Taleo rename**, 521 prefix occurrences and 11 component identifiers, on the copyright concern
 
-### 8.8 Provenance of the audit findings
+### 8.9 Provenance of the audit findings
 
 Stated so nobody has to re-derive it. **Measured:** the index gaps (EXPLAIN against 200k synthetic rows in a rolled-back transaction), the bundle sizes and the 159 KB first load, the 69-versus-21 stale build files, every axe violation, the 75 tab stops, the target sizes, the nav overflow at four widths, and all contrast ratios. **Read from code:** the open redirect, the JobPosting undefined-drop, the `select('*')` count, the `RangeError`, the sequential deletes, the dead `db.ts` shims, the duplicate `.fo-pager` rule. **Verified against a primary source after being flagged as recall:** the OWASP header list and the react-router advisory ranges, both of which turned out to be materially different from the first answer. **Still unverified:** dependency maintenance status, because the session's web-search budget ran out at 200 calls.
 
