@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { IdleSignOut } from '../auth/IdleSignOut';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { UtilityHeader } from './UtilityHeader';
 import { PrimaryNav } from './PrimaryNav';
@@ -28,6 +29,7 @@ export function AppShell() {
         </div>
       </div>
       <BookmarkBar />
+      <IdleSignOut />
     </div>
   );
 }

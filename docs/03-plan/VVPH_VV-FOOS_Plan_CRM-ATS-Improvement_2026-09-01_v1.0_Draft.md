@@ -369,7 +369,13 @@ What the measurement did find is a defect nobody had reported: **`/intake` was t
 Fixed in two parts. The loader now depends on the six primitive filter values instead of the object, and the subscription lives in its own effect with an empty dependency array, reading the current loader through a ref. Separately, the badge and the queue were two identical `intake_items` subscriptions delivering every change twice whenever both were mounted; they now share one module-level `intake-items` channel with a listener set and a refcount, which preserves the load-on-SUBSCRIBED behaviour for a late subscriber by invoking it immediately if the channel is already subscribed. `/intake` went from a perpetually rejoining pair to one stable channel.
 
 `tests/e2e/realtime-channels.spec.ts` holds the budget: at most three channels per route, zero rejoins across a six-second idle window, and `/intake` holding exactly `realtime:intake-items`. Confirmed to fail on the pre-fix code and pass after, so it is not a vacuous test. Not merged: `my-tasks` and `my-reminders` could share one channel, but the limit is messages per second rather than channels, so that would save one join and couple two independent components for nothing | The channel count was never the risk. The risk was one page resubscribing forever, which the count could not show |
-| O5 | Decide the session policy for a product holding candidate PII | `jwt_expiry` is 3600 with token auto-refresh, so a signed-in browser stays signed in indefinitely while it is open. There is no idle timeout and no re-auth prompt. That may be the right call for an internal tool, but it should be a decision on the record rather than a default nobody chose | Decision + 3 h |
+| O5 | **DECIDED AND IMPLEMENTED 2026-09-02: 60 minutes idle, with a two-minute warning.** The default was no idle timeout at all, because `jwt_expiry` is 3600 with auto-refresh, so a browser left open stayed signed in indefinitely. The threat is not a stolen token, it is an unattended laptop in an office showing candidate records.
+
+60 minutes is chosen against both extremes deliberately. Shorter reads as hostile to a recruiter who keeps the app open all day and would train people to click a dialog reflexively; longer stops being a control. The warning is a dialog with **Keep me signed in** and **Sign out now**, so the timeout never takes a decision away silently.
+
+Two implementation details that matter more than the number. Expiry is computed from a timestamp rather than trusted to `setTimeout`, because a background tab is throttled and would otherwise outlive its window; the tick only compares clocks. And the last-activity timestamp is shared through `localStorage`, so working in one tab keeps every other tab alive instead of one of them signing the user out from under the others. Activity is pointer, key, wheel and touch input plus a tab becoming visible, not mouse movement, so a cat on a desk does not count.
+
+`tests/e2e/idle-signout.spec.ts` drives it with Playwright's clock API rather than waiting an hour: the warning appears at 58 minutes and the sign-out lands at 60, activity at 55 minutes resets the whole clock, and **Keep me signed in** cancels a sign-out that was seconds away. Three tests, whole suite in two seconds. `scripts/check-comments.mjs` also caught the one comment written in the first draft, so the rationale is here instead | An internal tool holding candidate PII with no idle timeout, defaulted rather than decided | done |
 | O6 | Confirm backups and point-in-time recovery on the live project | Never mentioned anywhere in this plan or its supporting documents. A1 and A2 made the schema reproducible from source, which is not the same thing as being able to recover the data | 1 h |
 | O7 | **DONE 2026-09-02, checked against the npm registry rather than recalled.** `@dnd-kit/core` is at 6.3.1, published 2024-12-05, and 6.3.1 is what is installed here. Not deprecated, no successor release on that line in 21 months. The reason is not abandonment: the project has moved to a new package family, `@dnd-kit/abstract` and `@dnd-kit/react`, whose latest is 0.5.0 (2026-06-11) with betas as recent as 2026-07-13. So the accurate framing is that 6.3.1 is the final release of the stable line and the replacement is still pre-1.0. Staying on 6.3.1 is right for now; the watch condition is a 1.0 on the new line, not a patch on the old one | The library owns keyboard drag on the pipeline board, so an unmaintained dependency there is an accessibility risk, not just a maintenance one |
 | O8 | **DONE 2026-09-02, and the audit found the bucket had no limits at all.** `storage.buckets` for `attachments` had `file_size_limit` null and `allowed_mime_types` null, meaning the project default (50 MB) and any content type. Verified by uploading, not by reading config: a 30 MB file was accepted, and so was an HTML document and an SVG. Two of those three matter. HTML is already defused by the platform, which stores `text/html` but serves it back as `text/plain`; SVG is stored **and served** as `image/svg+xml`, so any authenticated staff member could host a scripted document on the project's own Storage origin. `20260902000004_storage_limits.sql` sets a 25 MB cap and a 19-entry mime allowlist covering documents, spreadsheets, plain text, archives and photographs, plus `application/octet-stream` so a file the browser cannot type still stores and downloads rather than being blocked. `text/html`, `image/svg+xml` and `application/xhtml+xml` are excluded, which is the whole point of using an allowlist here. Re-measured after: SVG and HTML now return 415, the 30 MB file returns 413, an ordinary PDF still returns 200.
@@ -412,7 +418,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**117½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**118½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -431,7 +437,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
-| **O** Resilience and handover | 8 | 6 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
+| **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
@@ -542,7 +548,7 @@ Auditing the cascade to plan N3 turned up three live defects that had nothing to
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **117½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **118½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -581,7 +587,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 - [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
 - [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
 - [ ] **F4** Archive the other two frontends (decided, not yet executed)
-- [ ] **O5** Decide the session policy: no idle timeout on a product holding candidate PII
 
 ### 8.6 Waiting on one authorised command from you
 
