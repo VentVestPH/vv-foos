@@ -554,4 +554,50 @@ begin
   raise notice 'PASS 17: every argument-less RLS helper is wrapped for InitPlan hoisting';
 end $$;
 
+-- 18: retention. Proves the prune removes only aged rows, and in particular that
+-- it never touches a pending outbox event, since consumers read exactly those
+-- and deleting one would drop a business event on the floor with no trace.
+do $$
+declare
+  aged_audit bigint;
+  aged_outbox bigint;
+  pending_before bigint;
+  pending_after bigint;
+  recent_after bigint;
+begin
+  insert into audit_log (table_name, record_id, action, at)
+  select 'people', gen_random_uuid(), 'update', now() - interval '400 days' from generate_series(1, 25);
+  insert into audit_log (table_name, record_id, action, at)
+  select 'people', gen_random_uuid(), 'update', now() - interval '1 day' from generate_series(1, 7);
+  insert into events_outbox (event_name, aggregate_id, payload, processed_at)
+  select 'validation.aged', gen_random_uuid(), '{}'::jsonb, now() - interval '30 days' from generate_series(1, 11);
+  insert into events_outbox (event_name, aggregate_id, payload, processed_at)
+  select 'validation.pending', gen_random_uuid(), '{}'::jsonb, null from generate_series(1, 5);
+
+  select count(*) into pending_before from events_outbox where processed_at is null;
+
+  perform public.fn_prune_retained_rows();
+
+  select count(*) into aged_audit from audit_log where at < now() - interval '365 days';
+  select count(*) into aged_outbox from events_outbox where processed_at < now() - interval '7 days';
+  select count(*) into pending_after from events_outbox where processed_at is null;
+  select count(*) into recent_after from audit_log where at > now() - interval '30 days';
+
+  if aged_audit <> 0 then
+    raise exception 'FAIL 18: % audit_log row(s) past the retention window survived', aged_audit;
+  end if;
+  if aged_outbox <> 0 then
+    raise exception 'FAIL 18: % processed outbox row(s) past the window survived', aged_outbox;
+  end if;
+  if pending_after <> pending_before then
+    raise exception 'FAIL 18: pruning removed % pending outbox event(s); consumers read exactly those', pending_before - pending_after;
+  end if;
+  if recent_after < 7 then
+    raise exception 'FAIL 18: pruning removed recent audit rows it should have kept';
+  end if;
+
+  delete from events_outbox where event_name in ('validation.aged', 'validation.pending');
+  raise notice 'PASS 18: retention removed only aged rows, kept % pending outbox event(s)', pending_after;
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;

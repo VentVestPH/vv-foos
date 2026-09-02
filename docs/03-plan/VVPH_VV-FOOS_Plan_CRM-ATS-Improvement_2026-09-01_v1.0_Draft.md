@@ -321,7 +321,11 @@ Added 2026-09-02. These came from asking what nobody had looked at yet, rather t
 | # | Task | Evidence | Est. |
 | :---- | :---- | :---- | :---- |
 | O1 | **DONE 2026-09-02.** `components/ui/ErrorBoundary.tsx`, wrapped around the route outlet in `AppShell` and keyed on `location.pathname` so navigating away clears a failed page, and wrapped around every dashboard widget's content inside `Widget` so one panel cannot take the others. It shows the message, says the rest of the app still works and nothing saved is affected, and offers Try again and Reload. Three browser tests cover it. Found while testing: `DashboardsHome` was **dead code**, a second unreachable copy of the whole widget layout that only the module barrel exported, and it is deleted | **There is no error boundary anywhere in the application.** Zero matches for `componentDidCatch`, `ErrorBoundary` or `getDerivedStateFromError` across all 113 source files. Any throw during render blanks the entire page to white with no message and no recovery. This is not theoretical: N2's `fmtMoney` throws `RangeError` on an invalid currency code, so one bad currency string in one dashboard cell takes down the whole app | 4 h |
-| O2 | Prune `audit_log` and `events_outbox` | Neither table is ever pruned. No migration contains a delete against either. `audit_log` receives a row from a security-definer trigger on **every write to every business table**, and `events_outbox` keeps processed rows forever with `processed_at` set. Both grow without bound, which is a slow problem that becomes a handover problem | 4 h |
+| O2 | **DONE 2026-09-02.** The scale of it was worse than the audit implied: on a development database seeded with ten people, `audit_log` had already reached **64,344 rows and 43 MB** purely from test runs, because a trigger writes a row for every write to every business table. Nothing had ever removed one.
+
+Migration `20260902000003` adds a `retention_policy` table so the windows are data rather than literals, `fn_prune_retained_rows()` as a security-definer function granted to `service_role` only, and a nightly `pg_cron` job guarded the same way migration 04 guards its own. Defaults: **365 days for `audit_log`**, because an audit trail has evidential value and a month would be too aggressive, and 7 days for processed `events_outbox` rows.
+
+The assertion that matters is negative. `validate.sql` check 18 seeds aged and recent rows of both kinds, runs the prune, and fails if a **pending** outbox event was touched: consumers read exactly those, so removing one would drop a business event with no trace. It also fails if recent audit rows were taken. An API test proves no application session can call the prune, and that `events_outbox` still refuses application writes outright, which is what keeps retention from being gamed | Neither table is ever pruned. No migration contains a delete against either. `audit_log` receives a row from a security-definer trigger on **every write to every business table**, and `events_outbox` keeps processed rows forever with `processed_at` set. Both grow without bound, which is a slow problem that becomes a handover problem | 4 h |
 | O3 | Add error tracking before handover | No Sentry, no `window.onerror`, no global error listener anywhere. After cutover nobody will know a production error happened unless a user reports it, and the 30-day measurement window that gates cancelling the old subscriptions depends on knowing whether the replacement actually works | 4 h |
 | O4 | Measure and reduce Realtime subscriptions per page | **10 `.channel(` call sites across 9 files.** D30 already records the Realtime messages-per-second limit as an October scaling risk, and the Playwright suite is capped at two workers because of it, but no task ever followed. Nobody has counted how many channels a single page actually opens, or whether they can share one | 1 d |
 | O5 | Decide the session policy for a product holding candidate PII | `jwt_expiry` is 3600 with token auto-refresh, so a signed-in browser stays signed in indefinitely while it is open. There is no idle timeout and no re-auth prompt. That may be the right call for an internal tool, but it should be a decision on the record rather than a default nobody chose | Decision + 3 h |
@@ -366,7 +370,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**102½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**103½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -385,7 +389,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **L** Accessibility and responsive | 13 | 10 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 7½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
 | **N** Code and stylesheet architecture | 10 | 4 | N2 done, which removes the only live crash in the workstream |
-| **O** Resilience and handover | 8 | 1 | O1 done. A render throw is now contained to one page or one widget |
+| **O** Resilience and handover | 8 | 2 | O1 done. A render throw is now contained to one page or one widget |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
@@ -487,7 +491,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **102½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **103½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -537,7 +541,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 - [ ] **M10** Test `Cross-Origin-Embedder-Policy: require-corp` before enabling it
 - [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
 - [ ] **F4** Archive the other two frontends (decided, not yet executed)
-- [ ] **O2** Prune `audit_log` and `events_outbox`, neither of which is ever pruned
 - [ ] **O3** Error tracking, so production failures are visible during the 30-day measurement window
 - [ ] **O4** Measure and reduce the 10 Realtime channel call sites
 - [ ] **O5** Decide the session policy: no idle timeout on a product holding candidate PII
