@@ -19,7 +19,7 @@ import {
   PENDING_FILE_REASON,
 } from '../../../lib/attachments';
 
-export interface EngagementParent {
+interface EngagementParent {
   type: 'person' | 'requisition';
   id: string;
 }
@@ -166,7 +166,7 @@ export function useEngagement(parentType: 'person' | 'requisition', parentId: st
   };
 }
 
-export async function uploadAttachment(
+async function uploadAttachment(
   parent: EngagementParent,
   file: File,
   kind: AttachmentKind,
@@ -197,7 +197,7 @@ export async function attachmentUrl(storagePath: string): Promise<string | null>
   return error ? null : data.signedUrl;
 }
 
-export function attachmentName(a: Attachment): string {
+function attachmentName(a: Attachment): string {
   if (a.description) return a.description;
   const base = a.storage_path.split('/').pop() ?? a.storage_path;
   return base.replace(/^\d+_/, '');

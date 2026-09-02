@@ -7,13 +7,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": [
-      "node",
-      "vite/client"
+      "node"
     ],
     "noEmit": true,
     "exactOptionalPropertyTypes": true
   },
   "include": [
-    "**/*.ts"
+    "**/*.ts",
+    "../app/src/vite-env.d.ts"
   ]
 }

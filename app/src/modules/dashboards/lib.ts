@@ -112,13 +112,6 @@ export interface Threshold {
   days: number;
 }
 
-export interface CostInput {
-  system: string;
-  monthly_cost: number | null;
-  currency: string;
-  entered_at: string | null;
-}
-
 export type DateRangePreset = '7' | '30' | '90' | 'quarter' | 'custom';
 
 export interface DateRange {

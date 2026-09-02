@@ -15,7 +15,7 @@ const ALL: StaffRole[] = ['admin', 'recruiter', 'sourcer', 'bd'];
 const ATS: StaffRole[] = ['admin', 'recruiter', 'sourcer'];
 const CRM: StaffRole[] = ['admin', 'recruiter', 'bd'];
 
-export const PRIMARY_NAV: PrimaryNavItem[] = [
+const PRIMARY_NAV: PrimaryNavItem[] = [
   {
     label: 'Home',
     to: '/',

@@ -10,13 +10,21 @@
   "scripts": {
     "db:push": "node scripts/confirm-production-push.mjs && supabase db push",
     "db:reset": "supabase db reset && node scripts/post-reset.mjs",
-    "db:validate": "psql \"$DATABASE_URL\" -f supabase/tests/validate.sql",
+    "db:validate": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql",
     "test": "npm run test --workspace=tests",
     "test:e2e": "npm run e2e --workspace=tests",
     "db:seed:personas": "node scripts/post-reset.mjs --personas-only",
     "db:add-staff": "node scripts/add-local-staff.mjs",
     "check:env": "node scripts/check-env-target.mjs",
     "check:env:production": "node scripts/check-env-target.mjs --production",
-    "check:licences": "node scripts/check-licences.mjs --list"
+    "check:licences": "node scripts/check-licences.mjs --list",
+    "check:dead": "knip",
+    "gate": "bash scripts/gate.sh"
+  },
+  "devDependencies": {
+    "knip": "^6.34.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
   }
 }

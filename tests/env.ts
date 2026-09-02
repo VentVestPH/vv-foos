@@ -42,7 +42,3 @@ export async function clientAs(persona: Persona) {
   }
   return client;
 }
-
-export function anonClient() {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}

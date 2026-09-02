@@ -14,7 +14,7 @@ export interface ViewState {
   sort: SortState | null;
 }
 
-export function parseViewState(view: SavedView): ViewState {
+function parseViewState(view: SavedView): ViewState {
   const filters =
     view.filters && typeof view.filters === 'object' && !Array.isArray(view.filters)
       ? (view.filters as Record<string, string>)

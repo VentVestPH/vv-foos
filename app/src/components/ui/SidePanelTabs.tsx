@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 
-export interface SidePanelTab {
+interface SidePanelTab {
   key: string;
   label: string;
 
@@ -42,17 +42,3 @@ export function SidePanelTabs({ tabs, defaultTab }: SidePanelTabsProps) {
     </div>
   );
 }
-
-export const PERSON_TOOLKIT_TABS = [
-  'notes',
-  'calls',
-  'meetings',
-  'events',
-  'emails',
-  'tasks',
-  'reminders',
-  'files',
-  'resumes',
-] as const;
-
-export type PersonToolkitTab = (typeof PERSON_TOOLKIT_TABS)[number];

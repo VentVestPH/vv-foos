@@ -1,6 +1,7 @@
 # Node
 node_modules/
 dist/
+dist-redesign-2/
 build/
 *.log
 npm-debug.log*
@@ -35,3 +36,6 @@ migration/out/
 # Agent scratch space; never committed.
 .scratch-audit/
 tests/.scratch-audit/
+
+# knip cache
+.knip/

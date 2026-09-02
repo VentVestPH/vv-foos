@@ -22,7 +22,7 @@ export function Badge({ tone = 'neutral', children, title }: BadgeProps) {
   );
 }
 
-export function statusTone(status: string): BadgeTone {
+function statusTone(status: string): BadgeTone {
   switch (status) {
     case 'hired':
     case 'won':

@@ -43,7 +43,8 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 
 | Document | Contents |
 | :---- | :---- |
-| `VVPH_VV-FOOS_Plan_CRM-ATS-Improvement_2026-09-01_v1.0_Draft.md` | Nine workstreams (A to J), priority order by consequence of delay, a schedule bounded by the Gate 6 measurement window, ten decisions of which two are now decided, a tasklist of everything open in section 8, and explicit scope exclusions. Revised 2026-09-02 to add workstream H (frontend consistency and the rest of the motion) and workstream J (repository cleanup) |
+| `VVPH_VV-FOOS_Plan_CRM-ATS-Improvement_2026-09-01_v1.0_Draft.md` | Sixteen workstreams (A to R), priority order by consequence of delay, a schedule bounded by the Gate 6 measurement window, the decisions still needed, a tasklist of everything open in section 8, and explicit scope exclusions. Revised through 2026-09-02: H and J (frontend consistency, repository cleanup), then K to Q from the seven audits, then R (interaction polish) after looking at the running app |
+| `VVPH_VV-FOOS_Register_Parked-and-Blocked-Items_2026-09-02_v1.0_Draft.md` | Every item that cannot move without a credential, an account, a production write or a decision from someone else, with what exactly is needed to unblock each one |
 
 ## 04-research
 

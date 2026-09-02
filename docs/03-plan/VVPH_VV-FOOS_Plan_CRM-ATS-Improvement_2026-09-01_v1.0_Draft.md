@@ -454,7 +454,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**126½ of 144 numbered tasks are done.** Workstream R added six on 2026-09-02. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**133½ of 150 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -475,6 +475,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 6 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
+| **S** Dead code | 8 | 7 | New on 2026-09-02. S1 to S7 done: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed. Committing the gate exposed that `npm run db:validate` could never fail. S8 open |
 | **R** Interaction polish | 6 | 0 | New on 2026-09-02, from looking at the running app. Exit transitions, accordion mechanics and a measured 2.8 px tab shift, none of which workstream G specified |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
@@ -621,9 +622,28 @@ Raised on 2026-09-02 after looking at the running app, and confirmed by measurem
 **Not in scope for R, deliberately.** Route transitions and list-row stagger. Both are the kind of motion that reads as slow the tenth time and neither is a Taleo behaviour, so they would be added on request rather than on principle.
 
 
+## 7.8 Workstream S: dead code, not dead files
+
+Workstream J removed stale **files**: Vite temp files, a build directory belonging to another frontend, two dead components, an empty fixture directory. It never looked inside the code. Raised on 2026-09-02 when the build output directory prompted the question "have you even cleaned up the codebase".
+
+The standard tool was checked rather than assumed: `ts-prune` is in maintenance mode and its own README now recommends `knip`, which also covers unused dependencies and files rather than exports alone ([knip.dev comparison](https://knip.dev/explanations/comparison-and-migration), [ts-prune README](https://github.com/nadeesha/ts-prune)).
+
+| # | Item | State | Est. |
+|---|---|---|---|
+| S1 | Adopt a dead-code scanner and wire it into the gate | **DONE.** `knip` 6.34 with `knip.json` covering all three workspaces, `npm run check:dead`, a gate line and a `ci.yml` step. Exits 0 | 1 h |
+| S2 | Remove files nothing imports | **DONE.** `recruit/__typecheck__.ts` and `sales/__typecheck__.ts`. Both existed to assert a module still exports its routes, which `App.tsx` already does by importing them | 15 m |
+| S3 | Unused exports and types | **DONE.** knip found 27. Nine were dead everywhere and are deleted: `useCanViewDashboards`, intake's `primaryEmail` and `isGraded`, `reportedThisSession`, `anonClient`, `PERSON_TOOLKIT_TABS`, `PersonToolkitTab`, `RelatedType`, `CostInput`, `ApplicationView`. Eighteen were used only inside their own file and simply lost the `export` keyword, which `noUnusedLocals` then re-checks for free | 2 h |
+| S4 | Dependencies that only resolved by hoisting | **DONE.** Six scripts and the importer used `@supabase/supabase-js` without the root declaring it, `tests` ran `tsc` without declaring TypeScript, and the tests program referenced `vite/client` without `vite`. The first two are now declared; the third was removed by pointing the tests program at `app/src/vite-env.d.ts`, which already declares the same two variables. Any of the three would have broken the moment the app workspace changed a dependency | 45 m |
+| S5 | Dead CSS | **DONE.** A scan of 357 class names found 14 with no occurrence in any `.ts`, `.tsx`, `.html` or Edge Function source. Eleven were **false positives** composed from template literals (`badge-${tone}`, `btn-${variant}`, `tone-${item.tone}`) and were checked before being touched. Three were genuinely dead and are gone: `.cand-layout`, `.dash-tabs` with `.dash-tab`, and `.fo-record-title-row` | 1 h |
+| S6 | Documentation and ignore drift | **DONE.** `docs/INDEX.md` was missing the parked-items register and still described nine workstreams; the root `.gitignore` covered `dist/` but not `dist-redesign-2/`, so the build output was ignored only by `app/.gitignore` | 20 m |
+| S7 | Verify the S1 to S6 batch and commit it | **DONE.** Nine consecutive clean gate passes. The gate itself is now `scripts/gate.sh` in the repo, run as `npm run gate` or `bash scripts/gate.sh 5`, instead of living in a scratch directory where it died with the session |
+| S7a | **A finding from committing the gate.** Writing the runner properly meant deciding how a `validate.sql` failure is detected, and testing that rather than assuming it. **Without `-v ON_ERROR_STOP=1`, psql exits 0 and still prints `VALIDATION COMPLETE` even when a check raises**, proven by forcing check 23 to fail: exit 0 and the sentinel printed, and with the flag exit 3. So `npm run db:validate`, the command README tells a human to run, **could never fail**. It has the flag now, and the gate decides on the exit code rather than on a hardcoded PASS count, which was itself a maintenance trap: that number needed editing four times today as checks were added | done |
+| S8 | The cleanup not yet attempted | **Not started.** Dead SQL (functions, indexes and columns nothing references), Edge Functions nothing calls, seed data no test or demo uses, and declarations duplicated across the five module stylesheets | 3 h |
+
+
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **126½ of 144 tasks done**, six of them added the same day as workstream R. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **133½ of 150 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -646,6 +666,7 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
+- [ ] **S8** The cleanup not yet attempted: dead SQL, uncalled Edge Functions, unused seed data, duplicated CSS declarations
 - [ ] **R1** Exit transitions for every dialog, drawer and overlay. None exist: entry animates, exit is one frame
 - [ ] **R2** Accordion chevron rotation. Impossible as built, the chevron is a swapped text glyph
 - [ ] **R3** Accordion content open and close. The body unmounts, so height cannot animate
@@ -674,8 +695,6 @@ Each is written, proven locally and idempotent, and refuses a non-local target w
 - [ ] **D2 to D5** Job openings, education, experience, attachment bytes. All arrive with D11
 - [ ] **D10 contacts half** The Contacts export. Mapper written and unit-tested
 - [ ] **E6** The last 12 of 82 acceptance criteria, each needing a Google account, a production publish, a hosted sheet or a human click-through
-- [ ] **P2** The four monthly cost figures
-- [ ] **P3** Whose contract ends 2026-11-21
 
 Detail on the parked items is in `VVPH_VV-FOOS_Register_Parked-and-Blocked-Items_2026-09-02_v1.0_Draft.md`.
 

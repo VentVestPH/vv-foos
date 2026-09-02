@@ -14,30 +14,6 @@
   gap: var(--sp-1);
 }
 
-.dash-tabs {
-  display: flex;
-  gap: var(--sp-half);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: var(--sp-2);
-  flex-wrap: wrap;
-}
-
-.dash-tab {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: var(--sp-1) var(--sp-2);
-  font-size: var(--fs-body);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.dash-tab.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-  font-weight: 600;
-}
-
 .dash-grid-2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));

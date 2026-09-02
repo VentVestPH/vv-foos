@@ -20,7 +20,6 @@ export type StaffRow = Tables<'staff'>;
 export type Company = Tables<'companies'>;
 export type Source = Tables<'sources'>;
 export type CandidateStatus = Tables<'candidate_statuses'>;
-export type ApplicationView = Tables<'application_views'>;
 export type ApproverRow = Tables<'requisition_approvers'>;
 export type OwnerRow = Tables<'requisition_owners'>;
 export type SavedView = Tables<'ats_saved_views'>;

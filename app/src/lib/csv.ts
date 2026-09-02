@@ -8,7 +8,7 @@ function escapeCell(value: unknown): string {
   return s;
 }
 
-export function toCsv(
+function toCsv(
   rows: Record<string, unknown>[],
   columns?: { key: string; header: string }[],
 ): string {

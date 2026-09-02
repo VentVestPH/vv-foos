@@ -25,7 +25,7 @@ const SCOPES: Array<[RegExp, SearchScope]> = [
   [/^\/intake/, { noun: 'Intake', to: '/intake', namedFields: false }],
 ];
 
-export function searchScope(pathname: string): SearchScope {
+function searchScope(pathname: string): SearchScope {
   for (const [pattern, scope] of SCOPES) {
     if (pattern.test(pathname)) return scope;
   }

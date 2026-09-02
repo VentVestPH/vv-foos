@@ -1,5 +1,3 @@
-export type RelatedType = 'person' | 'company' | 'deal' | 'requisition' | 'application' | 'ticket';
-
 const ROUTES: Record<string, (id: string) => string> = {
   person: (id) => `/recruit/candidates/${id}`,
   company: (id) => `/sales/companies/${id}`,

@@ -19,7 +19,7 @@ import {
 import { Modal } from './Modal';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
 
-export type EngagementParent = 'person' | 'company' | 'deal';
+type EngagementParent = 'person' | 'company' | 'deal';
 
 interface EngagementPanelProps {
   relatedType: EngagementParent;

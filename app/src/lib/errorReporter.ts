@@ -64,7 +64,3 @@ export function installGlobalErrorReporting(): void {
     reportError('unhandledrejection', event.reason);
   });
 }
-
-export function reportedThisSession(): number {
-  return sent;
-}

@@ -7,7 +7,7 @@ export const PERSONA_EMAILS = {
   bd: 'ben.demo@ventvest.com',
 } as const;
 
-export function testPassword(): string {
+function testPassword(): string {
   const value = process.env.FOOS_QA_TEST_PASSWORD;
   if (!value) throw new Error('FOOS_QA_TEST_PASSWORD is not set (see tests/.env.example)');
   return value;

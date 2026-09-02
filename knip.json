@@ -1,0 +1,39 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/*.mjs",
+        "migration/*.mjs",
+        "migration/src/*.mjs"
+      ],
+      "project": [
+        "scripts/**/*.mjs",
+        "migration/**/*.mjs"
+      ]
+    },
+    "app": {
+      "project": [
+        "src/**/*.{ts,tsx}"
+      ]
+    },
+    "tests": {
+      "entry": [
+        "api/**/*.test.ts",
+        "unit/**/*.test.ts",
+        "mocks/**/*.test.ts",
+        "e2e/**/*.spec.ts"
+      ],
+      "project": [
+        "**/*.ts"
+      ]
+    }
+  },
+  "ignore": [
+    "app/src/lib/database.types.ts"
+  ],
+  "ignoreBinaries": [
+    "psql",
+    "supabase"
+  ]
+}

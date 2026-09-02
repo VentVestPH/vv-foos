@@ -14,7 +14,7 @@ export const TEMPLATE_PLACEHOLDERS = [
   'current_employer',
 ] as const;
 
-export type TemplatePlaceholder = (typeof TEMPLATE_PLACEHOLDERS)[number];
+type TemplatePlaceholder = (typeof TEMPLATE_PLACEHOLDERS)[number];
 
 export function applyTemplate(text: string, subject: TemplateSubject): string {
   return text.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (whole, rawName: string) => {

@@ -30,9 +30,6 @@ export function useStaffNames() {
   return (id: string | null | undefined) => (id ? (byId.get(id) ?? EMPTY_CELL) : EMPTY_CELL);
 }
 
-export function useCanViewDashboards(): boolean {
-  return useRole() !== null;
-}
 
 export function useIsAdmin(): boolean {
   return useRole() === 'admin';

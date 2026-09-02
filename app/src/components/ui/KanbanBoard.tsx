@@ -11,12 +11,12 @@ import {
 
 const SETTLE_MS = 200;
 
-export interface KanbanStage {
+interface KanbanStage {
   key: string;
   label: string;
 }
 
-export interface KanbanCard {
+interface KanbanCard {
   id: string;
   stage: string;
   content: ReactNode;

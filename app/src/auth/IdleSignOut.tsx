@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-export const IDLE_LIMIT_MS = 60 * 60 * 1000;
-export const IDLE_WARNING_MS = 2 * 60 * 1000;
+const IDLE_LIMIT_MS = 60 * 60 * 1000;
+const IDLE_WARNING_MS = 2 * 60 * 1000;
 const LAST_ACTIVITY_KEY = 'foos.lastActivity';
 const TICK_MS = 15 * 1000;
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const;

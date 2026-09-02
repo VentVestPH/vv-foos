@@ -55,20 +55,11 @@ export function parsedOf(item: IntakeItem): ParsedFields {
   return (item.parsed ?? {}) as ParsedFields;
 }
 
-export function primaryEmail(item: IntakeItem): string | null {
-  const p = parsedOf(item);
-  if (p.email) return p.email;
-  if (p.emails && p.emails.length > 0) return p.emails[0];
-  return null;
-}
 
 export function requiresGradingBeforeImport(item: IntakeItem): boolean {
   return item.channel === 'linkedin_url' && item.target_type === 'candidate';
 }
 
-export function isGraded(item: IntakeItem): boolean {
-  return item.status === 'graded' || item.star_grade != null;
-}
 
 export function isReadOnly(item: IntakeItem): boolean {
   return item.channel === 'careers_form';
