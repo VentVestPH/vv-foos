@@ -1,6 +1,48 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import type { IntakeItem } from './lib';
+
+type IntakeItemsListener = () => void;
+
+const intakeItemsListeners = new Set<IntakeItemsListener>();
+let intakeItemsChannel: RealtimeChannel | null = null;
+let intakeItemsSubscribed = false;
+
+function notifyIntakeItemsListeners() {
+  for (const listener of intakeItemsListeners) listener();
+}
+
+function subscribeIntakeItems(listener: IntakeItemsListener): () => void {
+  intakeItemsListeners.add(listener);
+
+  if (!intakeItemsChannel) {
+    intakeItemsSubscribed = false;
+    intakeItemsChannel = supabase
+      .channel('intake-items')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'intake_items' },
+        notifyIntakeItemsListeners,
+      )
+      .subscribe((state) => {
+        if (state !== 'SUBSCRIBED') return;
+        intakeItemsSubscribed = true;
+        notifyIntakeItemsListeners();
+      });
+  } else if (intakeItemsSubscribed) {
+    listener();
+  }
+
+  return () => {
+    intakeItemsListeners.delete(listener);
+    if (intakeItemsListeners.size > 0 || !intakeItemsChannel) return;
+    const channel = intakeItemsChannel;
+    intakeItemsChannel = null;
+    intakeItemsSubscribed = false;
+    void supabase.removeChannel(channel);
+  };
+}
 
 export function useIntakeBadge() {
   const [count, setCount] = useState(0);
@@ -13,28 +55,7 @@ export function useIntakeBadge() {
       .then(({ count: c }) => setCount(c ?? 0));
   }, []);
 
-  useEffect(() => {
-    let subscribedOnce = false;
-    const channel = supabase
-      .channel('intake-badge')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'intake_items' },
-        () => refresh(),
-      )
-      .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') return;
-        if (subscribedOnce) {
-          void refresh();
-          return;
-        }
-        subscribedOnce = true;
-        void refresh();
-      });
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [refresh]);
+  useEffect(() => subscribeIntakeItems(refresh), [refresh]);
 
   return count;
 }
@@ -49,6 +70,7 @@ export interface IntakeFilters {
 }
 
 export function useIntakeQueue(filters: IntakeFilters) {
+  const { channel, targetType, status, batchLabel, submittedBy, showAll } = filters;
   const [items, setItems] = useState<IntakeItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,38 +81,30 @@ export function useIntakeQueue(filters: IntakeFilters) {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (filters.channel) query = query.eq('channel', filters.channel as never);
-    if (filters.targetType) query = query.eq('target_type', filters.targetType as never);
-    if (filters.status) {
-      query = query.eq('status', filters.status as never);
-    } else if (!filters.showAll) {
+    if (channel) query = query.eq('channel', channel as never);
+    if (targetType) query = query.eq('target_type', targetType as never);
+    if (status) {
+      query = query.eq('status', status as never);
+    } else if (!showAll) {
       query = query.not('status', 'in', '("imported","rejected")');
     }
-    if (filters.batchLabel) query = query.eq('batch_label', filters.batchLabel);
-    if (filters.submittedBy) query = query.eq('submitted_by', filters.submittedBy);
+    if (batchLabel) query = query.eq('batch_label', batchLabel);
+    if (submittedBy) query = query.eq('submitted_by', submittedBy);
 
     query.then(({ data, error }) => {
       if (!error && data) setItems(data);
       setLoading(false);
     });
-  }, [filters]);
+  }, [channel, targetType, status, batchLabel, submittedBy, showAll]);
+
+  const loadRef = useRef(load);
+  loadRef.current = load;
 
   useEffect(() => {
     load();
-    const channel = supabase
-      .channel('intake-queue')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'intake_items' },
-        () => load(),
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') load();
-      });
-    return () => {
-      void supabase.removeChannel(channel);
-    };
   }, [load]);
+
+  useEffect(() => subscribeIntakeItems(() => loadRef.current()), []);
 
   return { items, loading, reload: load };
 }

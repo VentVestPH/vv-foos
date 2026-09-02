@@ -3,6 +3,30 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
+const MODULES = ['dashboards', 'intake', 'recruit', 'sales', 'settings'];
+
+const moduleIsolation = MODULES.map((self) => ({
+  files: [`src/modules/${self}/**/*.{ts,tsx}`],
+  rules: {
+    'no-restricted-imports': 'off',
+    '@typescript-eslint/no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: MODULES.filter((other) => other !== self).flatMap((other) => [
+              `**/${other}`,
+              `**/${other}/**`,
+            ]),
+            message:
+              'Modules are self-contained: they must not import each other. Move the shared piece into src/lib, src/components or src/shell.',
+          },
+        ],
+      },
+    ],
+  },
+}));
+
 export default tseslint.config(
   { ignores: ['dist', 'dist-redesign-2', 'node_modules', 'vite.config.ts.timestamp-*'] },
   js.configs.recommended,
@@ -24,6 +48,7 @@ export default tseslint.config(
       'no-var': 'error',
     },
   },
+  ...moduleIsolation,
   {
     files: ['src/modules/dashboards/db.ts'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
