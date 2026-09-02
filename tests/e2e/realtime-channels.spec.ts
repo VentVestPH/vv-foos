@@ -12,6 +12,7 @@ function watchChannels(page: Page): Watch {
   const watch: Watch = { open: new Set(), frames: 0 };
   page.on('websocket', (ws) => {
     if (!ws.url().includes('/realtime/')) return;
+    watch.open.clear();
     ws.on('framesent', (frame) => {
       const payload = typeof frame.payload === 'string' ? frame.payload : frame.payload.toString();
       let message: [string, string, string, string, unknown];
@@ -31,7 +32,6 @@ function watchChannels(page: Page): Watch {
 }
 
 async function settleOn(page: Page, watch: Watch, path: string) {
-  watch.open.clear();
   await page.goto(path);
   await page.waitForTimeout(4000);
   const settled = [...watch.open].sort();

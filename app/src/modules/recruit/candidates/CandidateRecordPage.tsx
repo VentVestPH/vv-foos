@@ -17,7 +17,6 @@ import {
   User as PersonIcon,
 } from 'lucide-react';
 import { StarGrade } from '../../../components/ui/StarGrade';
-import { Dialog } from '../components/Dialog';
 import {
   ActivityPanel,
   attachmentUrl,
@@ -31,47 +30,11 @@ import {
 import { supabase } from '../../../lib/supabase';
 import { type Application, type CandidateProfile, type Person, type Requisition, errMsg, fmtDate, personEducation, personEmails, personExperience, personName, personPhones } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
-import { sendEmail, scheduleMeeting } from '../../../lib/googleActions';
 import { EMPTY_CELL } from '../../../lib/format';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
-
-interface ProfileDraft {
-  status_id: string;
-  star_grade: number | null;
-  grade_comment: string;
-  current_title: string;
-  current_employer: string;
-  tenure_note: string;
-  salary_flag: string;
-  expected_salary: string;
-  current_salary: string;
-  salary_currency: string;
-  initial_date: string;
-  source_id: string;
-  referred_by: string;
-  sourcer_id: string;
-  do_not_contact: boolean;
-}
-
-function toDraft(p: CandidateProfile): ProfileDraft {
-  return {
-    status_id: p.status_id ?? '',
-    star_grade: p.star_grade,
-    grade_comment: p.grade_comment ?? '',
-    current_title: p.current_title ?? '',
-    current_employer: p.current_employer ?? '',
-    tenure_note: p.tenure_note ?? '',
-    salary_flag: p.salary_flag ?? '',
-    expected_salary: p.expected_salary != null ? String(p.expected_salary) : '',
-    current_salary: p.current_salary != null ? String(p.current_salary) : '',
-    salary_currency: p.salary_currency ?? '',
-    initial_date: p.initial_date ?? '',
-    source_id: p.source_id ?? '',
-    referred_by: p.referred_by ?? '',
-    sourcer_id: p.sourcer_id ?? '',
-    do_not_contact: p.do_not_contact,
-  };
-}
+import { CandidateOutreachDialogs } from './CandidateOutreachDialogs';
+import { useCandidateOutreach } from './useCandidateOutreach';
+import { toDraft, useCandidateProfileDraft } from './useCandidateProfileDraft';
 
 export function CandidateRecordPage() {
   const backToList = useBackToList('/recruit/candidates');
@@ -88,28 +51,16 @@ export function CandidateRecordPage() {
 
   const [person, setPerson] = useState<Person | null>(null);
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
-  const [draft, setDraft] = useState<ProfileDraft | null>(null);
   const [apps, setApps] = useState<Application[]>([]);
   const [reqs, setReqs] = useState<Requisition[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-
-  const [showSendEmail, setShowSendEmail] = useState(false);
-  const [emailTo, setEmailTo] = useState('');
-  const [emailSubject, setEmailSubject] = useState('');
-  const [emailBody, setEmailBody] = useState('');
-  const [emailBusy, setEmailBusy] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
-
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [meetingSubject, setMeetingSubject] = useState('');
-  const [meetingWhen, setMeetingWhen] = useState('');
-  const [meetingDuration, setMeetingDuration] = useState('30');
-  const [meetingBusy, setMeetingBusy] = useState(false);
-  const [meetingError, setMeetingError] = useState<string | null>(null);
-  const [meetingLink, setMeetingLink] = useState<string | null>(null);
 
   const engagement = useEngagement('person', personId);
+  const outreach = useCandidateOutreach(personId, person, engagement.refresh);
+  const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const reload = useCallback(() => loadRef.current(), []);
+  const { draft, setDraft, canEditProfile, canGrade, saved, saveProfile } =
+    useCandidateProfileDraft({ profile, role, staff, mobile, onSaved: reload, onError: setError });
 
   const load = useCallback(async () => {
     try {
@@ -142,7 +93,7 @@ export function CandidateRecordPage() {
     } catch (e) {
       setError(errMsg(e));
     }
-  }, [personId]);
+  }, [personId, setDraft]);
 
   useEffect(() => {
     void load();
@@ -173,124 +124,9 @@ export function CandidateRecordPage() {
     );
   }, [params, staff]);
 
-  const canEditProfile =
-    !mobile && (role === 'admin' || role === 'recruiter');
-  const canGrade =
-    !mobile &&
-    (role === 'admin' ||
-      role === 'recruiter' ||
-      (role === 'sourcer' && staff != null && profile?.sourcer_id === staff.id));
 
-  const saveProfile = useCallback(async () => {
-    if (!profile || !draft) return;
 
-    const patch = canEditProfile
-      ? {
-          status_id: draft.status_id || null,
-          star_grade: draft.star_grade,
-          grade_comment: draft.grade_comment.trim() || null,
-          current_title: draft.current_title.trim() || null,
-          current_employer: draft.current_employer.trim() || null,
-          tenure_note: draft.tenure_note.trim() || null,
-          salary_flag: draft.salary_flag.trim() || null,
-          expected_salary: draft.expected_salary.trim()
-            ? Number(draft.expected_salary)
-            : null,
-          current_salary: draft.current_salary.trim()
-            ? Number(draft.current_salary)
-            : null,
-          salary_currency: draft.salary_currency.trim() || null,
-          initial_date: draft.initial_date || null,
-          source_id: draft.source_id || null,
-          referred_by: draft.referred_by.trim() || null,
-          sourcer_id: draft.sourcer_id || null,
-          do_not_contact: draft.do_not_contact,
-        }
-      : {
-          star_grade: draft.star_grade,
-          grade_comment: draft.grade_comment.trim() || null,
-        };
-    const { error: err } = await supabase
-      .from('candidate_profiles')
-      .update(patch)
-      .eq('person_id', profile.person_id);
-    if (err) {
-      setError(err.message);
-    } else {
-      setError(null);
-      setSaved(true);
-      window.setTimeout(() => setSaved(false), 2500);
-      await load();
-    }
-  }, [profile, draft, canEditProfile, load]);
-
-  const openSendEmail = () => {
-    const primary = personEmails(person as Person)[0]?.address ?? '';
-    setEmailTo(primary);
-    setEmailSubject('');
-    setEmailBody('');
-    setEmailError(null);
-    setShowSendEmail(true);
-  };
-
-  const submitSendEmail = async () => {
-    if (!emailTo.trim() || !emailSubject.trim() || !emailBody.trim()) {
-      setEmailError('To, subject, and message are all required.');
-      return;
-    }
-    setEmailBusy(true);
-    setEmailError(null);
-    const { error: err } = await sendEmail({
-      personId,
-      to: emailTo.trim(),
-      subject: emailSubject.trim(),
-      bodyText: emailBody.trim(),
-    });
-    setEmailBusy(false);
-    if (err) {
-      setEmailError(err);
-      return;
-    }
-    setShowSendEmail(false);
-    await engagement.refresh();
-  };
-
-  const openSchedule = () => {
-    setMeetingSubject(`Screen: ${personName(person as Person)}`);
-    setMeetingWhen('');
-    setMeetingDuration('30');
-    setMeetingError(null);
-    setMeetingLink(null);
-    setShowSchedule(true);
-  };
-
-  const submitSchedule = async () => {
-    const attendee = personEmails(person as Person)[0]?.address;
-    if (!attendee) {
-      setMeetingError('This person has no email on file to invite.');
-      return;
-    }
-    if (!meetingSubject.trim() || !meetingWhen) {
-      setMeetingError('Subject and date/time are required.');
-      return;
-    }
-    setMeetingBusy(true);
-    setMeetingError(null);
-    const { data, error: err } = await scheduleMeeting({
-      personId,
-      attendeeEmails: [attendee],
-      subject: meetingSubject.trim(),
-      startIso: new Date(meetingWhen).toISOString(),
-      durationMinutes: Number(meetingDuration) || 30,
-    });
-    setMeetingBusy(false);
-    if (err) {
-      setMeetingError(err);
-      return;
-    }
-    setMeetingLink(data?.meetLink ?? null);
-    await engagement.refresh();
-  };
+  loadRef.current = load;
 
   const staffName = useMemo(
     () => new Map(lookups.staff.map((s) => [s.id, s.full_name])),
@@ -370,7 +206,7 @@ export function CandidateRecordPage() {
         size="sm"
         disabled={dnc || personEmails(person).length === 0}
         title={emailDisabledTitle}
-        onClick={openSendEmail}
+        onClick={outreach.openSendEmail}
       >
         Send Email
       </Button>
@@ -378,7 +214,7 @@ export function CandidateRecordPage() {
         size="sm"
         disabled={dnc || personEmails(person).length === 0}
         title={emailDisabledTitle}
-        onClick={openSchedule}
+        onClick={outreach.openSchedule}
       >
         Schedule meeting
       </Button>
@@ -1057,97 +893,7 @@ export function CandidateRecordPage() {
 
       {engagement.error && <p className="rq-error">{engagement.error}</p>}
 
-      {showSendEmail && (
-        <Dialog
-          title="Send email"
-          onClose={() => setShowSendEmail(false)}
-          footer={
-            <>
-              <Button onClick={() => setShowSendEmail(false)}>Cancel</Button>
-              <Button variant="primary" onClick={() => void submitSendEmail()} disabled={emailBusy}>
-                {emailBusy ? 'Sending…' : 'Send'}
-              </Button>
-            </>
-          }
-        >
-          <Input label="To" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} />
-          <Input
-            label="Subject"
-            value={emailSubject}
-            onChange={(e) => setEmailSubject(e.target.value)}
-            autoFocus
-          />
-          <div className="field">
-            <span className="field-label">Message</span>
-            <textarea
-              className="rq-textarea"
-              rows={6}
-              value={emailBody}
-              onChange={(e) => setEmailBody(e.target.value)}
-            />
-          </div>
-          <p className="text-secondary">
-            Sends through your own connected Gmail account — appears in your Sent folder.
-          </p>
-          {emailError && <span className="field-error-text">{emailError}</span>}
-        </Dialog>
-      )}
-
-      {showSchedule && (
-        <Dialog
-          title="Schedule meeting"
-          onClose={() => setShowSchedule(false)}
-          footer={
-            !meetingLink ? (
-              <>
-                <Button onClick={() => setShowSchedule(false)}>Cancel</Button>
-                <Button variant="primary" onClick={() => void submitSchedule()} disabled={meetingBusy}>
-                  {meetingBusy ? 'Creating…' : 'Create meeting'}
-                </Button>
-              </>
-            ) : (
-              <Button variant="primary" onClick={() => setShowSchedule(false)}>
-                Done
-              </Button>
-            )
-          }
-        >
-          {meetingLink ? (
-            <p>
-              Meeting created.{' '}
-              <a href={meetingLink} target="_blank" rel="noreferrer">
-                Join with Google Meet
-              </a>
-            </p>
-          ) : (
-            <>
-              <Input
-                label="Subject"
-                value={meetingSubject}
-                onChange={(e) => setMeetingSubject(e.target.value)}
-                autoFocus
-              />
-              <Input
-                label="Date and time"
-                type="datetime-local"
-                value={meetingWhen}
-                onChange={(e) => setMeetingWhen(e.target.value)}
-              />
-              <Input
-                label="Duration (minutes)"
-                type="number"
-                value={meetingDuration}
-                onChange={(e) => setMeetingDuration(e.target.value)}
-              />
-              <p className="text-secondary">
-                Creates a real Calendar event with a Google Meet link, inviting{' '}
-                {personEmails(person)[0]?.address ?? 'this person'}.
-              </p>
-              {meetingError && <span className="field-error-text">{meetingError}</span>}
-            </>
-          )}
-        </Dialog>
-      )}
+      <CandidateOutreachDialogs outreach={outreach} person={person} />
     </RecordPage>
   );
 }

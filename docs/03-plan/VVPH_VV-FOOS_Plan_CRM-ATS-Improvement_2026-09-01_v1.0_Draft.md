@@ -315,8 +315,20 @@ Proved inert with a computed-style diff harness, not by eye: 44 page states (ele
 
 The step that made it work was not a CSS change at all. The first attempt inverted the order and shrank `.fo-back-to-list` from 13px to 14px, because `intake.css` reaches the entry bundle through `useIntakeBadge` in `PrimaryNav` and Vite emitted it **before** `app.css`, making `module.intake` the document's first-declared layer. Moving `import './styles/app.css'` to the first line of `main.tsx` fixed it and also removed the route-order nondeterminism the audit had flagged as latent. `scripts/check-css-layers.mjs` now fails the build on any rule outside a layer, any layer file not imported by `app.css`, and any layer file that declares its own layer; proven to fail on all three | A single stylesheet of 2,100 lines, and an unlayered rule beats a layered one whatever its specificity, so the split had to be all-or-nothing | done |
 | N4 | **DONE 2026-09-02.** The six-rule disclosure block, byte-identical in `recruit.css` and `intake.css`, now lives once in `app.css`. This was the latent hazard the CSS audit named: module stylesheets load in navigation order, so once one copy was edited the winner would have depended on which page the user visited first | Six rules, byte-identical, copy-pasted in `recruit.css` and `intake.css`. Harmless today; nondeterministic per session once one copy is edited, because module CSS loads in navigation order | 1 h |
-| N5 | Give `recruit` the same `db.ts`, `hooks.ts`, `lib.ts` shape as the other four modules | `recruit/lib/data.ts` does all three jobs in one file: client, 13 types, five formatters, `sortRows`, `useLookups`, `useIsMobile`. It is the largest module, so the divergence compounds | 4 h |
-| N6 | Split the four largest components on responsibility | `CandidateRecordPage` (1,163 lines) owns profile state plus a send-email dialog plus a schedule-meeting dialog; `engagement.tsx` (588) bundles a hook, three helpers and six panels; `ApplicationPipeline` (780) mixes table mode, kanban mode, CSV export and a reject dialog; `CandidateListPage` (712) mixes data loading with filter and saved-view UI. Each has named extractable units | 2 d |
+| N5 | **DONE 2026-09-02, and it retired a documented wart along the way.** `recruit/lib/data.ts` held four jobs in 209 lines: the client, 16 row aliases, five formatters plus `sortRows`, and two hooks. It is now `lib.ts` (pure) and `hooks.ts` (anything touching Postgres or state), the shape the other modules already use, with `savedViews.tsx` moved up out of the `lib/` directory that would otherwise collide with `lib.ts`.
+
+The instructive part is the file written and then deleted. Following CLAUDE.md, recruit first got a `db.ts` mapping `Relationships: []` over every table. That shim is no longer needed: `database.types.ts` already carries `Relationships` on all 25 tables, so a plain re-export typechecked, and so did deleting the file and importing `supabase` directly, with 25 write call sites in the module to prove Insert and Update do not collapse to `never`. Only `dashboards` keeps a `db.ts`, for `dashDb`. Two stale documentation claims corrected: the module-shape line no longer says every module has a `db.ts`, and the recruit README gained a Files table | The largest module diverged from the other four, so every change there needed a different mental model | done |
+| N6 | **DONE 2026-09-02, and one of the four was deliberately left alone.** The four largest components were picked by measurement, not assumption: `CandidateRecordPage` 1,166 lines, `ApplicationPipeline` 784, `CandidateListPage` 714, `engagement.tsx` 595.
+
+`ApplicationPipeline` 784 to 640: `AddCandidateDialog` was already a standalone function with its own props interface and its own fetch, so it moved out whole. Its one oddity is fixed too, a `useEffect` calling `setAdding` eleven lines before the `useState` that creates it, which was legal only because effects run after render.
+
+`CandidateListPage` 714 to 492: `candidateRows.ts` now holds `CandFilters`, `CandRow`, `COLUMN_DEFS` and the two pure functions `buildCandidateRows` and `filterCandidateRows`, lifted verbatim out of their `useMemo` bodies with the same dependency arrays. `CandidateFilterRail.tsx` holds the advanced-search rail. Both were chosen because `list-persistence.spec.ts` asserts the CSV export matches the filtered set on screen, which is exactly the invariant an extraction could break.
+
+`CandidateRecordPage` 1,166 to 899: `useCandidateOutreach.ts` owns the twelve email and meeting state variables and their four handlers, `CandidateOutreachDialogs.tsx` owns their two dialogs, and `useCandidateProfileDraft.ts` owns the draft model, the two permission predicates and the save path. The draft hook needed one piece of care: `load()` resets the draft, and the hook needs `load` as its `onSaved`, which is circular. A ref plus a stable `reload` callback breaks it without changing when anything runs.
+
+**`engagement.tsx` is not split, and that is the finding rather than an omission.** It is not one component: it is a hook, three async helpers and six independent panels, each with only local state. There is nothing interleaved to untangle, so splitting would buy file length at the cost of six files plus a barrel to keep two record pages' imports working. Its panels are also not candidates for `components/ui/`, because sales renders the same feature with different markup, so unifying them would change rendered output on one side.
+
+One flake was introduced and fixed here, in the O4 test rather than the app: a full page load drops the previous document's channels without sending `phx_leave`, so a dashboard join that landed after the counter was cleared leaked into the next route's set. The watcher now resets when a new websocket opens. Eight consecutive passes of that spec, then six consecutive clean full gates | Four files carried unrelated responsibilities, and the largest was 1,166 lines | done |
 | N7 | Adopt React Compiler | Stable, and **confirmed to support React 18**, not only 19. There is no `React.memo` anywhere in the app today and any single-cell change re-renders a whole table, so the alternative is hand-placing memoization across every list | 1 d |
 | N8 | **DECIDED 2026-09-02, and the decision is split: `exactOptionalPropertyTypes` adopted, `noUncheckedIndexedAccess` declined.** Both flags were measured on both TypeScript programs rather than argued about. `exactOptionalPropertyTypes` produced 5 errors in `app` and 1 in `tests`, all of them honest: three of our own interfaces (`IntakeFilters`, `SendEmailArgs`, `ScheduleMeetingArgs`) and one `useState` type declare `?: T` while every caller passes `x || undefined`, so the declarations now say `?: T | undefined`, which is what they always meant. The two remaining were library types that genuinely reject a present-but-undefined key, and both became conditional spreads: the Realtime `filter` in `RequisitionListPage` and `webServer` in `playwright.config.ts`. The flag is on in both programs and the gate is green.
 
@@ -392,7 +404,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**114½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**116½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -410,7 +422,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
-| **N** Code and stylesheet architecture | 10 | 7 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
+| **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 5 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
@@ -522,7 +534,7 @@ Auditing the cascade to plan N3 turned up three live defects that had nothing to
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **114½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **116½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -559,8 +571,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 ### 8.5 Architecture, each needs a decision first
 
 - [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
-- [ ] **N5** Align the `recruit` module's shape with the other four
-- [ ] **N6** Split the four largest components on responsibility, not on line count
 - [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
 - [ ] **F4** Archive the other two frontends (decided, not yet executed)
 - [ ] **O3** Error tracking, so production failures are visible during the 30-day measurement window

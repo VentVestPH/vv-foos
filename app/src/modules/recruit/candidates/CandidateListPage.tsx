@@ -4,7 +4,6 @@ import { useListLink } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { Select } from '../../../components/ui/Select';
 import { Badge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
@@ -19,68 +18,28 @@ import {
 import { Dialog } from '../components/Dialog';
 import { StarGrade } from '../../../components/ui/StarGrade';
 import { supabase } from '../../../lib/supabase';
-import { type Application, type CandidateProfile, type Person, type Requisition, type SortState, errMsg, fmtDate, personEmails, personName, sortRows } from '../lib';
+import {
+  type Application,
+  type CandidateProfile,
+  type Person,
+  type Requisition,
+  type SortState,
+  errMsg,
+  fmtDate,
+} from '../lib';
+import {
+  ALL_COLUMN_KEYS,
+  COLUMN_DEFS,
+  EMPTY_FILTERS,
+  buildCandidateRows,
+  filterCandidateRows,
+  type CandFilters,
+  type CandRow,
+} from './candidateRows';
 import { fetchPeopleByIds, useIsMobile, useLookups } from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
+import { CandidateFilterRail } from './CandidateFilterRail';
 import { fetchAllRows } from '../../../lib/fetchAll';
-
-interface CandFilters {
-  statusId: string;
-  starGrade: string;
-  sourceId: string;
-  sourcerId: string;
-  dateFrom: string;
-  dateTo: string;
-}
-
-const EMPTY_FILTERS: CandFilters = {
-  statusId: '',
-  starGrade: '',
-  sourceId: '',
-  sourcerId: '',
-  dateFrom: '',
-  dateTo: '',
-};
-
-interface CandRow extends Record<string, unknown> {
-  id: string;
-  name: string;
-  first_name: string;
-  last_name: string;
-  updated_at: string;
-  has_resume: boolean;
-  location: string;
-  star_grade: number | null;
-  grade_comment: string;
-  current_title: string;
-  current_employer: string;
-  status: string;
-  source: string;
-  initial_date: string;
-  sourcer: string;
-  requisitions: string;
-  flags: string;
-  emails: string;
-}
-
-const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
-  { key: 'name', header: 'Name' },
-  { key: 'updated_at', header: 'Last updated' },
-  { key: 'has_resume', header: 'Resume' },
-  { key: 'location', header: 'Location' },
-  { key: 'source', header: 'Source' },
-  { key: 'initial_date', header: 'Initial date' },
-  { key: 'star_grade', header: 'Grade' },
-  { key: 'grade_comment', header: 'Grade comment' },
-  { key: 'status', header: 'Main status' },
-  { key: 'requisitions', header: 'Requisitions' },
-  { key: 'current_title', header: 'Current title' },
-  { key: 'current_employer', header: 'Current employer' },
-  { key: 'sourcer', header: 'Sourcer' },
-  { key: 'flags', header: 'Flags' },
-];
-
-const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
 export function CandidateListPage() {
   const openRecord = useListLink();
@@ -188,95 +147,25 @@ export function CandidateListPage() {
     [role, staff, mobile],
   );
 
-  const rows = useMemo<CandRow[]>(() => {
-    const appsByPerson = new Map<string, Application[]>();
-    for (const a of apps) {
-      const list = appsByPerson.get(a.person_id) ?? [];
-      list.push(a);
-      appsByPerson.set(a.person_id, list);
-    }
-    return profiles.map((prof) => {
-      const p = people.get(prof.person_id);
-      const flags: string[] = [];
-      if (prof.do_not_contact) flags.push('Do not contact');
-      return {
-        id: prof.person_id,
-        name: p ? personName(p) : '…',
-        first_name: p?.first_name ?? '',
-        last_name: p?.last_name ?? '',
-        updated_at: p?.updated_at ?? '',
-        has_resume: resumePersonIds.has(prof.person_id),
-        location: p
-          ? [p.city, p.state, p.country].filter(Boolean).join(', ')
-          : '',
-        star_grade: prof.star_grade,
-        grade_comment: prof.grade_comment ?? '',
-        current_title: prof.current_title ?? '',
-        current_employer: prof.current_employer ?? '',
+  const rows = useMemo<CandRow[]>(
+    () =>
+      buildCandidateRows({
+        profiles,
+        people,
+        apps,
+        statusLabel,
+        sourceName,
+        staffName,
+        reqCode,
+        resumePersonIds,
+      }),
+    [profiles, people, apps, statusLabel, sourceName, staffName, reqCode, resumePersonIds],
+  );
 
-        status: prof.status_id ? (statusLabel.get(prof.status_id) ?? '') : '',
-        source: prof.source_id ? (sourceName.get(prof.source_id) ?? '') : '',
-        initial_date: prof.initial_date ?? '',
-        sourcer: prof.sourcer_id ? (staffName.get(prof.sourcer_id) ?? '') : '',
-        requisitions: (appsByPerson.get(prof.person_id) ?? [])
-          .map((a) => reqCode.get(a.requisition_id) ?? '')
-          .filter(Boolean)
-          .join(', '),
-        flags: flags.join(' · '),
-        emails: p
-          ? personEmails(p)
-              .map((e) => e.address)
-              .join(' ')
-          : '',
-      };
-    });
-  }, [profiles, people, apps, statusLabel, sourceName, staffName, reqCode, resumePersonIds]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const base = rows.filter((r) => {
-      const prof = profiles.find((p) => p.person_id === r.id);
-      if (!prof) return false;
-      if (filters.statusId && prof.status_id !== filters.statusId) return false;
-      if (filters.starGrade && String(prof.star_grade ?? '') !== filters.starGrade) {
-        return false;
-      }
-      if (filters.sourceId && prof.source_id !== filters.sourceId) return false;
-      if (filters.sourcerId && prof.sourcer_id !== filters.sourcerId) return false;
-      if (
-        filters.dateFrom &&
-        (!prof.initial_date || prof.initial_date < filters.dateFrom)
-      ) {
-        return false;
-      }
-      if (
-        filters.dateTo &&
-        (!prof.initial_date || prof.initial_date > filters.dateTo)
-      ) {
-        return false;
-      }
-      if (q) {
-        const hay =
-          `${r.name} ${r.emails} ${r.current_title} ${r.current_employer}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-
-      if (
-        firstName.trim() &&
-        !r.first_name.toLowerCase().includes(firstName.trim().toLowerCase())
-      ) {
-        return false;
-      }
-      if (
-        lastName.trim() &&
-        !r.last_name.toLowerCase().includes(lastName.trim().toLowerCase())
-      ) {
-        return false;
-      }
-      return true;
-    });
-    return sortRows(base, sort);
-  }, [rows, profiles, filters, search, sort, firstName, lastName]);
+  const filtered = useMemo(
+    () => filterCandidateRows({ rows, profiles, filters, search, firstName, lastName, sort }),
+    [rows, profiles, filters, search, sort, firstName, lastName],
+  );
 
   const updateGrade = useCallback(
     async (personId: string, patch: { star_grade?: number | null; grade_comment?: string | null }) => {
@@ -483,113 +372,15 @@ export function CandidateListPage() {
       exportColumns={exportColumns}
       exportFilename="candidates.csv"
       filterRail={
-        <details className="fo-advanced-search" open>
-          <summary>Advanced Search</summary>
-          <div className="fo-advanced-search-body">
-          <Select
-            label="Status"
-            placeholder="All statuses"
-            options={lookups.statuses
-              .filter((s) => s.is_active)
-              .map((s) => ({ value: s.id, label: s.label }))}
-            value={filters.statusId}
-            onChange={(e) => setFilters({ ...filters, statusId: e.target.value })}
-          />
-          <Select
-            label="Grade"
-            placeholder="Any grade"
-            options={[
-              { value: '1', label: '1 star' },
-              { value: '2', label: '2 stars' },
-              { value: '3', label: '3 stars' },
-            ]}
-            value={filters.starGrade}
-            onChange={(e) => setFilters({ ...filters, starGrade: e.target.value })}
-          />
-          <Select
-            label="Source"
-            placeholder="All sources"
-            options={lookups.sources.map((s) => ({ value: s.id, label: s.name }))}
-            value={filters.sourceId}
-            onChange={(e) => setFilters({ ...filters, sourceId: e.target.value })}
-          />
-          <Select
-            label="Sourcer"
-            placeholder="All sourcers"
-            options={lookups.staff.map((s) => ({ value: s.id, label: s.full_name }))}
-            value={filters.sourcerId}
-            onChange={(e) => setFilters({ ...filters, sourcerId: e.target.value })}
-          />
-          <Input
-            label="Initial date from"
-            type="date"
-            value={filters.dateFrom}
-            onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-          />
-          <Input
-            label="Initial date to"
-            type="date"
-            value={filters.dateTo}
-            onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-          />
-          <Select
-            label="Sort by"
-            placeholder="Default order"
-            options={COLUMN_DEFS.map((c) => ({ value: c.key, label: c.header }))}
-            value={sort?.key ?? ''}
-            onChange={(e) =>
-              setSort(
-                e.target.value
-                  ? { key: e.target.value, dir: sort?.dir ?? 'asc' }
-                  : null,
-              )
-            }
-          />
-          {sort && (
-            <Select
-              label="Direction"
-              options={[
-                { value: 'asc', label: 'Ascending' },
-                { value: 'desc', label: 'Descending' },
-              ]}
-              value={sort.dir}
-              onChange={(e) => setSort({ ...sort, dir: e.target.value as 'asc' | 'desc' })}
-            />
-          )}
-          <div className="field">
-            <span className="field-label">Columns</span>
-            <div className="rq-checkbox-list">
-              {COLUMN_DEFS.map((c) => (
-                <label key={c.key} className="rq-checkline">
-                  <input
-                    type="checkbox"
-                    checked={visibleCols.includes(c.key)}
-                    onChange={(e) =>
-                      setVisibleCols(
-                        e.target.checked
-                          ? [...visibleCols, c.key]
-                          : visibleCols.filter((k) => k !== c.key),
-                      )
-                    }
-                  />
-                  {c.header}
-                </label>
-              ))}
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setFilters(EMPTY_FILTERS);
-              setSort(null);
-              setVisibleCols(ALL_COLUMN_KEYS);
-            }}
-          >
-            Clear filters
-          </Button>
-          </div>
-        </details>
+        <CandidateFilterRail
+          lookups={lookups}
+          filters={filters}
+          setFilters={setFilters}
+          sort={sort}
+          setSort={setSort}
+          visibleCols={visibleCols}
+          setVisibleCols={setVisibleCols}
+        />
       }
     >
       {(error || savedViews.error) && (
