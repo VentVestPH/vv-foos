@@ -399,7 +399,13 @@ The email path is the one that can reach outsiders, so it is built to make that 
 
 `tests/e2e/bulk-actions.spec.ts` covers the four things that matter: the buttons are disabled until something is selected; changing two candidates writes both rows and produces one `status_change` activity per candidate rather than one per statement; marking do-not-contact removes both from the next bulk email and the Send button drops to zero and disables; and a sourcer cannot bulk-edit at all. The spec snapshots each candidate's status and flag before touching it and restores both afterwards, so it leaves the seed data as it found it. `Table` also gained `data-row-key`, so the spec selects candidates by identity rather than by row position | The selection plumbing was already built and all three buttons were placeholders. Advancing twenty candidates was twenty record visits | done |
 | Q2 | A merge path for two existing candidate records | Deduplication exists **only at intake**: `QueueListPage` and `ItemDrawer` handle it, and `intake_items.duplicate_of` records it. Nothing merges two people rows that are already in the system. Duplicate candidates are the classic way an ATS's data quality decays, and the importer will create some the first time a Zoho record matches an existing person imperfectly | 3 d |
-| Q3 | Cross-entity global search | The sidebar Quick Search is hardcoded to candidates on every route, which is L10 as a defect. As a capability, the gap is bigger: there is no way to search requisitions, companies, contacts or deals from anywhere. Fixing L10 and building Q3 are the same piece of work, so they should be done together | 3 d |
+| Q3 | **DONE 2026-09-02.** `/search` searches candidates, requisitions, contacts, accounts, deals and tickets in one pass, grouped by entity with a count, each hit linking to its record. It runs entirely through RLS, so a sourcer's results contain only what a sourcer may read, and a role with no CRM access sees no Deals group at all rather than an empty one.
+
+It complements L10 rather than replacing it. The sidebar's Quick Search stays scoped to the module you are in, which is what L10 fixed; a new **Search everything** link under it carries whatever is already typed into the global search, so the scoped and unscoped searches are one gesture apart.
+
+Three details worth recording. The term is sanitised before it reaches PostgREST: commas, parentheses, `%`, `_` and `*` are stripped, because a comma alone would break the `or()` filter syntax and `%` would let a user inject a wildcard. Two-word queries additionally run a first-name-and-last-name pair query, so "Ada Lovelace" finds the person that a single ilike over either column cannot. And every entity is capped at 25 with an exact count, so a group header reads "5 of 41" rather than silently truncating, which is the same failure K1 had.
+
+`tests/e2e/global-search.spec.ts` has six tests and found a real defect while being written: the tickets query ordered by `created_at`, a column `tickets` does not have, so the whole search failed with `column tickets.created_at does not exist` and the page showed the error rather than results. Only the empty-state test caught it, because the others were looking for hits | Quick Search was hardcoded to candidates on every route, and nothing searched requisitions, accounts, contacts or deals from anywhere | done |
 | Q4 | Email templates | No template support anywhere in `recruit` or `settings`. `GoogleIntegrationCard` sends through the user's real Gmail, so the transport is built; what is missing is not having to retype the same outreach. Acceptance criterion 6.5 assumes templates exist, which is worth flagging as a scope mismatch rather than a test failure | 2 d |
 | Q5 | Shareable saved views | Saved views are per-user by design, and an e2e test asserts that another staff member cannot see one. That is correct as security. As a capability it means a team cannot agree on a shortlist: "the roles Amir is screening" has to be rebuilt by each person | 1 d |
 | Q6 | Keyboard-first list navigation | Recruiters live in these lists. The measured cost today is 75 tab stops to reach the first data row. `/` to focus search, `j` and `k` to move rows, `Enter` to open, would change how the product feels more than any animation in workstream G | 2 d |
@@ -422,7 +428,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**119½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**120½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -442,7 +448,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
-| **Q** Product capability | 8 | 1 | Q1 done: all three bulk actions on the candidate list are real, with the email path built so a mistaken send is hard |
+| **Q** Product capability | 8 | 2 | Q1 and Q3 done: the three bulk actions are real, and one search now covers every entity through RLS |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -552,7 +558,7 @@ Auditing the cascade to plan N3 turned up three live defects that had nothing to
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **119½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **120½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -575,7 +581,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
-- [ ] **Q3** Cross-entity global search, done together with L10
 - [ ] **Q2** A merge path for two existing candidate records
 - [ ] **Q6** Keyboard-first list navigation
 - [ ] **Q4** Email templates

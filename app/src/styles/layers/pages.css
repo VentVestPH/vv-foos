@@ -133,3 +133,28 @@
 .info-grid-form {
   margin-top: var(--sp-2);
 }
+
+.search-hit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-hit-list li {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px var(--cell-pad);
+  border-bottom: 1px solid var(--border);
+}
+
+.search-hit-list li:last-child {
+  border-bottom: none;
+}
+
+.search-hit-list li:hover {
+  background: var(--fo-row-hover);
+}

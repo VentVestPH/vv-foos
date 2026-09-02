@@ -95,6 +95,15 @@ export function ShellSidebar() {
           <button
             type="button"
             className="fo-qs-advanced-link"
+            onClick={() =>
+              navigate(keywords.trim() ? `/search?q=${encodeURIComponent(keywords.trim())}` : '/search')
+            }
+          >
+            Search everything
+          </button>
+          <button
+            type="button"
+            className="fo-qs-advanced-link"
             aria-disabled
             onClick={() => show('Advanced Search')}
           >

@@ -20,6 +20,9 @@ const IntakeRoutes = lazy(() =>
 const SettingsRoutes = lazy(() =>
   import('./modules/settings').then((m) => ({ default: m.SettingsRoutes })),
 );
+const GlobalSearchPage = lazy(() =>
+  import('./pages/GlobalSearchPage').then((m) => ({ default: m.GlobalSearchPage })),
+);
 const ModulePlaceholderRoutes = lazy(() =>
   import('./pages/ModulePlaceholderPage').then((m) => ({
     default: m.ModulePlaceholderRoutes,
@@ -49,11 +52,15 @@ export default function App() {
                 </RequireAuth>
               }
             >
-              <Route index element={
-                  <Lazy>
-                    <Lazy><DashboardPage /></Lazy>
-                  </Lazy>
-                } />
+              <Route index element={<Lazy><DashboardPage /></Lazy>} />
+              <Route
+                path="search"
+                element={
+                  <RequireAuth>
+                    <Lazy><GlobalSearchPage /></Lazy>
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="recruit/*"
                 element={
