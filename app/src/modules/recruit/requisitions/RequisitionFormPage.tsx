@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { RecordSection } from '../../../components/ui/RecordPage';
-import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
+import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { errMsg, supabase, todayIso, useLookups, type ApproverRow } from '../lib/data';
 
@@ -280,7 +280,7 @@ export function RequisitionFormPage() {
   return (
     <div className="record-page">
       <div className="record-title-row">
-        <span className="taleo-page-icon">
+        <span className="fo-page-icon">
           <BriefcaseIcon size={40} />
         </span>
         <h1>{editing ? 'Requisitions: Edit Requisition' : 'Requisitions: New Requisition'}</h1>
@@ -446,7 +446,7 @@ export function RequisitionFormPage() {
             <div className="rq-editor-toolbar" role="toolbar" aria-label="Text formatting (not available)">
               {['Undo', 'Redo', 'Bold', 'Italic', 'Underline', 'Bullet list', 'Numbered list', 'Link'].map(
                 (label) => (
-                  <TaleoPlaceholderAction
+                  <PlaceholderAction
                     key={label}
                     label={label}
                     size="sm"

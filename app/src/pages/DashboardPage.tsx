@@ -3,7 +3,7 @@ import { MiniCalendar } from './MiniCalendar';
 import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { RecordSection } from '../components/ui/RecordPage';
-import { TaleoPlaceholderAction, usePlaceholder } from '../shell/TaleoPlaceholder';
+import { PlaceholderAction, usePlaceholder } from '../shell/Placeholder';
 import {
   ChartPie as PieChartIcon,
   Funnel as PipelineIcon,
@@ -41,20 +41,20 @@ function MyViewTab() {
 
   return (
     <div className="list-page">
-      <div className="taleo-page-header">
-        <span className="taleo-page-icon">
+      <div className="fo-page-header">
+        <span className="fo-page-icon">
           <HomeIcon size={40} />
         </span>
-        <div className="taleo-page-header-text">
-          <div className="taleo-page-header-title-row">
+        <div className="fo-page-header-text">
+          <div className="fo-page-header-title-row">
             <h1>
               My View: {staffName} ({roleLabel} at VentVest)
             </h1>
             {}
-            <TaleoPlaceholderAction
+            <PlaceholderAction
               label="Switch to My Dashboard"
               variant="ghost"
-              className="taleo-switch-dashboard-link"
+              className="fo-switch-dashboard-link"
               detail="Front Office OS currently has a single dashboard view."
             />
           </div>
@@ -63,7 +63,7 @@ function MyViewTab() {
 
       <button
         type="button"
-        className="taleo-gear-btn"
+        className="fo-gear-btn"
         aria-label="Dashboard settings"
         aria-disabled
         onClick={() => show('Dashboard settings')}
@@ -75,14 +75,14 @@ function MyViewTab() {
       <RecordSection title="My Calendar" defaultOpen>
         <div className="record-section-inline-actions">
           {}
-          <TaleoPlaceholderAction label="New Event" variant="ghost" size="sm" />
+          <PlaceholderAction label="New Event" variant="ghost" size="sm" />
           <span className="record-section-divider" aria-hidden="true">|</span>
           {}
-          <TaleoPlaceholderAction label="Schedule interview" variant="ghost" size="sm" />
+          <PlaceholderAction label="Schedule interview" variant="ghost" size="sm" />
         </div>
-        <div className="taleo-calendar-body">
-          <div className="taleo-calendar-main">
-            <div className="taleo-calendar-toolbar">
+        <div className="fo-calendar-body">
+          <div className="fo-calendar-main">
+            <div className="fo-calendar-toolbar">
               <span>Today {todayLabel}.</span>
               <CalendarViewIcons />
             </div>
@@ -99,8 +99,8 @@ function MyViewTab() {
       <RecordSection title="My Tasks" defaultOpen>
         <div className="record-section-inline-actions">
           {}
-          <TaleoPlaceholderAction label="New Task" variant="ghost" size="sm" />
-          <label className="taleo-disabled-checkbox">
+          <PlaceholderAction label="New Task" variant="ghost" size="sm" />
+          <label className="fo-disabled-checkbox">
             <input type="checkbox" disabled aria-disabled="true" />
             Include Onboarding/Offboarding Tasks
           </label>
@@ -119,7 +119,7 @@ function MyViewTab() {
       <RecordSection title="My Interviews" defaultOpen={false}>
         <div className="record-section-inline-actions">
           {}
-          <TaleoPlaceholderAction label="Schedule interview" variant="ghost" size="sm" />
+          <PlaceholderAction label="Schedule interview" variant="ghost" size="sm" />
         </div>
         <p>There are currently no interviews scheduled.</p>
       </RecordSection>
@@ -134,15 +134,15 @@ function MyViewTab() {
 function PipelineTab() {
   return (
     <div className="list-page">
-      <div className="taleo-page-header">
-        <span className="taleo-page-icon">
+      <div className="fo-page-header">
+        <span className="fo-page-icon">
           <PipelineIcon size={40} />
         </span>
-        <div className="taleo-page-header-text">
-          <div className="taleo-page-header-title-row">
+        <div className="fo-page-header-text">
+          <div className="fo-page-header-title-row">
             <h1>Pipeline: Home</h1>
           </div>
-          <p className="taleo-page-desc">
+          <p className="fo-page-desc">
             The Pipeline page provides an overall summary of your
             organization's current and upcoming staffing activities including
             interview schedules, pending feedback, approved requisitions, and
@@ -159,40 +159,40 @@ function PipelineTab() {
 function ReportsTab() {
   return (
     <div className="list-page">
-      <div className="taleo-page-header">
-        <span className="taleo-page-icon">
+      <div className="fo-page-header">
+        <span className="fo-page-icon">
           <PieChartIcon size={40} />
         </span>
-        <div className="taleo-page-header-text">
-          <div className="taleo-page-header-title-row">
+        <div className="fo-page-header-text">
+          <div className="fo-page-header-title-row">
             <h1>Run Report</h1>
           </div>
         </div>
       </div>
 
-      <div className="taleo-report-toggle-row">
-        <TaleoPlaceholderAction
+      <div className="fo-report-toggle-row">
+        <PlaceholderAction
           label="Recruit"
           variant="secondary"
-          className="taleo-report-toggle taleo-report-toggle-active"
+          className="fo-report-toggle fo-report-toggle-active"
         />
-        <TaleoPlaceholderAction
+        <PlaceholderAction
           label="Onboard"
           variant="primary"
-          className="taleo-report-toggle"
+          className="fo-report-toggle"
         />
       </div>
 
-      <div className="taleo-report-tab-row">
-        <TaleoPlaceholderAction
+      <div className="fo-report-tab-row">
+        <PlaceholderAction
           label="Candidate"
           variant="ghost"
-          className="taleo-report-tab taleo-report-tab-active"
+          className="fo-report-tab fo-report-tab-active"
         />
-        <TaleoPlaceholderAction label="Requisition" variant="ghost" className="taleo-report-tab" />
-        <TaleoPlaceholderAction label="Compliance" variant="ghost" className="taleo-report-tab" />
-        <TaleoPlaceholderAction label="More" variant="ghost" caret className="taleo-report-tab" />
-        <TaleoPlaceholderActionGear />
+        <PlaceholderAction label="Requisition" variant="ghost" className="fo-report-tab" />
+        <PlaceholderAction label="Compliance" variant="ghost" className="fo-report-tab" />
+        <PlaceholderAction label="More" variant="ghost" caret className="fo-report-tab" />
+        <PlaceholderActionGear />
       </div>
 
       <DashboardWidgetsPanel />
@@ -200,12 +200,12 @@ function ReportsTab() {
   );
 }
 
-function TaleoPlaceholderActionGear() {
+function PlaceholderActionGear() {
   const { show } = usePlaceholder();
   return (
     <button
       type="button"
-      className="taleo-gear-btn taleo-report-tab-gear"
+      className="fo-gear-btn fo-report-tab-gear"
       aria-label="Configure report categories"
       aria-disabled
       onClick={() => show('Configure report categories')}

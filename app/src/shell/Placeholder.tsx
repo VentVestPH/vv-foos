@@ -15,7 +15,7 @@ const PlaceholderContext = createContext<PlaceholderContextValue | null>(
   null,
 );
 
-export function TaleoPlaceholderProvider({
+export function PlaceholderProvider({
   children,
 }: {
   children: ReactNode;
@@ -35,27 +35,27 @@ export function TaleoPlaceholderProvider({
       {children}
       {state && (
         <div
-          className="taleo-placeholder-overlay"
+          className="fo-placeholder-overlay"
           role="presentation"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setState(null);
           }}
         >
           <div
-            className="taleo-placeholder-modal"
+            className="fo-placeholder-modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="taleo-placeholder-title"
+            aria-labelledby="fo-placeholder-title"
           >
-            <div className="taleo-placeholder-titlebar" id="taleo-placeholder-title">
+            <div className="fo-placeholder-titlebar" id="fo-placeholder-title">
               {state.action}
             </div>
-            <div className="taleo-placeholder-body">
+            <div className="fo-placeholder-body">
               This action is not available in the current FOOS MVP.
               {state.detail ? ` ${state.detail}` : ''}
               {}
             </div>
-            <div className="taleo-placeholder-footer">
+            <div className="fo-placeholder-footer">
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
@@ -75,12 +75,12 @@ export function TaleoPlaceholderProvider({
 export function usePlaceholder() {
   const ctx = useContext(PlaceholderContext);
   if (!ctx) {
-    throw new Error('usePlaceholder must be used within TaleoPlaceholderProvider');
+    throw new Error('usePlaceholder must be used within PlaceholderProvider');
   }
   return ctx;
 }
 
-export function TaleoPlaceholderAction({
+export function PlaceholderAction({
   label,
   detail,
   variant = 'secondary',

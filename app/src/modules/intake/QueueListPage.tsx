@@ -4,8 +4,8 @@ import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { ListPage } from '../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../components/ui/Table';
-import { TaleoPager, usePagination } from '../../components/ui/TaleoPager';
-import { TaleoPlaceholderAction, usePlaceholder } from '../../shell/TaleoPlaceholder';
+import { Pager, usePagination } from '../../components/ui/Pager';
+import { PlaceholderAction, usePlaceholder } from '../../shell/Placeholder';
 import { Inbox as InboxIcon, Settings as GearIcon } from 'lucide-react';
 import { useIntakeQueue } from './hooks';
 import {
@@ -111,10 +111,10 @@ export function QueueListPage() {
             <Button size="sm">Import a sheet</Button>
           </Link>
           {}
-          <TaleoPlaceholderAction label="More" caret size="sm" />
+          <PlaceholderAction label="More" caret size="sm" />
           <button
             type="button"
-            className="taleo-gear-btn"
+            className="fo-gear-btn"
             aria-label="Configure columns"
             onClick={() =>
               show(
@@ -128,9 +128,9 @@ export function QueueListPage() {
         </>
       }
       filterRail={
-        <details className="taleo-advanced-search" open>
+        <details className="fo-advanced-search" open>
           <summary>Advanced Search</summary>
-          <div className="taleo-advanced-search-body">
+          <div className="fo-advanced-search-body">
             <Select
               label="Channel"
               placeholder="All channels"
@@ -189,7 +189,7 @@ export function QueueListPage() {
       ]}
       exportFilename="intake-queue.csv"
     >
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}
@@ -206,7 +206,7 @@ export function QueueListPage() {
         emptyText={loading ? 'Loading…' : 'Nothing in the queue.'}
       />
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}

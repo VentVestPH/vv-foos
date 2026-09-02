@@ -6,7 +6,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
-import { usePlaceholder } from '../shell/TaleoPlaceholder';
+import { usePlaceholder } from '../shell/Placeholder';
 
 const VIEWS = [
   { key: 'day', label: 'Day view', Icon: CalendarDays },
@@ -21,12 +21,12 @@ export function CalendarViewIcons() {
   const { show } = usePlaceholder();
 
   return (
-    <span className="taleo-cal-views">
+    <span className="fo-cal-views">
       {VIEWS.map(({ key, label, Icon }) => (
         <button
           key={key}
           type="button"
-          className="taleo-cal-view-btn"
+          className="fo-cal-view-btn"
           aria-label={label}
           title={label}
           aria-disabled

@@ -131,7 +131,7 @@ export function LinkedInIntakePage() {
     return (
       <div className="record-page intake-linkedin-page">
         <div className="record-title-row">
-          <span className="taleo-page-icon">
+          <span className="fo-page-icon">
             <InboxIcon size={40} />
           </span>
           <h1>Intake: Batch Staged</h1>
@@ -152,7 +152,7 @@ export function LinkedInIntakePage() {
     return (
       <div className="record-page intake-linkedin-page">
         <div className="record-title-row">
-          <span className="taleo-page-icon">
+          <span className="fo-page-icon">
             <InboxIcon size={40} />
           </span>
           <h1>
@@ -216,7 +216,7 @@ export function LinkedInIntakePage() {
   return (
     <div className="record-page intake-linkedin-page">
       <div className="record-title-row">
-        <span className="taleo-page-icon">
+        <span className="fo-page-icon">
           <InboxIcon size={40} />
         </span>
         <h1>Intake: Paste LinkedIn URLs</h1>

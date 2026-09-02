@@ -4,7 +4,7 @@ import { SessionProvider } from './auth/SessionProvider';
 import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './auth/LoginPage';
 import { AppShell } from './shell/AppShell';
-import { TaleoPlaceholderProvider } from './shell/TaleoPlaceholder';
+import { PlaceholderProvider } from './shell/Placeholder';
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
@@ -21,7 +21,7 @@ const SettingsRoutes = lazy(() =>
   import('./modules/settings').then((m) => ({ default: m.SettingsRoutes })),
 );
 const ModulePlaceholderRoutes = lazy(() =>
-  import('./pages/TaleoModulePlaceholderPage').then((m) => ({
+  import('./pages/ModulePlaceholderPage').then((m) => ({
     default: m.ModulePlaceholderRoutes,
   })),
 );
@@ -37,7 +37,7 @@ function Lazy({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <SessionProvider>
-      <TaleoPlaceholderProvider>
+      <PlaceholderProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -130,7 +130,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
-      </TaleoPlaceholderProvider>
+      </PlaceholderProvider>
     </SessionProvider>
   );
 }

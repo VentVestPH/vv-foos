@@ -145,7 +145,7 @@ export function SheetImportPage() {
     return (
       <div className="record-page intake-sheet-page">
         <div className="record-title-row">
-          <span className="taleo-page-icon">
+          <span className="fo-page-icon">
             <InboxIcon size={40} />
           </span>
           <h1>Intake: Sheet Staged</h1>
@@ -164,7 +164,7 @@ export function SheetImportPage() {
     return (
       <div className="record-page intake-sheet-page">
         <div className="record-title-row">
-          <span className="taleo-page-icon">
+          <span className="fo-page-icon">
             <InboxIcon size={40} />
           </span>
           <h1>Intake: Preview ({fetched.rows.length} rows)</h1>
@@ -219,7 +219,7 @@ export function SheetImportPage() {
     return (
       <div className="record-page intake-sheet-page">
         <div className="record-title-row">
-          <span className="taleo-page-icon">
+          <span className="fo-page-icon">
             <InboxIcon size={40} />
           </span>
           <h1>Intake: Map Columns</h1>
@@ -314,7 +314,7 @@ export function SheetImportPage() {
   return (
     <div className="record-page intake-sheet-page">
       <div className="record-title-row">
-        <span className="taleo-page-icon">
+        <span className="fo-page-icon">
           <InboxIcon size={40} />
         </span>
         <h1>Intake: Import a Sheet</h1>

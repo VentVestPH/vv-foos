@@ -19,7 +19,7 @@ export function MiniCalendar({ today = new Date() }: { today?: Date }) {
   const currentDay = today.getDate();
 
   return (
-    <table className="taleo-mini-calendar">
+    <table className="fo-mini-calendar">
       <caption>{caption}</caption>
       <thead>
         <tr>

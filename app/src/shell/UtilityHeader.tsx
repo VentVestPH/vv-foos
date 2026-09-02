@@ -1,14 +1,14 @@
 import { BookmarkToggle } from './BookmarkBar';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
-import { usePlaceholder } from './TaleoPlaceholder';
+import { usePlaceholder } from './Placeholder';
 import {
   ChartColumn as BarChartIcon,
   Megaphone as MegaphoneIcon,
   Settings as GearIcon,
 } from 'lucide-react';
 
-export function TaleoUtilityHeader() {
+export function UtilityHeader() {
   const { staff, signOut } = useSession();
   const { show } = usePlaceholder();
   const [adminOpen, setAdminOpen] = useState(false);
@@ -30,23 +30,23 @@ export function TaleoUtilityHeader() {
   }, []);
 
   return (
-    <header className="taleo-utility-header">
-      <div className="taleo-brand">
+    <header className="fo-utility-header">
+      <div className="fo-brand">
         <img
-          className="taleo-brand-logo"
+          className="fo-brand-logo"
           src="/ventvest-logo.webp"
           alt="VentVest"
           width={1038}
           height={231}
         />
-        <span className="taleo-brand-sub">Front Office OS</span>
+        <span className="fo-brand-sub">Front Office OS</span>
       </div>
 
-      <div className="taleo-utility-actions">
+      <div className="fo-utility-actions">
         <BookmarkToggle />
         <button
           type="button"
-          className="taleo-utility-icon"
+          className="fo-utility-icon"
           aria-label="Announcements"
           title="Announcements"
           aria-disabled
@@ -56,7 +56,7 @@ export function TaleoUtilityHeader() {
         </button>
         <button
           type="button"
-          className="taleo-utility-icon"
+          className="fo-utility-icon"
           aria-label="Settings"
           title="Settings"
           onClick={() => (window.location.href = '/settings')}
@@ -65,7 +65,7 @@ export function TaleoUtilityHeader() {
         </button>
         <button
           type="button"
-          className="taleo-utility-icon"
+          className="fo-utility-icon"
           aria-label="Reports"
           title="Reports"
           onClick={() => (window.location.href = '/?tab=reports')}
@@ -75,31 +75,31 @@ export function TaleoUtilityHeader() {
 
         <button
           type="button"
-          className="taleo-utility-link"
+          className="fo-utility-link"
           aria-disabled
           onClick={() => show('Web Support')}
         >
           Web Support
         </button>
 
-        <div className="taleo-utility-menu-wrap" ref={adminRef}>
+        <div className="fo-utility-menu-wrap" ref={adminRef}>
           <button
             type="button"
-            className="taleo-utility-link"
+            className="fo-utility-link"
             aria-haspopup="menu"
             aria-expanded={adminOpen}
             onClick={() => setAdminOpen((v) => !v)}
           >
-            Administration <span className="taleo-utility-caret">▾</span>
+            Administration <span className="fo-utility-caret">▾</span>
           </button>
           {adminOpen && (
-            <div className="taleo-utility-menu" role="menu">
-              <a className="taleo-utility-menu-item" href="/settings" role="menuitem">
+            <div className="fo-utility-menu" role="menu">
+              <a className="fo-utility-menu-item" href="/settings" role="menuitem">
                 Settings
               </a>
               <button
                 type="button"
-                className="taleo-utility-menu-item"
+                className="fo-utility-menu-item"
                 role="menuitem"
                 aria-disabled
                 onClick={() => {
@@ -111,7 +111,7 @@ export function TaleoUtilityHeader() {
               </button>
               <button
                 type="button"
-                className="taleo-utility-menu-item"
+                className="fo-utility-menu-item"
                 role="menuitem"
                 aria-disabled
                 onClick={() => {
@@ -125,24 +125,24 @@ export function TaleoUtilityHeader() {
           )}
         </div>
 
-        <div className="taleo-utility-menu-wrap" ref={helpRef}>
+        <div className="fo-utility-menu-wrap" ref={helpRef}>
           <button
             type="button"
-            className="taleo-utility-link"
+            className="fo-utility-link"
             aria-haspopup="menu"
             aria-expanded={helpOpen}
             onClick={() => setHelpOpen((v) => !v)}
           >
-            Help <span className="taleo-utility-caret">▾</span>
+            Help <span className="fo-utility-caret">▾</span>
           </button>
           {helpOpen && (
-            <div className="taleo-utility-menu" role="menu">
-              <div className="taleo-utility-menu-item" style={{ cursor: 'default' }}>
+            <div className="fo-utility-menu" role="menu">
+              <div className="fo-utility-menu-item" style={{ cursor: 'default' }}>
                 Signed in as {staff?.full_name ?? 'Account'}
               </div>
               <button
                 type="button"
-                className="taleo-utility-menu-item"
+                className="fo-utility-menu-item"
                 role="menuitem"
                 aria-disabled
                 onClick={() => {
@@ -156,7 +156,7 @@ export function TaleoUtilityHeader() {
           )}
         </div>
 
-        <button type="button" className="taleo-logout" onClick={() => void signOut()}>
+        <button type="button" className="fo-logout" onClick={() => void signOut()}>
           Logout
         </button>
       </div>

@@ -34,7 +34,7 @@ test.describe('ATS pipeline', () => {
   test('list pages paginate without a full reload', async ({ page }) => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 15000 });
-    const pager = page.locator('.taleo-pager');
+    const pager = page.locator('.fo-pager');
     if (await pager.count()) {
       await expect(pager.first()).toContainText(/\d+\s*-\s*\d+\s+of\s+\d+/);
     }

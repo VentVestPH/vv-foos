@@ -9,7 +9,7 @@ import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
-import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
+import { PlaceholderAction } from '../../../shell/Placeholder';
 import {
   Briefcase as BriefcaseIcon,
   CircleArrowUp,
@@ -261,7 +261,7 @@ export function RequisitionRecordPage() {
         </button>
       );
     }
-    return <span className="taleo-next-step-disabled">{label}</span>;
+    return <span className="fo-next-step-disabled">{label}</span>;
   };
 
   const actionBarContent = canEdit ? (
@@ -269,10 +269,10 @@ export function RequisitionRecordPage() {
       <Button size="sm" onClick={() => navigate(`/recruit/requisitions/${req.id}/edit`)}>
         Edit
       </Button>
-      <TaleoPlaceholderAction label="Send To" size="sm" />
-      <TaleoPlaceholderAction label="Forms" size="sm" />
-      <TaleoPlaceholderAction label="Printable View" size="sm" />
-      <TaleoPlaceholderAction label="More" size="sm" caret />
+      <PlaceholderAction label="Send To" size="sm" />
+      <PlaceholderAction label="Forms" size="sm" />
+      <PlaceholderAction label="Printable View" size="sm" />
+      <PlaceholderAction label="More" size="sm" caret />
       {lifecycleTargets.map((target) => {
         const openGated = target === 'open' && !allApproved;
         return (
@@ -308,7 +308,7 @@ export function RequisitionRecordPage() {
           {req.is_test && <Badge tone="outline">Test data</Badge>}
           <button
             type="button"
-            className="link-btn taleo-back-to-list"
+            className="link-btn fo-back-to-list"
             onClick={backToList}
           >
             <CircleArrowUp size={18} aria-hidden="true" />
@@ -320,18 +320,18 @@ export function RequisitionRecordPage() {
     >
       {error && <p className="rq-error">{error}</p>}
 
-      <div className="taleo-next-steps">
-        <span className="taleo-next-steps-label">Next Steps:</span>
+      <div className="fo-next-steps">
+        <span className="fo-next-steps-label">Next Steps:</span>
         <button type="button" className="link-btn" onClick={scrollToPipeline}>
           Candidates ({pipelineCount})
         </button>
-        <TaleoPlaceholderAction label="Search" variant="ghost" size="sm" />
+        <PlaceholderAction label="Search" variant="ghost" size="sm" />
         {canEdit ? (
           <button type="button" className="link-btn" onClick={() => setAddSignal((n) => n + 1)}>
             Add new candidate
           </button>
         ) : (
-          <span className="taleo-next-step-disabled">Add new candidate</span>
+          <span className="fo-next-step-disabled">Add new candidate</span>
         )}
         {lifecycleNextStep('filled', 'Filled')}
         {lifecycleNextStep('on_hold', 'Place on hold')}
@@ -422,8 +422,8 @@ export function RequisitionRecordPage() {
       <RecordSection title="Contacts" defaultOpen={false}>
         {}
         <p className="text-secondary">No contacts attached.</p>
-        <TaleoPlaceholderAction label="Attach Contact" size="sm" variant="ghost" />
-        <TaleoPlaceholderAction label="New Contact" size="sm" variant="ghost" />
+        <PlaceholderAction label="Attach Contact" size="sm" variant="ghost" />
+        <PlaceholderAction label="New Contact" size="sm" variant="ghost" />
       </RecordSection>
 
       <RecordSection title="Tasks" defaultOpen={false}>
@@ -548,7 +548,7 @@ export function RequisitionRecordPage() {
         </div>
       </RecordSection>
 
-      <div className="record-action-bar taleo-record-bottom-bar">{actionBarContent}</div>
+      <div className="record-action-bar fo-record-bottom-bar">{actionBarContent}</div>
 
       {rejecting && (
         <Dialog

@@ -36,7 +36,7 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
     await gotoAsSignedIn(page, '/recruit/candidates');
 
     await page.getByRole('button', { name: 'Save view', exact: true }).click();
-    const dialog = page.locator('[role="dialog"], .modal, .taleo-modal').first();
+    const dialog = page.locator('[role="dialog"], .modal, .fo-modal').first();
     await expect(dialog).toBeVisible({ timeout: 20000 });
     await dialog.getByLabel(/^View name/).fill(VIEW_NAME);
     await dialog.getByRole('button', { name: 'Save', exact: true }).click();

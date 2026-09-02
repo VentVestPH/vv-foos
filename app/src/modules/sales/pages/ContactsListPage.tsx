@@ -6,8 +6,8 @@ import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
-import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
+import { Pager, usePagination } from '../../../components/ui/Pager';
+import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Contact as ContactCardIcon } from 'lucide-react';
 import { useCanEditCrm, useCompanyOptions } from '../hooks';
 import {
@@ -193,9 +193,9 @@ export function ContactsListPage() {
         ) : undefined
       }
       filterRail={
-        <details className="taleo-advanced-search" open>
+        <details className="fo-advanced-search" open>
           <summary>Advanced Search</summary>
-          <div className="taleo-advanced-search-body">
+          <div className="fo-advanced-search-body">
             <Select
               label="Company"
               options={companyOptions}
@@ -209,22 +209,22 @@ export function ContactsListPage() {
       exportRows={exportRows}
       exportFilename="contacts.csv"
     >
-      <div className="record-action-bar taleo-list-action-bar">
+      <div className="record-action-bar fo-list-action-bar">
         {}
-        <TaleoPlaceholderAction
+        <PlaceholderAction
           label="Send Email"
           size="sm"
           detail="Bulk email from the contact list isn't implemented — open a contact record to send a real email."
         />
         {}
-        <TaleoPlaceholderAction
+        <PlaceholderAction
           label="Delete"
           size="sm"
           detail="Bulk delete isn't implemented for contacts yet."
         />
       </div>
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}
@@ -242,7 +242,7 @@ export function ContactsListPage() {
         emptyText={loading ? 'Loading…' : "No contacts match."}
       />
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}

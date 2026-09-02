@@ -13,7 +13,31 @@ The API reaches three things the CSV exports cannot, which is why it is worth th
 
 It also removes the need to ask anyone to run an export by hand each time.
 
-## Whether you can do this yourself
+## The short way: client credentials
+
+**Correction, 2026-09-02.** The authorization-code steps below are not the only route and not the easiest one. A Self Client also supports the **client credentials** flow, which needs no grant code, no 10-minute window and no OTP. Two values from the console plus one from the address bar.
+
+1. At `api-console.zoho.com`, create a **Self Client** and copy the **Client ID** and **Client Secret**. That is all the console is needed for; there is no Generate Code step in this flow.
+2. Get the org id from the address bar while logged in. Zoho puts it in the path: `recruit.zoho.com/recruit/org748xxxxxx/...` and `crm.zoho.com/crm/org600xxxxxx/...`. Recruit and CRM have different ids.
+3. Set four variables and run the client:
+
+   ```sh
+   export ZOHO_DC=com
+   export ZOHO_CLIENT_ID=...
+   export ZOHO_CLIENT_SECRET=...
+   export ZOHO_RECRUIT_ORG_ID=...
+   export ZOHO_CRM_ORG_ID=...
+
+   node migration/zoho-api.mjs --limit 5
+   ```
+
+The `soid` parameter is `{service}.{orgid}`, for example `ZohoRecruit.748xxxxxx`, and the client builds it. Because the scope is per request, Recruit and CRM get separate access tokens, which the client mints and caches independently.
+
+What you give up: **there is no refresh token in this flow.** An access token lasts one hour, and the client simply requests another when it expires, which costs nothing extra because the credentials never change. For a migration run that is strictly better than storing a token that never expires.
+
+`invalid_soid` means the org id belongs to the other product or another portal. `INVALID_CLIENT` still means `ZOHO_DC` does not match the data centre.
+
+## Whether you can do this yourself## Whether you can do this yourself
 
 You said John owns both Zoho accounts and gave you access. That is usually enough, with
 one condition: **your user profile in each Zoho org needs API access enabled.** In Zoho

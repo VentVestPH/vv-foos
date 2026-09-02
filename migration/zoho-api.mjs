@@ -15,6 +15,9 @@ const DC = process.env.ZOHO_DC ?? 'com';
 const CLIENT_ID = process.env.ZOHO_CLIENT_ID;
 const CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.ZOHO_REFRESH_TOKEN;
+const orgId = (value) => (value ?? '').trim().replace(/^org/i, '') || undefined;
+const RECRUIT_ORG_ID = orgId(process.env.ZOHO_RECRUIT_ORG_ID);
+const CRM_ORG_ID = orgId(process.env.ZOHO_CRM_ORG_ID);
 const OUT_DIR = valueOf('--out', 'migration/zoho-exports');
 const ONLY = valueOf('--module', null);
 const WITH_FILES = has('--with-files');
@@ -24,48 +27,104 @@ const ACCOUNTS = `https://accounts.zoho.${DC}`;
 const RECRUIT = `https://recruit.zoho.${DC}/recruit/v2`;
 const CRM = `https://www.zohoapis.${DC}/crm/v5`;
 
-if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) {
-  console.error(`Missing credentials. Set these, then re-run:
+const SCOPES = {
+  ZohoRecruit: 'ZohoRecruit.modules.ALL,ZohoRecruit.settings.ALL',
+  ZohoCRM: 'ZohoCRM.modules.ALL,ZohoCRM.settings.READ,ZohoCRM.users.READ',
+};
+
+const ORG_IDS = { ZohoRecruit: RECRUIT_ORG_ID, ZohoCRM: CRM_ORG_ID };
+
+const DIRECT_TOKEN = (process.env.ZOHO_ACCESS_TOKEN ?? '').trim() || null;
+
+const MODE = DIRECT_TOKEN
+  ? 'access_token'
+  : REFRESH_TOKEN
+    ? 'refresh_token'
+    : RECRUIT_ORG_ID || CRM_ORG_ID
+      ? 'client_credentials'
+      : null;
+
+if (MODE !== 'access_token' && (!CLIENT_ID || !CLIENT_SECRET || !MODE)) {
+  console.error(`Missing credentials. Set the client, then one of the two flows:
 
   export ZOHO_DC=com                # or eu, in, com.au, jp, ca
   export ZOHO_CLIENT_ID=...
   export ZOHO_CLIENT_SECRET=...
+
+Client credentials, the simpler flow. No grant code and no OTP; the org id is in the
+address bar when you are logged in, as recruit.zoho.com/recruit/org<ORGID>/...
+
+  export ZOHO_RECRUIT_ORG_ID=...
+  export ZOHO_CRM_ORG_ID=...
+
+Or the authorization-code flow, if a Self Client grant code was exchanged already:
+
   export ZOHO_REFRESH_TOKEN=...
 
-See migration/ZOHO-API-SETUP.md for how to obtain them. Nothing is written without
-them, and none of them should ever be committed.`);
+Or a single access token you already minted, which lasts one hour and cannot renew:
+
+  export ZOHO_ACCESS_TOKEN=...
+
+See migration/ZOHO-API-SETUP.md. Nothing is written without credentials, and none of
+them should ever be committed.`);
   process.exit(1);
 }
 
-let accessToken = null;
-let accessTokenExpiry = 0;
+function serviceFor(url) {
+  return url.includes('/recruit/') ? 'ZohoRecruit' : 'ZohoCRM';
+}
 
-async function token() {
-  if (accessToken && Date.now() < accessTokenExpiry - 60_000) return accessToken;
-  const body = new URLSearchParams({
-    refresh_token: REFRESH_TOKEN,
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-    grant_type: 'refresh_token',
-  });
+const tokens = new Map();
+
+async function token(service) {
+  if (MODE === 'access_token') return DIRECT_TOKEN;
+  const cached = tokens.get(service);
+  if (cached && Date.now() < cached.expiry - 60_000) return cached.value;
+
+  const body = new URLSearchParams(
+    MODE === 'refresh_token'
+      ? {
+          refresh_token: REFRESH_TOKEN,
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+          grant_type: 'refresh_token',
+        }
+      : {
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+          grant_type: 'client_credentials',
+          scope: SCOPES[service],
+          soid: `${service}.${ORG_IDS[service]}`,
+        },
+  );
+
+  if (MODE === 'client_credentials' && !ORG_IDS[service]) {
+    throw new Error(
+      `${service} needs its org id. Set ZOHO_${service === 'ZohoRecruit' ? 'RECRUIT' : 'CRM'}_ORG_ID, ` +
+        'or pass --module to stay inside the product you do have an id for.',
+    );
+  }
+
   const res = await fetch(`${ACCOUNTS}/oauth/v2/token`, { method: 'POST', body });
   const json = await res.json().catch(() => null);
   if (!res.ok || !json?.access_token) {
     throw new Error(
-      `token refresh failed (${res.status}): ${JSON.stringify(json)}\n` +
-        'A 401 with INVALID_CLIENT usually means ZOHO_DC does not match the data centre\n' +
-        'the OAuth client was created in.',
+      `${MODE} token request failed for ${service} (${res.status}): ${JSON.stringify(json)}\n` +
+        'INVALID_CLIENT usually means ZOHO_DC does not match the data centre the client was\n' +
+        'created in. invalid_soid means the org id belongs to a different product or portal.',
     );
   }
-  accessToken = json.access_token;
-  accessTokenExpiry = Date.now() + Number(json.expires_in ?? 3600) * 1000;
-  return accessToken;
+  tokens.set(service, {
+    value: json.access_token,
+    expiry: Date.now() + Number(json.expires_in ?? 3600) * 1000,
+  });
+  return json.access_token;
 }
 
 async function call(url) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const res = await fetch(url, {
-      headers: { Authorization: `Zoho-oauthtoken ${await token()}` },
+      headers: { Authorization: `Zoho-oauthtoken ${await token(serviceFor(url))}` },
     });
     if (res.status === 204) return { data: [], info: { more_records: false } };
     if (res.status === 429 || res.status >= 500) {

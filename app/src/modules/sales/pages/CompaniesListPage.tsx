@@ -7,8 +7,8 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
-import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
+import { Pager, usePagination } from '../../../components/ui/Pager';
+import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useCanEditCrm, useStaffList } from '../hooks';
 import { fmtDate, locationLabel, type Company } from '../lib';
@@ -179,9 +179,9 @@ export function CompaniesListPage() {
         ) : undefined
       }
       filterRail={
-        <details className="taleo-advanced-search" open>
+        <details className="fo-advanced-search" open>
           <summary>Advanced Search</summary>
-          <div className="taleo-advanced-search-body">
+          <div className="fo-advanced-search-body">
             <Select
               label="Type"
               options={TYPE_OPTIONS}
@@ -208,15 +208,15 @@ export function CompaniesListPage() {
       exportRows={exportRows}
       exportFilename="companies.csv"
     >
-      <div className="record-action-bar taleo-list-action-bar">
+      <div className="record-action-bar fo-list-action-bar">
         {}
-        <TaleoPlaceholderAction
+        <PlaceholderAction
           label="Delete"
           detail="Bulk delete isn't implemented for accounts yet."
         />
       </div>
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}
@@ -234,7 +234,7 @@ export function CompaniesListPage() {
         emptyText={loading ? 'Loading…' : "No companies match."}
       />
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}

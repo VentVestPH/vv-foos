@@ -67,36 +67,36 @@ a:hover {
   height: 100%;
 }
 
-.taleo-utility-header {
+.fo-utility-header {
   display: flex;
   align-items: center;
   min-height: var(--shell-header-h);
-  background: var(--taleo-surface);
+  background: var(--fo-surface);
   border-bottom: 2px solid var(--text);
   padding: 0 var(--sp-3);
   flex-shrink: 0;
   gap: var(--sp-3);
 }
 
-.taleo-brand {
+.fo-brand {
   display: flex;
   flex-direction: column;
   line-height: 1.15;
   white-space: nowrap;
 }
 
-.taleo-brand-logo {
+.fo-brand-logo {
   width: 132px;
   height: auto;
   display: block;
 }
 
-.taleo-brand-sub {
-  color: var(--taleo-text-secondary);
+.fo-brand-sub {
+  color: var(--fo-text-secondary);
   font-size: var(--fs-meta);
 }
 
-.taleo-utility-actions {
+.fo-utility-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -104,10 +104,10 @@ a:hover {
   white-space: nowrap;
 }
 
-.taleo-utility-icon {
+.fo-utility-icon {
   background: none;
   border: none;
-  color: var(--taleo-icon);
+  color: var(--fo-icon);
   cursor: pointer;
   padding: var(--sp-half);
   display: inline-flex;
@@ -115,12 +115,12 @@ a:hover {
   justify-content: center;
 }
 
-.taleo-utility-icon:hover {
-  color: var(--taleo-primary);
+.fo-utility-icon:hover {
+  color: var(--fo-primary);
 }
 
-.taleo-utility-link {
-  color: var(--taleo-text);
+.fo-utility-link {
+  color: var(--fo-text);
   font-size: var(--fs-body);
   background: none;
   border: none;
@@ -131,16 +131,16 @@ a:hover {
   gap: 2px;
 }
 
-.taleo-utility-link:hover {
-  color: var(--taleo-link);
+.fo-utility-link:hover {
+  color: var(--fo-link);
 }
 
-.taleo-utility-caret {
+.fo-utility-caret {
   font-size: var(--fs-2xs);
 }
 
-.taleo-logout {
-  background: var(--taleo-logout);
+.fo-logout {
+  background: var(--fo-logout);
   color: var(--surface);
   border: none;
   border-radius: 3px;
@@ -150,27 +150,27 @@ a:hover {
   cursor: pointer;
 }
 
-.taleo-logout:hover {
+.fo-logout:hover {
   opacity: 0.9;
 }
 
-.taleo-utility-menu-wrap {
+.fo-utility-menu-wrap {
   position: relative;
 }
 
-.taleo-utility-menu {
+.fo-utility-menu {
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  background: var(--taleo-surface);
-  border: 1px solid var(--taleo-border);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
   min-width: 220px;
   padding: var(--sp-1) 0;
   z-index: 40;
   box-shadow: var(--shadow-raised);
 }
 
-.taleo-utility-menu-item {
+.fo-utility-menu-item {
   display: block;
   width: 100%;
   text-align: left;
@@ -178,25 +178,25 @@ a:hover {
   border: none;
   font-family: inherit;
   font-size: var(--fs-body);
-  color: var(--taleo-text);
+  color: var(--fo-text);
   padding: var(--sp-1) var(--sp-2);
   cursor: pointer;
 }
 
-.taleo-utility-menu-item:hover {
-  background: var(--taleo-row-hover);
+.fo-utility-menu-item:hover {
+  background: var(--fo-row-hover);
 }
 
-.taleo-primary-nav {
+.fo-primary-nav {
   display: flex;
   align-items: stretch;
-  background: var(--taleo-nav);
+  background: var(--fo-nav);
   flex-shrink: 0;
   overflow-x: auto;
 }
 
-.taleo-primary-nav a,
-.taleo-primary-nav button.taleo-nav-tab {
+.fo-primary-nav a,
+.fo-primary-nav button.fo-nav-tab {
   display: flex;
   align-items: center;
   padding: 0 var(--sp-2);
@@ -211,75 +211,75 @@ a:hover {
   font-family: inherit;
 }
 
-.taleo-primary-nav a:hover,
-.taleo-primary-nav button.taleo-nav-tab:hover {
+.fo-primary-nav a:hover,
+.fo-primary-nav button.fo-nav-tab:hover {
   background: var(--tint-on-dark);
 }
 
-.taleo-primary-nav a.active,
-.taleo-primary-nav button.taleo-nav-tab.active {
-  background: var(--taleo-active-tab-bg);
-  color: var(--taleo-text);
+.fo-primary-nav a.active,
+.fo-primary-nav button.fo-nav-tab.active {
+  background: var(--fo-active-tab-bg);
+  color: var(--fo-text);
   font-weight: 700;
 }
 
-.taleo-nav-home {
+.fo-nav-home {
   padding: 0 var(--sp-2) !important;
 }
 
-.taleo-nav-home svg {
+.fo-nav-home svg {
   display: block;
 }
 
-.taleo-body {
+.fo-body {
   display: flex;
   flex: 1;
   min-height: 0;
 }
 
-.taleo-sidebar {
+.fo-sidebar {
   width: var(--shell-sidebar-w);
   flex-shrink: 0;
-  background: var(--taleo-canvas);
-  border-right: 1px solid var(--taleo-border);
+  background: var(--fo-canvas);
+  border-right: 1px solid var(--fo-border);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
 }
 
-.taleo-sidebar.collapsed {
+.fo-sidebar.collapsed {
   width: 32px;
 }
 
-.taleo-sidebar.collapsed .taleo-sidebar-panel-body,
-.taleo-sidebar.collapsed .taleo-sidebar-panel-title {
+.fo-sidebar.collapsed .fo-sidebar-panel-body,
+.fo-sidebar.collapsed .fo-sidebar-panel-title {
   display: none;
 }
 
-.taleo-sidebar-panel {
-  background: var(--taleo-surface);
-  border-bottom: 1px solid var(--taleo-border);
+.fo-sidebar-panel {
+  background: var(--fo-surface);
+  border-bottom: 1px solid var(--fo-border);
 }
 
-.taleo-sidebar-card {
-  background: var(--taleo-surface);
-  border-top: 1px solid var(--taleo-border);
-  border-bottom: 1px solid var(--taleo-border);
+.fo-sidebar-card {
+  background: var(--fo-surface);
+  border-top: 1px solid var(--fo-border);
+  border-bottom: 1px solid var(--fo-border);
   padding: var(--sp-2);
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
 }
 
-.taleo-sidebar.collapsed .taleo-sidebar-card {
+.fo-sidebar.collapsed .fo-sidebar-card {
   display: none;
 }
 
-.taleo-sidebar-panel-header {
+.fo-sidebar-panel-header {
   display: flex;
   align-items: center;
-  background: var(--taleo-sidebar-header);
+  background: var(--fo-sidebar-header);
   color: var(--surface);
   font-size: var(--fs-body);
   font-weight: 700;
@@ -287,11 +287,11 @@ a:hover {
   min-height: 32px;
 }
 
-.taleo-sidebar-panel-title {
+.fo-sidebar-panel-title {
   flex: 1;
 }
 
-.taleo-sidebar-collapse-btn {
+.fo-sidebar-collapse-btn {
   background: none;
   border: none;
   color: var(--surface);
@@ -300,25 +300,25 @@ a:hover {
   display: inline-flex;
 }
 
-.taleo-sidebar-panel-body {
+.fo-sidebar-panel-body {
   padding: var(--sp-2);
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
 }
 
-.taleo-qs-field {
+.fo-qs-field {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.taleo-qs-label {
+.fo-qs-label {
   font-size: var(--fs-meta);
-  color: var(--taleo-text);
+  color: var(--fo-text);
 }
 
-.taleo-qs-input-row {
+.fo-qs-input-row {
   display: flex;
   align-items: center;
   gap: var(--sp-half);
@@ -326,7 +326,7 @@ a:hover {
   padding-bottom: 2px;
 }
 
-.taleo-qs-input-row input {
+.fo-qs-input-row input {
   border: none;
   outline: none;
   flex: 1;
@@ -336,13 +336,13 @@ a:hover {
   background: transparent;
 }
 
-.taleo-qs-search-icon {
-  color: var(--taleo-link);
+.fo-qs-search-icon {
+  color: var(--fo-link);
   flex-shrink: 0;
 }
 
-.taleo-qs-advanced-link {
-  color: var(--taleo-link);
+.fo-qs-advanced-link {
+  color: var(--fo-link);
   font-size: var(--fs-meta);
   font-weight: 700;
   align-self: flex-start;
@@ -353,12 +353,12 @@ a:hover {
   text-align: left;
 }
 
-.taleo-recent-list {
+.fo-recent-list {
   display: flex;
   flex-direction: column;
 }
 
-.taleo-recent-item {
+.fo-recent-item {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
@@ -374,23 +374,23 @@ a:hover {
   font-family: inherit;
 }
 
-.taleo-recent-item:last-child {
+.fo-recent-item:last-child {
   border-bottom: none;
 }
 
-.taleo-recent-icon {
-  color: var(--taleo-icon);
+.fo-recent-icon {
+  color: var(--fo-icon);
   flex-shrink: 0;
 }
 
-.taleo-recent-text {
+.fo-recent-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.taleo-recent-name {
-  color: var(--taleo-link);
+.fo-recent-name {
+  color: var(--fo-link);
   font-weight: 700;
   font-size: var(--fs-body);
   overflow: hidden;
@@ -398,13 +398,13 @@ a:hover {
   white-space: nowrap;
 }
 
-.taleo-recent-type {
-  color: var(--taleo-text-secondary);
+.fo-recent-type {
+  color: var(--fo-text-secondary);
   font-size: var(--fs-sm);
 }
 
-.taleo-recent-empty {
-  color: var(--taleo-text-secondary);
+.fo-recent-empty {
+  color: var(--fo-text-secondary);
   font-size: var(--fs-meta);
 }
 
@@ -413,7 +413,7 @@ a:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--taleo-canvas);
+  background: var(--fo-canvas);
 }
 
 .shell-content {
@@ -517,30 +517,30 @@ a:hover {
 }
 
 .btn-primary {
-  background: var(--taleo-primary);
+  background: var(--fo-primary);
   color: var(--surface);
-  border-color: var(--taleo-primary);
+  border-color: var(--fo-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--taleo-primary-hover);
-  border-color: var(--taleo-primary-hover);
+  background: var(--fo-primary-hover);
+  border-color: var(--fo-primary-hover);
 }
 
 .btn-secondary {
-  background: var(--taleo-surface);
-  color: var(--taleo-link);
-  border-color: var(--taleo-primary);
+  background: var(--fo-surface);
+  color: var(--fo-link);
+  border-color: var(--fo-primary);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--taleo-row-hover);
+  background: var(--fo-row-hover);
 }
 
 .btn-danger {
-  background: var(--taleo-logout);
+  background: var(--fo-logout);
   color: var(--surface);
-  border-color: var(--taleo-logout);
+  border-color: var(--fo-logout);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -549,12 +549,12 @@ a:hover {
 
 .btn-ghost {
   background: transparent;
-  color: var(--taleo-link);
+  color: var(--fo-link);
   border-color: transparent;
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--taleo-row-hover);
+  background: var(--fo-row-hover);
 }
 
 .btn-caret::after {
@@ -609,7 +609,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   padding: 1px 8px;
-  border-radius: var(--taleo-radius);
+  border-radius: var(--fo-radius);
   font-size: var(--fs-sm);
   font-weight: 600;
   line-height: 1.6;
@@ -617,49 +617,49 @@ a:hover {
 }
 
 .badge-neutral {
-  background: var(--taleo-surface);
-  color: var(--taleo-text-secondary);
-  border: 1px solid var(--taleo-border);
+  background: var(--fo-surface);
+  color: var(--fo-text-secondary);
+  border: 1px solid var(--fo-border);
 }
 
 .badge-primary {
-  background: var(--taleo-surface);
-  color: var(--taleo-link);
-  border: 1px solid var(--taleo-primary);
+  background: var(--fo-surface);
+  color: var(--fo-link);
+  border: 1px solid var(--fo-primary);
 }
 
 .badge-success {
-  background: var(--taleo-count);
+  background: var(--fo-count);
 
-  color: var(--taleo-text);
+  color: var(--fo-text);
   border-radius: 999px;
   padding: 1px 9px;
 }
 
 .badge-warning {
-  background: var(--taleo-surface);
+  background: var(--fo-surface);
   color: var(--status-warn-text);
   border: 1px solid var(--warning);
 }
 
 .badge-danger {
-  background: var(--taleo-surface);
-  color: var(--taleo-danger);
+  background: var(--fo-surface);
+  color: var(--fo-danger);
   border: none;
   font-weight: 700;
 }
 
 .badge-outline {
-  background: var(--taleo-surface);
-  color: var(--taleo-text-secondary);
-  border: 1px solid var(--taleo-border);
+  background: var(--fo-surface);
+  color: var(--fo-text-secondary);
+  border: 1px solid var(--fo-border);
 }
 
 .unviewed-badge {
   display: inline-flex;
   align-items: center;
   background: transparent;
-  color: var(--taleo-danger);
+  color: var(--fo-danger);
   font-size: var(--fs-meta);
   font-weight: 700;
   white-space: nowrap;
@@ -697,13 +697,13 @@ a:hover {
 }
 
 .table th.sortable:hover {
-  color: var(--taleo-primary-hover);
+  color: var(--fo-primary-hover);
 }
 
 .sort-arrow {
   font-size: var(--fs-2xs);
   margin-left: var(--sp-half);
-  color: var(--taleo-link);
+  color: var(--fo-link);
 }
 
 .table td {
@@ -717,11 +717,11 @@ a:hover {
 }
 
 .table.zebra tbody tr:nth-child(even) {
-  background: var(--taleo-row-alt);
+  background: var(--fo-row-alt);
 }
 
 .table tbody tr:hover {
-  background: var(--taleo-row-hover);
+  background: var(--fo-row-hover);
 }
 
 .table .checkbox-col {
@@ -870,7 +870,7 @@ a:hover {
 }
 
 .record-section-chevron {
-  color: var(--taleo-nav);
+  color: var(--fo-nav);
   font-size: var(--fs-sm);
   flex-shrink: 0;
 }
@@ -1107,72 +1107,72 @@ a:hover {
   }
 }
 
-.taleo-page-header {
+.fo-page-header {
   display: flex;
   align-items: flex-start;
   gap: var(--sp-2);
   margin-bottom: var(--sp-2);
 }
 
-.taleo-page-icon {
-  color: var(--taleo-nav);
+.fo-page-icon {
+  color: var(--fo-nav);
   flex-shrink: 0;
   margin-top: 2px;
 }
 
-.taleo-page-header-text {
+.fo-page-header-text {
   flex: 1;
   min-width: 0;
 }
 
-.taleo-page-header-title-row {
+.fo-page-header-title-row {
   display: flex;
   align-items: baseline;
   gap: var(--sp-2);
   flex-wrap: wrap;
 }
 
-.taleo-page-header-title-row h1 {
+.fo-page-header-title-row h1 {
   margin-right: auto;
 }
 
-.taleo-page-desc {
-  color: var(--taleo-text-secondary);
+.fo-page-desc {
+  color: var(--fo-text-secondary);
   font-size: var(--fs-body);
   margin: 4px 0 0;
   max-width: 900px;
 }
 
-.taleo-search-row {
+.fo-search-row {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
 }
 
-.taleo-search-label {
+.fo-search-label {
   font-size: var(--fs-body);
   color: var(--text);
   white-space: nowrap;
 }
 
-.taleo-search-row input {
+.fo-search-row input {
   flex: 1;
   min-width: 160px;
 }
 
-.taleo-go-btn {
+.fo-go-btn {
   flex-shrink: 0;
 }
 
-.taleo-second-search-row {
+.fo-second-search-row {
   margin-top: -4px;
 }
 
-.taleo-second-search-row .taleo-search-label {
+.fo-second-search-row .fo-search-label {
   min-width: 84px;
 }
 
-.taleo-pager {
+.fo-pager {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -1182,35 +1182,35 @@ a:hover {
   white-space: nowrap;
 }
 
-.taleo-pager button {
+.fo-pager button {
   background: none;
   border: none;
-  color: var(--taleo-link);
+  color: var(--fo-link);
   cursor: pointer;
   padding: 2px 4px;
   font-size: var(--fs-meta);
 }
 
-.taleo-pager button:disabled {
-  color: var(--taleo-border);
+.fo-pager button:disabled {
+  color: var(--fo-border);
   cursor: default;
 }
 
-.taleo-gear-btn {
+.fo-gear-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: var(--taleo-surface);
-  border: 1px solid var(--taleo-primary);
-  color: var(--taleo-primary);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-primary);
+  color: var(--fo-primary);
   border-radius: 2px;
   cursor: pointer;
   margin-bottom: var(--sp-1);
 }
 
-.taleo-placeholder-overlay {
+.fo-placeholder-overlay {
   position: fixed;
   inset: 0;
   background: var(--scrim);
@@ -1220,42 +1220,42 @@ a:hover {
   z-index: 100;
 }
 
-.taleo-placeholder-modal {
-  background: var(--taleo-surface);
-  border: 1px solid var(--taleo-border);
+.fo-placeholder-modal {
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
   width: 380px;
   max-width: calc(100vw - 32px);
   box-shadow: var(--shadow-overlay);
 }
 
-.taleo-placeholder-titlebar {
-  background: var(--taleo-sidebar-header);
+.fo-placeholder-titlebar {
+  background: var(--fo-sidebar-header);
   color: var(--surface);
   font-weight: 700;
   padding: var(--sp-1) var(--sp-2);
   font-size: var(--fs-body);
 }
 
-.taleo-placeholder-body {
+.fo-placeholder-body {
   padding: var(--sp-2);
   color: var(--text);
   font-size: var(--fs-body);
 }
 
-.taleo-placeholder-footer {
+.fo-placeholder-footer {
   display: flex;
   justify-content: flex-end;
   gap: var(--sp-1);
   padding: var(--sp-1) var(--sp-2) var(--sp-2);
 }
 
-.taleo-module-placeholder-note {
-  color: var(--taleo-text-secondary);
+.fo-module-placeholder-note {
+  color: var(--fo-text-secondary);
   font-size: var(--fs-meta);
   font-style: normal;
   padding: var(--sp-2);
-  border: 1px dashed var(--taleo-border);
-  background: var(--taleo-surface);
+  border: 1px dashed var(--fo-border);
+  background: var(--fo-surface);
 }
 
 .record-section-inline-actions {
@@ -1267,19 +1267,19 @@ a:hover {
 }
 
 .record-section-divider {
-  color: var(--taleo-border);
+  color: var(--fo-border);
 }
 
-.taleo-disabled-checkbox {
+.fo-disabled-checkbox {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--taleo-text-secondary);
+  color: var(--fo-text-secondary);
   font-size: var(--fs-body);
   margin-left: var(--sp-1);
 }
 
-.taleo-switch-dashboard-link {
+.fo-switch-dashboard-link {
   margin-left: auto;
 }
 
@@ -1289,19 +1289,19 @@ a:hover {
   margin-bottom: var(--sp-2);
 }
 
-.taleo-report-toggle-row,
-.taleo-report-tab-row {
+.fo-report-toggle-row,
+.fo-report-tab-row {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
   margin-bottom: var(--sp-1);
 }
 
-.taleo-report-tab-row {
+.fo-report-tab-row {
   margin-bottom: var(--sp-2);
 }
 
-.taleo-report-tab-gear {
+.fo-report-tab-gear {
   margin-left: var(--sp-1);
 }
 
@@ -1317,22 +1317,22 @@ a:focus-visible,
 button:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--taleo-primary);
+  outline: 2px solid var(--fo-primary);
   outline-offset: 1px;
 }
 
 .btn:active:not(:disabled):not([aria-disabled='true']) {
-  background: var(--taleo-row-hover);
-  border-color: var(--taleo-primary-hover);
+  background: var(--fo-row-hover);
+  border-color: var(--fo-primary-hover);
 }
 
 .btn-primary:active:not(:disabled) {
-  background: var(--taleo-primary-hover);
+  background: var(--fo-primary-hover);
 }
 
 .record-section-header:active,
 .table th.sortable:active {
-  background: var(--taleo-nested-section);
+  background: var(--fo-nested-section);
 }
 
 [aria-disabled='true'] {
@@ -1340,7 +1340,7 @@ summary:focus-visible,
   cursor: default;
 }
 
-.taleo-pager {
+.fo-pager {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1350,39 +1350,39 @@ summary:focus-visible,
   color: var(--text-secondary);
 }
 
-.taleo-pager-controls {
+.fo-pager-controls {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-half);
 }
 
-.taleo-pager-controls button {
+.fo-pager-controls button {
   min-width: 26px;
   padding: 2px var(--sp-half);
   font-family: inherit;
   font-size: var(--fs-body);
-  color: var(--taleo-link);
+  color: var(--fo-link);
   background: var(--surface);
   border: 1px solid var(--control-border);
   border-radius: var(--radius);
   cursor: pointer;
 }
 
-.taleo-pager-controls button:disabled {
+.fo-pager-controls button:disabled {
   color: var(--muted);
   cursor: default;
 }
 
-.taleo-pager-controls button:active:not(:disabled) {
-  background: var(--taleo-row-hover);
+.fo-pager-controls button:active:not(:disabled) {
+  background: var(--fo-row-hover);
 }
 
-.taleo-pager-pos {
+.fo-pager-pos {
   min-width: 54px;
   text-align: center;
 }
 
-.taleo-calendar-body {
+.fo-calendar-body {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1390,12 +1390,12 @@ summary:focus-visible,
   flex-wrap: wrap;
 }
 
-.taleo-calendar-main {
+.fo-calendar-main {
   flex: 1 1 320px;
   min-width: 0;
 }
 
-.taleo-calendar-toolbar {
+.fo-calendar-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1404,36 +1404,36 @@ summary:focus-visible,
   flex-wrap: wrap;
 }
 
-.taleo-cal-views {
+.fo-cal-views {
   display: inline-flex;
   gap: var(--sp-half);
 }
 
-.taleo-cal-view-btn {
+.fo-cal-view-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: var(--icon-lg);
   height: var(--icon-lg);
   padding: 0;
-  color: var(--taleo-icon);
+  color: var(--fo-icon);
   background: var(--surface);
   border: 1px solid var(--control-border);
   border-radius: var(--radius);
   cursor: pointer;
 }
 
-.taleo-cal-view-btn:active {
-  background: var(--taleo-row-hover);
+.fo-cal-view-btn:active {
+  background: var(--fo-row-hover);
 }
 
-.taleo-mini-calendar {
+.fo-mini-calendar {
   flex: 0 0 auto;
   border-collapse: collapse;
   font-size: var(--fs-meta);
 }
 
-.taleo-mini-calendar caption {
+.fo-mini-calendar caption {
   padding-bottom: var(--sp-half);
   font-weight: 600;
   color: var(--text);
@@ -1441,37 +1441,37 @@ summary:focus-visible,
   white-space: nowrap;
 }
 
-.taleo-mini-calendar th,
-.taleo-mini-calendar td {
+.fo-mini-calendar th,
+.fo-mini-calendar td {
   width: 28px;
   height: 24px;
   padding: 0;
   text-align: center;
   vertical-align: middle;
-  border: 1px solid var(--taleo-border);
+  border: 1px solid var(--fo-border);
 }
 
-.taleo-mini-calendar th {
+.fo-mini-calendar th {
   font-weight: 600;
   color: var(--text-secondary);
   background: var(--section-tint);
 }
 
-.taleo-mini-calendar td.is-today {
+.fo-mini-calendar td.is-today {
   font-weight: 700;
-  background: var(--taleo-row-hover);
+  background: var(--fo-row-hover);
 }
 
-.taleo-nav-tab,
+.fo-nav-tab,
 .record-section-header,
 .table th.sortable,
 .table tbody tr,
 .btn,
 .link-btn,
-.taleo-utility-link,
-.taleo-utility-icon,
-.taleo-pager-controls button,
-.taleo-cal-view-btn {
+.fo-utility-link,
+.fo-utility-icon,
+.fo-pager-controls button,
+.fo-cal-view-btn {
   transition:
     background-color var(--motion-instant) var(--ease-out),
     border-color var(--motion-instant) var(--ease-out),
@@ -1522,13 +1522,13 @@ summary:focus-visible,
 }
 
 .intake-drawer-overlay,
-.taleo-placeholder-overlay,
+.fo-placeholder-overlay,
 .sales-modal-overlay,
 .rq-overlay {
   animation: overlay-fade-in var(--motion-quick) var(--ease-out);
 }
 
-.taleo-placeholder-modal,
+.fo-placeholder-modal,
 .sales-modal,
 .rq-dialog {
   animation: panel-fade-in var(--motion-quick) var(--ease-out);
@@ -1581,11 +1581,11 @@ summary:focus-visible,
 }
 
 .table input[type='checkbox'] {
-  accent-color: var(--taleo-primary);
+  accent-color: var(--fo-primary);
 }
 
 .table tbody tr:has(input[type='checkbox']:checked) {
-  background: var(--taleo-row-hover);
+  background: var(--fo-row-hover);
 }
 
 .visually-hidden {
@@ -1600,57 +1600,57 @@ summary:focus-visible,
   border: 0;
 }
 
-.taleo-bookmark-bar {
+.fo-bookmark-bar {
   display: flex;
   align-items: center;
   gap: var(--sp-half);
   flex-wrap: wrap;
   padding: var(--sp-half) var(--sp-2);
   background: var(--surface);
-  border-top: 1px solid var(--taleo-border);
+  border-top: 1px solid var(--fo-border);
 }
 
-.taleo-bookmark {
+.fo-bookmark {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--taleo-border);
+  border: 1px solid var(--fo-border);
   border-radius: var(--radius);
   background: var(--canvas);
 }
 
-.taleo-bookmark.is-current {
-  background: var(--taleo-row-hover);
-  border-color: var(--taleo-primary);
+.fo-bookmark.is-current {
+  background: var(--fo-row-hover);
+  border-color: var(--fo-primary);
 }
 
-.taleo-bookmark button {
+.fo-bookmark button {
   padding: 2px var(--sp-1);
   font-family: inherit;
   font-size: var(--fs-meta);
-  color: var(--taleo-link);
+  color: var(--fo-link);
   background: none;
   border: 0;
   cursor: pointer;
 }
 
-.taleo-bookmark-remove {
+.fo-bookmark-remove {
   display: inline-flex;
   align-items: center;
   padding: 2px 4px !important;
   color: var(--text-secondary) !important;
 }
 
-.taleo-utility-icon.is-active {
-  color: var(--taleo-primary);
+.fo-utility-icon.is-active {
+  color: var(--fo-primary);
 }
 
 .dash-gate-tag {
   display: inline-block;
   margin-left: var(--sp-1);
   padding: 0 4px;
-  border: 1px solid var(--taleo-control-border);
+  border: 1px solid var(--fo-control-border);
   border-radius: 2px;
-  background: var(--taleo-row-alt);
+  background: var(--fo-row-alt);
   color: var(--text-secondary);
   font-size: var(--fs-xs);
   text-transform: uppercase;
@@ -1658,14 +1658,14 @@ summary:focus-visible,
   vertical-align: middle;
 }
 
-.taleo-nav-badge {
+.fo-nav-badge {
   display: inline-block;
   min-width: 16px;
   margin-left: 5px;
   padding: 0 4px;
   border-radius: 8px;
-  background: var(--taleo-surface);
-  color: var(--taleo-nav);
+  background: var(--fo-surface);
+  color: var(--fo-nav);
   font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 16px;
@@ -1788,7 +1788,7 @@ summary:focus-visible,
   min-width: 0;
 }
 
-.taleo-back-to-list {
+.fo-back-to-list {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-half);

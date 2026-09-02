@@ -1,6 +1,6 @@
 import './settings.css';
 import { RecordPage, RecordSection } from '../../components/ui/RecordPage';
-import { TaleoPlaceholderAction } from '../../shell/TaleoPlaceholder';
+import { PlaceholderAction } from '../../shell/Placeholder';
 import { Settings as GearIcon } from 'lucide-react';
 import { GoogleIntegrationCard } from './GoogleIntegrationCard';
 
@@ -18,9 +18,9 @@ export function SettingsPage() {
           message as there.
         </p>
         <div className="settings-other-admin-actions">
-          <TaleoPlaceholderAction label="General Configuration" size="sm" />
-          <TaleoPlaceholderAction label="Career Section" size="sm" />
-          <TaleoPlaceholderAction label="User Accounts" size="sm" />
+          <PlaceholderAction label="General Configuration" size="sm" />
+          <PlaceholderAction label="Career Section" size="sm" />
+          <PlaceholderAction label="User Accounts" size="sm" />
         </div>
       </RecordSection>
     </RecordPage>

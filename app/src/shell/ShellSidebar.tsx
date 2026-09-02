@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
-import { usePlaceholder } from './TaleoPlaceholder';
+import { usePlaceholder } from './Placeholder';
 import {
   ChevronLeft as ChevronLeftIcon,
   Search as SearchIcon,
@@ -9,7 +9,7 @@ import {
   User as PersonIcon,
 } from 'lucide-react';
 
-export function TaleoSidebar() {
+export function ShellSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [keywords, setKeywords] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -27,13 +27,13 @@ export function TaleoSidebar() {
   };
 
   return (
-    <aside className={collapsed ? 'taleo-sidebar collapsed' : 'taleo-sidebar'}>
-      <div className="taleo-sidebar-panel">
-        <div className="taleo-sidebar-panel-header">
-          <span className="taleo-sidebar-panel-title">Quick Search</span>
+    <aside className={collapsed ? 'fo-sidebar collapsed' : 'fo-sidebar'}>
+      <div className="fo-sidebar-panel">
+        <div className="fo-sidebar-panel-header">
+          <span className="fo-sidebar-panel-title">Quick Search</span>
           <button
             type="button"
-            className="taleo-sidebar-collapse-btn"
+            className="fo-sidebar-collapse-btn"
             onClick={() => setCollapsed((v) => !v)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand' : 'Collapse'}
@@ -44,10 +44,10 @@ export function TaleoSidebar() {
             />
           </button>
         </div>
-        <form className="taleo-sidebar-panel-body" onSubmit={runQuickSearch}>
-          <div className="taleo-qs-field">
-            <span className="taleo-qs-label">Candidate Keywords</span>
-            <div className="taleo-qs-input-row">
+        <form className="fo-sidebar-panel-body" onSubmit={runQuickSearch}>
+          <div className="fo-qs-field">
+            <span className="fo-qs-label">Candidate Keywords</span>
+            <div className="fo-qs-input-row">
               <input
                 type="text"
                 value={keywords}
@@ -56,7 +56,7 @@ export function TaleoSidebar() {
               />
               <button
                 type="submit"
-                className="taleo-qs-search-icon"
+                className="fo-qs-search-icon"
                 aria-label="Search"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
@@ -66,7 +66,7 @@ export function TaleoSidebar() {
           </div>
           <button
             type="button"
-            className="taleo-qs-advanced-link"
+            className="fo-qs-advanced-link"
             aria-disabled
             onClick={() => show('Advanced Search')}
           >
@@ -75,22 +75,22 @@ export function TaleoSidebar() {
         </form>
       </div>
 
-      <form className="taleo-sidebar-card" onSubmit={runQuickSearch}>
-          <div className="taleo-qs-field">
-            <span className="taleo-qs-label">Candidate First Name</span>
-            <div className="taleo-qs-input-row">
+      <form className="fo-sidebar-card" onSubmit={runQuickSearch}>
+          <div className="fo-qs-field">
+            <span className="fo-qs-label">Candidate First Name</span>
+            <div className="fo-qs-input-row">
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 aria-label="Candidate first name"
               />
-              <SearchIcon size={16} className="taleo-qs-search-icon" />
+              <SearchIcon size={16} className="fo-qs-search-icon" />
             </div>
           </div>
-          <div className="taleo-qs-field">
-            <span className="taleo-qs-label">Candidate Last Name</span>
-            <div className="taleo-qs-input-row">
+          <div className="fo-qs-field">
+            <span className="fo-qs-label">Candidate Last Name</span>
+            <div className="fo-qs-input-row">
               <input
                 type="text"
                 value={lastName}
@@ -101,12 +101,12 @@ export function TaleoSidebar() {
           </div>
       </form>
 
-      <div className="taleo-sidebar-panel">
-        <div className="taleo-sidebar-panel-header">
-          <span className="taleo-sidebar-panel-title">Recently Viewed</span>
+      <div className="fo-sidebar-panel">
+        <div className="fo-sidebar-panel-header">
+          <span className="fo-sidebar-panel-title">Recently Viewed</span>
           <button
             type="button"
-            className="taleo-sidebar-collapse-btn"
+            className="fo-sidebar-collapse-btn"
             aria-label="Configure Recently Viewed"
             title="Configure"
             aria-disabled
@@ -115,25 +115,25 @@ export function TaleoSidebar() {
             <GearIcon size={14} />
           </button>
         </div>
-        <div className="taleo-sidebar-panel-body">
+        <div className="fo-sidebar-panel-body">
           {recent.length === 0 ? (
-            <p className="taleo-recent-empty">
+            <p className="fo-recent-empty">
               Records you open will appear here.
             </p>
           ) : (
-            <div className="taleo-recent-list">
+            <div className="fo-recent-list">
               {recent.map((item) => (
                 <button
                   key={`${item.type}:${item.id}`}
                   type="button"
-                  className="taleo-recent-item"
+                  className="fo-recent-item"
                   onClick={() => item.href && navigate(item.href)}
                   title={item.label}
                 >
-                  <PersonIcon size={18} className="taleo-recent-icon" />
-                  <span className="taleo-recent-text">
-                    <span className="taleo-recent-name">{item.label}</span>
-                    <span className="taleo-recent-type">{item.type}</span>
+                  <PersonIcon size={18} className="fo-recent-icon" />
+                  <span className="fo-recent-text">
+                    <span className="fo-recent-name">{item.label}</span>
+                    <span className="fo-recent-type">{item.type}</span>
                   </span>
                 </button>
               ))}

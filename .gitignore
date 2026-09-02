@@ -31,3 +31,7 @@ tests/playwright-report/
 # Zoho export files: real candidate and customer PII. Never committed.
 migration/zoho-exports/
 migration/out/
+
+# Agent scratch space; never committed.
+.scratch-audit/
+tests/.scratch-audit/

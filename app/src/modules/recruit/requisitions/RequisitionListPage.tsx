@@ -10,8 +10,8 @@ import { StatusBadge } from '../../../components/ui/Badge';
 import { UnviewedBadge } from '../../../components/ui/UnviewedBadge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
-import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
-import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
+import { Pager, usePagination } from '../../../components/ui/Pager';
+import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
 import {
   errMsg,
@@ -301,7 +301,7 @@ export function RequisitionListPage() {
         sortable: true,
         sortValue: (r) => r.applications,
         render: (r) => (
-          <span className="taleo-candidates-cell">
+          <span className="fo-candidates-cell">
             <PersonIcon size={18} />
             <span className="badge badge-success">{r.applications}</span>
           </span>
@@ -331,7 +331,7 @@ export function RequisitionListPage() {
         sortable: true,
         sortValue: (r) => r.unviewed,
         render: (r) => (
-          <span className="taleo-next-steps-cell">
+          <span className="fo-next-steps-cell">
             <UnviewedBadge count={r.unviewed} />
             <button
               type="button"
@@ -411,9 +411,9 @@ export function RequisitionListPage() {
       exportColumns={exportColumns}
       exportFilename="requisitions.csv"
       filterRail={
-        <details className="taleo-advanced-search" open>
+        <details className="fo-advanced-search" open>
           <summary>Advanced Search</summary>
-          <div className="taleo-advanced-search-body">
+          <div className="fo-advanced-search-body">
             <Select
               label="Status"
               placeholder="All statuses"
@@ -521,16 +521,16 @@ export function RequisitionListPage() {
       )}
 
       {canBulk && (
-        <div className="record-action-bar taleo-list-action-bar">
+        <div className="record-action-bar fo-list-action-bar">
           {}
-          <TaleoPlaceholderAction
+          <PlaceholderAction
             label="Delete"
             detail="Bulk delete isn't implemented for requisitions yet."
           />
           {}
-          <TaleoPlaceholderAction label="Forms" />
+          <PlaceholderAction label="Forms" />
           {}
-          <TaleoPlaceholderAction
+          <PlaceholderAction
             label="Change status to…"
             caret
             detail="Change the status of one requisition at a time from its record page."
@@ -538,7 +538,7 @@ export function RequisitionListPage() {
         </div>
       )}
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}
@@ -558,7 +558,7 @@ export function RequisitionListPage() {
         emptyText="No requisitions match."
       />
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}

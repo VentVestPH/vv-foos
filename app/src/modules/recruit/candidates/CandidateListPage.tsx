@@ -8,8 +8,8 @@ import { Select } from '../../../components/ui/Select';
 import { Badge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
-import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
-import { TaleoPlaceholderAction, usePlaceholder } from '../../../shell/TaleoPlaceholder';
+import { Pager, usePagination } from '../../../components/ui/Pager';
+import { PlaceholderAction, usePlaceholder } from '../../../shell/Placeholder';
 import {
   FileText as ResumeIcon,
   Flag as FlagIcon,
@@ -463,20 +463,20 @@ export function CandidateListPage() {
       searchPlaceholder="Search name, email, title, employer…"
       secondSearchRow={
         <div className="cand-second-search-fields">
-          <span className="taleo-search-label">First Name:</span>
+          <span className="fo-search-label">First Name:</span>
           <Input
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             aria-label="First name"
           />
-          <span className="taleo-search-label">Last Name:</span>
+          <span className="fo-search-label">Last Name:</span>
           <Input
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             aria-label="Last name"
           />
           {}
-          <button type="button" className="btn btn-secondary btn-sm taleo-go-btn">
+          <button type="button" className="btn btn-secondary btn-sm fo-go-btn">
             Go!
           </button>
         </div>
@@ -494,9 +494,9 @@ export function CandidateListPage() {
       exportColumns={exportColumns}
       exportFilename="candidates.csv"
       filterRail={
-        <details className="taleo-advanced-search" open>
+        <details className="fo-advanced-search" open>
           <summary>Advanced Search</summary>
-          <div className="taleo-advanced-search-body">
+          <div className="fo-advanced-search-body">
           <Select
             label="Status"
             placeholder="All statuses"
@@ -607,29 +607,29 @@ export function CandidateListPage() {
         <p className="rq-error">{error ?? savedViews.error}</p>
       )}
 
-      <div className="record-action-bar taleo-list-action-bar">
+      <div className="record-action-bar fo-list-action-bar">
         {}
-        <TaleoPlaceholderAction
+        <PlaceholderAction
           label="Send Email"
           size="sm"
           detail="Bulk email from the candidate list isn't implemented — open a candidate record to send a real email."
         />
         {}
-        <TaleoPlaceholderAction label="View Resume" size="sm" />
+        <PlaceholderAction label="View Resume" size="sm" />
         {}
-        <TaleoPlaceholderAction label="Print Resume" size="sm" />
+        <PlaceholderAction label="Print Resume" size="sm" />
         {}
-        <TaleoPlaceholderAction label="Submit" size="sm" />
+        <PlaceholderAction label="Submit" size="sm" />
         {}
-        <TaleoPlaceholderAction label="More" size="sm" caret />
+        <PlaceholderAction label="More" size="sm" caret />
         <CandidateGearButton />
         {}
-        <TaleoPlaceholderAction label="Mark as…" size="sm" caret />
+        <PlaceholderAction label="Mark as…" size="sm" caret />
         {}
-        <TaleoPlaceholderAction label="Change Main Status to…" size="sm" caret />
+        <PlaceholderAction label="Change Main Status to…" size="sm" caret />
       </div>
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}
@@ -649,7 +649,7 @@ export function CandidateListPage() {
         emptyText="No candidates match."
       />
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}
@@ -697,7 +697,7 @@ function CandidateGearButton() {
   return (
     <button
       type="button"
-      className="taleo-gear-btn"
+      className="fo-gear-btn"
       aria-label="Configure candidate list columns"
       onClick={() =>
         show(

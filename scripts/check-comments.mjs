@@ -76,6 +76,7 @@ function walk(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const entry of readdirSync(dir)) {
     if (entry === 'node_modules' || entry === 'test-results' || entry === 'playwright-report') continue;
+    if (entry.startsWith('.')) continue;
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) walk(full, out);
     else if (CHECKED.test(full)) out.push(full);

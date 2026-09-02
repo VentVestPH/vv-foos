@@ -43,7 +43,7 @@ test.describe('Intake flows (criteria 5.1, 5.2, 5.4)', () => {
     await gotoAsSignedIn(page, '/intake');
 
     const readBadge = async () => {
-      const badge = page.getByRole('button', { name: /^Intake/ }).locator('.taleo-nav-badge');
+      const badge = page.getByRole('button', { name: /^Intake/ }).locator('.fo-nav-badge');
       if ((await badge.count()) === 0) return 0;
       return Number(/(\d+)/.exec((await badge.innerText()).trim())?.[1] ?? 0);
     };

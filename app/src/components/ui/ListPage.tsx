@@ -48,14 +48,14 @@ export function ListPage({
   return (
     <div className="list-page">
       {icon ? (
-        <div className="taleo-page-header">
-          <span className="taleo-page-icon">{icon}</span>
-          <div className="taleo-page-header-text">
-            <div className="taleo-page-header-title-row">
+        <div className="fo-page-header">
+          <span className="fo-page-icon">{icon}</span>
+          <div className="fo-page-header-text">
+            <div className="fo-page-header-title-row">
               <h1>{title}</h1>
               {actions}
             </div>
-            {description && <p className="taleo-page-desc">{description}</p>}
+            {description && <p className="fo-page-desc">{description}</p>}
           </div>
         </div>
       ) : (
@@ -64,8 +64,8 @@ export function ListPage({
           {actions}
         </div>
       )}
-      <div className="list-page-toolbar taleo-search-row">
-        <span className="taleo-search-label">Search:</span>
+      <div className="list-page-toolbar fo-search-row">
+        <span className="fo-search-label">Search:</span>
         <div className="list-page-search">
           <Input
             type="search"
@@ -76,7 +76,7 @@ export function ListPage({
           />
         </div>
         {}
-        <button type="button" className="btn btn-secondary btn-sm taleo-go-btn">
+        <button type="button" className="btn btn-secondary btn-sm fo-go-btn">
           Go!
         </button>
         {savedViewsSlot}
@@ -98,7 +98,7 @@ export function ListPage({
         )}
       </div>
       {secondSearchRow && (
-        <div className="list-page-toolbar taleo-search-row taleo-second-search-row">
+        <div className="list-page-toolbar fo-search-row fo-second-search-row">
           {secondSearchRow}
         </div>
       )}

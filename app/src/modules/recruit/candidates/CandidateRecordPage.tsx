@@ -11,7 +11,7 @@ import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { SidePanelTabs } from '../../../components/ui/SidePanelTabs';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
-import { TaleoPlaceholderAction, usePlaceholder } from '../../../shell/TaleoPlaceholder';
+import { PlaceholderAction, usePlaceholder } from '../../../shell/Placeholder';
 import {
   CircleArrowUp,
   User as PersonIcon,
@@ -401,18 +401,18 @@ export function CandidateRecordPage() {
         </Button>
       ) : (
 
-        <TaleoPlaceholderAction
+        <PlaceholderAction
           label="View Resume"
           size="sm"
           detail="No resume is on file for this candidate yet."
         />
       )}
       {}
-      <TaleoPlaceholderAction label="Print Resume" size="sm" />
+      <PlaceholderAction label="Print Resume" size="sm" />
       {}
-      <TaleoPlaceholderAction label="Submit" size="sm" />
+      <PlaceholderAction label="Submit" size="sm" />
       {}
-      <TaleoPlaceholderAction label="More" size="sm" caret />
+      <PlaceholderAction label="More" size="sm" caret />
       {canGrade && draft && (
         <Button size="sm" variant="primary" onClick={() => void saveProfile()}>
           Save profile
@@ -442,7 +442,7 @@ export function CandidateRecordPage() {
           </button>
           <button
             type="button"
-            className="link-btn taleo-back-to-list"
+            className="link-btn fo-back-to-list"
             onClick={backToList}
           >
             <CircleArrowUp size={18} aria-hidden="true" />
@@ -882,7 +882,7 @@ export function CandidateRecordPage() {
         />
       </RecordSection>
 
-      <div className="record-action-bar taleo-record-bottom-bar">{actionBarContent}</div>
+      <div className="record-action-bar fo-record-bottom-bar">{actionBarContent}</div>
 
       <RecordSection title="Requisition Details" defaultOpen={false}>
         {apps.length === 0 && (

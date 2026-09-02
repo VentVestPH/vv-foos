@@ -23,7 +23,7 @@ export function RecordPage({
   return (
     <div className="record-page">
       <div className="record-title-row">
-        {icon && <span className="taleo-page-icon">{icon}</span>}
+        {icon && <span className="fo-page-icon">{icon}</span>}
         {code && <span className="record-code">{code}</span>}
         <h1>{title}</h1>
         {titleExtras}

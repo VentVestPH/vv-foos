@@ -27,7 +27,7 @@ export function usePagination<T>(rows: T[], pageSize = DEFAULT_PAGE_SIZE) {
   };
 }
 
-interface TaleoPagerProps {
+interface PagerProps {
   from: number;
   to: number;
   total: number;
@@ -36,17 +36,17 @@ interface TaleoPagerProps {
   onPage: (page: number) => void;
 }
 
-export function TaleoPager({ from, to, total, page, pageCount, onPage }: TaleoPagerProps) {
+export function Pager({ from, to, total, page, pageCount, onPage }: PagerProps) {
   const atStart = page === 0;
   const atEnd = page >= pageCount - 1;
 
   return (
-    <div className="taleo-pager">
-      <span className="taleo-pager-count">
+    <div className="fo-pager">
+      <span className="fo-pager-count">
         {total === 0 ? '0 of 0' : `${from}-${to} of ${total}`}
       </span>
       {pageCount > 1 && (
-        <span className="taleo-pager-controls">
+        <span className="fo-pager-controls">
           <button type="button" onClick={() => onPage(0)} disabled={atStart} aria-label="First page">
             &laquo;
           </button>
@@ -58,7 +58,7 @@ export function TaleoPager({ from, to, total, page, pageCount, onPage }: TaleoPa
           >
             &lsaquo;
           </button>
-          <span className="taleo-pager-pos" aria-live="polite">
+          <span className="fo-pager-pos" aria-live="polite">
             {page + 1} / {pageCount}
           </span>
           <button

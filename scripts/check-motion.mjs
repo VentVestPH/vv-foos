@@ -6,9 +6,9 @@ import { join } from 'node:path';
 const MAX_MS = 220;
 const FORBIDDEN_PROPS = ['width', 'height', 'top', 'left'];
 const SHELL_SELECTORS = [
-  '.taleo-utility-header',
-  '.taleo-sidebar',
-  '.taleo-body',
+  '.fo-utility-header',
+  '.fo-sidebar',
+  '.fo-body',
   '.shell-main',
 ];
 

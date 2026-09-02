@@ -8,9 +8,9 @@ import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
+import { Pager, usePagination } from '../../../components/ui/Pager';
 import { LostReasonDialog } from '../components/LostReasonDialog';
-import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
+import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
 import { fmtDate, fmtMoney, stageLabel, type Deal } from '../lib';
@@ -242,9 +242,9 @@ export function DealsListPage() {
           </span>
         }
         filterRail={
-          <details className="taleo-advanced-search" open>
+          <details className="fo-advanced-search" open>
             <summary>Advanced Search</summary>
-            <div className="taleo-advanced-search-body">
+            <div className="fo-advanced-search-body">
               <Select
                 label="Stage"
                 options={DEAL_STAGES.map((s) => ({
@@ -268,16 +268,16 @@ export function DealsListPage() {
         exportRows={exportRows}
         exportFilename="deals.csv"
       >
-        <div className="record-action-bar taleo-list-action-bar">
+        <div className="record-action-bar fo-list-action-bar">
           {}
-          <TaleoPlaceholderAction
+          <PlaceholderAction
             label="Delete"
             detail="Bulk delete isn't implemented for deals yet."
           />
         </div>
 
         {view === 'table' && (
-          <TaleoPager
+          <Pager
             from={pager.from}
             to={pager.to}
             total={pager.total}
@@ -306,7 +306,7 @@ export function DealsListPage() {
         )}
 
         {view === 'table' && (
-          <TaleoPager
+          <Pager
             from={pager.from}
             to={pager.to}
             total={pager.total}

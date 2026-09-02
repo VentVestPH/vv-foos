@@ -12,7 +12,7 @@ export function Drawer({
   return (
     <div className="intake-drawer-overlay" onClick={onClose}>
       <div
-        className="intake-drawer taleo-record-overlay"
+        className="intake-drawer fo-record-overlay"
         role="dialog"
         aria-modal="true"
         aria-label={title}

@@ -189,7 +189,7 @@ test.describe('Record write paths (criteria 2.4, 2.5, 3.2)', () => {
     const personId = page.url().split('/').pop()!;
 
     await page.getByRole('button', { name: '+ Note', exact: true }).click();
-    const dialog = page.locator('[role="dialog"], .modal, .taleo-modal').first();
+    const dialog = page.locator('[role="dialog"], .modal, .fo-modal').first();
     await expect(dialog).toBeVisible({ timeout: 20000 });
     await dialog.getByLabel(/^Subject/).fill(subject);
     await dialog.getByLabel(/^Details/).fill('Written by the automated contact-write test.');

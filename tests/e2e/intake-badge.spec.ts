@@ -39,7 +39,7 @@ test.describe('Intake badge (D17)', () => {
     await gotoAsSignedIn(page, '/');
 
     const intakeTab = page.getByRole('button', { name: /^Intake/ });
-    await expect(intakeTab.locator('.taleo-nav-badge')).toHaveText(new RegExp(`^${count}`), {
+    await expect(intakeTab.locator('.fo-nav-badge')).toHaveText(new RegExp(`^${count}`), {
       timeout: 15000,
     });
     await expect(intakeTab).toHaveAttribute('title', /awaiting review/);

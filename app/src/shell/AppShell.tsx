@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
-import { TaleoUtilityHeader } from './TaleoUtilityHeader';
-import { TaleoPrimaryNav } from './TaleoPrimaryNav';
-import { TaleoSidebar } from './TaleoSidebar';
+import { UtilityHeader } from './UtilityHeader';
+import { PrimaryNav } from './PrimaryNav';
+import { ShellSidebar } from './ShellSidebar';
 import { BookmarkBar } from './BookmarkBar';
 import { useStickyFocusGuard } from './useStickyFocusGuard';
 
@@ -10,10 +10,10 @@ export function AppShell() {
 
   return (
     <div className="shell">
-      <TaleoUtilityHeader />
-      <TaleoPrimaryNav />
-      <div className="taleo-body">
-        <TaleoSidebar />
+      <UtilityHeader />
+      <PrimaryNav />
+      <div className="fo-body">
+        <ShellSidebar />
         <div className="shell-main">
           <main className="shell-content">
             <Outlet />

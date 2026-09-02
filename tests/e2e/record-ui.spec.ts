@@ -7,7 +7,7 @@ test.describe('Record and list UI criteria', () => {
   });
 
   test('2.10 the Recently Viewed rail records opens across modules, newest first', async ({ page }) => {
-    const rail = page.locator('aside, .taleo-sidebar').first();
+    const rail = page.locator('aside, .fo-sidebar').first();
 
     await gotoAsSignedIn(page, '/sales/companies');
     await page.locator('.table-wrap .link-btn').first().click();
@@ -28,7 +28,7 @@ test.describe('Record and list UI criteria', () => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     await page.locator('.table-wrap .link-btn').first().click();
     await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
-    await expect(page.locator('aside, .taleo-sidebar').first()).toContainText(/candidate/, {
+    await expect(page.locator('aside, .fo-sidebar').first()).toContainText(/candidate/, {
       timeout: 15000,
     });
 
@@ -50,7 +50,7 @@ test.describe('Record and list UI criteria', () => {
     await gotoAsSignedIn(page, '/sales/companies');
     await page.locator('.table-wrap .link-btn').first().click();
     await expect(page).toHaveURL(/\/sales\/companies\/[0-9a-f-]{36}/);
-    await expect(page.locator('aside, .taleo-sidebar').first()).toContainText(/company/, {
+    await expect(page.locator('aside, .fo-sidebar').first()).toContainText(/company/, {
       timeout: 15000,
     });
 
@@ -60,7 +60,7 @@ test.describe('Record and list UI criteria', () => {
     );
     expect(capped).toBe(15);
 
-    const railItems = await page.locator('aside li, .taleo-sidebar li').count();
+    const railItems = await page.locator('aside li, .fo-sidebar li').count();
     expect(railItems).toBeLessThanOrEqual(30);
 
     await page.evaluate((k: string) => localStorage.removeItem(k), key as string);

@@ -3,8 +3,8 @@ import { db as supabase } from '../db';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
-import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
+import { Pager, usePagination } from '../../../components/ui/Pager';
+import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Ticket as TicketIcon } from 'lucide-react';
 import { useCompanyOptions, useStaffList } from '../hooks';
 import { fmtDate, type Ticket } from '../lib';
@@ -84,14 +84,14 @@ export function TicketsListPage() {
       onSearchChange={setSearch}
       searchPlaceholder="Search tickets…"
       actions={
-        <TaleoPlaceholderAction
+        <PlaceholderAction
           label="New Ticket"
           variant="primary"
           detail="Ticket creation isn't implemented yet — it arrives with the Customer Success module."
         />
       }
     >
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}
@@ -108,7 +108,7 @@ export function TicketsListPage() {
         emptyText={loading ? 'Loading…' : "No tickets. Ticket workflows arrive with the CS module."}
       />
 
-      <TaleoPager
+      <Pager
         from={pager.from}
         to={pager.to}
         total={pager.total}

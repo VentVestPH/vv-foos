@@ -4,7 +4,7 @@ import { primaryNavForRole } from './navConfig';
 import { House as HomeIcon } from 'lucide-react';
 import { useIntakeBadge } from '../modules/intake';
 
-export function TaleoPrimaryNav() {
+export function PrimaryNav() {
   const role = useRole();
   const location = useLocation();
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ export function TaleoPrimaryNav() {
   const intakeCount = useIntakeBadge();
 
   return (
-    <nav className="taleo-primary-nav" aria-label="Primary">
+    <nav className="fo-primary-nav" aria-label="Primary">
       {items.map((item) => {
         const active = item.isActive
           ? item.isActive(location.pathname, location.search)
@@ -23,9 +23,9 @@ export function TaleoPrimaryNav() {
             key={item.label}
             type="button"
             className={
-              'taleo-nav-tab' +
+              'fo-nav-tab' +
               (active ? ' active' : '') +
-              (item.homeIcon ? ' taleo-nav-home' : '')
+              (item.homeIcon ? ' fo-nav-home' : '')
             }
             onClick={() => navigate(item.to)}
             aria-current={active ? 'page' : undefined}
@@ -39,7 +39,7 @@ export function TaleoPrimaryNav() {
             {item.badge === 'intake' ? (
               <span aria-live="polite" aria-atomic="true">
                 {intakeCount > 0 ? (
-                  <span className="taleo-nav-badge">
+                  <span className="fo-nav-badge">
                     {intakeCount}
                     <span className="visually-hidden"> items awaiting review</span>
                   </span>

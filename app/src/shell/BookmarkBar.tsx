@@ -17,7 +17,7 @@ export function BookmarkToggle() {
   return (
     <button
       type="button"
-      className={bookmarked ? 'taleo-utility-icon is-active' : 'taleo-utility-icon'}
+      className={bookmarked ? 'fo-utility-icon is-active' : 'fo-utility-icon'}
       aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark this page'}
       aria-pressed={bookmarked}
       title={
@@ -48,14 +48,14 @@ export function BookmarkBar() {
   if (bookmarks.length === 0) return null;
 
   return (
-    <div className="taleo-bookmark-bar" aria-label="Bookmarks">
+    <div className="fo-bookmark-bar" aria-label="Bookmarks">
       {bookmarks.map((bookmark) => (
         <span
           key={bookmark.href}
           className={
             bookmark.href === location.pathname + location.search
-              ? 'taleo-bookmark is-current'
-              : 'taleo-bookmark'
+              ? 'fo-bookmark is-current'
+              : 'fo-bookmark'
           }
         >
           <button type="button" onClick={() => navigate(bookmark.href)}>
@@ -63,7 +63,7 @@ export function BookmarkBar() {
           </button>
           <button
             type="button"
-            className="taleo-bookmark-remove"
+            className="fo-bookmark-remove"
             aria-label={`Remove bookmark ${bookmark.label}`}
             onClick={() => remove(bookmark.href)}
           >

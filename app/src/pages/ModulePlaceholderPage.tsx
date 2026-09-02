@@ -6,7 +6,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { Table } from '../components/ui/Table';
-import { TaleoPlaceholderAction, usePlaceholder } from '../shell/TaleoPlaceholder';
+import { PlaceholderAction, usePlaceholder } from '../shell/Placeholder';
 
 type ModuleKey = 'employees' | 'onboard' | 'users' | 'courses';
 
@@ -105,30 +105,30 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
 
   return (
     <div className="list-page">
-      <div className="taleo-page-header">
-        <span className="taleo-page-icon">{config.icon}</span>
-        <div className="taleo-page-header-text">
-          <div className="taleo-page-header-title-row">
+      <div className="fo-page-header">
+        <span className="fo-page-icon">{config.icon}</span>
+        <div className="fo-page-header-text">
+          <div className="fo-page-header-title-row">
             <h1>{config.title}</h1>
           </div>
           {config.description && (
-            <p className="taleo-page-desc">{config.description}</p>
+            <p className="fo-page-desc">{config.description}</p>
           )}
         </div>
       </div>
 
       {module !== 'onboard' && (
-        <div className="taleo-search-row">
-          <span className="taleo-search-label">Search:</span>
+        <div className="fo-search-row">
+          <span className="fo-search-label">Search:</span>
           <input type="text" aria-label={`Search ${config.title}`} disabled />
-          <TaleoPlaceholderAction label="Go!" size="sm" className="taleo-go-btn" />
+          <PlaceholderAction label="Go!" size="sm" className="fo-go-btn" />
         </div>
       )}
 
       {}
       <button
         type="button"
-        className="taleo-gear-btn"
+        className="fo-gear-btn"
         aria-label="Configure this list"
         aria-disabled
         onClick={() => show('Configure this list')}
@@ -139,18 +139,18 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
       <div className="list-page-toolbar">
         {module === 'employees' && (
           <>
-            <TaleoPlaceholderAction label="Send Email" />
-            <TaleoPlaceholderAction label="Onboard" />
-            <TaleoPlaceholderAction label="Assign Course" />
-            <TaleoPlaceholderAction label="More" caret />
-            <TaleoPlaceholderAction label="Change Status to…" caret />
+            <PlaceholderAction label="Send Email" />
+            <PlaceholderAction label="Onboard" />
+            <PlaceholderAction label="Assign Course" />
+            <PlaceholderAction label="More" caret />
+            <PlaceholderAction label="Change Status to…" caret />
           </>
         )}
         {module === 'onboard' && (
           <>
-            <TaleoPlaceholderAction label="Delete" />
-            <TaleoPlaceholderAction label="New Packet" />
-            <TaleoPlaceholderAction label="Print Forms" />
+            <PlaceholderAction label="Delete" />
+            <PlaceholderAction label="New Packet" />
+            <PlaceholderAction label="Print Forms" />
             <select aria-label="Filter" disabled defaultValue="all">
               <option value="all">- All -</option>
             </select>
@@ -158,21 +158,20 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
         )}
         {module === 'users' && (
           <>
-            <TaleoPlaceholderAction label="Send Email" />
-            <TaleoPlaceholderAction label="Assign Course" />
+            <PlaceholderAction label="Send Email" />
+            <PlaceholderAction label="Assign Course" />
           </>
         )}
-        {module === 'courses' && <TaleoPlaceholderAction label="New Course" />}
+        {module === 'courses' && <PlaceholderAction label="New Course" />}
       </div>
 
       {module === 'employees' && <EmployeesTable />}
       {module === 'users' && <UsersTable />}
       {module === 'courses' && <CoursesTable />}
       {module === 'onboard' && (
-        <p className="taleo-module-placeholder-note">
+        <p className="fo-module-placeholder-note">
           No onboarding or offboarding packets yet. This module isn't built in the
-          current FOOS MVP — the page shell matches Front Office OS's Taleo
-          reference exactly so it's ready when it is.
+          current FOOS MVP. The page shell is in place so it is ready when it is.
         </p>
       )}
     </div>
