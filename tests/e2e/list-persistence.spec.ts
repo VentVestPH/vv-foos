@@ -8,6 +8,48 @@ const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const VIEW_NAME = `QA Saved View ${RUN}`;
 const PENDING_NAME = '…';
 
+
+function csvRecords(csv: string): string[][] {
+  const records: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+
+  for (let i = 0; i < csv.length; i += 1) {
+    const c = csv[i];
+    if (quoted) {
+      if (c === '"' && csv[i + 1] === '"') {
+        cell += '"';
+        i += 1;
+      } else if (c === '"') {
+        quoted = false;
+      } else {
+        cell += c;
+      }
+      continue;
+    }
+    if (c === '"') {
+      quoted = true;
+    } else if (c === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && csv[i + 1] === '\n') i += 1;
+      row.push(cell);
+      records.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += c;
+    }
+  }
+  if (cell !== '' || row.length > 0) {
+    row.push(cell);
+    records.push(row);
+  }
+  return records;
+}
+
 async function apiAs(email: string): Promise<SupabaseClient> {
   const client = createClient(SUPABASE_URL, ANON_KEY);
   const { error } = await client.auth.signInWithPassword({
@@ -110,9 +152,10 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
     const onScreen: string[] = [];
     for (const row of await rows.all()) {
       const name = (await row.locator('.link-btn').first().innerText()).trim();
-      if (name) onScreen.push(name);
+      onScreen.push(name);
     }
     expect(onScreen.length).toBeGreaterThan(0);
+    expect(onScreen.filter((n) => n === ''), 'every visible row has a resolved name').toEqual([]);
 
     const download = await Promise.all([
       page.waitForEvent('download', { timeout: 25000 }),
@@ -125,11 +168,21 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
     for await (const chunk of stream) chunks.push(chunk as Buffer);
     const csv = Buffer.concat(chunks).toString('utf8');
 
-    const lines = csv.trim().split(/\r?\n/);
-    expect(lines.length, 'a header plus one line per visible row').toBe(onScreen.length + 1);
+    const records = csvRecords(csv);
+    await test.info().attach('export.csv', { body: csv, contentType: 'text/csv' });
+    await test.info().attach('on-screen.json', {
+      body: JSON.stringify(onScreen, null, 2),
+      contentType: 'application/json',
+    });
 
-    for (const name of onScreen) {
-      expect(csv, `${name} is on screen but missing from the export`).toContain(name);
-    }
+    expect(
+      records.length,
+      `a header plus one record per visible row; got ${records.length} records for ${onScreen.length} rows`,
+    ).toBe(onScreen.length + 1);
+
+    const exportedNames = records.slice(1).map((r) => r[0]?.trim() ?? '');
+    expect(new Set(exportedNames), 'the export names are exactly the names on screen').toEqual(
+      new Set(onScreen),
+    );
   });
 });

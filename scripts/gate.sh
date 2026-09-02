@@ -16,7 +16,14 @@ run() {
   out="$("$@" 2>&1)"; code=$?
   if [ "$code" -ne 0 ]; then
     printf 'FAIL  %-12s\n' "$name"
-    printf '%s\n' "$out" | tail -8
+    local signal
+    signal="$(printf '%s\n' "$out" | grep -Ev '^npm (error|warn)' \
+      | grep -EiB1 '^ +[0-9]+\) |error TS|✘|✗|[0-9]+ failed|Error:|AssertionError|Timed out' | head -24)"
+    if [ -n "$signal" ]; then
+      printf '%s\n' "$signal"
+    else
+      printf '%s\n' "$out" | grep -Ev '^npm (error|warn)' | tail -12
+    fi
     return 1
   fi
   printf 'ok    %-12s %s\n' "$name" \
@@ -39,7 +46,27 @@ one_pass() {
   run "comments"    node scripts/check-comments.mjs       || fail=1
   run "migrations"  node scripts/check-migrations.mjs     || fail=1
   run "api-tests"   npm run test --workspace=tests        || fail=1
-  run "browser"     npm run e2e --workspace=tests -- --retries=0 --reporter=line || fail=1
+  local jsonout="$ROOT/.gate/browser-pass-${PASS_LABEL:-1}.json"
+  mkdir -p "$ROOT/.gate"
+  PLAYWRIGHT_JSON_OUTPUT_NAME="$jsonout" \
+    run "browser" npm run e2e --workspace=tests -- --retries=0 --reporter=line,json || {
+      fail=1
+      if [ -s "$jsonout" ]; then
+        printf '      failing test(s) from %s:\n' "${jsonout#$ROOT/}"
+        node -e '
+          const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+          const bad = [];
+          const walk = (s) => (s.suites || []).forEach(walk) || (s.specs || []).forEach((sp) =>
+            sp.tests.forEach((t) => t.results.forEach((res) => {
+              if (res.status !== "passed" && res.status !== "skipped") {
+                bad.push(`${sp.file} :: ${sp.title} [${res.status}] ${(res.error && res.error.message || "").split("\n")[0].slice(0, 140)}`);
+              }
+            })));
+          (r.suites || []).forEach(walk);
+          bad.slice(0, 10).forEach((b) => console.log("      " + b));
+        ' "$jsonout"
+      fi
+    }
   run "attachments" node scripts/check-attachment-queue.mjs || fail=1
 
   local v code
@@ -89,6 +116,7 @@ one_pass() {
 
 for i in $(seq 1 "$PASSES"); do
   if [ "$PASSES" -gt 1 ]; then printf '\n===== pass %s of %s =====\n' "$i" "$PASSES"; fi
+  PASS_LABEL="$i"; export PASS_LABEL
   one_pass || overall=1
 done
 

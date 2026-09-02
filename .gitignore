@@ -42,3 +42,4 @@ tests/.scratch-audit/
 
 # Discovery screenshots. Binary, regenerable, and they render seeded candidate names.
 discovery/
+.gate/
