@@ -2,6 +2,8 @@ export const SOURCE_ALIASES = new Map([
   ['Digital Assistant - Facebook Messenger', 'Digital Assistant - FB Messenger'],
 ]);
 
+export const STATUS_ALIASES = new Map([['Hired', 'Placed']]);
+
 export const ATTACHMENT_KIND_BY_LABEL = new Map([
   ['Resume', 'resume'],
   ['Formatted Resume', 'resume'],
@@ -88,7 +90,8 @@ export function resolveSource(lookups, zohoValue, unresolved) {
 export function resolveStatus(lookups, zohoValue, unresolved) {
   const raw = (zohoValue ?? '').trim();
   if (!raw) return null;
-  const id = lookups.statusByLabel.get(raw.toLowerCase()) ?? null;
+  const mapped = STATUS_ALIASES.get(raw) ?? raw;
+  const id = lookups.statusByLabel.get(mapped.toLowerCase()) ?? null;
   if (!id) unresolved.status.set(raw, (unresolved.status.get(raw) ?? 0) + 1);
   return id;
 }

@@ -72,6 +72,8 @@ Stage and status changes are plain `UPDATE`s on `applications`, `requisitions`, 
 
 `display_code` (`REQ-`, `APP-`, `DEAL-`, `TKT-`) is issued by a Postgres sequence. Leave it out of every insert.
 
+Zoho exports come in two dialects and `parseZohoTimestamp` handles both: Recruit writes `MM/DD/YYYY hh:mm AM/PM`, CRM writes `YYYY-MM-DD HH:MM:SS`. `Initial Date` has no year and three shapes (`M/DD`, `DD-Mon`, `Mon-DD`); `parsePartialDate` borrows the year from the row's own `Created Time`. An imported attachment path starts with `zoho-import/pending/` until its bytes arrive, and `lib/attachments.ts` is what the UI uses to tell that apart from a real file.
+
 `events_outbox` rows are `(event_name, aggregate_id, payload, created_at, processed_at)`, with null `processed_at` meaning pending. Edge Functions consume them with the service role; the frontend subscribes to them via Realtime (`HiredPromotionListener.tsx` is the canonical example). `tests/EVENT_PIPELINE.md` maps all 10 events to their consuming UI effect.
 
 ### Migrations and generated types
@@ -150,6 +152,18 @@ Four things bite anyone adding tests here:
 - **Vitest runs files serially** (`fileParallelism: false`) because the 10 MB oversized-resume case saturates the edge runtime enough that concurrent Edge Function calls return 503.
 
 Teardown belongs in `afterEach`/`afterAll`, never inline at the end of a test: a failing assertion aborts the rest of the block and the rows leak. Delete a storage object **before** its `attachments` row, or the file becomes unreachable (the DELETE policy matches on that row and `remove()` then returns an empty array with no error).
+
+Four migration and repair tools, all of which refuse a non-local target unless `--allow-remote` is passed, and all of which dry-run by default:
+
+```sh
+node migration/import.mjs                              # dry run; --apply to write, --entity to narrow
+node scripts/add-legacy-owners.mjs                     # inactive staff rows for Zoho owners with none
+node scripts/backfill-zoho-candidate-fields.mjs        # repairs star_grade and initial_date from the export
+node scripts/purge-zoho-import.mjs                     # reverses an import from zoho_id_map
+node scripts/rotate-persona-passwords.mjs              # fresh random persona passwords, printed once
+```
+
+The importer resolves paths relative to the current directory, so **run it from the repository root**; from inside `migration/` it writes its report to `migration/migration/out/`, and those reports contain candidate data.
 
 `npm run db:add-staff` creates a named local account so work happens under a real identity instead of a shared demo persona:
 

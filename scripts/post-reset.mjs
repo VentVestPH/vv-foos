@@ -86,8 +86,20 @@ async function waitForStack() {
   console.log('post-reset: REST and Edge Functions are answering.');
 }
 
+function seedLegacyOwners() {
+  if (!existsSync('migration/zoho-exports')) return;
+  try {
+    const out = execSync('node scripts/add-legacy-owners.mjs --apply', { encoding: 'utf8' });
+    const created = /Created (\d+) inactive staff row/.exec(out)?.[1] ?? '0';
+    console.log(`post-reset: ${created} inactive legacy-owner staff row(s) seeded from the Zoho exports.`);
+  } catch (e) {
+    console.warn(`post-reset: legacy owners not seeded (${e.message.split('\n')[0]}).`);
+  }
+}
+
 seedPersonas();
 if (!PERSONAS_ONLY) {
   restartEdgeRuntime();
   await waitForStack();
+  seedLegacyOwners();
 }

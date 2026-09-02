@@ -87,3 +87,28 @@ than a visible skip.
   Messenger` in FOOS. Aliased explicitly; this is defect D4.
 - Files are CRLF with quoted fields containing commas and newlines. The parser is
   RFC 4180 and does not use a naive split.
+
+## Entities, as of 2026-09-02
+
+| Entity | Export | State |
+| :---- | :---- | :---- |
+| `candidates` | `Candidates_001.csv` | 75 of 75 rows map |
+| `notes` | `Notes_001.csv` | 141 of 154; the 13 skipped have no importable parent |
+| `attachments` | `Attachments_001.csv` | 42 of 50; 8 identity documents are held back by default |
+| `companies` | `crm/Accounts_2026_09_02.csv` | 86 of 86 rows map |
+| `contacts` | `crm/Contacts_2026_09_02.csv` | mapper ready, export not yet on disk |
+
+Every lookup resolves: 0 unresolved staff, 0 unresolved sources, 0 unresolved statuses. Getting there needed `scripts/add-legacy-owners.mjs` for the three Zoho owners with no `staff` row, and a `STATUS_ALIASES` entry mapping the Zoho status `Hired` to the FOOS status `Placed`.
+
+Two export dialects, both handled. Recruit writes `MM/DD/YYYY hh:mm AM/PM`; CRM writes `YYYY-MM-DD HH:MM:SS`. `Initial Date` carries no year at all and appears as `M/DD` on 43 rows and `DD-Mon` on 31 more, which is why 31 dates were dropped by the first import and why `parsePartialDate` now accepts both and borrows the year from the row's own `Created Time`.
+
+Run everything from the repository root. From inside `migration/` the report lands in `migration/migration/out/`, and reports contain candidate data.
+
+## Repair and reversal
+
+```sh
+node scripts/backfill-zoho-candidate-fields.mjs   # star_grade and initial_date, matched via zoho_id_map
+node scripts/purge-zoho-import.mjs                # reverses an import; storage objects before attachment rows
+```
+
+Both dry-run by default and refuse a non-local target without `--allow-remote`. The backfill writes only fields that differ, so a second run reports zero changes.

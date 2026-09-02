@@ -17,6 +17,7 @@ import {
   type TaskRow,
 } from '../lib';
 import { Modal } from './Modal';
+import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
 
 export type EngagementParent = 'person' | 'company' | 'deal';
 
@@ -390,7 +391,14 @@ export function EngagementPanel({
                     {attachments.map((f) => (
                       <li key={f.id} className="sales-panel-item">
                         <div className="sales-panel-item-head">
-                          <span className="sales-panel-item-title">
+                          <span
+                            className="sales-panel-item-title"
+                            title={
+                              isPendingFile(f.storage_path)
+                                ? PENDING_FILE_REASON
+                                : undefined
+                            }
+                          >
                             {f.description ??
                               f.storage_path.split('/').pop() ??
                               f.storage_path}
@@ -401,6 +409,9 @@ export function EngagementPanel({
                         </div>
                         <div>
                           <Badge tone="outline">{f.kind}</Badge>
+                          {isPendingFile(f.storage_path) && (
+                            <Badge tone="warning">{PENDING_FILE_LABEL}</Badge>
+                          )}
                         </div>
                       </li>
                     ))}

@@ -255,3 +255,27 @@ Why inspection missed it: reading the stylesheet proves a rule exists, not that 
 `list-persistence.spec.ts` 2.11 collected candidate names from the DOM as soon as the first row was visible. `CandidateListPage` renders `…` as a placeholder name until the `people` lookup resolves, so under full-suite load the test captured `…`, then failed because the CSV contained the real name. It passed in isolation every time and failed inside the suite, which is the signature of a race rather than a product defect. The spec now polls until no row still shows the placeholder.
 
 This is the seventh test-isolation bug of my own found by running the suite repeatedly rather than once.
+
+### D36. A third `Initial Date` format was never listed, so 31 dates were dropped (High). FIXED 2026-09-02
+
+D2 recorded four source formats for `Initial Date`, two of which failed. Counting the shapes directly across all 75 rows found something simpler and worse: there are three shapes, and only one parsed.
+
+| Shape | Rows | Before | After |
+| :---- | ---: | :---- | :---- |
+| `M/DD` | 43 | parsed | parsed |
+| `DD-Mon`, for example `12-Jun` | 13 | **dropped** | parsed |
+| `DD-Mon`, for example `05-May` | 18 | **dropped** | parsed |
+
+`parsePartialDate` only understood the slash form. It now also accepts `DD-Mon`, `Mon-DD` and a space separator, still borrowing the year from the row's own `Created Time` rather than from today, and still refusing a day the month does not have. The parse rate went from **43 of 74 to 74 of 74**.
+
+Why it was missed twice: the earlier count was of formats described in a document, not of shapes present in the file. Replacing every digit with `N` and counting distinct results takes one line and would have shown it immediately.
+
+### D37. The comment guard was a no-op in CI (Medium). FIXED 2026-09-02
+
+`.github/workflows/ci.yml` runs `node scripts/check-comments.mjs` with no arguments. The script filtered `process.argv.slice(2)`, found nothing, and exited 0. It had never checked a single file in CI, and it could not fail a build in any case because every path ended in `process.exit(0)` or a JSON write to stdout.
+
+It now walks `app/src`, `tests`, `scripts`, `migration` and `supabase/functions` when called with no arguments, exits 1 on any comment that is not functional, and keeps its original per-file hook mode when given paths. Verified both ways, including a deliberately reintroduced comment that made it exit 1.
+
+### D38. The importer wrote its report outside the intended directory (Low). FIXED 2026-09-02
+
+Run from inside `migration/`, the importer resolved `migration/out` relative to the current directory and created `migration/migration/out/`. Dry-run reports contain candidate data, so a stray copy in an unexpected place matters more than the tidiness suggests. The directory was found and removed before staging, and the requirement to run from the repository root is now recorded in `CLAUDE.md` and `migration/README.md`.

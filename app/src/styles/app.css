@@ -1747,3 +1747,28 @@ summary:focus-visible,
   cursor: pointer;
   padding: 0 1px;
 }
+
+.file-pending-name {
+  color: var(--text-secondary);
+  cursor: help;
+}
+
+.file-pending-note {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-2);
+}
+
+.grade-comment-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-1);
+}
+
+.grade-comment-cell .cell-capped,
+.grade-comment-cell .cell-expanded {
+  flex: 1;
+  min-width: 0;
+}

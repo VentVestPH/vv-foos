@@ -43,6 +43,7 @@ import {
 } from '../lib/data';
 import { sendEmail, scheduleMeeting } from '../../../lib/googleActions';
 import { EMPTY_CELL } from '../../../lib/format';
+import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
 
 interface ProfileDraft {
   status_id: string;
@@ -337,6 +338,10 @@ export function CandidateRecordPage() {
   const viewResume = async () => {
     const newest = resumes[0];
     if (!newest) return;
+    if (isPendingFile(newest.storage_path)) {
+      setError(`${PENDING_FILE_LABEL}. ${PENDING_FILE_REASON}`);
+      return;
+    }
     const url = await attachmentUrl(newest.storage_path);
     if (url) window.open(url, '_blank', 'noopener');
     else setError('Could not create a download link for this resume.');

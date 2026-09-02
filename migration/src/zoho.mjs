@@ -1,5 +1,10 @@
 const MONTHS_31 = new Set([1, 3, 5, 7, 8, 10, 12]);
 
+const MONTH_BY_NAME = new Map([
+  ['jan', 1], ['feb', 2], ['mar', 3], ['apr', 4], ['may', 5], ['jun', 6],
+  ['jul', 7], ['aug', 8], ['sep', 9], ['sept', 9], ['oct', 10], ['nov', 11], ['dec', 12],
+]);
+
 function validDate(y, m, d) {
   if (m < 1 || m > 12 || d < 1) return false;
   if (m === 2) {
@@ -11,7 +16,22 @@ function validDate(y, m, d) {
 
 export function parseZohoTimestamp(value) {
   if (!value) return null;
-  const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})\s*(AM|PM))?$/i.exec(value.trim());
+  const trimmed = value.trim();
+
+  const iso24 = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(Z|[+-]\d{2}:?\d{2})?$/.exec(trimmed);
+  if (iso24) {
+    const y = Number(iso24[1]);
+    const mo = Number(iso24[2]);
+    const d = Number(iso24[3]);
+    const hh = Number(iso24[4]);
+    const mi = Number(iso24[5]);
+    const ss = iso24[6] === undefined ? 0 : Number(iso24[6]);
+    if (!validDate(y, mo, d) || hh > 23 || mi > 59 || ss > 59) return null;
+    const offset = iso24[7] ? iso24[7].replace(/^([+-]\d{2})(\d{2})$/, '$1:$2') : 'Z';
+    return `${iso24[1]}-${iso24[2]}-${iso24[3]}T${iso24[4]}:${iso24[5]}:${String(ss).padStart(2, '0')}${offset}`;
+  }
+
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})\s*(AM|PM))?$/i.exec(trimmed);
   if (!m) return null;
 
   const month = Number(m[1]);
@@ -50,15 +70,32 @@ export function parsePartialDate(value, yearSourceTimestamp) {
   const full = parseZohoDate(trimmed);
   if (full) return full;
 
-  const m = /^(\d{1,2})\/(\d{1,2})$/.exec(trimmed);
-  if (!m) return null;
+  let month = null;
+  let day = null;
+
+  const slash = /^(\d{1,2})\/(\d{1,2})$/.exec(trimmed);
+  if (slash) {
+    month = Number(slash[1]);
+    day = Number(slash[2]);
+  } else {
+    const named = /^(\d{1,2})[-\s]([A-Za-z]{3,4})\.?$/.exec(trimmed);
+    if (named) {
+      day = Number(named[1]);
+      month = MONTH_BY_NAME.get(named[2].toLowerCase()) ?? null;
+    } else {
+      const namedFirst = /^([A-Za-z]{3,4})\.?[-\s](\d{1,2})$/.exec(trimmed);
+      if (namedFirst) {
+        month = MONTH_BY_NAME.get(namedFirst[1].toLowerCase()) ?? null;
+        day = Number(namedFirst[2]);
+      }
+    }
+  }
+  if (month === null || day === null) return null;
 
   const createdIso = parseZohoTimestamp(yearSourceTimestamp);
   if (!createdIso) return null;
 
   const year = Number(createdIso.slice(0, 4));
-  const month = Number(m[1]);
-  const day = Number(m[2]);
   if (!validDate(year, month, day)) return null;
 
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;

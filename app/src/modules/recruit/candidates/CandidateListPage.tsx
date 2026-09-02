@@ -382,7 +382,7 @@ export function CandidateListPage() {
         render: (r) => {
           const prof = profiles.find((p) => p.person_id === r.id);
           return (
-            <span onClick={(e) => e.stopPropagation()}>
+            <span className="grade-comment-cell" onClick={(e) => e.stopPropagation()}>
               <CappedCell text={r.grade_comment} />
               {prof && canGrade(prof) && (
                 <Button

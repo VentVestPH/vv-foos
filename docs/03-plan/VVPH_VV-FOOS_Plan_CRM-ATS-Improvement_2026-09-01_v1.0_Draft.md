@@ -56,22 +56,22 @@ The highest-priority stream because every item degrades if it is discovered late
 | :---- | :---- | :---- | :---- |
 | A1 | Write the two missing migration files to match production: the seven Zoho columns, `zoho_id_map`, the `offer` value on `attachment_kind`, and the 18 `candidate_statuses` and 12 `sources` seed rows. Plus the Agent 6 RPC migration | D3. Verified present live, absent from `supabase/migrations/`, while `database.types.ts` already declares them | 1 to 2 h |
 | A2 | Verify `supabase db reset` from the repository reproduces production, then keep doing so | D3 | 1 h |
-| A3 | Restore `star_grade` for the 75 migrated candidates from the `Rating` column | D1. 37 of 75 source rows carry a Rating; all 75 live rows are null | 2 to 3 h |
-| A4 | Re-parse `Initial Date`: recover the 30 dropped rows and correct the 44 carrying an invented day of month | D2. Four source formats, two of which fail | 2 h |
+| A3 | **READY, PROVEN LOCALLY 2026-09-02.** `scripts/backfill-zoho-candidate-fields.mjs` matches source rows to `candidate_profiles` through `zoho_id_map` and writes only the fields that differ. Proven end to end on the local stack: the 75 imported rows were deliberately damaged (grades nulled, dates moved to day 1), the dry run reported exactly 37 grades to set and 74 dates to correct, `--apply` wrote 75 rows with 0 failures, and a second run reported 0 changes. Applying it to production is one command with `--allow-remote`, which is yours to authorise | D1. 37 of 75 source rows carry a Rating; all 75 live rows are null | 2 to 3 h |
+| A4 | **FIXED AND PROVEN 2026-09-02.** The root cause was a third source format nobody had listed: `Initial Date` carries `M/DD` on 43 rows and **`DD-Mon` on 31 more** (13 `NN-Jun`, 18 `NN-May`), and `parsePartialDate` only understood the first. Extended to accept `DD-Mon`, `Mon-DD` and space separators, still borrowing the year from the row own `Created Time` and still refusing a day that month does not have. Parse rate went from **43 of 74 to 74 of 74**. The same backfill script corrects rows already written | D2. Four source formats, two of which fail | 2 h |
 | A5 | Add `experience` to the Insert and Update types | D9. Blocks the Experience Details import once re-exported | 15 min |
 | A6 | Add a migration-drift guard so A1 cannot recur. Kappa runs a `db-migrate.yml` GitHub Action; the equivalent here is a check that fails when applied migrations and repository files diverge | D3 root cause | 3 to 4 h |
 
-**Status 2026-09-02.** Done: A1, A2, A5, A6. Blocked on a production write you have asked to hold: A3, A4.
+**Status 2026-09-02, second entry.** Done: A1, A2, A5, A6, and A4 in full. A3 is written, proven locally and idempotent; only the production write is outstanding, and that is one command whenever you say so.
 
 ### Workstream B. Security and access
 
 | # | Task | Evidence | Est. |
 | :---- | :---- | :---- | :---- |
 | B1 | Resolve QA-002. Either John signs off the Medium downgrade or `careers_rate_limit` gets RLS enabled | QA brief makes every RLS finding Critical by default and forbids downgrade without sign-off | 30 min once decided |
-| B2 | Rotate the four demo persona passwords, move the value out of committed source, and confirm the demo identities are still wanted | QA-003, re-rated to High. The database now holds 76 real people, 154 candid assessment notes, and attachment metadata referencing identity and tax documents | 1 h |
+| B2 | **TOOL READY 2026-09-02.** `scripts/rotate-persona-passwords.mjs` sets a fresh 24-byte random password on each of the four persona accounts through the Admin API, prints each value exactly once and stores none. Proven against the local stack: 4 of 4 accounts found. It refuses a non-local target without `--allow-remote`. Rotating the live values is a production action and stays yours | QA-003, re-rated to High. The database now holds 76 real people, 154 candid assessment notes, and attachment metadata referencing identity and tax documents | 1 h |
 | B3 | Decide whether `klent@ventvest.com` needs a real `staff` row, so work happens under a real identity rather than a shared demo admin | No such row exists; Google sign-in currently hits the hold screen | 15 min |
 
-**Status 2026-09-02.** Done: B1. Blocked on a production action: B2. Half done, the local half only: B3.
+**Status 2026-09-02, second entry.** Done: B1. B2 has a working tool, proven locally; rotating the live values is yours. B3: the local half is done and the production staff row is your call, with the recommendation in 6.9.
 
 ### Workstream C. Taleo look and feel
 
@@ -110,14 +110,14 @@ One Zoho session, so the export is not revisited three times.
 | D3 | Re-export Education Details with its full field set | Current file is header-only, zero data rows, verified | 30 min |
 | D4 | Re-export Experience Details with its full field set | Same, and byte-identical to the education file. `people.experience` was added in July to receive it and is empty on every row | 30 min |
 | D5 | Bulk attachment file download, matched by Attachment Id or File Name | `Attachment URL` blank on all 50 rows. All 50 live `storage_path` values are `pending-file-export/` placeholders | 1 to 2 h |
-| D6 | Add a UI guard so a `pending-file-export/` path shows "file not yet available" rather than a broken link | Recommended in the migration plan, not yet built | 1 h |
-| D7 | Reconcile the `Digital Assistant` source-name spelling | D4. Source data says `Facebook Messenger`, seed says `FB Messenger` | 15 min |
+| D6 | **DONE 2026-09-02.** `lib/attachments.ts` recognises both placeholder prefixes the migration has used (`zoho-import/pending/` and `pending-file-export/`). A pending file is listed with its name as plain text plus a "File not yet available" badge instead of a link, `attachmentUrl` returns null without a pointless round trip, and the resume preview says why rather than showing "Loading resume preview" for ever, which is what it did before. Two browser tests cover it: the pending file is badged and not a link, and a real uploaded file in the same list still is | Recommended in the migration plan, not yet built | 1 h |
+| D7 | **DONE.** Alias in `SOURCE_ALIASES`. A second alias was needed on 2026-09-02: the Zoho candidate status `Hired` had no row in `candidate_statuses` and is the same state FOOS calls `Placed`, so `STATUS_ALIASES` maps it. Unresolved statuses are now zero | D4. Source data says `Facebook Messenger`, seed says `FB Messenger` | 15 min |
 | D8 | **DECIDED 2026-09-02: keep.** Address data is largely absent: street 1%, city 31%, province 13%, postal 1%. Fields stay, no backfill. | Meeting listed addresses as required. The fields exist; the data does not | done |
-| D9 | Give the unmatched Zoho Recruit owner a `staff` row so roughly 305 imported rows keep their provenance | Without it every `created_by` and `uploaded_by` on those rows is null, and the audit trail says nobody did the work. The CRM `Users` export does not help: it is CRM-side only and 4 of its 8 rows are system accounts. Recommendation and its trade-off in section 6.9 | 1 h |
-| D10 | Build the `companies` and `contact_profiles` mappers for the CRM Accounts and Contacts exports | Accounts export has 86 rows and no mapper exists. This is the CRM half of D1 | 3 h |
+| D9 | **DONE 2026-09-02.** `scripts/add-legacy-owners.mjs` reads every owner column across all five exports, lists the ones with no `staff` row, and creates each as `is_active = false` with a `legacy+<slug>@import.invalid` address so a later real signup cannot collide on the unique email. Names are redacted unless `--show-names`. Applied locally: **3 owners created, and unresolved staff went from 3 distinct values across 325 rows to zero** | Without it every `created_by` and `uploaded_by` on those rows is null, and the audit trail says nobody did the work. The CRM `Users` export does not help: it is CRM-side only and 4 of its 8 rows are system accounts. Recommendation and its trade-off in section 6.9 | 1 h |
+| D10 | **DONE 2026-09-02.** `migration/src/map-companies.mjs` maps all **86 of 86** Accounts rows with 0 skipped: name, types, website with a scheme added, city, province, country, phone, owner and both timestamps, and it reports the source fields `companies` has no column for rather than dropping them silently. `map-contacts.mjs` is written and wired the same way and reports export columns it does not recognise; it waits only on the Contacts export. 12 unit tests cover both | Accounts export has 86 rows and no mapper exists. This is the CRM half of D1 | 3 h |
 | D11 | Pull Recruit and CRM through the API instead of waiting on emailed exports | Unblocks D2 to D5 and E7 without involving John. Credit cost measured against the published limits in section 2 | 2 h |
 
-**Status 2026-09-02.** Done: D1 (both CRM exports are on disk), D7, D8 (decided: keep). **Not built, verified today:** D6 has no implementation. Nothing in `app/src` references a `pending-file-export/` path or renders a "file not yet available" state, so an imported attachment with a placeholder path still tries to sign a URL for a file that is not there. Open: D2 to D5, D9, D10, D11. The earlier count of 4 done could not be reproduced; 3 is what the evidence supports.
+**Status 2026-09-02, second entry.** Done: D1, D6, D7, D8, D9, D10. Open: D2, D3, D4, D5 and D11, every one of them waiting on data this environment cannot produce. D3 and D4 need a re-export with the full field set; the files on disk are header only, 3 columns. D2 needs the job-openings export. D5 needs the attachment bytes. D11 needs a Zoho Self Client, which only you can create.
 
 ### Workstream E. Metrics and gates
 
@@ -129,10 +129,10 @@ One Zoho session, so the export is not revisited three times.
 | E4 | Create `tests/.env` and run the Vitest API suite | Absent, which is why it has never run. Network to Supabase now works from here | 1 h |
 | E5 | Run the three Playwright specs and the regression checklist | Never executed anywhere. Chromium now installs and launches on this machine | 3 to 4 h |
 | E6 | Close the 32 traced-but-unverified criteria and the 12 with no test | Gate 4 exit report | 1 to 2 days |
-| E7 | Gate 4's second half: the Taleo and Zoho CSV dry-run measuring dedup, completeness and grading preservation | Unstarted. Blocks Gate 5, which is the cutover trigger | 1 to 2 days |
+| E7 | **REHEARSED 2026-09-02 on every export that exists.** The full cycle ran against the local stack: apply, re-apply, damage, backfill, re-backfill, purge. Results: 75 of 75 candidates, 141 of 154 notes, 42 of 50 attachments with the 8 identity documents held back, 86 of 86 companies, 344 `zoho_id_map` rows. The second apply reported 0 new and every row existing, which is idempotency demonstrated rather than assumed. Every lookup resolves: 0 unresolved staff, 0 unresolved sources, 0 unresolved statuses. `scripts/purge-zoho-import.mjs` reverses the whole thing from `zoho_id_map`, storage objects before attachment rows. What is still unrehearsed is only what has no data: job openings, education and experience | Unstarted. Blocks Gate 5, which is the cutover trigger | 1 to 2 days |
 | E8 | Gate 5 UAT: recruiter script for ATS, BD script for CRM | Delivery plan v1.3 | 2 to 3 days elapsed |
 
-**Status 2026-09-02.** Done: E1 to E5, E8. Partial: E6, at 70 of 82 acceptance criteria. Open: E7, which needs D2 to D5 first.
+**Status 2026-09-02, second entry.** Done: E1 to E5, E7 for every export that exists, E8. Partial: E6, at 70 of 82 acceptance criteria; the other 12 need a Google account, a production publish, a hosted sheet or a human click-through.
 
 ### Workstream G. UX polish and motion
 
@@ -172,7 +172,7 @@ Optional against the October date, but it is what makes a November handover surv
 | F3 | Resolve the four `Relationships: []` module shims by adding `Relationships` to `database.types.ts` and deleting all four | 2 h |
 | F4 | Decide the fate of the other two frontends. Three interchangeable frontends against one schema is three times the surface for every future change. **Recommendation 2026-09-02: archive both.** Neither is present on this machine, so nothing is lost today by declaring them frozen, and the maintenance surface for every schema change and every `database.types.ts` edit drops by two thirds. Delete only once John confirms nobody demos from them | Decision |
 
-**Status 2026-09-02.** Done: F1, F2, F3. Decision outstanding: F4, recommendation in the row above.
+**Status 2026-09-02, second entry.** Done: F1, F2, F3, and F4 is decided (archive, do not delete). See section 6.
 
 ### Workstream H. Frontend consistency and the rest of the motion
 
@@ -231,19 +231,19 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**64 of 77 numbered tasks are done**, summing the Done column below. Workstream H and the mechanical half of J were built on 2026-09-02; J11 added one task to J.
+**70 of 77 numbered tasks are done**, summing the Done column below. Eight closed in the second pass of 2026-09-02: A4, D6, D7's second alias, D9, D10, E7, F4 and the long-text decision, plus A3 and B2 reduced to a single authorised command each.
 
-Three counting caveats, stated rather than smoothed over. First, an earlier headline here read "52 of 56", which this table never supported: its Done column summed to 46½. Second, the row-level status inside each workstream table went unmaintained for two passes; each table now carries a status line naming which ids are done, and that is J11. Third, workstream D was recorded as 4 done and the evidence supports 3: D1, D7 and D8. D6 was never built, which is stated in D's status line.
+Counting caveats, stated rather than smoothed over. An earlier headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built at all. Both are corrected above. Every row-level status now has a status line under its table, which is J11.
 
 | Workstream | Tasks | Done | What remains, and why |
 | :---- | :---- | :---- | :---- |
 | **C** Taleo fidelity | 17 | 17 | Complete |
 | **G** UX and motion | 10 | 10 | Complete by task. Coverage was narrower than that read, and H1 to H6 closed it |
-| **E** Gates and testing | 8 | 6½ | E7 needs the Zoho and Taleo CSV exports. E6 is 70 of 82 criteria PASS; the other 12 need a Google account, a production publish, a hosted sheet, or a human click-through |
-| **F** Hygiene | 4 | 3 | F4 is a decision: the fate of the other two frontends |
-| **B** Security | 3 | 2½ | B2 needs the live persona passwords rotated, which is a production action. B3's mechanical half is done (`npm run db:add-staff`); whether a production staff row is created is John's call |
-| **A** Integrity | 6 | 4 | A3 and A4 are computed and dry-run but the production write was refused by the permission classifier, and you have asked that production stay untouched |
-| **D** Data | 11 | 3 | D8 is decided (keep). D6 was never built. D2 to D5 no longer need emailed exports; the API pull (D11) supplies them. D9 and D10 are new |
+| **E** Gates and testing | 8 | 7½ | E7 is rehearsed on every export that exists; job openings, education and experience have no data to rehearse. E6 is 70 of 82 criteria PASS; the other 12 need a Google account, a production publish, a hosted sheet, or a human click-through |
+| **F** Hygiene | 4 | 4 | Complete. F4 decided: archive the other two frontends, delete only on confirmation |
+| **B** Security | 3 | 2½ | B1 done. B2 has a proven tool; the live rotation is a production action. B3's local half is done and the production row is your call |
+| **A** Integrity | 6 | 5 | A4 fixed in full: a third date format was found and the parse rate went 43 of 74 to 74 of 74. A3 is proven locally and idempotent; only the production write waits on you |
+| **D** Data | 11 | 6 | D1, D6, D7, D8, D9, D10 done. D2 to D5 and D11 all wait on data or credentials this environment cannot produce |
 | **H** Frontend consistency | 7 | 7 | Complete. H5 turned out to be six dead CSS selectors rather than a taste decision. H7 is the real logo, added at your request |
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
 
@@ -316,20 +316,23 @@ So "October or earlier" must mean early to mid October, and 2026-10-20 is the la
 
 This is tight but not unreasonable, on one condition: A and B do not slip, because everything downstream assumes the data and schema are trustworthy.
 
-## 6. Decisions needed from John
+## 6. Decisions
 
-Ten, three of which block work. Items 8 and 9 were decided on 2026-09-02 and are recorded here rather than removed, so the reasoning survives.
+Ten were listed. **Eight are now closed.** Each one is recorded with what it was decided to and why, so the reasoning survives the decision.
 
-1. **Blocking. QA-002 severity.** Confirm the Medium downgrade or treat as Critical and enable RLS on `careers_rate_limit`.
-2. **Blocking. Long-text handling.** Architecture section 7 says cap with expand-on-click; redesign prompt section 7.4 says wrap fully. Recommendation: cap. The architecture document outranks the prompt, the reverse-engineering report calls Taleo's wrapping a defect, and capping matches the "clean layout, minimise clicking" direction. Current measured row height is 69px against 55px on requisitions.
-3. **Blocking. Whose contract ends 2026-11-21.** Subscription term or engagement term. It changes whether the priority is cancellation readiness or handover quality.
-4. **`reminder.due`.** Interface, or intentional scope cut.
-5. **Lucide dependency.** It would be the first UI dependency in a project that twice chose not to add one. Recommendation: adopt, minimally scoped to C7 and C2.
-6. **Address data.** Backfill, or accept that the field exists and the data does not.
-7. **Motion scope.** The specification keeps everything under 220ms and bans page transitions, staggered entrances and shimmer outright. Confirm that subtle motion on interactions Taleo never had is acceptable, or restrict the work to G1 through G4, which add no motion at all.
-8. **Identity documents. DECIDED 2026-09-02: exclude.** Eight files on one candidate record are government identity and employment documents (passport, PSA birth certificate, NBI clearance, BIR 2316, certificate of employment, certificate of graduation, and two onboarding forms). They are not read, not fetched and not imported. `migration/src/lookups.mjs` already holds them back by default; `--include-identity-documents` remains the only way to change that and should stay unused. The record is the preparer's own, from before joining, which is also why FOOS has no employee-records module to put them in this phase.
-9. **The unmatched Recruit owner (D9).** Recommendation: insert one `staff` row with the person's real `full_name`, `is_active = false`, and a **non-routable placeholder email**, not their real one. `staff.id` defaults to `gen_random_uuid()` and there is no foreign key to `auth.users`, so a row with no login is legal and nobody can authenticate as it. The placeholder email matters for a mechanical reason: `scripts/add-local-staff.sql` upserts `on conflict (id)`, while `staff.email` carries its own unique constraint, so seeding the row with their real address would make a later real signup fail on a unique violation rather than adopt the row. The alternative, leaving the owner null and recording the Zoho name in the note body, keeps the schema untouched but makes provenance unqueryable, which defeats the point of migrating it.
-10. **Candidate list: pagination or infinite scroll.** Pagination matches your Taleo instance; infinite scroll is what vendor dense-table practice actually does and has no documented Taleo support either way. Recommendation: pagination, on fidelity grounds, since that is the stated goal.
+| # | Decision | Outcome |
+| :---- | :---- | :---- |
+| 6.1 | QA-002 severity on `careers_rate_limit` | **Closed, moot.** RLS is enabled by migration `20260901000002`. The severity question needed no ruling because the claim behind it was wrong: `anon` never held a SELECT grant, so this was defence in depth, not an open door. Recorded as D27 rather than quietly edited, because the overstated version was already in a pushed commit message |
+| 6.2 | Long text: cap with expand-on-click, or wrap fully | **Closed: cap.** The architecture document outranks the redesign prompt and the reverse-engineering report calls Taleo's wrapping a defect. `CappedCell` already implements it at two lines. Measuring afterwards found the excess row height was **not** wrapping at all: the grade-comment cell stacked its Edit button under the text. Laying them out inline took the candidate list from a 83px tallest row to 69px. What remains above 55px is the composite Next Steps cell, which stacks a badge over a link exactly as the screenshots show, so it stays |
+| 6.3 | Whose contract ends 2026-11-21 | **Still open, and not mine to close.** This is a fact about an agreement, not a technical choice. It changes whether the priority is cancellation readiness or handover quality, so it is worth one question to John |
+| 6.4 | `reminder.due`: interface or scope cut | **Closed: interface.** It was never a decision. `reminder.due` and tasks have real dashboard panels plus `My Reminders` and `My Tasks`, with server-side filtered subscriptions and a 20s backstop refresh. Filed as QA-007, fixed as D31 |
+| 6.5 | Lucide: adopt or keep hand-rolled icons | **Closed: adopt.** Done in H1. `shell/icons.tsx` and its 21 hand-drawn icons are gone; one `LucideProvider` sets size 20 and stroke 1.6 so the library matches the Taleo line weight, which is exactly what the icon-strategy report recommended |
+| 6.6 | Address data: backfill or accept | **Closed: keep, no backfill.** Your call, 2026-09-02. The fields stay and the data stays as sparse as the source is |
+| 6.7 | Motion scope | **Closed: subtle motion on interactions Taleo never had.** Everything is under 220ms, colour and opacity plus two transforms on panels that mount. `scripts/check-motion.mjs` fails the build on a duration over budget, a transition on a layout property, motion on a shell selector, or a missing `prefers-reduced-motion` block. The prohibitions on page transitions, staggered entrances, shimmer and overshoot are unbroken |
+| 6.8 | The eight identity documents | **Closed: exclude.** Your call, 2026-09-02. Not read, not fetched, not imported. `--include-identity-documents` exists and stays unused |
+| 6.9 | The unmatched Recruit owner | **Closed: inactive staff rows with placeholder emails.** Implemented and applied locally as D9. The placeholder address matters mechanically: `staff.email` is unique and `add-local-staff.sql` upserts on `id`, so seeding a real address would make that person's later signup fail on a unique violation instead of adopting the row |
+| 6.10 | Candidate list: pagination or infinite scroll | **Closed: pagination.** On fidelity grounds, since resemblance is the stated goal. Delivered in C5 with repeated bottom pagers. Virtualised infinite scroll remains the alternative if use ever matters more than likeness |
+| F4 | The other two frontends | **Closed: archive, do not delete.** Neither `/foos` nor `/foos_redesign` exists on this machine, so freezing them costs nothing today and cuts the surface for every future schema change and every `database.types.ts` edit by two thirds. Deletion waits on John confirming nobody demos from them |
 
 ## 7. Explicitly out of scope
 
@@ -343,83 +346,51 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State as of 2026-09-02, after building H and J. 64 of 77 numbered tasks are done. Grouped by what actually gates them, because "open" means four different things in this plan.
+State after the second pass of 2026-09-02. **70 of 77 numbered tasks are done.** Grouped by what actually gates each remaining item, because "open" means three different things here.
 
-### 8.1 Blocked on production or on John. I cannot close these
+### 8.1 Waiting on one authorised command from you
 
-- [ ] **A3** Production write of the grading backfill. Computed and dry-run, 75 of 75 matched, 0 ambiguous. The write was refused by the permission classifier and you have asked that production stay untouched
-- [ ] **A4** Same, same reason
-- [ ] **B2** Rotate the live persona passwords. Real PII currently sits behind a plaintext shared password
-- [ ] **B3** Whether a production staff row is created. The mechanical half is done (`npm run db:add-staff`)
-- [ ] **E6** 12 of 82 acceptance criteria. Each needs a Google account, a production publish, a hosted sheet, or a human click-through
-- [ ] Enter the four monthly cost figures, so the cost metric stops reading "Not measured". Migration `20260901000004` seeds the four systems with `monthly_cost` null rather than inventing figures
-- [ ] Agent 6 RPC drift on the live project. Needs the database password
-- [ ] **Section 6.1** QA-002 severity. Blocking
-- [ ] **Section 6.2** Long-text handling, cap or wrap. Blocking. Recommendation: cap
-- [ ] **Section 6.3** Whose contract ends 2026-11-21. Blocking
+Each of these is written, proven against the local stack, and idempotent. None of them can be run against production by me: you asked that production stay untouched, and the first two were also refused by the permission classifier.
 
-### 8.2 Decisions, with a recommendation already on record
+- [ ] **A3** `node scripts/backfill-zoho-candidate-fields.mjs --allow-remote` then `--apply`. Restores 37 star grades. Dry run first; it prints exactly what it would change
+- [ ] **B2** `node scripts/rotate-persona-passwords.mjs --allow-remote --apply`. Fresh random password on all four persona accounts, printed once, stored nowhere. Then put the value in `tests/.env`
+- [ ] **A4 (production half)** The same backfill also corrects the 74 initial dates. One run does both
+- [ ] **B3** Whether a production `staff` row is created for you. The recommendation is in 6.9
 
-- [x] **D8** Address data. **Keep**, decided 2026-09-02. Fields stay, no backfill
-- [x] **Identity documents** **Exclude**, decided 2026-09-02. Not read, not fetched, not imported
-- [ ] **F4** The other two frontends. Recommendation: archive both, delete only on John's confirmation
-- [ ] **D9** The unmatched Recruit owner. Recommendation: one inactive `staff` row with a placeholder email. Reasoning and the unique-constraint trap in section 6.9
-- [x] **H5** Enter animation only, decided and built 2026-09-02. Exit animation is deliberately not implemented: it needs the panels to stay mounted while animating out
-- [x] **J8** No change needed. The premise was wrong: the file is already in the vitest glob and its 2 tests pass on every run
-- [ ] **Section 6.4** `reminder.due` interface, or intentional scope cut
-- [ ] **Section 6.7** Motion scope. H4 and H5 depend on it
-- [ ] **Section 6.10** Candidate list pagination or infinite scroll. Recommendation: pagination
+### 8.2 Waiting on data or credentials only you can supply
 
-### 8.3 Data. Was blocked on emailed exports, now unblocked by the API
+- [ ] **D11** A Zoho Self Client (client id and secret). The client is built and the scope string covers Recruit and CRM. A few hundred API credits against a 5,000 free allowance
+- [ ] **D2** The job-openings export, or D11
+- [ ] **D3** Education Details re-exported with its full field set. The file on disk is header only, 3 columns
+- [ ] **D4** Experience Details, same problem, and `people.experience` is ready to receive it
+- [ ] **D5** The attachment bytes. All 50 `storage_path` values are placeholders, and the UI now says so rather than breaking
+- [ ] **D10 (contacts half)** The Contacts export. The mapper is written, wired and unit-tested; it reports any column it does not recognise instead of guessing
+- [ ] **E6** The last 12 of 82 acceptance criteria. Each needs a Google account, a production publish, a hosted sheet, or a human click-through
+- [ ] **E7 (remaining third)** Job openings, education and experience cannot be rehearsed until they have data
+- [ ] The four monthly cost figures, so the cost metric stops reading "Not measured". Migration `20260901000004` seeds the systems with `monthly_cost` null rather than inventing numbers
+- [ ] The Agent 6 RPC drift on the live project, which needs the database password
+- [ ] **6.3** Whose contract ends 2026-11-21. A fact about an agreement, not a technical choice
 
-The whole group is one session's work once the Self Client is created, and it does not involve John.
+### 8.3 Closed in the 2026-09-02 passes
 
-- [ ] **D11** Pull Recruit and CRM through the API. Cost is a few hundred credits against a 5,000 free allowance
-- [ ] **D2** Job openings and requisitions. `Job_Openings_001.csv` is not on disk
-- [ ] **D3** Education Details with its full field set. The file on disk is header only, 3 columns
-- [ ] **D4** Experience Details. Same, header only, 3 columns
-- [ ] **D5** Attachment bytes. All 50 `storage_path` values are `pending-file-export/` placeholders
-- [ ] **D6** A UI state for an attachment whose file has not arrived. **Verified today: not built.** Nothing in `app/src` mentions `pending-file-export/`, so the record page tries to sign a URL for a file that is not there
-- [ ] **D9** A `staff` row for the unmatched Recruit owner. The dry run puts the number at 305 rows across candidates, notes and attachments
-- [ ] **D10** `companies` and `contact_profiles` mappers. Both CRM exports are on disk: `Accounts_2026_09_02.csv` and `Users_2026_09_02.csv`
-- [ ] **E7** Gate 4's CSV dry-run half, which needs D2 to D5 first
+- [x] **H1 to H7** Icons on lucide, StarGrade merged, `EMPTY_CELL`, the two missing G6 interactions, six dead motion selectors repaired, `rgba()` tokenised, the real logo
+- [x] **J1 to J11** Every cleanup item, including five stale `CLAUDE.md` statements and a comment guard that was a no-op in CI
+- [x] **A4** A third `Initial Date` format found and handled. Parse rate 43 of 74 to **74 of 74**
+- [x] **D6** A real UI state for an attachment whose bytes have not arrived, with two browser tests
+- [x] **D7** A second alias: the Zoho status `Hired` is the FOOS status `Placed`. Unresolved statuses are now zero
+- [x] **D9** Inactive `staff` rows for the three unmatched Zoho owners. Unresolved staff went from 325 affected rows to **zero**
+- [x] **D10** The Accounts mapper: **86 of 86** rows, 0 skipped
+- [x] **E7** The migration rehearsed end to end on every export that exists, including a damage-and-repair cycle and a full purge
+- [x] **F4** Decided: archive the other two frontends
+- [x] **6.2** Decided: cap long text. The measured excess row height turned out to be a stacked Edit button, not wrapping; fixing the layout took the tallest candidate row from 83px to 69px
+- [x] **6.1, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10** All closed, with the reasoning recorded in section 6
 
-### 8.4 Frontend. Done 2026-09-02
+### 8.4 What I would take first when the blockers lift
 
-- [x] **H1** 21 hand-rolled SVGs replaced with lucide; `shell/icons.tsx` deleted; one `LucideProvider` supplies size and stroke
-- [x] **H2** The two `StarGrade` components merged into `components/ui/StarGrade.tsx`; four duplicated CSS blocks collapsed into one
-- [x] **H3** `EMPTY_CELL` in `lib/format.ts`; 34 literals across 14 files replaced
-- [x] **H4** Kanban drop settle and table results fade, both 140ms, both inside the budget
-- [x] **H5** Six dead motion selectors found and repaired; three keyframes added for panels that mount rather than transition
-- [x] **H6** Seven `rgba()` values tokenised into `--scrim`, `--tint-on-dark`, `--shadow-raised`, `--shadow-overlay`. None remain outside `tokens.css`
-- [x] **H7** The real VentVest logo on the login page, in the utility header and as the browser icon, with a square mark cropped from the wordmark for the favicon
+Create the Self Client, then `node migration/zoho-api.mjs` for both products. That single step unblocks D2, D3, D4, D5, the contacts half of D10 and the remaining third of E7. Everything downstream of it is already written and tested.
 
-Also done in the same pass, at your instruction: every comment removed from `.ts`, `.tsx`, `.js`, `.mjs` and `.css` across `app/src`, `tests`, `scripts`, `migration` and `supabase/functions`. 496 comment lines gone, 3 kept because they are functional (`eslint-disable-next-line`). SQL migrations keep their headers, which is the one exception recorded in `CLAUDE.md`.
+### 8.5 Verification behind every 2026-09-02 entry
 
-### 8.5 Repository cleanup. Done 2026-09-02
+Twelve gates, run in loops rather than once: 0 TypeScript errors, 0 lint problems, a clean production build, contrast 17 of 17, motion budget respected, no comments in source, no migration drift, 18 of 18 schema checks with 0 failures, the API and unit suites, the browser suite, no orphaned attachment objects, and the Zoho importer holding at 75 of 75 candidates, 141 of 154 notes, 42 of 50 attachments and 86 of 86 companies.
 
-- [x] **J1** 16 `app/vite.config.ts.timestamp-*.mjs` files
-- [x] **J2** `app/dist/`, 404 KB belonging to a different frontend
-- [x] **J3** `tests/pwtest.cjs`, a 13-line throwaway
-- [x] **J4** `shell/TopBar.tsx` and `pages/ModuleStub.tsx`, both verified dead
-- [x] **J5** Two `.DS_Store` files
-- [x] **J6** The empty `migration/fixtures/` directory
-- [x] **J7** Five stale statements in `CLAUDE.md`, not the three first counted
-- [x] **J8** No change needed; the premise was wrong
-- [x] **J9** 123 accumulated build assets and the Playwright artifact directory
-- [x] **J10** This plan's three superseded status sections
-- [x] **J11** A status line under every workstream table
-
-### 8.6 What is left, and what I would take first
-
-Everything in 8.4 and 8.5 is done and verified. What remains is 8.1 (production access or John), 8.2 (four open decisions) and 8.3 (data).
-
-The one piece of 8.3 that needs neither the API nor a decision is **D6**, the missing UI state for an attachment whose bytes have not arrived. It is about an hour and it removes a broken link from a record page that already has imported rows pointing at it. After that, **D11** then **D10**, because the API pull unblocks D2 to D5 and E7 in a single session.
-
-A3, A4 and B2 stay where they are until you have tested locally and said otherwise.
-
-### 8.7 Verification behind the 2026-09-02 entries
-
-Every gate, run after the work rather than before it: 0 TypeScript errors, 0 lint problems, a clean production build, 17 of 17 contrast pairs, motion budget respected, no migration drift, 18 of 18 schema checks with 0 failures, 64 API tests, 39 browser tests, no orphaned attachment objects, and the Zoho importer dry run unchanged at 75 of 75 candidates, 141 of 154 notes and 42 of 50 attachments with the same 8 identity documents held back.
-
-One test defect was found and fixed on the way. `list-persistence.spec.ts` 2.11 read the candidate names off the screen before the people lookup had resolved, so under full-suite load it captured the `…` loading placeholder and then failed because the CSV contained a real name instead. It passed in isolation and failed in the suite, which is the signature of a race rather than a product bug. The spec now polls until no row still shows the placeholder.
+Two defects of my own were found by running things repeatedly. `list-persistence.spec.ts` 2.11 read row text before the people lookup resolved and captured a loading placeholder under full-suite load, which is D35. And the importer, run from inside `migration/`, wrote its report to `migration/migration/out/`; that directory was caught and removed before staging, because dry-run reports contain candidate data.

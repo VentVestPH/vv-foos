@@ -7,6 +7,8 @@ import { loadLookups, newUnresolved } from './src/lookups.mjs';
 import { mapCandidate } from './src/map-candidates.mjs';
 import { mapNote } from './src/map-notes.mjs';
 import { buildCategoryMap, mapAttachment } from './src/map-attachments.mjs';
+import { mapCompany } from './src/map-companies.mjs';
+import { mapContact, unrecognisedContactColumns } from './src/map-contacts.mjs';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -60,6 +62,9 @@ if (!key) {
 }
 
 const db = createClient(url, key, { auth: { persistSession: false } });
+
+const CRM_ACCOUNTS_FILE = 'crm/Accounts_2026_09_02.csv';
+const CRM_CONTACTS_FILE = 'crm/Contacts_2026_09_02.csv';
 
 function readExport(name) {
   const path = join(EXPORT_DIR, name);
@@ -183,6 +188,115 @@ async function importCandidates(lookups, unresolved, idMaps) {
   }
 }
 
+async function importCompanies(lookups, unresolved, idMaps) {
+  const file = readExport(CRM_ACCOUNTS_FILE);
+  const t = tally('companies');
+  if (!file) {
+    t.skipReasons['file not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.company;
+
+  for (const row of file.records) {
+    const mapped = mapCompany(row, lookups, unresolved);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, mapped.company);
+    if (Object.keys(mapped.carried).length) t.metadataOnly += 1;
+
+    const known = existing.get(mapped.zohoId) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else t.created += 1;
+      if (!known) existing.set(mapped.zohoId, `dry-run:${mapped.zohoId}`);
+      continue;
+    }
+
+    try {
+      let companyId = known;
+      if (companyId) {
+        const { error } = await db.from('companies').update(mapped.company).eq('id', companyId);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const { data, error } = await db.from('companies').insert(mapped.company).select('id').single();
+        if (error) throw error;
+        companyId = data.id;
+        t.created += 1;
+      }
+      await recordMapping(mapped.zohoId, 'company', companyId);
+      existing.set(mapped.zohoId, companyId);
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
+async function importContacts(lookups, unresolved, idMaps) {
+  const file = readExport(CRM_CONTACTS_FILE);
+  const t = tally('contacts');
+  if (!file) {
+    t.skipReasons['file not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.contact;
+  const companyByZohoId = idMaps.company;
+
+  const unknown = unrecognisedContactColumns(file.header);
+  if (unknown.length) {
+    note(t.warnings, `${unknown.length} column(s) in the export are not mapped: ${unknown.sort().join(', ')}`);
+  }
+
+  for (const row of file.records) {
+    const mapped = mapContact(row, lookups, unresolved, companyByZohoId);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, { ...mapped.person, ...mapped.profile });
+
+    const known = existing.get(mapped.zohoId) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else t.created += 1;
+      if (!known) existing.set(mapped.zohoId, `dry-run:${mapped.zohoId}`);
+      continue;
+    }
+
+    try {
+      let personId = known;
+      if (personId) {
+        const { error } = await db.from('people').update(mapped.person).eq('id', personId);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const { data, error } = await db.from('people').insert(mapped.person).select('id').single();
+        if (error) throw error;
+        personId = data.id;
+        t.created += 1;
+      }
+      const { error: profErr } = await db
+        .from('contact_profiles')
+        .upsert({ person_id: personId, ...mapped.profile }, { onConflict: 'person_id' });
+      if (profErr) throw profErr;
+      await recordMapping(mapped.zohoId, 'contact', personId);
+      existing.set(mapped.zohoId, personId);
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
 async function importNotes(lookups, unresolved, idMaps) {
   const file = readExport('Notes_001.csv');
   const t = tally('notes');
@@ -295,7 +409,8 @@ function reportMissingExports() {
     ['Attachment Category_001.csv', 'attachment kind lookup'],
     ['Candidates_Educational_Details.csv', 'education history'],
     ['Candidates_Experience_Details.csv', 'work history'],
-    ['Clients_001.csv', 'CRM accounts (not yet exported)'],
+    [CRM_ACCOUNTS_FILE, 'CRM accounts'],
+    [CRM_CONTACTS_FILE, 'CRM contacts'],
     ['Job_Openings_001.csv', 'requisitions (not yet exported)'],
   ];
   const missing = [];
@@ -339,6 +454,12 @@ async function main() {
   }
   if (want('notes')) await importNotes(lookups, unresolved, idMaps);
   if (want('attachments')) await importAttachments(lookups, unresolved, idMaps);
+  const needCompaniesForContacts = !APPLY && want('contacts');
+  if (want('companies') || needCompaniesForContacts) {
+    await importCompanies(lookups, unresolved, idMaps);
+    if (!want('companies')) delete report.entities.companies;
+  }
+  if (want('contacts')) await importContacts(lookups, unresolved, idMaps);
 
   reportMissingExports();
   const redact = (m) =>
@@ -374,7 +495,11 @@ async function main() {
       console.log(`${' '.repeat(18)}${t.identityDocuments} identity/employment record(s) held back`);
     }
     if (t.metadataOnly) {
-      console.log(`${' '.repeat(18)}${t.metadataOnly} row(s) carry no file bytes`);
+      const what =
+        name === 'companies'
+          ? 'row(s) carry source fields that companies has no column for'
+          : 'row(s) carry no file bytes';
+      console.log(`${' '.repeat(18)}${t.metadataOnly} ${what}`);
     }
   }
   for (const [what, entries] of Object.entries(report.unresolved)) {

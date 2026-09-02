@@ -11,6 +11,7 @@ import type {
 } from '../../../lib/database.types';
 import type { Activity, Attachment, Reminder, TaskRow } from '../lib/data';
 import { errMsg, fmtDate, fmtDateTime, supabase } from '../lib/data';
+import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
 
 export interface EngagementParent {
   type: 'person' | 'requisition';
@@ -181,6 +182,7 @@ export async function uploadAttachment(
 }
 
 export async function attachmentUrl(storagePath: string): Promise<string | null> {
+  if (isPendingFile(storagePath)) return null;
   const { data, error } = await supabase.storage
     .from('attachments')
     .createSignedUrl(storagePath, 3600);
@@ -479,6 +481,10 @@ export function AttachmentsPanel({
   };
 
   const open = async (a: Attachment) => {
+    if (isPendingFile(a.storage_path)) {
+      setError(PENDING_FILE_REASON);
+      return;
+    }
     const url = await attachmentUrl(a.storage_path);
     if (url) window.open(url, '_blank', 'noopener');
     else setError('Could not create a download link.');
@@ -523,13 +529,22 @@ export function AttachmentsPanel({
       {items.map((a) => (
         <div key={a.id} className="panel-item">
           <div className="panel-item-head">
-            <button type="button" className="link-btn" onClick={() => void open(a)}>
-              {attachmentName(a)}
-            </button>
+            {isPendingFile(a.storage_path) ? (
+              <span className="file-pending-name" title={PENDING_FILE_REASON}>
+                {attachmentName(a)}
+              </span>
+            ) : (
+              <button type="button" className="link-btn" onClick={() => void open(a)}>
+                {attachmentName(a)}
+              </button>
+            )}
             <span className="text-secondary">{fmtDate(a.uploaded_at)}</span>
           </div>
           <div className="panel-item-head">
             <Badge tone="neutral">{a.kind}</Badge>
+            {isPendingFile(a.storage_path) && (
+              <Badge tone="warning">{PENDING_FILE_LABEL}</Badge>
+            )}
             {fixedKind === 'resume' && newest && a.id === newest.id && (
               <Badge tone="success">Current</Badge>
             )}
@@ -542,16 +557,32 @@ export function AttachmentsPanel({
 }
 
 export function ResumePreview({ attachment }: { attachment: Attachment }) {
+  const pending = isPendingFile(attachment.storage_path);
   const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
+    if (pending) return;
     let live = true;
+    setFailed(false);
     void attachmentUrl(attachment.storage_path).then((u) => {
-      if (live) setUrl(u);
+      if (!live) return;
+      setUrl(u);
+      setFailed(u === null);
     });
     return () => {
       live = false;
     };
-  }, [attachment.storage_path]);
+  }, [attachment.storage_path, pending]);
+  if (pending) {
+    return (
+      <p className="file-pending-note">
+        {PENDING_FILE_LABEL}. {PENDING_FILE_REASON}
+      </p>
+    );
+  }
+  if (failed) {
+    return <p className="rq-error">Could not load this resume preview.</p>;
+  }
   if (!url) return <p className="text-secondary">Loading resume preview…</p>;
   return <iframe className="resume-preview" src={url} title="Resume preview" />;
 }
