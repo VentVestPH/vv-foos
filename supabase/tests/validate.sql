@@ -525,4 +525,33 @@ begin
   raise notice 'PASS 16: all 7 query indexes present, and the redundant one stays dropped';
 end $$;
 
+-- 17: the argument-less RLS helpers must stay wrapped in a scalar subselect so
+-- Postgres hoists them into an InitPlan and evaluates them once per statement
+-- rather than once per row. Measured on 20,010 rows: bare get_my_role() filters
+-- in 60.3ms, wrapped it runs in 2.5ms. Row-dependent helpers such as
+-- can_read_person(id) are deliberately NOT wrapped, because they take the row as
+-- an argument, cannot be hoisted, and measured slower wrapped than bare.
+do $$
+declare
+  bare int;
+  offenders text;
+begin
+  select count(*), string_agg(tablename || '.' || policyname, ', ')
+    into bare, offenders
+    from pg_policies
+   where schemaname = 'public'
+     and (
+       (qual ~ '(^|[^.[:alnum:]_])get_my_role\(\)' and qual !~ 'SELECT get_my_role')
+       or (with_check ~ '(^|[^.[:alnum:]_])get_my_role\(\)' and with_check !~ 'SELECT get_my_role')
+       or (qual ~ 'auth\.uid\(\)' and qual !~ 'SELECT auth\.uid')
+       or (with_check ~ 'auth\.uid\(\)' and with_check !~ 'SELECT auth\.uid')
+     );
+
+  if bare > 0 then
+    raise exception 'FAIL 17: % policy predicate(s) call an argument-less helper per row instead of once per statement: %', bare, offenders;
+  end if;
+
+  raise notice 'PASS 17: every argument-less RLS helper is wrapped for InitPlan hoisting';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;
