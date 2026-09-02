@@ -49,6 +49,7 @@ export function DealRecordPage() {
   const [pendingLostReason, setPendingLostReason] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [noticeClosing, setNoticeClosing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -138,8 +139,13 @@ export function DealRecordPage() {
 
   useEffect(() => {
     if (!notice) return;
+    setNoticeClosing(false);
+    const fade = setTimeout(() => setNoticeClosing(true), 3860);
     const t = setTimeout(() => setNotice(null), 4000);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(fade);
+      clearTimeout(t);
+    };
   }, [notice]);
 
   if (!id) return null;
@@ -346,7 +352,11 @@ export function DealRecordPage() {
       )}
 
       {notice && (
-        <div className="sales-toast" role="status">
+        <div
+          className="sales-toast"
+          data-closing={noticeClosing ? 'true' : undefined}
+          role="status"
+        >
           {notice}
         </div>
       )}

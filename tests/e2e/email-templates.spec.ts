@@ -3,6 +3,7 @@ import { clientAs } from '../env';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 
 const tag = `qa-tmpl-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+const SEEDED_CANDIDATE = 'b0000000-0000-4000-8000-000000000002';
 
 test.afterAll(async () => {
   const admin = await clientAs('admin');
@@ -26,13 +27,15 @@ test.describe('Q4: email templates', () => {
 
     await expect(card.getByText(`${tag} screen invite`)).toBeVisible({ timeout: 20000 });
 
-    await gotoAsSignedIn(page, '/recruit/candidates');
-    const firstRow = page.locator('.table-wrap tbody tr[data-row-key]').first();
-    await expect(firstRow).toBeVisible({ timeout: 25000 });
-    const cells = await firstRow.locator('td').allTextContents();
-    const name = (cells.find((c) => /[A-Za-z]{2,}\s+[A-Za-z]{2,}/.test(c.trim())) ?? '').trim();
-    await firstRow.click();
-    await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/, { timeout: 20000 });
+    const admin = await clientAs('admin');
+    const { data: seeded } = await admin
+      .from('people')
+      .select('first_name, last_name')
+      .eq('id', SEEDED_CANDIDATE)
+      .single();
+    const name = [seeded?.first_name, seeded?.last_name].filter(Boolean).join(' ');
+    expect(name.length).toBeGreaterThan(1);
+    await gotoAsSignedIn(page, `/recruit/candidates/${SEEDED_CANDIDATE}`);
 
     await page.getByRole('button', { name: 'Send Email' }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Send email' });

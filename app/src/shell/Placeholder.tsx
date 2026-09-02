@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 
 interface PlaceholderContextValue {
   show: (action: string, detail?: string) => void;
@@ -28,6 +29,9 @@ export function PlaceholderProvider({
     setState({ action, detail });
   }, []);
 
+  const dismiss = useCallback(() => setState(null), []);
+  const { closing, requestClose } = useOverlayDismiss(state ? dismiss : undefined);
+
   const value = useMemo(() => ({ show }), [show]);
 
   return (
@@ -36,13 +40,15 @@ export function PlaceholderProvider({
       {state && (
         <div
           className="fo-placeholder-overlay"
+          data-closing={closing ? 'true' : undefined}
           role="presentation"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setState(null);
+            if (e.target === e.currentTarget) requestClose();
           }}
         >
           <div
             className="fo-placeholder-modal"
+            data-closing={closing ? 'true' : undefined}
             role="dialog"
             aria-modal="true"
             aria-labelledby="fo-placeholder-title"
@@ -59,7 +65,7 @@ export function PlaceholderProvider({
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => setState(null)}
+                onClick={requestClose}
                 autoFocus
               >
                 Close

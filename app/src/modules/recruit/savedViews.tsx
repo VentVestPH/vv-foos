@@ -156,9 +156,9 @@ export function SavedViewsControl({
         <Dialog
           title="Save view"
           onClose={() => setNaming(false)}
-          footer={
+          footer={(close) => (
             <>
-              <Button onClick={() => setNaming(false)}>Cancel</Button>
+              <Button onClick={close}>Cancel</Button>
               <Button
                 variant="primary"
                 disabled={!name.trim()}
@@ -172,7 +172,7 @@ export function SavedViewsControl({
                 Save
               </Button>
             </>
-          }
+          )}
         >
           <Input
             label="View name"

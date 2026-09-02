@@ -454,7 +454,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**133½ of 150 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**140½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -610,14 +610,16 @@ Adding `erasure_log` surfaced something that had been true since the schema was 
 
 Raised on 2026-09-02 after looking at the running app, and confirmed by measurement rather than by reading the CSS. Workstream G delivered motion tokens, the `prefers-reduced-motion` block, colour transitions on hover and active, the modal and overlay **entry** fade, the intake drawer slide, the Kanban drop settle and the filter-results change. What it never specified is everything below, and none of it is covered by an existing task.
 
-| # | Item | What is actually there now, measured | Est. |
+| # | Item | State | Est. |
 |---|---|---|---|
-| R1 | Exit transitions for every dialog, drawer and overlay | **None anywhere.** Entry animates over 140 ms, then React unmounts the node, so every dialog and the intake drawer vanish in one frame. Needs a shared `useDismissable` (or equivalent) that keeps the node mounted for the exit duration and a matching `@keyframes`, applied to `Dialog`, the sales modal, the placeholder modal and the intake drawer | 4 h |
-| R2 | Accordion chevron rotation | **Impossible as built.** `RecordSection` swaps a text glyph, `▾` for `▸`, so there is nothing to transform. Needs one element whose `rotate` transitions, which also removes two Unicode glyphs from the DOM | 2 h |
-| R3 | Accordion content open and close | **No transition.** The body is `{open && <div>}`, so it unmounts; height cannot animate a node that is not there. Needs either a grid-template-rows or a max-height technique with the content kept mounted, plus care that a collapsed section stays out of the tab order | 3 h |
-| R4 | Tab metric shift when a tab becomes active | **Confirmed defect, and visible.** `font-weight: 700` on the active tab changes its width: measured 111.89 px to 114.66 px on activation, with the neighbour moving 107.95 px to 105.91 px. Every tab switch nudges the whole nav row. Fix without losing the bold: reserve the bold metrics for all tabs, whether by a hidden bold ghost, a fixed per-tab width, or `text-shadow` faux-bold instead of a weight change | 2 h |
-| R5 | Micro-transitions on the controls G7 did not list | `.btn`, `.link-btn`, nav tabs, table rows, sort carets and pager buttons have 90 ms colour transitions. Selects, checkboxes, radios, badges, the star grade and the sidebar collapse have none, so the set feels uneven | 2 h |
-| R6 | A motion test that asserts what a user sees | `scripts/check-motion.mjs` bounds durations and enforces the reduced-motion block, which is a budget rather than a behaviour check. Nothing asserts that a dialog is still on screen one frame after its close, or that a tab row does not move when the active tab changes. Both are measurable with the computed-style and bounding-box harness already used for N3 and R4 | 3 h |
+| R1 | Exit transitions for every dialog, drawer and overlay | **DONE.** `useOverlayDismiss` keeps the node mounted for 140 ms, marks it `data-closing`, then calls the parent's `onClose`, so `Dialog`, the sales `Modal`, the intake `Drawer` and the placeholder modal all animate out. Measured: 50 ms after a close the overlay is still mounted at opacity 0.36 and gone by 350 ms. Every close path animates, including the nine call sites' **Cancel** buttons, which needed `footer` to become a render prop receiving the delayed closer. Dialogs also close on **Escape** now, which they never did | 4 h |
+| R2 | Accordion chevron rotation | **DONE.** The `▾`/`▸` glyph swap is gone, replaced by one lucide `ChevronDown` that rotates `-90deg` when closed. Measured: `none` to `matrix(0, -1, 1, 0, 0, 0)` | 2 h |
+| R3 | Accordion content open and close | **DONE, and the popular technique turned out not to work.** The body no longer unmounts; a grid wrapper animates its track. `grid-template-rows: 1fr` to `0fr`, which is what every article recommends, **snapped**: measured 71.19 px straight to 32 px with nothing in between. MDN's formal definition explains why, and it is worth quoting: the animation type is a "simple list of length, percentage, or calc", and `fr` is none of those. So the track is a **measured pixel value** instead, which the same table does promise. Measured collapsing: 71 to 54.7 to 23.0 to 7.5 to 0 px, and reopening 0 to 15.1 to 47.2 to 71 px. Two further corrections came out of the measurement: the padding had to move onto an inner element, because `overflow: hidden` does not clip a grid item's own padding and left a 32 px sliver; and the measurement had to move to `useLayoutEffect`, because with it in `useEffect` the first collapse ran from `auto`, which is also not interpolable, so the very first close snapped. Children still render lazily on first open, so a section nobody opens does no work, exactly as before | 3 h |
+| R4 | Tab metric shift | **DONE.** Every tab now reserves its own bold width through a hidden `::before` ghost in the same grid cell, so `font-weight: 700` on the active tab changes nothing. Measured: **0 of 14 tabs move**, where before the active tab went 111.89 px to 114.66 px and its neighbour 107.95 px to 105.91 px. The active tab is still really bold, asserted at weight 700 against 500 for the rest, so the Taleo look is unchanged | 2 h |
+| R5 | Micro-transitions on the controls G7 did not list | **DONE.** Measured first: selects, text inputs, search inputs, checkboxes, badges, the star grade, the sidebar collapse, the gear buttons, the nav scroll chevrons and every dialog close cross all reported `transition: all 0s`. They now carry 90 ms transitions on the properties that actually change, and a test fails if any of thirteen named controls has no transition duration | 2 h |
+| R6 | A motion test that asserts behaviour rather than budget | **DONE.** `tests/e2e/interaction-motion.spec.ts`, nine tests. It asserts what a user sees: no tab moves, the chevron's matrix, the collapse height mid-transition in both directions, that a collapsed section is `inert` with zero reachable descendants, that a dialog is still mounted mid-fade after its close and after **Cancel**, that Escape closes it, that a menu animates in and out, and that no listed control lacks a transition. `check-motion.mjs` still guards the budget; this guards the behaviour | 3 h |
+| R7 | Dropdowns, toasts and inline panels | **DONE.** Raised mid-session: the list was never limited to the four things named. The two utility-header menus now animate in and out through `useDismissable`, including on an outside click, and their caret rotates 180 degrees. The two `sales-toast` notices fade out 140 ms before their 4-second auto-dismiss instead of vanishing. The intake drawer's raw-payload and reject panels fade in. One thing measurement stopped: a `display: inline-block` added for the caret turned out to be unnecessary, because the flex parent already blockifies it, so it came back out rather than stay as a no-op | 3 h |
+| R8 | Not done, and one of them cannot be | **Open.** `CappedCell` expands a table cell with no transition, which is the same measured-height technique as R3. The sidebar collapse animates nothing because it changes `width`, which `check-motion.mjs` bans outright and for good reason; animating it would need a transform or grid approach, and it is worth asking whether it should animate at all | 3 h |
 
 **Not in scope for R, deliberately.** Route transitions and list-row stagger. Both are the kind of motion that reads as slow the tenth time and neither is a Taleo behaviour, so they would be added on request rather than on principle.
 
@@ -641,9 +643,24 @@ The standard tool was checked rather than assumed: `ts-prune` is in maintenance 
 | S8 | The cleanup not yet attempted | **Not started.** Dead SQL (functions, indexes and columns nothing references), Edge Functions nothing calls, seed data no test or demo uses, and declarations duplicated across the five module stylesheets | 3 h |
 
 
+### 7.9 What the R work exposed in the test suite
+
+Seven gate passes were needed rather than five, because the browser suite failed intermittently and every failure turned out to have a cause worth naming.
+
+**One leftover row was behind three different failures.** `erase-candidate.spec.ts` creates a candidate per test, and a suite run I interrupted skipped its `afterEach`, leaving `qa-erase-ui-… Removable` in `people`. Because the candidate list sorts by last updated, that fixture sorted **first**, and three specs that scraped the first row broke in three different ways: the axe sweep landed on a candidate with an empty section, `global-search` could not parse a name out of `qa-erase-ui-4431-wv3ib2 Removable`, and `email-templates` clicked into a candidate with no email so **Send Email** was disabled. `validate.sql` check 9 caught the row itself, counting 11 seeded people where it expects 10, which is that guard doing exactly its job.
+
+The three specs are fixed by not scraping the list: two now read a known seeded candidate from the database, and the erase teardown raises if its delete fails or the row survives.
+
+**The axe failure was a real defect, and it was not mine.** `<p className="text-secondary">No links on file.</p>` sat as a direct child of a `<dl>` on the candidate record, which is `definition-list` at serious impact. It had been latent all along and only surfaced when the sort order changed which candidate axe visited. It is now a `dt`/`dd` pair. A scan of every `<dl>` in `app/src` for disallowed children found no others.
+
+**Three of my own new tests were timing-dependent** and are now atomic: reading "is the overlay still mounted" and "what is its opacity" in two steps left a window for React to unmount in between, which produced `NaN`, so both are captured in a single `page.evaluate`. R4 compared the whole nav row's geometry, which any unrelated width change perturbs; it now asserts the width of the two tabs that actually gain and lose the bold, which is what the task is about.
+
+**Two lessons about the gate itself.** Piping `gate.sh` through `grep` reports grep's exit code, so a failing gate looked like a pass; the run must be judged on the script's own exit code. And filtering its output while hunting a failure throws away the detail the script printed.
+
+
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **133½ of 150 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **140½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -666,13 +683,9 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
+- [ ] **R8** `CappedCell` expansion, and whether the sidebar collapse should animate at all given the width ban
+- [ ] **T1** A discovery pass over every screen: screenshot each page and state, inventory the components, hooks and functions per screen, and record what to rework, improve or optimise
 - [ ] **S8** The cleanup not yet attempted: dead SQL, uncalled Edge Functions, unused seed data, duplicated CSS declarations
-- [ ] **R1** Exit transitions for every dialog, drawer and overlay. None exist: entry animates, exit is one frame
-- [ ] **R2** Accordion chevron rotation. Impossible as built, the chevron is a swapped text glyph
-- [ ] **R3** Accordion content open and close. The body unmounts, so height cannot animate
-- [ ] **R4** Tab metric shift: the active tab's bold weight moves the whole nav row, measured at 2.8 px
-- [ ] **R5** Micro-transitions on selects, checkboxes, radios, badges, star grade and the sidebar collapse
-- [ ] **R6** A motion test that asserts behaviour rather than budget
 - [ ] **Q7** A candidate-facing application status page
 - [ ] **Q8** Usable on a phone, the capability framing of L9
 

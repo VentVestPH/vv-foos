@@ -21,7 +21,10 @@ test.beforeEach(async () => {
 test.afterEach(async () => {
   const admin = await clientAs('admin');
   await admin.from('candidate_profiles').delete().eq('person_id', person);
-  await admin.from('people').delete().eq('id', person);
+  const { error } = await admin.from('people').delete().eq('id', person);
+  if (error) throw new Error(`could not remove the erase fixture: ${error.message}`);
+  const { data } = await admin.from('people').select('id').eq('id', person);
+  if (data?.length) throw new Error(`the erase fixture ${person} survived its teardown`);
 });
 
 test.describe('the erasure path a candidate can ask for', () => {

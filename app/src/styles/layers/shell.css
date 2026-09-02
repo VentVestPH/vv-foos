@@ -218,6 +218,23 @@
   font-weight: 700;
 }
 
+.fo-nav-label {
+  display: grid;
+}
+
+.fo-nav-label > span,
+.fo-nav-label::before {
+  grid-area: 1 / 1;
+}
+
+.fo-nav-label::before {
+  content: attr(data-label);
+  font-weight: 700;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .fo-nav-home {
   padding: 0 var(--sp-2) !important;
 }

@@ -189,9 +189,9 @@ export function CandidateBulkActions({
         <Dialog
           title={`Change the main status of ${count} candidate${count === 1 ? '' : 's'}`}
           onClose={close}
-          footer={
+          footer={(dismiss) => (
             <>
-              <Button onClick={close}>Cancel</Button>
+              <Button onClick={dismiss}>Cancel</Button>
               <Button
                 variant="primary"
                 disabled={busy || !statusId}
@@ -200,7 +200,7 @@ export function CandidateBulkActions({
                 {busy ? 'Applying…' : `Set to ${statusLabel || '…'}`}
               </Button>
             </>
-          }
+          )}
         >
           <Select
             label="Main status"
@@ -221,9 +221,9 @@ export function CandidateBulkActions({
         <Dialog
           title={`Mark ${count} candidate${count === 1 ? '' : 's'}`}
           onClose={close}
-          footer={
+          footer={(dismiss) => (
             <>
-              <Button onClick={close}>Cancel</Button>
+              <Button onClick={dismiss}>Cancel</Button>
               <Button
                 variant="primary"
                 disabled={busy}
@@ -236,7 +236,7 @@ export function CandidateBulkActions({
                     : 'Clear do not contact'}
               </Button>
             </>
-          }
+          )}
         >
           <div className="field">
             <span className="field-label">Mark as</span>
@@ -270,9 +270,9 @@ export function CandidateBulkActions({
         <Dialog
           title={`Email ${mailable.length} candidate${mailable.length === 1 ? '' : 's'}`}
           onClose={close}
-          footer={
+          footer={(dismiss) => (
             <>
-              <Button onClick={close}>Cancel</Button>
+              <Button onClick={dismiss}>Cancel</Button>
               <Button
                 variant="primary"
                 disabled={busy || mailable.length === 0 || !subject.trim() || !body.trim()}
@@ -281,7 +281,7 @@ export function CandidateBulkActions({
                 {busy ? 'Sending…' : `Send to ${mailable.length}`}
               </Button>
             </>
-          }
+          )}
         >
           {templates.length > 0 && (
             <Select

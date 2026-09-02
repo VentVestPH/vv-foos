@@ -703,7 +703,10 @@ export function CandidateRecordPage() {
             !person.linkedin_recruiter_url &&
             !person.online_resume_url &&
             (!Array.isArray(person.other_urls) || person.other_urls.length === 0) && (
-              <p className="text-secondary">No links on file.</p>
+              <div className="info-item">
+                <dt>Links</dt>
+                <dd className="text-secondary">No links on file.</dd>
+              </div>
             )}
         </dl>
       </RecordSection>

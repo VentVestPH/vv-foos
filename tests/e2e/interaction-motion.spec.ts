@@ -1,0 +1,285 @@
+import { expect, test, type Page } from '@playwright/test';
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+
+const CANDIDATE = '/recruit/candidates/b0000000-0000-4000-8000-000000000002';
+
+function tabGeometry(page: Page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll('nav.fo-primary-nav button')].map((el) => {
+      const box = el.getBoundingClientRect();
+      return {
+        label: (el.textContent ?? '').trim().slice(0, 16),
+        x: Math.round(box.x * 100) / 100,
+        w: Math.round(box.width * 100) / 100,
+        weight: getComputedStyle(el).fontWeight,
+      };
+    }),
+  );
+}
+
+test.describe('R: motion that a user can see, asserted rather than budgeted', () => {
+  test('R4 a tab going bold does not change its own width or its neighbour\'s', async ({
+    page,
+  }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/recruit/candidates');
+
+    const widthOf = (label: string) =>
+      page.evaluate((wanted) => {
+        const el = [...document.querySelectorAll('nav.fo-primary-nav button')].find(
+          (b) => (b.textContent ?? '').trim() === wanted,
+        );
+        if (!el) return null;
+        return {
+          w: Math.round(el.getBoundingClientRect().width * 100) / 100,
+          weight: getComputedStyle(el).fontWeight,
+        };
+      }, label);
+
+    await expect.poll(() => widthOf('Candidates'), { timeout: 25000 }).not.toBeNull();
+    const candidatesBefore = await widthOf('Candidates');
+    const requisitionsBefore = await widthOf('Requisitions');
+    expect(candidatesBefore?.weight, 'Candidates starts active and bold').toBe('700');
+    expect(requisitionsBefore?.weight).toBe('500');
+
+    await page
+      .locator('nav.fo-primary-nav button')
+      .filter({ hasText: /^Requisitions$/ })
+      .first()
+      .click();
+    await expect
+      .poll(async () => (await widthOf('Requisitions'))?.weight, { timeout: 25000 })
+      .toBe('700');
+
+    const candidatesAfter = await widthOf('Candidates');
+    const requisitionsAfter = await widthOf('Requisitions');
+    expect(candidatesAfter?.weight, 'Candidates has given up the bold').toBe('500');
+
+    expect(
+      requisitionsAfter?.w,
+      'a tab must not grow when it becomes bold',
+    ).toBe(requisitionsBefore?.w);
+    expect(
+      candidatesAfter?.w,
+      'a tab must not shrink when it stops being bold',
+    ).toBe(candidatesBefore?.w);
+  });
+
+  test('R2 the accordion chevron rotates rather than swapping a glyph', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, CANDIDATE);
+    const section = page.locator('.record-section').first();
+    const chevron = section.locator('.record-section-chevron');
+    await expect(chevron).toBeVisible({ timeout: 25000 });
+
+    await expect(section).toHaveAttribute('data-open', 'true');
+    expect(await chevron.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+    expect(
+      await chevron.evaluate((el) => el.querySelector('svg') !== null),
+      'a real element, so it can transform',
+    ).toBe(true);
+
+    await section.locator('.record-section-header').click();
+    await expect(section).toHaveAttribute('data-open', 'false');
+    await expect
+      .poll(() => chevron.evaluate((el) => getComputedStyle(el).transform), { timeout: 3000 })
+      .toBe('matrix(0, -1, 1, 0, 0, 0)');
+  });
+
+  test('R3 the accordion interpolates its height in both directions', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, CANDIDATE);
+    const section = page.locator('.record-section').first();
+    const collapse = section.locator('.record-section-collapse');
+    await expect(collapse).toBeVisible({ timeout: 25000 });
+
+    const rows = () => collapse.evaluate((el) => getComputedStyle(el).gridTemplateRows);
+    const px = async () => parseFloat((await rows()).replace('px', ''));
+
+    const openHeight = await px();
+    expect(openHeight).toBeGreaterThan(10);
+
+    await section.locator('.record-section-header').click();
+    await page.waitForTimeout(60);
+    const mid = await px();
+    expect(mid, 'mid-collapse must be between the ends, not snapped').toBeGreaterThan(0);
+    expect(mid).toBeLessThan(openHeight);
+
+    await expect.poll(px, { timeout: 3000 }).toBe(0);
+
+    await section.locator('.record-section-header').click();
+    await page.waitForTimeout(60);
+    const reopening = await px();
+    expect(reopening).toBeGreaterThan(0);
+    expect(reopening).toBeLessThan(openHeight);
+    await expect
+      .poll(async () => Math.abs((await px()) - openHeight) < 1.5, { timeout: 3000 })
+      .toBe(true);
+  });
+
+  test('R3 a collapsed section is inert, so nothing inside it can be reached', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, CANDIDATE);
+    const section = page.locator('.record-section').first();
+    const collapse = section.locator('.record-section-collapse');
+    await expect(collapse).toBeVisible({ timeout: 25000 });
+
+    await section.locator('.record-section-header').click();
+    await expect(collapse).toHaveAttribute('inert', '');
+    await expect(collapse).toHaveAttribute('aria-hidden', 'true');
+
+    const reach = await collapse.evaluate((el) => {
+      const nodes = [...el.querySelectorAll('a,button,input,select,textarea,[tabindex]')];
+      let reachable = 0;
+      for (const n of nodes) {
+        (n as HTMLElement).focus();
+        if (document.activeElement === n) reachable += 1;
+      }
+      return { total: nodes.length, reachable };
+    });
+    expect(reach.reachable, 'inert must make every descendant unfocusable').toBe(0);
+  });
+
+  test('R1 a dialog is still on screen mid-fade after close, and Escape closes it', async ({
+    page,
+  }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, CANDIDATE);
+    const open = page.getByRole('button', { name: 'Merge duplicate…' }).first();
+    await expect(open).toBeEnabled({ timeout: 25000 });
+
+    await open.click();
+    const overlay = page.locator('.rq-overlay');
+    await expect(overlay).toHaveCount(1);
+
+    await page.locator('.rq-dialog-x').click();
+    const mid = await page.evaluate(() => {
+      const el = document.querySelector('.rq-overlay');
+      if (!el) return { mounted: false, closing: null as string | null, opacity: NaN };
+      return {
+        mounted: true,
+        closing: el.getAttribute('data-closing'),
+        opacity: parseFloat(getComputedStyle(el).opacity),
+      };
+    });
+    expect(mid.mounted, 'the node must outlive the click so it can animate').toBe(true);
+    expect(mid.closing).toBe('true');
+    expect(mid.opacity).toBeGreaterThan(0);
+    expect(mid.opacity).toBeLessThanOrEqual(1);
+    await expect(overlay).toHaveCount(0, { timeout: 3000 });
+
+    await open.click();
+    await expect(overlay).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(overlay).toHaveAttribute('data-closing', 'true');
+    await expect(overlay).toHaveCount(0, { timeout: 3000 });
+  });
+
+  test('R5 every control the user touches carries a transition', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    await expect(page.locator('.btn').first()).toBeVisible({ timeout: 25000 });
+
+    const missing = await page.evaluate(() => {
+      const selectors = [
+        'select',
+        'input[type="checkbox"]',
+        'input.input',
+        'input[type="search"]',
+        '.badge',
+        '.star-grade .star',
+        '.fo-sidebar-collapse-btn',
+        '.fo-qs-advanced-link',
+        '.fo-gear-btn',
+        '.fo-nav-scroll-btn',
+        '.btn',
+        '.link-btn',
+        '.fo-nav-tab',
+      ];
+      return selectors
+        .map((selector) => {
+          const el = document.querySelector(selector);
+          if (!el) return null;
+          const cs = getComputedStyle(el);
+          const ms = cs.transitionDuration
+            .split(',')
+            .map((d) => parseFloat(d) * (d.includes('ms') ? 1 : 1000));
+          return ms.some((v) => v > 0) ? null : selector;
+        })
+        .filter(Boolean);
+    });
+    expect(missing, 'these controls change appearance with no transition').toEqual([]);
+  });
+
+  test('R7 a dropdown menu animates in, animates out, and rotates its caret', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/recruit/candidates');
+
+    const trigger = page.getByRole('button', { name: /Administration/ });
+    const menu = page.locator('.fo-utility-menu');
+    const caret = trigger.locator('.fo-utility-caret');
+    await expect(trigger).toBeVisible({ timeout: 25000 });
+    expect(await caret.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+
+    await trigger.click();
+    await expect(menu).toHaveCount(1);
+    expect(await menu.evaluate((el) => getComputedStyle(el).animationName)).toBe('menu-drop-in');
+    await expect
+      .poll(() => caret.evaluate((el) => getComputedStyle(el).transform), { timeout: 3000 })
+      .toBe('matrix(-1, 0, 0, -1, 0, 0)');
+
+    await trigger.click();
+    const menuMid = await page.evaluate(() => {
+      const el = document.querySelector('.fo-utility-menu');
+      if (!el) return { mounted: false, closing: null as string | null, opacity: NaN };
+      return {
+        mounted: true,
+        closing: el.getAttribute('data-closing'),
+        opacity: parseFloat(getComputedStyle(el).opacity),
+      };
+    });
+    expect(menuMid.mounted, 'the menu must outlive the click so it can animate out').toBe(true);
+    expect(menuMid.closing).toBe('true');
+    expect(menuMid.opacity).toBeGreaterThan(0);
+    await expect(menu).toHaveCount(0, { timeout: 3000 });
+  });
+
+  test('R7 clicking outside a dropdown animates it out rather than cutting it', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/recruit/candidates');
+
+    const trigger = page.getByRole('button', { name: /Administration/ });
+    const menu = page.locator('.fo-utility-menu');
+    await expect(trigger).toBeVisible({ timeout: 25000 });
+    await trigger.click();
+    await expect(menu).toHaveCount(1);
+
+    await page.locator('.fo-brand').click();
+    const outside = await page.evaluate(() => {
+      const el = document.querySelector('.fo-utility-menu');
+      return { mounted: !!el, closing: el?.getAttribute('data-closing') ?? null };
+    });
+    expect(outside.mounted).toBe(true);
+    expect(outside.closing).toBe('true');
+    await expect(menu).toHaveCount(0, { timeout: 3000 });
+  });
+
+  test('R1 Cancel animates out too, not just the close cross', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, CANDIDATE);
+    const open = page.getByRole('button', { name: 'Merge duplicate…' }).first();
+    await expect(open).toBeEnabled({ timeout: 25000 });
+    await open.click();
+
+    const overlay = page.locator('.rq-overlay');
+    await expect(overlay).toHaveCount(1);
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    const state = await page.evaluate(() => {
+      const el = document.querySelector('.rq-overlay');
+      return { mounted: !!el, closing: el?.getAttribute('data-closing') ?? null };
+    });
+    expect(state.mounted, 'Cancel must animate out, not cut').toBe(true);
+    expect(state.closing).toBe('true');
+    await expect(overlay).toHaveCount(0, { timeout: 3000 });
+  });
+});

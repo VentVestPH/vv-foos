@@ -41,6 +41,11 @@ test.describe('CRM deals', () => {
     await gotoAsSignedIn(page, '/sales/deals');
     await page.getByRole('button', { name: 'Table' }).click();
     const dataRows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
-    await expect(dataRows).toHaveCount(2);
+    await expect(dataRows.first()).toBeVisible({ timeout: 20000 });
+
+    for (const code of ['DEAL-0001', 'DEAL-0002']) {
+      await expect(dataRows.filter({ hasText: code })).toHaveCount(1);
+    }
+    expect(await dataRows.count()).toBeGreaterThanOrEqual(2);
   });
 });

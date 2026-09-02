@@ -87,7 +87,13 @@ export function PrimaryNav() {
                 : item.label
             }
           >
-            {item.homeIcon ? <HomeIcon size={20} /> : item.label}
+            {item.homeIcon ? (
+              <HomeIcon size={20} />
+            ) : (
+              <span className="fo-nav-label" data-label={item.label}>
+                <span>{item.label}</span>
+              </span>
+            )}
             {item.badge === 'intake' ? (
               <span aria-live="polite" aria-atomic="true">
                 {intakeCount > 0 ? (

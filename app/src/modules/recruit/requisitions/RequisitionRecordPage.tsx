@@ -545,9 +545,9 @@ export function RequisitionRecordPage() {
         <Dialog
           title="Reject requisition"
           onClose={() => setRejecting(false)}
-          footer={
+          footer={(dismiss) => (
             <>
-              <Button onClick={() => setRejecting(false)}>Cancel</Button>
+              <Button onClick={dismiss}>Cancel</Button>
               <Button
                 variant="danger"
                 disabled={!rejectReason.trim()}
@@ -559,7 +559,7 @@ export function RequisitionRecordPage() {
                 Reject and return to draft
               </Button>
             </>
-          }
+          )}
         >
           <p>The requisition returns to draft with your decision visible.</p>
           <textarea

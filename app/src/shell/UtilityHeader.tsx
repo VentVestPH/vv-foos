@@ -1,7 +1,8 @@
 import { BookmarkToggle } from './BookmarkBar';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 import { usePlaceholder } from './Placeholder';
+import { useDismissable } from '../hooks/useDismissable';
 import {
   ChartColumn as BarChartIcon,
   Megaphone as MegaphoneIcon,
@@ -15,19 +16,28 @@ export function UtilityHeader() {
   const [helpOpen, setHelpOpen] = useState(false);
   const adminRef = useRef<HTMLDivElement>(null);
   const helpRef = useRef<HTMLDivElement>(null);
+  const closeAdmin = useCallback(() => setAdminOpen(false), []);
+  const closeHelp = useCallback(() => setHelpOpen(false), []);
+  const admin = useDismissable(adminOpen, closeAdmin);
+  const help = useDismissable(helpOpen, closeHelp);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (adminRef.current && !adminRef.current.contains(e.target as Node)) {
-        setAdminOpen(false);
+        adminRequestClose.current();
       }
       if (helpRef.current && !helpRef.current.contains(e.target as Node)) {
-        setHelpOpen(false);
+        helpRequestClose.current();
       }
     };
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
+
+  const adminRequestClose = useRef(admin.requestClose);
+  const helpRequestClose = useRef(help.requestClose);
+  adminRequestClose.current = admin.requestClose;
+  helpRequestClose.current = help.requestClose;
 
   return (
     <header className="fo-utility-header">
@@ -88,12 +98,16 @@ export function UtilityHeader() {
             className="fo-utility-link"
             aria-haspopup="menu"
             aria-expanded={adminOpen}
-            onClick={() => setAdminOpen((v) => !v)}
+            onClick={() => (adminOpen ? admin.requestClose() : setAdminOpen(true))}
           >
             Administration <span className="fo-utility-caret">▾</span>
           </button>
           {adminOpen && (
-            <div className="fo-utility-menu" role="menu">
+            <div
+              className="fo-utility-menu"
+              data-closing={admin.closing ? 'true' : undefined}
+              role="menu"
+            >
               <a className="fo-utility-menu-item" href="/settings" role="menuitem">
                 Settings
               </a>
@@ -131,12 +145,16 @@ export function UtilityHeader() {
             className="fo-utility-link"
             aria-haspopup="menu"
             aria-expanded={helpOpen}
-            onClick={() => setHelpOpen((v) => !v)}
+            onClick={() => (helpOpen ? help.requestClose() : setHelpOpen(true))}
           >
             Help <span className="fo-utility-caret">▾</span>
           </button>
           {helpOpen && (
-            <div className="fo-utility-menu" role="menu">
+            <div
+              className="fo-utility-menu"
+              data-closing={help.closing ? 'true' : undefined}
+              role="menu"
+            >
               <div className="fo-utility-menu-item" style={{ cursor: 'default' }}>
                 Signed in as {staff?.full_name ?? 'Account'}
               </div>

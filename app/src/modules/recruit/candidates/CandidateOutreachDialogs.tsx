@@ -17,14 +17,14 @@ export function CandidateOutreachDialogs({ outreach, person }: CandidateOutreach
         <Dialog
           title="Send email"
           onClose={() => outreach.closeSendEmail()}
-          footer={
+          footer={(dismiss) => (
             <>
-              <Button onClick={() => outreach.closeSendEmail()}>Cancel</Button>
+              <Button onClick={dismiss}>Cancel</Button>
               <Button variant="primary" onClick={() => void outreach.submitSendEmail()} disabled={outreach.emailBusy}>
                 {outreach.emailBusy ? 'Sending…' : 'Send'}
               </Button>
             </>
-          }
+          )}
         >
           {outreach.templates.length > 0 && (
             <Select
@@ -68,20 +68,20 @@ export function CandidateOutreachDialogs({ outreach, person }: CandidateOutreach
         <Dialog
           title="Schedule meeting"
           onClose={() => outreach.closeSchedule()}
-          footer={
+          footer={(dismiss) => (
             !outreach.meetingLink ? (
               <>
-                <Button onClick={() => outreach.closeSchedule()}>Cancel</Button>
+                <Button onClick={dismiss}>Cancel</Button>
                 <Button variant="primary" onClick={() => void outreach.submitSchedule()} disabled={outreach.meetingBusy}>
                   {outreach.meetingBusy ? 'Creating…' : 'Create meeting'}
                 </Button>
               </>
             ) : (
-              <Button variant="primary" onClick={() => outreach.closeSchedule()}>
+              <Button variant="primary" onClick={dismiss}>
                 Done
               </Button>
             )
-          }
+          )}
         >
           {outreach.meetingLink ? (
             <p>

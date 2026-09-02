@@ -553,9 +553,9 @@ export function ApplicationPipeline({
         <Dialog
           title="Reject application"
           onClose={() => setRejectTarget(null)}
-          footer={
+          footer={(dismiss) => (
             <>
-              <Button onClick={() => setRejectTarget(null)}>Cancel</Button>
+              <Button onClick={dismiss}>Cancel</Button>
               <Button
                 variant="danger"
                 disabled={!rejectReason.trim()}
@@ -564,7 +564,7 @@ export function ApplicationPipeline({
                 Reject
               </Button>
             </>
-          }
+          )}
         >
           <p>
             A rejection reason is required before{' '}
@@ -588,18 +588,16 @@ export function ApplicationPipeline({
         <Dialog
           title="Candidate hired — promote to contact?"
           onClose={() => setPromoteTarget(null)}
-          footer={
+          footer={(dismiss) => (
             <>
-              <Button onClick={() => setPromoteTarget(null)}>
-                {promoteMsg ? 'Close' : 'Not now'}
-              </Button>
+              <Button onClick={dismiss}>{promoteMsg ? 'Close' : 'Not now'}</Button>
               {!promoteMsg && (
                 <Button variant="primary" onClick={() => void createContactProfile()}>
                   Create contact profile
                 </Button>
               )}
             </>
-          }
+          )}
         >
           <p>
             {promotePerson ? personName(promotePerson) : 'This person'} was hired on{' '}

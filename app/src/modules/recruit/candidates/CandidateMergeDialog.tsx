@@ -99,14 +99,14 @@ export function CandidateMergeDialog({ survivor, onClose, onMerged }: CandidateM
     <Dialog
       title="Merge a duplicate into this record"
       onClose={onClose}
-      footer={
+      footer={(close) => (
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={close}>Cancel</Button>
           <Button variant="danger" disabled={!chosen || busy} onClick={() => void merge()}>
             {busy ? 'Merging…' : 'Merge and delete the duplicate'}
           </Button>
         </>
-      }
+      )}
     >
       <p className="text-secondary">
         This record is kept. The one you choose is deleted, and its applications, activities, tasks,

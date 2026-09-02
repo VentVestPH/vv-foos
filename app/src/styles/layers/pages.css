@@ -123,6 +123,20 @@
   color: var(--fo-nav);
   font-size: var(--fs-sm);
   flex-shrink: 0;
+  display: inline-flex;
+}
+
+.record-section[data-open='false'] .record-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.record-section-collapse {
+  display: grid;
+}
+
+.record-section-clip {
+  overflow: hidden;
+  min-height: 0;
 }
 
 .record-section-body {

@@ -1,4 +1,5 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 interface RecordPageProps {
   code?: string;
@@ -46,29 +47,57 @@ export function RecordSection({
   children,
 }: RecordSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const [everOpened, setEverOpened] = useState(defaultOpen);
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
   const userToggled = useRef(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!userToggled.current) setOpen(defaultOpen);
+    if (userToggled.current) return;
+    setOpen(defaultOpen);
+    if (defaultOpen) setEverOpened(true);
   }, [defaultOpen]);
 
+  useLayoutEffect(() => {
+    const node = bodyRef.current;
+    if (!node || !everOpened) return;
+    const measure = () => setContentHeight(node.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [everOpened]);
+
+  const toggle = () => {
+    userToggled.current = true;
+    setOpen((v) => {
+      if (!v) setEverOpened(true);
+      return !v;
+    });
+  };
+
+  const rows = !open ? '0px' : contentHeight === null ? 'auto' : `${contentHeight}px`;
+
   return (
-    <section className="record-section">
-      <button
-        type="button"
-        className="record-section-header"
-        onClick={() => {
-          userToggled.current = true;
-          setOpen((v) => !v);
-        }}
-        aria-expanded={open}
-      >
+    <section className="record-section" data-open={open ? 'true' : 'false'}>
+      <button type="button" className="record-section-header" onClick={toggle} aria-expanded={open}>
         <span className="record-section-chevron" aria-hidden="true">
-          {open ? '▾' : '▸'}
+          <ChevronDown size={14} />
         </span>
         {title}
       </button>
-      {open && <div className="record-section-body">{children}</div>}
+      <div
+        className="record-section-collapse"
+        style={{ gridTemplateRows: rows }}
+        aria-hidden={open ? undefined : true}
+        {...(open ? {} : { inert: '' })}
+      >
+        <div className="record-section-clip">
+          <div className="record-section-body" ref={bodyRef}>
+            {everOpened ? children : null}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

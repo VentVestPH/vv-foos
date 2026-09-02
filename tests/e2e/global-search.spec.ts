@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { clientAs } from '../env';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+
+const SEEDED_CANDIDATE = 'b0000000-0000-4000-8000-000000000002';
 
 test.describe('Q3: one search across every entity', () => {
   test('the sidebar carries the typed keywords into the global search', async ({ page }) => {
@@ -34,15 +37,16 @@ test.describe('Q3: one search across every entity', () => {
 
   test('a candidate name reaches the candidate record', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
-    await gotoAsSignedIn(page, '/recruit/candidates');
-    const firstRow = page.locator('.table-wrap tbody tr[data-row-key]').first();
-    await expect(firstRow).toBeVisible({ timeout: 25000 });
-    const key = (await firstRow.getAttribute('data-row-key')) ?? '';
-    expect(key).toMatch(/^[0-9a-f-]{36}$/);
-    const cells = await firstRow.locator('td').allTextContents();
-    const name = (cells.find((c) => /[A-Za-z]{2,}\s+[A-Za-z]{2,}/.test(c.trim())) ?? '').trim();
-    expect(name.length, `no name-looking cell in ${JSON.stringify(cells)}`).toBeGreaterThan(1);
-    const surname = name.split(/\s+/).pop() as string;
+    const admin = await clientAs('admin');
+    const { data: seeded } = await admin
+      .from('people')
+      .select('id, last_name')
+      .eq('id', SEEDED_CANDIDATE)
+      .single();
+    const surname = seeded?.last_name ?? '';
+    expect(surname.length, 'the seeded candidate must have a surname to search for').toBeGreaterThan(
+      1,
+    );
 
     await gotoAsSignedIn(page, `/search?q=${encodeURIComponent(surname)}`);
     const section = page

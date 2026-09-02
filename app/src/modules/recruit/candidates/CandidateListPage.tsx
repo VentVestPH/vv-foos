@@ -446,9 +446,9 @@ export function CandidateListPage() {
         <Dialog
           title="Grade comment"
           onClose={() => setCommentEdit(null)}
-          footer={
+          footer={(dismiss) => (
             <>
-              <Button onClick={() => setCommentEdit(null)}>Cancel</Button>
+              <Button onClick={dismiss}>Cancel</Button>
               <Button
                 variant="primary"
                 onClick={() => {
@@ -461,7 +461,7 @@ export function CandidateListPage() {
                 Save
               </Button>
             </>
-          }
+          )}
         >
           <textarea
             rows={4}

@@ -40,14 +40,14 @@ export function CandidateEraseDialog({ person, onClose, onErased }: CandidateEra
     <Dialog
       title="Erase this candidate"
       onClose={onClose}
-      footer={
+      footer={(close) => (
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={close}>Cancel</Button>
           <Button variant="danger" disabled={!ready || busy} onClick={() => void erase()}>
             {busy ? 'Erasing…' : 'Erase permanently'}
           </Button>
         </>
-      }
+      )}
     >
       <p>
         This deletes {name} and every application, activity, task, reminder and file attached to

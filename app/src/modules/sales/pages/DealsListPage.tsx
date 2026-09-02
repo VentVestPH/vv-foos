@@ -34,6 +34,7 @@ export function DealsListPage() {
   const [companyFilter] = useState(() => params.get('company_id') ?? '');
   const [pendingLost, setPendingLost] = useState<Deal | null>(null);
   const [wonNotice, setWonNotice] = useState<string | null>(null);
+  const [wonClosing, setWonClosing] = useState(false);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,8 +57,13 @@ export function DealsListPage() {
 
   useEffect(() => {
     if (!wonNotice) return;
+    setWonClosing(false);
+    const fade = setTimeout(() => setWonClosing(true), 3860);
     const t = setTimeout(() => setWonNotice(null), 4000);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(fade);
+      clearTimeout(t);
+    };
   }, [wonNotice]);
 
   const visible = useMemo(() => {
@@ -334,7 +340,11 @@ export function DealsListPage() {
       )}
 
       {wonNotice && (
-        <div className="sales-toast" role="status">
+        <div
+          className="sales-toast"
+          data-closing={wonClosing ? 'true' : undefined}
+          role="status"
+        >
           {wonNotice}
         </div>
       )}
