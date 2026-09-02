@@ -21,6 +21,12 @@ const PAIRS = [
   ['gate tag text', '--fo-text-secondary', '--fo-row-alt', 4.5],
   ['gate tag border', '--fo-control-border', '--fo-row-alt', 3.0],
   ['nav badge count', '--fo-nav', '--fo-surface', 4.5],
+  ['link on hover row', '--fo-link', '--fo-row-hover', 4.5],
+  ['link on zebra row', '--fo-link', '--fo-row-alt', 4.5],
+  ['chip text on surface', '--fo-link', '--fo-surface', 4.5],
+  ['secondary text on canvas', '--fo-text-secondary', '--fo-canvas', 4.5],
+  ['body text on canvas', '--fo-text', '--fo-canvas', 4.5],
+  ['side tab label on tinted bar', '--fo-tab-label', '--fo-section', 4.5],
 ];
 
 function readTokens(file) {

@@ -13,10 +13,11 @@
   --fo-canvas: #eeeeee;
   --fo-surface: #ffffff;
   --fo-row-alt: #f7f7f7;
-  --fo-row-hover: #e8f1f7;
+  --fo-row-hover: #f0f6fb;
   --fo-border: #d5d5d5;
   --fo-control-border: #8f8f8f;
   --fo-text: #222222;
+  --fo-tab-label: #4a4a4a;
   --fo-text-secondary: #5f5f5f;
   --fo-icon: #4a7098;
   --fo-active-tab-bg: #e8ecef;

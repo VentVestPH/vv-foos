@@ -306,7 +306,7 @@ export function CandidateListPage() {
     const flagCol: TableColumn<CandRow> = {
       key: 'flagcol',
       header: (
-        <span className="cand-flag-col" aria-label="Flag" title="Flag">
+        <span className="cand-flag-col" role="img" aria-label="Flag" title="Flag">
           <FlagIcon size={14} />
         </span>
       ),
@@ -344,6 +344,7 @@ export function CandidateListPage() {
         render: (r) => (
           <span
             className={r.has_resume ? 'cand-resume-icon' : 'cand-resume-icon cand-resume-none'}
+            role="img"
             aria-label={r.has_resume ? 'Resume on file' : 'No resume on file'}
             title={r.has_resume ? 'Resume on file' : 'No resume on file'}
           >

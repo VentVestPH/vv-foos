@@ -13,7 +13,11 @@ export function StarGrade({ value, size = 14, onChange }: StarGradeProps) {
 
   if (!onChange) {
     return (
-      <span className="star-grade" aria-label={grade ? `${grade} star grade` : 'Ungraded'}>
+      <span
+        className="star-grade"
+        role="img"
+        aria-label={grade ? `${grade} star grade` : 'Ungraded'}
+      >
         {GRADES.map((i) => (
           <span key={i} className={i <= grade ? 'star on' : 'star'}>
             <Star size={size} fill={i <= grade ? 'currentColor' : 'none'} />

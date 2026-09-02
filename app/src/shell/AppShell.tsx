@@ -10,12 +10,15 @@ export function AppShell() {
 
   return (
     <div className="shell">
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
       <UtilityHeader />
       <PrimaryNav />
       <div className="fo-body">
         <ShellSidebar />
         <div className="shell-main">
-          <main className="shell-content">
+          <main className="shell-content" id="main-content" tabIndex={-1}>
             <Outlet />
           </main>
         </div>

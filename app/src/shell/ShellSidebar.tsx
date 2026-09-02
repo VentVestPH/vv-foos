@@ -27,7 +27,10 @@ export function ShellSidebar() {
   };
 
   return (
-    <aside className={collapsed ? 'fo-sidebar collapsed' : 'fo-sidebar'}>
+    <aside
+      className={collapsed ? 'fo-sidebar collapsed' : 'fo-sidebar'}
+      aria-label="Quick search and recently viewed"
+    >
       <div className="fo-sidebar-panel">
         <div className="fo-sidebar-panel-header">
           <span className="fo-sidebar-panel-title">Quick Search</span>

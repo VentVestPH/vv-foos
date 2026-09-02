@@ -72,8 +72,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--sp-half);
-  background: var(--section-tint);
-  color: var(--slate);
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  color: var(--fo-link);
   border-radius: 999px;
   padding: 2px var(--sp-1);
   font-size: var(--fs-sm);
