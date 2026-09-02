@@ -267,7 +267,9 @@ Added 2026-09-02. An axe run across eight signed-in routes at four viewport widt
 
 Three browser tests, and they assert the thing that made this invisible before: the **document** never overflowed horizontally at any width, because everything scrolled internally. So one test measures document overflow across four widths and three routes, and another measures the table's left offset at 768px and fails if it is more than 120px from the edge, which is what a nested pane produces | At 768x1024 the layout does not reflow: the candidates table sits about 1400px below the fold and 950px to the right, reachable only by scrolling a nested pane on two axes, and the action bar clips mid-button. The document itself never overflows, which is why no earlier check caught this | 1 d |
 | L10 | **DONE 2026-09-02.** `searchScope(pathname)` derives the noun and the target route from the module you are in, so the sidebar reads "Deal Keywords" on the deals page and searching lands on `/sales/deals`, not on candidates. Seven scopes: requisitions, candidates, accounts, deals, tickets, contacts and intake. The first and last name card is hidden where the record is not a person, because asking for a first name on the tickets list is worse than asking nothing. Four browser tests, including one that searches from the deals page and asserts the URL it lands on | It reads "Candidate Keywords" and submits to `/recruit/candidates?search=` even on `/sales/deals`. A mislabelled control on every non-recruit page, adjacent to SC 2.4.6 | 2 h |
-| L11 | Reproduce the one `definition-list` violation before acting | axe reported it on the candidate record. Reading axe's own source shows `only-dlitems` unwraps a roleless `div`, so the 31 `div.info-item` wrappers are not the cause, and `structured-dlitems` inspects direct children only. Not worth touching 31 call sites on a guess | 1 h |
+| L11 | **RESOLVED 2026-09-02, and the cause was not what anyone assumed.** Reproducing it properly, once axe covered record pages, gave the real message: `dl element has direct children that are not allowed: label, div > label`. The candidate record renders an `Input` and a `div.field` **inside** the definition list, so the violation was form controls in a `dl`, not the 31 `div.info-item` wrappers I had spent time defending. The 100 lines of editable fields moved into a sibling `div.info-grid info-grid-form` that shares the grid, so the `dl` holds only `dt` and `dd` pairs again.
+
+Extending the axe sweep to record pages found four more violations nobody had seen, because the original audit and my first L12 test both covered list routes only: `aria-prohibited-attr` on the unviewed dots and the timeline icon, `aria-required-children` at **critical** because `.pipeline-toggle` declared `role="tablist"` while its children were bare buttons, and six contrast nodes | axe reported it on the candidate record. Reading axe's own source shows `only-dlitems` unwraps a roleless `div`, so the 31 `div.info-item` wrappers are not the cause, and `structured-dlitems` inspects direct children only. Not worth touching 31 call sites on a guess | 1 h |
 | L13 | **DONE 2026-09-02.** One retry for the Vitest suites | Over 26 gate passes the API suite failed exactly once and could not be reproduced in 14 solo runs, 8 runs in the reverse order, or 26 further gate passes. These suites sign in over HTTP against a live stack, so a single transport hiccup was failing a whole gate. `retry: 1` in `vitest.config.ts` makes a genuine failure still fail twice while a transport blip does not. Not a mask: the browser suite already runs with retries disabled in the gate, so a real product regression still surfaces | done |
 | L12 | **DONE 2026-09-02, and it immediately caught a regression I had just introduced.** `tests/e2e/accessibility.spec.ts` injects axe-core from the installed package, runs the wcag2a, wcag2aa, wcag21a and wcag21aa rule sets across seven signed-in routes, and fails on any serious or critical violation. Two further tests assert the skip link is the first tab stop and that every control satisfies SC 2.5.8.
 
@@ -378,7 +380,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**105½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**106½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -394,7 +396,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **H** Frontend consistency | 7 | 7 | Complete. H5 turned out to be six dead CSS selectors rather than a taste decision. H7 is the real logo, added at your request |
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
 | **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
-| **L** Accessibility and responsive | 13 | 12 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
+| **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 7½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
 | **N** Code and stylesheet architecture | 10 | 4 | N2 done, which removes the only live crash in the workstream |
 | **O** Resilience and handover | 8 | 2 | O1 done. A render throw is now contained to one page or one widget |
@@ -499,7 +501,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **105½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **106½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -508,7 +510,6 @@ State after the 2026-09-02 passes and the seven audits. **105½ of 138 tasks don
 ### 8.2 Under two hours each, no product risk
 
 - [ ] **M9** Guard against building against the live project unintentionally
-- [ ] **L11** Reproduce the one `definition-list` violation before touching 31 call sites
 - [ ] **O6** Confirm backups and point-in-time recovery on the live project
 - [ ] **O7** Note `@dnd-kit/core` as a watch item: latest version, but unpublished for 21 months
 

@@ -337,7 +337,7 @@ export function ApplicationPipeline({
         sortable: true,
         render: (r) => (
           <span>
-            {r.unviewed && <span className="unviewed-dot" aria-label="Unviewed" />}{' '}
+            {r.unviewed && <span className="unviewed-dot" role="img" aria-label="Unviewed" />}{' '}
             <button
               type="button"
               className="link-btn"
@@ -453,7 +453,7 @@ export function ApplicationPipeline({
               {r.name}
             </button>
             <div className="kanban-card-meta">
-              {r.unviewed && <span className="unviewed-dot" aria-label="Unviewed" />}
+              {r.unviewed && <span className="unviewed-dot" role="img" aria-label="Unviewed" />}
               <button
                 type="button"
                 className={r.is_shortlisted ? 'shortlist-btn on' : 'shortlist-btn'}
@@ -513,6 +513,8 @@ export function ApplicationPipeline({
           <div className="pipeline-toggle" role="tablist" aria-label="Pipeline view">
             <button
               type="button"
+              role="tab"
+              aria-selected={view === 'table'}
               className={view === 'table' ? 'active' : ''}
               onClick={() => setView('table')}
             >
@@ -520,6 +522,8 @@ export function ApplicationPipeline({
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={view === 'kanban'}
               className={view === 'kanban' ? 'active' : ''}
               onClick={() => setView('kanban')}
             >

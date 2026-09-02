@@ -51,6 +51,22 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
       }
     }
 
+    for (const [name, listPath] of [
+      ['requisition record', '/recruit/requisitions'],
+      ['candidate record', '/recruit/candidates'],
+    ] as const) {
+      await gotoAsSignedIn(page, listPath);
+      await page.locator('.table-wrap tbody tr .link-btn').first().click();
+      await page.waitForTimeout(1200);
+      for (const v of await violations(page)) {
+        if (v.impact === 'serious' || v.impact === 'critical') {
+          found.push(
+            `${name}: ${v.id} (${v.impact}, ${v.nodes.length} node(s)) e.g. ${v.nodes[0]?.target?.[0] ?? '?'}`,
+          );
+        }
+      }
+    }
+
     expect(found, `serious or critical accessibility violations:\n${found.join('\n')}`).toEqual([]);
   });
 

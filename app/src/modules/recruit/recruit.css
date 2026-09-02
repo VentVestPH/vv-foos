@@ -384,21 +384,6 @@
   flex-shrink: 0;
 }
 
-.link-btn {
-  background: none;
-  border: none;
-  color: var(--primary);
-  font-family: inherit;
-  font-size: var(--fs-body);
-  padding: 0;
-  cursor: pointer;
-  text-align: left;
-}
-
-.link-btn:hover {
-  color: var(--primary-deep);
-}
-
 .fo-candidates-cell {
   display: inline-flex;
   align-items: center;

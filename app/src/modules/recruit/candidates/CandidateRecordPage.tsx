@@ -630,6 +630,9 @@ export function CandidateRecordPage() {
             </Fragment>
           ))}
 
+        </dl>
+
+        <div className="info-grid info-grid-form">
           {profile && draft && (
             <>
               <Input
@@ -730,7 +733,7 @@ export function CandidateRecordPage() {
               </label>
             </>
           )}
-        </dl>
+        </div>
 
         <h2 style={{ marginTop: 'var(--sp-2)' }}>Experience</h2>
         {personExperience(person).length === 0 ? (

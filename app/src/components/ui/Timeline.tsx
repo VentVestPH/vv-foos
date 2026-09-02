@@ -90,6 +90,7 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
             <div key={item.id} className="timeline-item">
               <span
                 className="timeline-icon"
+                role="img"
                 title={KIND_LABELS[item.kind]}
                 aria-label={KIND_LABELS[item.kind]}
               >

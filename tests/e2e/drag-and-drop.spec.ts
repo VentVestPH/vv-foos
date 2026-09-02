@@ -139,7 +139,7 @@ test.describe('Drag and drop persists the stage (criteria 2.6 and 3.3)', () => {
       await expect(pipeline).toBeVisible({ timeout: 25000 });
       await expect(page.getByText(`DragProbe${RUN}`).first()).toBeVisible({ timeout: 25000 });
 
-      await page.getByRole('button', { name: /^Kanban$/ }).first().click();
+      await page.getByRole('tab', { name: /^Kanban$/ }).first().click();
 
       const card = page.locator('.kanban-card', { hasText: `DragProbe${RUN}` });
       await expect(card).toHaveCount(1, { timeout: 25000 });

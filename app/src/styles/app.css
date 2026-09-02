@@ -2075,3 +2075,22 @@ summary:focus-visible,
   outline-offset: 1px;
   box-shadow: var(--shadow-raised);
 }
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--fo-link-on-tint);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-btn:hover {
+  color: var(--primary-deep);
+}
+
+.info-grid-form {
+  margin-top: var(--sp-2);
+}
