@@ -301,6 +301,25 @@ Added 2026-09-02. Two research passes and two codebase audits.
 
 **Status 2026-09-02.** All open. N2 is the only one with a live bug behind it.
 
+### Workstream O. Resilience, growth and handover readiness
+
+Added 2026-09-02. These came from asking what nobody had looked at yet, rather than from a tool. Each was checked before being written down, and one suspicion turned out to be unfounded and is recorded as such.
+
+| # | Task | Evidence | Est. |
+| :---- | :---- | :---- | :---- |
+| O1 | Add a React error boundary around the route outlet, and a per-panel one on the dashboards | **There is no error boundary anywhere in the application.** Zero matches for `componentDidCatch`, `ErrorBoundary` or `getDerivedStateFromError` across all 113 source files. Any throw during render blanks the entire page to white with no message and no recovery. This is not theoretical: N2's `fmtMoney` throws `RangeError` on an invalid currency code, so one bad currency string in one dashboard cell takes down the whole app | 4 h |
+| O2 | Prune `audit_log` and `events_outbox` | Neither table is ever pruned. No migration contains a delete against either. `audit_log` receives a row from a security-definer trigger on **every write to every business table**, and `events_outbox` keeps processed rows forever with `processed_at` set. Both grow without bound, which is a slow problem that becomes a handover problem | 4 h |
+| O3 | Add error tracking before handover | No Sentry, no `window.onerror`, no global error listener anywhere. After cutover nobody will know a production error happened unless a user reports it, and the 30-day measurement window that gates cancelling the old subscriptions depends on knowing whether the replacement actually works | 4 h |
+| O4 | Measure and reduce Realtime subscriptions per page | **10 `.channel(` call sites across 9 files.** D30 already records the Realtime messages-per-second limit as an October scaling risk, and the Playwright suite is capped at two workers because of it, but no task ever followed. Nobody has counted how many channels a single page actually opens, or whether they can share one | 1 d |
+| O5 | Decide the session policy for a product holding candidate PII | `jwt_expiry` is 3600 with token auto-refresh, so a signed-in browser stays signed in indefinitely while it is open. There is no idle timeout and no re-auth prompt. That may be the right call for an internal tool, but it should be a decision on the record rather than a default nobody chose | Decision + 3 h |
+| O6 | Confirm backups and point-in-time recovery on the live project | Never mentioned anywhere in this plan or its supporting documents. A1 and A2 made the schema reproducible from source, which is not the same thing as being able to recover the data | 1 h |
+| O7 | Watch `@dnd-kit/core` | We are on the latest version, 6.3.1, but it was **last published in December 2024, about 21 months ago**, and the maintainer has started a separate `@dnd-kit/react` line (0.5.0, July 2026). No advisories today. But it powers both kanban boards, and a library in maintenance mode with a successor forming is where an unpatched CVE eventually lands | Watch |
+| O8 | Audit the storage bucket policies and limits | Row-level security on tables was tested thoroughly and separately. The `attachments` bucket's own policies, size limits and MIME restrictions were not part of that and have not been looked at | 3 h |
+
+**Checked and found sound, so no task:** CI does run the full test suites. A third job in `ci.yml` starts Supabase, seeds the personas, checks migration drift, runs `validate.sql`, the 97 API and unit tests, installs Chromium, runs the 41 browser tests, and checks the attachment queue. I had assumed the browser suite was local-only and that was wrong.
+
+**Status 2026-09-02.** All open. O1 is the cheapest way to stop a single bad value taking down the product, and it pairs with N2.
+
 ### Workstream C notes from external research
 
 Three points change how items in this stream should be justified and built.
@@ -313,7 +332,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**79½ of 119 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, 42 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**79½ of 127 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -332,6 +351,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **L** Accessibility and responsive | 12 | 6 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 3½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
 | **N** Code and stylesheet architecture | 10 | 0 | New from the audits. N2 has a live crash behind it |
+| **O** Resilience and handover | 8 | 0 | New. O1: there is no error boundary anywhere, so any render throw blanks the app |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -432,7 +452,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the six audits. **79½ of 119 tasks done.** Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the six audits. **79½ of 127 tasks done.** Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -441,6 +461,7 @@ State after the 2026-09-02 passes and the six audits. **79½ of 119 tasks done.*
 - [ ] **N2** One canonical `fmtMoney`. The dashboards copy throws `RangeError` on an invalid currency code. 2 h
 - [ ] **L9** Single-column reflow below about 900px. At 768px the table sits 1400px below the fold and 950px right, inside a nested scroll pane. 1 d
 - [ ] **L10** The sidebar quick-search says "Candidate Keywords" and submits to the candidates route on every page, including sales and intake. 2 h
+- [ ] **O1** There is no error boundary anywhere, so any render-time throw blanks the whole app. Pairs with N2, whose `RangeError` is exactly such a throw. 4 h
 
 ### 8.2 Under two hours each, no product risk
 
@@ -457,6 +478,8 @@ State after the 2026-09-02 passes and the six audits. **79½ of 119 tasks done.*
 - [ ] **M9** Guard against building against the live project unintentionally
 - [ ] **N4** Extract the `.fo-advanced-search` block duplicated in two module stylesheets
 - [ ] **L11** Reproduce the one `definition-list` violation before touching 31 call sites
+- [ ] **O6** Confirm backups and point-in-time recovery on the live project
+- [ ] **O7** Note `@dnd-kit/core` as a watch item: latest version, but unpublished for 21 months
 
 ### 8.3 Frontend fidelity, still outstanding
 
@@ -481,6 +504,11 @@ State after the 2026-09-02 passes and the six audits. **79½ of 119 tasks done.*
 - [ ] **M10** Test `Cross-Origin-Embedder-Policy: require-corp` before enabling it
 - [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
 - [ ] **F4** Archive the other two frontends (decided, not yet executed)
+- [ ] **O2** Prune `audit_log` and `events_outbox`, neither of which is ever pruned
+- [ ] **O3** Error tracking, so production failures are visible during the 30-day measurement window
+- [ ] **O4** Measure and reduce the 10 Realtime channel call sites
+- [ ] **O5** Decide the session policy: no idle timeout on a product holding candidate PII
+- [ ] **O8** Audit the storage bucket policies and limits
 
 ### 8.5 Waiting on one authorised command from you
 
