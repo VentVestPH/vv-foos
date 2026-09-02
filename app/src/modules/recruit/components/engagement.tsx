@@ -11,7 +11,12 @@ import type {
 } from '../../../lib/database.types';
 import type { Activity, Attachment, Reminder, TaskRow } from '../lib/data';
 import { errMsg, fmtDate, fmtDateTime, supabase } from '../lib/data';
-import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
+import {
+  attachmentRejection,
+  isPendingFile,
+  PENDING_FILE_LABEL,
+  PENDING_FILE_REASON,
+} from '../../../lib/attachments';
 
 export interface EngagementParent {
   type: 'person' | 'requisition';
@@ -166,6 +171,8 @@ export async function uploadAttachment(
   kind: AttachmentKind,
   uploadedBy: string | null,
 ): Promise<string | null> {
+  const rejection = attachmentRejection(file);
+  if (rejection) return rejection;
   const safeName = file.name.replace(/[^A-Za-z0-9._-]+/g, '_');
   const path = `${parent.type}/${parent.id}/${Date.now()}_${safeName}`;
   const up = await supabase.storage.from('attachments').upload(path, file);

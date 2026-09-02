@@ -40,6 +40,12 @@ interface ParserBody {
 }
 
 const RESUME_EXT = [".pdf", ".doc", ".docx"];
+
+const CONTENT_TYPE_BY_EXT: Record<string, string> = {
+  ".pdf": "application/pdf",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
 const CANDIDATE_HINTS = ["resume", "cv", "application", "apply", "applying", "candidate", "position"];
 const CONTACT_HINTS = ["introduction", "intro call", "partnership", "proposal", "meeting request", "connect"];
 
@@ -106,13 +112,14 @@ Deno.serve(async (req) => {
   const stagedAttachments: { storage_path: string; filename: string; kind: string }[] = [];
   for (const att of body.message.attachments ?? []) {
     const ext = extOf(att.filename);
-    if (!RESUME_EXT.includes(ext)) continue; 
+    if (!RESUME_EXT.includes(ext)) continue;
+    const contentType = CONTENT_TYPE_BY_EXT[ext];
     const bytes = base64ToBytes(att.contentBase64);
     const safeName = att.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
     const storagePath = `intake/${body.message.id}/${safeName}`;
-    const blob = new Blob([bytes], { type: att.mimeType || "application/octet-stream" });
+    const blob = new Blob([bytes], { type: contentType });
     const { error: uploadErr } = await sb.storage.from("attachments").upload(storagePath, blob, {
-      contentType: att.mimeType || "application/octet-stream",
+      contentType,
       upsert: true,
     });
     if (!uploadErr) {

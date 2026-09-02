@@ -178,7 +178,7 @@ export function RequisitionListPage() {
           event: '*',
           schema: 'public',
           table: 'application_views',
-          filter: staff ? `staff_id=eq.${staff.id}` : undefined,
+          ...(staff ? { filter: `staff_id=eq.${staff.id}` } : {}),
         },
         () => void loadApps(),
       )

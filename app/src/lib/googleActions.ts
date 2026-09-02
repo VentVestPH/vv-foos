@@ -30,11 +30,11 @@ export interface SendEmailArgs {
   to: string;
   subject: string;
   bodyText: string;
-  threadId?: string;
-  dealId?: string;
-  applicationId?: string;
-  companyId?: string;
-  requisitionId?: string;
+  threadId?: string | undefined;
+  dealId?: string | undefined;
+  applicationId?: string | undefined;
+  companyId?: string | undefined;
+  requisitionId?: string | undefined;
 }
 
 export function sendEmail(args: SendEmailArgs) {
@@ -48,13 +48,13 @@ export interface ScheduleMeetingArgs {
   personId: string;
   attendeeEmails: string[];
   subject: string;
-  description?: string;
+  description?: string | undefined;
   startIso: string;
   durationMinutes: number;
-  dealId?: string;
-  applicationId?: string;
-  companyId?: string;
-  requisitionId?: string;
+  dealId?: string | undefined;
+  applicationId?: string | undefined;
+  companyId?: string | undefined;
+  requisitionId?: string | undefined;
 }
 
 export function scheduleMeeting(args: ScheduleMeetingArgs) {

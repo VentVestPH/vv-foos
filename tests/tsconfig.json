@@ -10,7 +10,8 @@
       "node",
       "vite/client"
     ],
-    "noEmit": true
+    "noEmit": true,
+    "exactOptionalPropertyTypes": true
   },
   "include": [
     "**/*.ts"

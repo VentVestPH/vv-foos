@@ -61,12 +61,12 @@ export function useIntakeBadge() {
 }
 
 export interface IntakeFilters {
-  channel?: string;
-  targetType?: string;
-  status?: string;
-  batchLabel?: string;
-  submittedBy?: string;
-  showAll?: boolean;
+  channel?: string | undefined;
+  targetType?: string | undefined;
+  status?: string | undefined;
+  batchLabel?: string | undefined;
+  submittedBy?: string | undefined;
+  showAll?: boolean | undefined;
 }
 
 export function useIntakeQueue(filters: IntakeFilters) {

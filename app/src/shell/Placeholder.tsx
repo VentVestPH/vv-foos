@@ -20,7 +20,7 @@ export function PlaceholderProvider({
 }: {
   children: ReactNode;
 }) {
-  const [state, setState] = useState<{ action: string; detail?: string } | null>(
+  const [state, setState] = useState<{ action: string; detail?: string | undefined } | null>(
     null,
   );
 

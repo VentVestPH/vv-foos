@@ -13,13 +13,15 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
   },
-  webServer: process.env.FOOS_SKIP_WEBSERVER
-    ? undefined
+  ...(process.env.FOOS_SKIP_WEBSERVER
+    ? {}
     : {
-        command: 'npm run dev --workspace=app',
-        url: BASE_URL,
-        reuseExistingServer: true,
-        timeout: 60000,
-        cwd: '..',
-      },
+        webServer: {
+          command: 'npm run dev --workspace=app',
+          url: BASE_URL,
+          reuseExistingServer: true,
+          timeout: 60000,
+          cwd: '..',
+        },
+      }),
 });

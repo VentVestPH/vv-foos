@@ -600,4 +600,42 @@ begin
   raise notice 'PASS 18: retention removed only aged rows, kept % pending outbox event(s)', pending_after;
 end $$;
 
+do $$
+declare
+  limit_bytes bigint;
+  types text[];
+  renderable text[];
+begin
+  if not exists (
+    select 1 from information_schema.tables
+    where table_schema = 'storage' and table_name = 'buckets'
+  ) then
+    raise notice 'PASS 19: storage schema absent on plain Postgres, bucket limits not checkable here';
+    return;
+  end if;
+
+  select file_size_limit, allowed_mime_types into limit_bytes, types
+  from storage.buckets where id = 'attachments';
+
+  if limit_bytes is null then
+    raise exception 'FAIL 19: the attachments bucket has no file_size_limit, so the project default applies';
+  end if;
+  if types is null or array_length(types, 1) is null then
+    raise exception 'FAIL 19: the attachments bucket accepts any mime type';
+  end if;
+  if not ('application/pdf' = any(types)) then
+    raise exception 'FAIL 19: the attachments bucket rejects application/pdf';
+  end if;
+
+  renderable := array(
+    select t from unnest(array['text/html', 'image/svg+xml', 'application/xhtml+xml']) t
+    where t = any(types)
+  );
+  if array_length(renderable, 1) is not null then
+    raise exception 'FAIL 19: the attachments bucket allows %, which Storage would serve as a rendering document', renderable;
+  end if;
+
+  raise notice 'PASS 19: attachments bucket caps uploads at % bytes and allows % mime types, none of them renderable', limit_bytes, array_length(types, 1);
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;
