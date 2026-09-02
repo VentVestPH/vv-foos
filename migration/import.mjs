@@ -21,9 +21,7 @@ const OUT_DIR = valueOf('--out', 'migration/out');
 const ENTITIES = valueOf('--entity', 'all');
 const INCLUDE_IDENTITY = has('--include-identity-documents');
 const ALLOW_REMOTE = has('--allow-remote');
-// These exports carry real candidate and customer records. Nothing that could
-// identify a person is printed or written to the report unless explicitly asked
-// for, so a terminal transcript or a pasted report stays safe to share.
+
 const SHOW_NAMES = has('--show-names');
 
 function localKeys() {
@@ -114,8 +112,7 @@ function tally(name) {
 }
 
 function note(bucket, key) {
-  // Reasons that name a specific record collapse into one bucket. Without this a
-  // run produces one line per distinct parent id and the real signal is lost.
+
   const grouped = key
     .replace(/Zrecruit_[0-9]+/g, '<id>')
     .replace(/zcrm_[0-9]+/g, '<id>');
@@ -154,9 +151,7 @@ async function importCandidates(lookups, unresolved, idMaps) {
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
-      // A dry run writes nothing, so nothing lands in zoho_id_map and every note
-      // and attachment would fail parent resolution. Standing in a placeholder id
-      // lets the rest of the run be exercised for real.
+
       if (!known) existing.set(mapped.zohoId, `dry-run:${mapped.zohoId}`);
       continue;
     }
@@ -337,11 +332,6 @@ async function main() {
 
   const want = (name) => ENTITIES === 'all' || ENTITIES.split(',').includes(name);
 
-  // Notes and attachments resolve their parent through the candidate id map. In a
-  // dry run nothing is written, so candidates are always mapped first to stand in
-  // the placeholder ids; otherwise asking for one downstream entity on its own
-  // reports every row as an unimported parent, which looks like a failure and is
-  // not one.
   const needCandidatesForParents = !APPLY && (want('notes') || want('attachments'));
   if (want('candidates') || needCandidatesForParents) {
     await importCandidates(lookups, unresolved, idMaps);
@@ -357,9 +347,7 @@ async function main() {
       : Object.fromEntries([...m.entries()].map(([, n], i) => [`value ${i + 1}`, n]));
 
   report.unresolved = {
-    // Source, status and category values are Zoho configuration rather than
-    // personal data, so they are always named: they are what someone has to act
-    // on. Staff values are people's names and are redacted with the rest.
+
     staff: redact(unresolved.staff),
     source: Object.fromEntries(unresolved.source),
     status: Object.fromEntries(unresolved.status),

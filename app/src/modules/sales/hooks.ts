@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { db as supabase } from './db';
 import { useRole } from '../../auth/SessionProvider';
 import type { Company, Staff } from './lib';
+import { EMPTY_CELL } from '../../lib/format';
 
 let staffCache: Staff[] | null = null;
 let companyCache: Company[] | null = null;
@@ -35,7 +36,7 @@ export function useStaffList() {
   return {
     staff,
     staffName: (id: string | null | undefined) =>
-      id ? (byId.get(id) ?? '—') : '—',
+      id ? (byId.get(id) ?? EMPTY_CELL) : EMPTY_CELL,
     staffOptions: staff
       .filter((s) => s.is_active)
       .map((s) => ({ value: s.id, label: s.full_name })),
@@ -71,7 +72,7 @@ export function useCompanyOptions(refreshKey = 0) {
   return {
     companies,
     companyName: (id: string | null | undefined) =>
-      id ? (byId.get(id)?.name ?? '—') : '—',
+      id ? (byId.get(id)?.name ?? EMPTY_CELL) : EMPTY_CELL,
     companyOptions: companies.map((c) => ({ value: c.id, label: c.name })),
   };
 }

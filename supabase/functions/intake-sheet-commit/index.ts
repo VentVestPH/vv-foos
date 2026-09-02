@@ -1,30 +1,8 @@
-// Agent 5 — sheet/Excel import commit (instruction 5, second half). Takes
-// the rows the client already fetched via intake-sheet-fetch plus a column
-// mapping, and writes one intake_items row per record. Runs as the calling
-// staff user (their own JWT forwarded, not the service role) so the existing
-// intake_items RLS policies decide what they're allowed to stage — a
-// recruiter can't sneak in contact-target rows through this endpoint any
-// more than through the UI.
-//
-// Deploy: supabase functions deploy intake-sheet-commit
-// Request: POST {
-//   rows: Record<string,string>[],       // from intake-sheet-fetch, or a subset
-//   columnMap: Record<string,string>,    // parsed-field -> source column name
-//                                        // keys: name, headline, email, phone,
-//                                        // company, title, linkedin_url
-//   targetType: 'candidate' | 'contact',
-//   batchLabel: string,
-//   saveTemplate?: { name: string; sourceHint?: string },
-// }
-// Response: { created: number, templateId?: string }
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-// Called from the browser — needs a CORS preflight response or the request
-// never leaves the browser ("Failed to fetch", found live during testing).
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "POST, OPTIONS",

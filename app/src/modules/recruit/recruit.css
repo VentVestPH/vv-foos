@@ -1,7 +1,7 @@
 .rq-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(31, 41, 55, 0.45);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,30 +60,6 @@
   gap: var(--sp-1);
   padding: var(--sp-1) var(--sp-2);
   border-top: 1px solid var(--border);
-}
-
-.star-grade {
-  display: inline-flex;
-  gap: 2px;
-  white-space: nowrap;
-}
-
-.star-grade .star {
-  color: var(--border);
-  font-size: var(--fs-body);
-  line-height: 1;
-}
-
-.star-grade .star.on {
-  color: var(--warning);
-}
-
-.star-grade.editable .star {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0 1px;
-  font-size: var(--fs-section);
 }
 
 .chip-row {

@@ -4,6 +4,7 @@ import type {
   PersonPhone,
   Tables,
 } from '../../lib/database.types';
+import { EMPTY_CELL } from '../../lib/format';
 
 export type Person = Tables<'people'>;
 export type Company = Tables<'companies'>;
@@ -65,7 +66,7 @@ export function locationLabel(row: {
 }
 
 export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return EMPTY_CELL;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString(undefined, {
@@ -79,7 +80,7 @@ export function fmtMoney(
   value: number | null,
   currency: string | null,
 ): string {
-  if (value === null || value === undefined) return '—';
+  if (value === null || value === undefined) return EMPTY_CELL;
   if (currency && /^[A-Za-z]{3}$/.test(currency)) {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',

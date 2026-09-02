@@ -49,8 +49,14 @@ export function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="login-mark">VV</span>
-          <h1>VentVest Front Office</h1>
+          <img
+            className="login-logo"
+            src="/ventvest-logo.webp"
+            alt="VentVest"
+            width={1038}
+            height={231}
+          />
+          <h1>Front Office OS</h1>
           <p className="text-secondary">Sign in with your ventvest.com account.</p>
         </div>
 

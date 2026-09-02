@@ -113,7 +113,7 @@ The Taleo Business Edition 11.4 User Guide states that Back To List "returns you
 
 `app/src/components/ui/Timeline.tsx` maps activity kinds to text glyphs: `email: '✉'`, `call: '☎'`, `meeting: '📅'`, `inmail: 'in'`, `note: '✎'`, `status_change: '⇄'`, `system: '⚙'`. The redesign prompt section 6 forbids this outright: "Do not use letter avatars such as `R`, `C`, `Co`, or emoji as final icons." Timeline renders on candidate, contact, company, deal and requisition record pages. Not mentioned in the redesign delivery report, so previously unreported.
 
-By contrast `app/src/shell/icons.tsx` is correct: 21 stroke-only icons, `currentColor`, 24x24 viewBox, `strokeWidth: 1.6`, round caps.
+By contrast `app/src/shell/icons.tsx` was correct: 21 stroke-only icons, `currentColor`, 24x24 viewBox, `strokeWidth: 1.6`, round caps. Superseded 2026-09-02: the file was deleted and those icons now come from lucide with the same stroke weight.
 
 **Correction: the defect was larger than Timeline.** A broader sweep on 2026-09-01 found five more sites of the same class, all now fixed with `lucide-react` at `strokeWidth={1.6}`:
 
@@ -126,7 +126,7 @@ By contrast `app/src/shell/icons.tsx` is correct: 21 stroke-only icons, `current
 | `pages/TaleoModulePlaceholderPage.tsx` | `⚙` | Also had `onClick={() => undefined}`, see D16 |
 | `modules/settings/GoogleIntegrationCard.tsx` | `'✓' : '—'` at three sites | Scope status marks, now `Check` / `Minus` with `aria-label` |
 
-Constraint discovered while doing it: **Lucide removed brand icons in v1** for trademark reasons, so there is no `Linkedin` export. The LinkedIn intake channel uses the generic `Link2`. A real LinkedIn mark would have to be a local SVG in `shell/icons.tsx`.
+Constraint discovered while doing it: **Lucide removed brand icons in v1** for trademark reasons, so there is no `Linkedin` export. The LinkedIn intake channel uses the generic `Link2`. A real LinkedIn mark would have to be a new local SVG component; `shell/icons.tsx` no longer exists.
 
 ### D16. A dead control bypassed the centralized placeholder (Low). FIXED 2026-09-01
 
@@ -241,3 +241,17 @@ I reported the candidate list's flag column as being in the wrong position, last
 ### D19. Spacing was already tokenised; the type scale was the gap
 
 I wrote in the plan that raw `px` spacing was "the real gap" against colour. Measuring properly: 218 spacing declarations already used `var()` tokens, and only 38 raw `px` remained, mostly deliberate small values. The genuine gap was `font-size`, with 22 raw values across eight distinct sizes. That is now an eight-step named scale with zero raw font sizes.
+
+### D34. Six motion selectors matched no markup, so the motion "landed" and nothing moved (Medium). FIXED 2026-09-02
+
+Workstream G was recorded as 10 of 10 and the CSS existed, but the panel motion targeted `.taleo-drawer`, `.modal`, `.dialog`, `.modal-backdrop`, `.dialog-backdrop` and `.taleo-placeholder-backdrop`. None of those classes is rendered anywhere in `app/src`. The real names are `.intake-drawer`, `.sales-modal`, `.rq-dialog`, `.intake-drawer-overlay`, `.sales-modal-overlay`, `.rq-overlay` and `.taleo-placeholder-overlay`. A seventh, `.sort-caret`, was also dead: `Table.tsx` renders `.sort-arrow`.
+
+Compounding it, every one of those components mounts and unmounts rather than toggling a class, so a `transition` on them could never have run even with the right selector. The fix replaces them with three keyframes on the selectors that exist.
+
+Why inspection missed it: reading the stylesheet proves a rule exists, not that anything matches it. The check that catches this class of defect is comparing every selector in a motion or state rule against the class names the components actually render.
+
+### D35. An export spec read row text before the data resolved (Low, test-only). FIXED 2026-09-02
+
+`list-persistence.spec.ts` 2.11 collected candidate names from the DOM as soon as the first row was visible. `CandidateListPage` renders `…` as a placeholder name until the `people` lookup resolves, so under full-suite load the test captured `…`, then failed because the CSV contained the real name. It passed in isolation every time and failed inside the suite, which is the signature of a race rather than a product defect. The spec now polls until no row still shows the placeholder.
+
+This is the seventh test-isolation bug of my own found by running the suite repeatedly rather than once.

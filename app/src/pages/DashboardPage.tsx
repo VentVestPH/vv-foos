@@ -4,7 +4,12 @@ import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { RecordSection } from '../components/ui/RecordPage';
 import { TaleoPlaceholderAction, usePlaceholder } from '../shell/TaleoPlaceholder';
-import { HomeIcon, PipelineIcon, PieChartIcon, GearIcon } from '../shell/icons';
+import {
+  ChartPie as PieChartIcon,
+  Funnel as PipelineIcon,
+  House as HomeIcon,
+  Settings as GearIcon,
+} from 'lucide-react';
 import { DashboardWidgetsPanel } from '../modules/dashboards';
 import { MyReminders } from './MyReminders';
 import { MyTasks } from './MyTasks';
@@ -166,8 +171,6 @@ function ReportsTab() {
       </div>
 
       <div className="taleo-report-toggle-row">
-        {/* FOOS-TBD: FOOS has one report surface today; these toggles are
-            decorative Taleo chrome matching 14_Taleo_Reports_Home.png. */}
         <TaleoPlaceholderAction
           label="Recruit"
           variant="secondary"
@@ -181,7 +184,6 @@ function ReportsTab() {
       </div>
 
       <div className="taleo-report-tab-row">
-        {/* FOOS-TBD: no per-category report navigation yet. */}
         <TaleoPlaceholderAction
           label="Candidate"
           variant="ghost"
@@ -208,7 +210,6 @@ function TaleoPlaceholderActionGear() {
       aria-disabled
       onClick={() => show('Configure report categories')}
     >
-      {/* FOOS-TBD: no configurable report-category list yet. */}
       <GearIcon size={16} />
     </button>
   );

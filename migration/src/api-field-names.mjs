@@ -1,8 +1,3 @@
-// Zoho's API field names are usually the display label with non-alphanumerics
-// replaced by underscores, but not always. Rather than guess all 110 candidate
-// fields, the mapping is derived and then the tool reports which export columns
-// found no matching API field on any record, so the overrides below can be
-// corrected against a real pull instead of being invented now.
 export function deriveApiName(exportColumn) {
   return exportColumn
     .replace(/\(([^)]*)\)/g, ' $1 ')
@@ -10,7 +5,6 @@ export function deriveApiName(exportColumn) {
     .replace(/^_+|_+$/g, '');
 }
 
-// Confirmed differences between an export column and its API field name.
 export const API_NAME_OVERRIDES = new Map([
   ['Candidate Id', 'id'],
   ['Candidate ID', 'Candidate_ID'],
@@ -42,8 +36,6 @@ export function buildFieldMap(headerColumns) {
   return map;
 }
 
-// Which export columns matched no API field on any record. These are the ones whose
-// name guess is wrong, and the only way to know is against a real pull.
 export function unmatchedColumns(headerColumns, records) {
   const present = new Set();
   for (const rec of records) for (const k of Object.keys(rec)) present.add(k);

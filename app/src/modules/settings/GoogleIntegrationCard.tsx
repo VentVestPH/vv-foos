@@ -5,7 +5,7 @@ function ScopeMark({ granted }: { granted: boolean }) {
   return (
     <Icon
       size={14}
-      strokeWidth={1.6}
+
       aria-label={granted ? 'Granted' : 'Not granted'}
     />
   );

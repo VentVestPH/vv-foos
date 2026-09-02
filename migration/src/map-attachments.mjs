@@ -61,8 +61,7 @@ export function mapAttachment(row, lookups, unresolved, resolveParent, categoryB
     fileName,
     hasBytes: Boolean(url),
     attachment: {
-      // Deliberately namespaced so a metadata-only row can never be mistaken for
-      // an uploaded file, and so the later bulk file import can find and replace it.
+
       storage_path: `zoho-import/pending/${parentId}/${fileName}`,
       parent_type: 'person',
       parent_id: parentId,

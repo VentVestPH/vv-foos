@@ -1,9 +1,3 @@
-// Cross-module flow 1 (brief instruction 3): hired → contact promotion.
-// Advances a real (is_test-flagged) application to `hired` as admin, asserts
-// the trigger side effects (audit_log, application.hired outbox event,
-// hired_at), then exercises the promotion RPC path a recruiter/admin would
-// trigger by accepting the CRM banner. Everything created here is deleted
-// in afterAll.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { clientAs } from '../env';
 
@@ -85,8 +79,7 @@ describe('Cross-module flow: hired → contact promotion', () => {
       .eq('aggregate_id', appId)
       .eq('event_name', 'application.hired');
     expect(events && events.length).toBeGreaterThan(0);
-    // Payload should carry enough for the CRM promotion banner to pre-fill
-    // company — see HiredPromotionListener.tsx's parsePayload().
+
     expect(events?.[0].payload).toHaveProperty('person_id');
   });
 
@@ -96,26 +89,24 @@ describe('Cross-module flow: hired → contact promotion', () => {
     const { data: peopleBefore } = await admin.from('people').select('id').eq('id', personId);
     expect(peopleBefore).toHaveLength(1);
 
-    // Same insert PromoteContactPage.tsx performs on accept.
     const { error } = await admin
       .from('contact_profiles')
       .insert({ person_id: personId, company_id: companyId });
     expect(error).toBeNull();
 
     const { data: peopleAfter } = await admin.from('people').select('id').eq('id', personId);
-    expect(peopleAfter).toHaveLength(1); // no duplicate — same person_id, one people row
+    expect(peopleAfter).toHaveLength(1); 
 
     const { data: profiles } = await admin
       .from('contact_profiles')
       .select('person_id, company_id')
       .eq('person_id', personId);
     expect(profiles).toHaveLength(1);
-    expect(profiles?.[0].company_id).toBe(companyId); // defaulted from the requisition's company
+    expect(profiles?.[0].company_id).toBe(companyId); 
   });
 
   it('declining the prompt after a received-to-hired transition leaves no contact_profile but the event stays logged', async () => {
-    // Exercised against a second application so it doesn't collide with the
-    // accept case above (contact_profiles has one row per person_id).
+
     const admin = await clientAs('admin');
     const { data: person2 } = await admin
       .from('people')
@@ -142,13 +133,13 @@ describe('Cross-module flow: hired → contact promotion', () => {
       .select('id')
       .eq('aggregate_id', declineAppId)
       .eq('event_name', 'application.hired');
-    expect(events && events.length).toBeGreaterThan(0); // event still logged
+    expect(events && events.length).toBeGreaterThan(0); 
 
     const { data: profile } = await admin
       .from('contact_profiles')
       .select('person_id')
       .eq('person_id', declinePersonId);
-    expect(profile).toHaveLength(0); // decline = no insert, nothing to assert beyond absence
+    expect(profile).toHaveLength(0); 
   });
 
   it('an imported application inserted already at hired gets hired_at, application.created, and no application.hired (migration 20260901000001)', async () => {

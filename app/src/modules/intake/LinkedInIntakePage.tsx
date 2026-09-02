@@ -6,8 +6,8 @@ import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { useSession } from '../../auth/SessionProvider';
 import { db as supabase } from './db';
-import { StarGrade } from './components/StarGrade';
-import { InboxIcon } from '../../shell/icons';
+import { StarGrade } from '../../components/ui/StarGrade';
+import { Inbox as InboxIcon } from 'lucide-react';
 
 const EMPTY_URLS = '';
 const EMPTY_BATCH_LABEL = '';
@@ -171,7 +171,7 @@ export function LinkedInIntakePage() {
                 <label className="field-label">
                   Star grade <span className="field-required">*</span>
                 </label>
-                <StarGrade value={grade} onChange={setGrade} />
+                <StarGrade value={grade} size={18} onChange={setGrade} />
               </div>
               <Input
                 label="Grade comment"

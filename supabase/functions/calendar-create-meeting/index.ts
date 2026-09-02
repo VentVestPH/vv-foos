@@ -1,26 +1,9 @@
-// Agent 6 — create a Meet meeting from a record view (instruction 8).
-// Replaces the manual InMail-then-Calendly loop visible in Taleo's contact
-// logs with one action on the record.
-//
-// NOT YET LIVE-TESTED — needs OAuth credentials and a connected account with
-// the calendar.events scope granted.
-//
-// Deploy: supabase functions deploy calendar-create-meeting
-// Request: POST {
-//   personId: string, attendeeEmails: string[], subject: string,
-//   description?: string, startIso: string, durationMinutes: number,
-//   dealId?: string, applicationId?: string, companyId?: string, requisitionId?: string,
-// }
-// Response: { activityId: string, gcalEventId: string, meetLink: string | null }
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Called from the browser — needs a CORS preflight response or the request
-// never leaves the browser ("Failed to fetch", found live during testing).
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "POST, OPTIONS",

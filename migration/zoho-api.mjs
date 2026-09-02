@@ -69,7 +69,7 @@ async function call(url) {
     });
     if (res.status === 204) return { data: [], info: { more_records: false } };
     if (res.status === 429 || res.status >= 500) {
-      // Zoho rate-limits per minute and per day. Back off rather than hammering.
+
       const wait = Number(res.headers.get('retry-after') ?? 0) * 1000 || 2000 * (attempt + 1);
       console.warn(`  ${res.status} from Zoho, retrying in ${Math.round(wait / 1000)}s`);
       await new Promise((r) => setTimeout(r, wait));
@@ -99,8 +99,6 @@ async function fetchModule(base, moduleName) {
   return LIMIT ? rows.slice(0, LIMIT) : rows;
 }
 
-// The subforms the CSV export could not produce. Zoho returns them inline on the
-// record detail, which is the whole reason the API beats the export here.
 async function fetchWithSubforms(base, moduleName, ids) {
   const out = [];
   for (const [i, id] of ids.entries()) {
@@ -144,9 +142,6 @@ function save(name, rows) {
   console.log(`  wrote ${rows.length} record(s) to ${path}`);
 }
 
-// The importer reads the export CSV shape. Writing that shape here means the API
-// path and the hand-export path feed one importer rather than two, which is the
-// whole point: the API is only a faster way to get the same files.
 function saveAsExportCsv(exportFileName, records) {
   const template = join(OUT_DIR, exportFileName);
   if (!existsSync(template)) {
@@ -194,12 +189,11 @@ async function main() {
 
       if (m === 'Candidates' && rows.length) {
         const ids = rows.map((r) => r.id).filter(Boolean);
-        // Education and Experience are subforms; the list endpoint omits them.
+
         const detail = await fetchWithSubforms(RECRUIT, m, ids);
         save('recruit_Candidates_detail', detail);
         summary.recruit_Candidates_detail = detail.length;
-        // The detail records carry the Education and Experience subforms, which is
-        // the reason to fetch per record at all.
+
         saveAsExportCsv('Candidates_001.csv', detail);
         const withEdu = detail.filter((r) => Array.isArray(r.Educational_Details) && r.Educational_Details.length).length;
         const withExp = detail.filter((r) => Array.isArray(r.Experience_Details) && r.Experience_Details.length).length;

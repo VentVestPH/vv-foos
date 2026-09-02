@@ -8,7 +8,7 @@ VentVest Front Office OS (FOOS): ATS + CRM on Supabase (Postgres, Auth, Storage,
 
 This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend. It is one of several interchangeable frontends against the *same* live Supabase project (`mebfbbvrqdctamnzvbbs`): `/foos` runs on port 5173, `/foos_redesign` on 5174, this one on **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port). Build output goes to `dist-redesign-2/` with `emptyOutDir: false`.
 
-There is no `.git` here. No branches, no diffs, no history to consult; treat the working tree as the only source of truth.
+This tree is a git repository on branch `develop`, with `origin/main` and `origin/develop`. History is available and worth consulting; the docs in `docs/03-plan/` point at commits for superseded status notes.
 
 ## Commands
 
@@ -19,7 +19,8 @@ npm install
 
 # Frontend (app/)
 npm run dev --workspace=app          # Vite on http://localhost:5175
-npm run typecheck --workspace=app    # tsc --noEmit, the only static gate
+npm run typecheck --workspace=app    # tsc --noEmit
+npm run lint --workspace=app         # eslint, flat config in app/eslint.config.js
 npm run build --workspace=app        # typecheck + vite build
 
 # Database (root scripts, need supabase CLI + $DATABASE_URL)
@@ -41,15 +42,19 @@ npm run test --workspace=tests -- -t "sourcer cannot read"
 npx playwright test e2e/crm-deals.spec.ts     # from tests/
 ```
 
-There is no linter and no ESLint/Prettier config. `npm run typecheck --workspace=app` is the verification step for frontend changes; `strict`, `noUnusedLocals` and `noUnusedParameters` are all on, so unused imports break the build.
+Two static gates: `npm run lint --workspace=app` (ESLint 9 flat config at `app/eslint.config.js`, with `typescript-eslint` and `eslint-plugin-react-hooks`) and `npm run typecheck --workspace=app`. There is no Prettier config. `strict`, `noUnusedLocals` and `noUnusedParameters` are all on, so unused imports break the build.
+
+`.github/workflows/ci.yml` runs both plus the build and four guard scripts (`check-contrast`, `check-motion`, `check-comments`, `check-migrations`) on every push to `main` and `develop`.
+
+**No comments in source.** `.ts`, `.tsx`, `.js`, `.mjs` and `.css` files carry no comments; `scripts/check-comments.mjs` guards against reintroducing low-value ones. Rationale belongs in `docs/` or a commit message. SQL migrations are the one exception: their header comments are the only record of why a schema decision was made.
 
 Local schema validation runs on plain Postgres 14+, no Supabase needed (see README.md "Local validation"). `supabase/tests/local_shim.sql` stubs `auth.uid()` and the anon/authenticated/service_role roles; never run it against the hosted project.
 
 ## Test-suite caveats
 
-- `tests/vitest.config.ts` only picks up `api/**/*.test.ts`. `mocks/gmail-calendar-mocked.test.ts` is outside that glob and does not run by default.
-- The Vitest tests sign in as real per-role personas over HTTPS against the **live** project. They need network access to `*.supabase.co` and a filled-in `tests/.env` (`FOOS_SUPABASE_URL`, `FOOS_SUPABASE_ANON_KEY`, `FOOS_QA_TEST_PASSWORD`); personas come from `tests/fixtures/personas.sql`.
-- `tests/playwright.config.ts` still targets `http://localhost:5173` and starts `npm run dev --workspace=app -- --port=5173`, which contradicts this frontend's `strictPort: 5175`. Run e2e here with `FOOS_BASE_URL=http://localhost:5175 FOOS_SKIP_WEBSERVER=1` against an already-running dev server, or fix the config.
+- `tests/vitest.config.ts` includes `api/**/*.test.ts` and `mocks/**/*.test.ts`, and runs files serially. `mocks/gmail-calendar-mocked.test.ts` throws at import time unless `FOOS_INTAKE_PARSER_SECRET` in `tests/.env` matches `INTAKE_EMAIL_PARSER_SECRET` in `supabase/functions/.env`. Both files are gitignored, so a fresh clone must set them.
+- The Vitest tests sign in as real per-role personas against whatever `tests/.env` points at. Point it at the local stack (`FOOS_SUPABASE_URL=http://127.0.0.1:55321`), not the hosted project. Personas come from `tests/fixtures/personas.sql` and are seeded by `npm run db:reset`.
+- `tests/playwright.config.ts` defaults to port 5175, two workers, and starts the dev server itself. Override with `FOOS_PORT`, `FOOS_BASE_URL`, `FOOS_PW_WORKERS`, or `FOOS_SKIP_WEBSERVER=1` to run against a server that is already up.
 - `tests/sql/pgtap_suite.sql` is run manually through the Supabase SQL editor, not by any npm script.
 - `tests/DEFECT_LOG.md`, `RETEST_MATRIX.md`, `REGRESSION_CHECKLIST.md`, `EVENT_PIPELINE.md` and `PURGE_VERIFICATION.md` carry the QA state of the project. Check `DEFECT_LOG.md` before assuming a failure is new.
 
@@ -104,7 +109,21 @@ Screenshot-accurate controls that have no real FOOS behavior yet must route thro
 
 ### Styling
 
-`styles/tokens.css` holds the design tokens verbatim from the architecture doc; `styles/app.css` is the single stylesheet, no CSS framework, no charting library (dashboard bars are hand-rolled CSS in `dashboards/components/BarList.tsx`). Use the token variables; never hard-code a color. Inter with Roboto fallback, 8px grid, 12px cell padding, max shadow `0 1px 2px rgba(0,0,0,.05)`.
+`styles/tokens.css` holds the design tokens; `styles/app.css` is the shared stylesheet and each module adds its own. No CSS framework and no charting library (dashboard bars are hand-rolled CSS in `dashboards/components/BarList.tsx`). Use the token variables; never hard-code a colour. Inter with Roboto fallback, 8px grid, 12px cell padding.
+
+Every colour value lives in `tokens.css` and nowhere else: 79 tokens, and zero raw hex or `rgba()` in any other stylesheet. `--shadow` is `none`, which is the Taleo-flat default; `--shadow-raised` and `--shadow-overlay` are the two deliberate exceptions, for the dropdown and the placeholder modal.
+
+Motion: `--motion-instant` 90ms, `--motion-quick` 140ms, `--motion-panel` 220ms, and nothing may exceed 220ms. `scripts/check-motion.mjs` enforces the budget, bans transitions on `width`, `height`, `top` and `left`, bans motion on shell selectors, and requires the `prefers-reduced-motion` block. **When adding a state or motion rule, check the selector against the class the component actually renders**; six such rules once matched nothing at all (D34). Components that mount and unmount need `animation`, not `transition`.
+
+### Icons and shared UI
+
+Icons come from `lucide-react` only. There is no local SVG icon set: `shell/icons.tsx` was deleted on 2026-09-02 and its 21 hand-rolled icons were replaced with lucide equivalents, imported directly and aliased where the local name differs (`import { House as HomeIcon } from 'lucide-react'`).
+
+Size and stroke come from one `LucideProvider size={20} strokeWidth={1.6}` in `main.tsx`, so per-call-site props are for deliberate exceptions only. lucide v1 adds `aria-hidden` itself when an icon carries no accessible name, so decorative icons need nothing. Lucide v1 has no brand icons: the LinkedIn channel uses `Link2`.
+
+Brand assets live in `app/public/` and are referenced by absolute path, so Vite copies them unhashed: `ventvest-logo.webp` is the 1038x231 wordmark used on the login page and in the utility header, `favicon.png` is a 64px square cropped from the same file's V-and-arrow mark, and `apple-touch-icon.png` is its 180px opaque version. The header brand was a red CSS wordmark in the Taleo screenshots; the real logo replaces it, which is a deliberate and approved divergence.
+
+`components/ui/` holds the 14 shared components, including one `StarGrade` used by both recruit and intake. Empty table and record cells use `EMPTY_CELL` from `lib/format.ts`, never a literal dash.
 
 ### Edge Functions
 

@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
-import { InboxIcon } from '../../shell/icons';
+import { Inbox as InboxIcon } from 'lucide-react';
 import { db as supabase } from './db';
 import { checkDedup } from './hooks';
 

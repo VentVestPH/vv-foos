@@ -1,11 +1,3 @@
-// Shared rendering helpers for the careers Edge Functions.
-// Deno runtime (Supabase Edge Functions) — no npm deps.
-//
-// Colors below mirror app/src/styles/tokens.css (architecture doc section 7)
-// verbatim. This is a separate, unauthenticated rendering surface from the
-// Vite app, so the values are duplicated rather than imported — if the
-// tokens change, update both files in the same commit.
-
 export function escapeHtml(input: string | null | undefined): string {
   if (!input) return "";
   return input
@@ -29,8 +21,6 @@ export function buildSlug(title: string, displayCode: string): string {
   return `${slugify(title)}-${displayCode.toLowerCase()}`;
 }
 
-// Recover the display_code (e.g. "REQ-0007") from a slug like
-// "senior-data-engineer-req-0007". The code is always the trailing token.
 export function displayCodeFromSlug(slug: string): string | null {
   const match = slug.match(/(req-\d+)$/i);
   if (!match) return null;

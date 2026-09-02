@@ -47,7 +47,9 @@ The transferable idea is the **icon-size token set**. The Tailwind class syntax 
 
 Two icon systems coexist, one good and one in breach of the redesign prompt.
 
-**`app/src/shell/icons.tsx` is well built.** 21 hand-rolled icons in 223 lines: stroke-only, `currentColor`, 24x24 viewBox, `fill: none`, `strokeWidth: 1.6`, round caps and joins. It was written precisely against the prompt's instruction ("if no icon library exists, implement a small local SVG set") and matches the Taleo line-art style. Coverage: Home, Pipeline, Briefcase, Person, Handshake, ContactCard, IdBadge, Lock, PieChart, BarChart, Book, Bookmark, Megaphone, Gear, Search, Flag, Inbox, Ticket, Resume, ChecklistPerson, ChevronLeft.
+**Resolved 2026-09-02: `app/src/shell/icons.tsx` was deleted and its 21 icons moved to lucide, with `strokeWidth={1.6}` applied globally through one `LucideProvider` exactly as recommended below.** The description that follows is of the file as it was.
+
+**`app/src/shell/icons.tsx` was well built.** 21 hand-rolled icons in 223 lines: stroke-only, `currentColor`, 24x24 viewBox, `fill: none`, `strokeWidth: 1.6`, round caps and joins. It was written precisely against the prompt's instruction ("if no icon library exists, implement a small local SVG set") and matches the Taleo line-art style. Coverage: Home, Pipeline, Briefcase, Person, Handshake, ContactCard, IdBadge, Lock, PieChart, BarChart, Book, Bookmark, Megaphone, Gear, Search, Flag, Inbox, Ticket, Resume, ChecklistPerson, ChevronLeft.
 
 **`app/src/components/ui/Timeline.tsx` breaks the rule.** Activity-kind icons are a map of text glyphs:
 

@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage } from '../../../components/ui/RecordPage';
-import { ContactCardIcon } from '../../../shell/icons';
+import { Contact as ContactCardIcon } from 'lucide-react';
 import { useCompanyOptions } from '../hooks';
 import { normalizeEmail, personName, todayISO, type Person } from '../lib';
 

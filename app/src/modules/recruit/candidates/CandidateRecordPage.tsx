@@ -12,8 +12,8 @@ import { Timeline } from '../../../components/ui/Timeline';
 import { SidePanelTabs } from '../../../components/ui/SidePanelTabs';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { TaleoPlaceholderAction, usePlaceholder } from '../../../shell/TaleoPlaceholder';
-import { PersonIcon } from '../../../shell/icons';
-import { StarGrade } from '../components/StarGrade';
+import { User as PersonIcon } from 'lucide-react';
+import { StarGrade } from '../../../components/ui/StarGrade';
 import { Dialog } from '../components/Dialog';
 import {
   ActivityPanel,
@@ -42,6 +42,7 @@ import {
   type Requisition,
 } from '../lib/data';
 import { sendEmail, scheduleMeeting } from '../../../lib/googleActions';
+import { EMPTY_CELL } from '../../../lib/format';
 
 interface ProfileDraft {
   status_id: string;
@@ -486,7 +487,7 @@ export function CandidateRecordPage() {
         <dl className="info-grid">
           <div className="info-item">
             <dt>First name</dt>
-            <dd>{person.first_name || '—'}</dd>
+            <dd>{person.first_name || EMPTY_CELL}</dd>
           </div>
           {person.middle_name && (
             <div className="info-item">
@@ -496,7 +497,7 @@ export function CandidateRecordPage() {
           )}
           <div className="info-item">
             <dt>Last name</dt>
-            <dd>{person.last_name || '—'}</dd>
+            <dd>{person.last_name || EMPTY_CELL}</dd>
           </div>
           {person.headline && (
             <div className="info-item">
@@ -737,7 +738,7 @@ export function CandidateRecordPage() {
                   {Object.entries(exp)
                     .filter(([, v]) => v)
                     .map(([k, v]) => `${k}: ${String(v)}`)
-                    .join(' · ') || '—'}
+                    .join(' · ') || EMPTY_CELL}
                 </dd>
               </div>
             ))}

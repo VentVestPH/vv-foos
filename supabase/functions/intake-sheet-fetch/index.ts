@@ -1,19 +1,7 @@
-// Agent 5 — sheet/Excel-from-URL fetch (instruction 5). Authenticated staff
-// only (verify_jwt = true, the default). Fetches a Google Sheet URL or a
-// hosted .xlsx/.csv URL, parses the header row, and returns the columns plus
-// the full row set so the client can render a 10-row sample immediately and,
-// after mapping, a full staged preview without a second fetch.
-//
-// Deploy: supabase functions deploy intake-sheet-fetch
-// Request: POST { url: string }
-// Response: { columns: string[], rows: Record<string,string>[], suggestedTemplateHint: string }
-
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
-const MAX_ROWS = 500; // sane cap; a genuinely bigger import should be batched
+const MAX_ROWS = 500; 
 
-// Called from the browser — needs a CORS preflight response or the request
-// never leaves the browser ("Failed to fetch", found live during testing).
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "POST, OPTIONS",
@@ -27,10 +15,6 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// Normalize a Google Sheets edit/view URL into its CSV export form.
-// https://docs.google.com/spreadsheets/d/<id>/edit#gid=<gid>
-//   -> https://docs.google.com/spreadsheets/d/<id>/export?format=csv&gid=<gid>
-// Already-published "pub?output=csv" links pass through untouched.
 function normalizeSheetUrl(rawUrl: string): { url: string; hint: string } {
   try {
     const u = new URL(rawUrl);
@@ -52,8 +36,7 @@ function normalizeSheetUrl(rawUrl: string): { url: string; hint: string } {
 }
 
 function parseCsv(text: string): string[][] {
-  // Minimal RFC4180-ish CSV parser: handles quoted fields, escaped quotes,
-  // commas and newlines inside quotes. No external dependency needed for CSV.
+
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";

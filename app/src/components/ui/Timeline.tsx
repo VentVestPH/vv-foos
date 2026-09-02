@@ -95,7 +95,7 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
               >
                 {(() => {
                   const Icon = KIND_ICONS[item.kind];
-                  return <Icon size={16} strokeWidth={1.6} aria-hidden="true" />;
+                  return <Icon size={16} aria-hidden="true" />;
                 })()}
               </span>
               <div className="timeline-body">

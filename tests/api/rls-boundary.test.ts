@@ -1,11 +1,3 @@
-// RLS boundary walk through the real API (brief instruction 3, matrix row
-// "RLS boundary walk"). Signs in as each real persona via GoTrue and hits
-// PostgREST directly — this is what makes it different from
-// supabase/tests/validate.sql, which simulates the same policies via
-// request.jwt.claims in a raw psql session rather than a real JWT + REST call.
-//
-// Requires tests/fixtures/personas.sql to have been run against the target
-// project (creates real Auth identities for the 4 seeded demo staff rows).
 import { describe, expect, it } from 'vitest';
 import { clientAs } from '../env';
 import { SEED_DEAL_IDS, SEED_PEOPLE_IDS } from '../fixtures/seed-ids';
@@ -18,7 +10,7 @@ describe('RLS boundary — sourcer', () => {
       .select('id')
       .in('id', SEED_PEOPLE_IDS);
     expect(peopleErr).toBeNull();
-    expect(people).toHaveLength(3); // matches validate.sql check 10 exactly
+    expect(people).toHaveLength(3); 
 
     const { data: companies } = await sourcer.from('companies').select('id');
     expect(companies).toHaveLength(0);
@@ -48,7 +40,6 @@ describe('RLS boundary — sourcer', () => {
     });
     expect(contactErr).not.toBeNull();
 
-    // Cleanup the one row that did get created.
     await sourcer
       .from('intake_items')
       .delete()
@@ -101,9 +92,7 @@ describe('RLS boundary — recruiter', () => {
       .update({ probability: 0.42 })
       .eq('display_code', 'DEAL-0001')
       .select();
-    // RLS-blocked updates return no error and no rows, not a thrown error —
-    // PostgREST reports zero rows affected rather than a permission error
-    // when the row exists but the UPDATE policy's USING clause excludes it.
+
     expect(error).toBeNull();
     expect(updated).toHaveLength(0);
   });
@@ -123,10 +112,7 @@ describe('RLS boundary — dash schema (Agent 7)', () => {
   it('bd cannot read the admin-only Experiment metrics view', async () => {
     const bd = await clientAs('bd');
     const { data, error } = await bd.schema('dash').from('vw_success_metrics').select('*');
-    // NOTE: as of 2026-07-25 this fails with PGRST106 "Invalid schema: dash"
-    // until the `dash` schema is added to the project's exposed-schemas
-    // list (Supabase Dashboard → Settings → Data API) — see DEFECT_LOG.md
-    // QA-001. Once fixed, this should return an empty array, not an error.
+
     if (error) {
       expect(error.message).not.toContain('Invalid schema');
     }

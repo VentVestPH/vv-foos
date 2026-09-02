@@ -1,9 +1,3 @@
-// Cross-module flow 2: careers form → recruiter unviewed queue.
-// Hits the real careers-apply Edge Function (rate limit included per the
-// brief's integration-point note: "hit through its real public Edge
-// Function") against a temporarily-published is_test requisition, then
-// checks the resulting intake_items/people/applications rows and the
-// unviewed counter via application_views.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { clientAs, SUPABASE_ANON_KEY, SUPABASE_URL } from '../env';
 import { STAFF_IDS } from '../fixtures/seed-ids';
@@ -133,10 +127,7 @@ describe('Cross-module flow: careers form → recruiter unviewed queue', () => {
         .eq('aggregate_id', eventName === 'application.created' ? appId! : personId!)
         .limit(1);
       expect(error).toBeNull();
-      // application.created keys off the application id, the intake events
-      // key off the intake_items id (not captured above) — so this check is
-      // best-effort for application.created and documents the gap for the
-      // other two rather than asserting a false precision.
+
       if (eventName === 'application.created') {
         expect(data?.length ?? 0).toBeGreaterThan(0);
       }

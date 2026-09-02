@@ -1,12 +1,12 @@
-import { Settings } from 'lucide-react';
+import {
+  BookOpen as BookIcon,
+  ClipboardCheck as ChecklistPersonIcon,
+  IdCard as IdBadgeIcon,
+  Lock as LockIcon,
+  Settings,
+} from 'lucide-react';
 import { Table } from '../components/ui/Table';
 import { TaleoPlaceholderAction, usePlaceholder } from '../shell/TaleoPlaceholder';
-import {
-  ChecklistPersonIcon,
-  IdBadgeIcon,
-  LockIcon,
-  BookIcon,
-} from '../shell/icons';
 
 type ModuleKey = 'employees' | 'onboard' | 'users' | 'courses';
 
@@ -133,7 +133,7 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
         aria-disabled
         onClick={() => show('Configure this list')}
       >
-        <Settings size={16} strokeWidth={1.6} aria-hidden="true" />
+        <Settings size={16} aria-hidden="true" />
       </button>
 
       <div className="list-page-toolbar">
@@ -173,7 +173,6 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
           No onboarding or offboarding packets yet. This module isn't built in the
           current FOOS MVP — the page shell matches Front Office OS's Taleo
           reference exactly so it's ready when it is.
-          {/* FOOS-TBD: build the real Onboard/Offboard module. */}
         </p>
       )}
     </div>

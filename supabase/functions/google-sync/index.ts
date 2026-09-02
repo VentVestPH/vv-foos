@@ -1,26 +1,3 @@
-// Agent 6 — Gmail + Calendar sync (instructions 2, 3, 7). Combines both
-// syncs in one function for this build pass (the brief describes them as
-// parallel concerns with identical cadence/backoff/dedup shape; splitting
-// them into two functions is a clean follow-up once this is running for
-// real, not a structural requirement).
-//
-// NOT YET LIVE-TESTED against real Gmail/Calendar APIs — no OAuth client
-// exists yet (see the setup doc). The Google API request shapes below follow
-// the documented Gmail API v1 / Calendar API v3 surfaces; treat this as
-// ready-to-test code once credentials exist, not as verified-working code.
-//
-// Deploy: supabase functions deploy google-sync --no-verify-jwt
-// (intended trigger: a scheduled job — e.g. Supabase's cron-to-edge-function
-// feature, or an external scheduler hitting this every 5 minutes per the
-// brief's suggested cadence. --no-verify-jwt because a scheduler is the
-// caller, not a browser session; protect with a shared secret the same way
-// intake-email-parser does, via GOOGLE_SYNC_SECRET, before exposing this
-// publicly.)
-//
-// Request: POST (no body required; syncs every staff user with stored
-// tokens). Optional { staffId } to sync just one account.
-// Response: { synced: number, errors: { staffId: string; message: string }[] }
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -29,9 +6,6 @@ const CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
 const CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
 const SYNC_SECRET = Deno.env.get("GOOGLE_SYNC_SECRET");
 
-// Not called from the app UI in production (a scheduler hits this), but
-// CORS headers make it directly testable from a browser console too, and
-// cost nothing since this endpoint has no session/cookie to leak.
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "POST, OPTIONS",
@@ -89,11 +63,11 @@ function normalizeEmail(addr: string): string {
 
 async function matchPeopleByEmails(sb: ReturnType<typeof client>, emails: string[]) {
   if (emails.length === 0) return [] as { id: string }[];
-  // people.emails is a jsonb array of {type,address}; match any address.
+
   const { data } = await sb
     .from("people")
     .select("id, emails")
-    .limit(2000); // modest volumes per architecture doc's migration notes
+    .limit(2000); 
   const normalized = emails.map(normalizeEmail);
   return (data ?? []).filter((p) => {
     const addrs = ((p.emails as { address?: string }[] | null) ?? []).map((e) =>
@@ -128,7 +102,7 @@ async function syncGmail(sb: ReturnType<typeof client>, staffId: string, tokens:
     const matched = await matchPeopleByEmails(sb, participants);
 
     for (const person of matched) {
-      // Dedup by gmail_message_id + person_id (instruction 3).
+
       const { data: existing } = await sb
         .from("activities")
         .select("id")
@@ -184,8 +158,7 @@ async function syncCalendar(sb: ReturnType<typeof client>, staffId: string, toke
         .maybeSingle();
 
       if (existing) {
-        // Update in place rather than duplicate (instruction 7: time change
-        // or cancellation updates the existing activity).
+
         await sb
           .from("activities")
           .update({
@@ -218,12 +191,6 @@ Deno.serve(async (req) => {
 
   const sb = client();
 
-  // Auth: GOOGLE_SYNC_SECRET env var if set (no tool exists in this
-  // environment to set Edge Function secrets remotely, so this is a
-  // fallback for whenever someone sets it directly in the dashboard/CLI);
-  // otherwise fall back to a secret stored in integration_settings
-  // (staff_id null, key='google_sync_secret'), set once via SQL. Either
-  // path requires the caller to present it as x-sync-secret.
   let syncSecret: string | null | undefined = SYNC_SECRET;
   if (!syncSecret) {
     const { data: secretRow } = await sb
@@ -252,7 +219,7 @@ Deno.serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    // no body is fine — sync everyone
+
   }
 
   const { data: tokenRows } = await sb

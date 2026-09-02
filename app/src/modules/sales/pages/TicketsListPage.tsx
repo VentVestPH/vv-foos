@@ -5,9 +5,10 @@ import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
-import { TicketIcon } from '../../../shell/icons';
+import { Ticket as TicketIcon } from 'lucide-react';
 import { useCompanyOptions, useStaffList } from '../hooks';
 import { fmtDate, type Ticket } from '../lib';
+import { EMPTY_CELL } from '../../../lib/format';
 
 export function TicketsListPage() {
   const [loading, setLoading] = useState(true);
@@ -58,7 +59,7 @@ export function TicketsListPage() {
     {
       key: 'priority',
       header: 'Priority',
-      render: (t) => t.priority ?? '—',
+      render: (t) => t.priority ?? EMPTY_CELL,
     },
     {
       key: 'assignee',

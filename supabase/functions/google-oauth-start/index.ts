@@ -1,24 +1,3 @@
-// Agent 6 — start the per-staff Google OAuth flow (instruction 1, incremental
-// consent). Authenticated: the calling staff user's own JWT decides whose
-// connection this is. Redirects the browser to Google's consent screen.
-//
-// NOT YET LIVE-TESTABLE: needs GOOGLE_OAUTH_CLIENT_ID/SECRET/REDIRECT_URI set
-// as function secrets first — see
-// VVPH_VV-FOOS_Doc_Google-OAuth-Setup_2026-07-25_v1.0_Draft.md.
-//
-// Deploy: supabase functions deploy google-oauth-start
-// Request: GET /google-oauth-start?tier=base|send|calendar
-//   (or POST { tier } — the settings UI uses supabase.functions.invoke,
-//   which POSTs a JSON body)
-//   tier=base     -> gmail.readonly only (first connect)
-//   tier=send     -> adds gmail.send
-//   tier=calendar -> adds calendar.events
-// Response: { url: string } — the client does `window.location.href = url`.
-// (Not a raw 302: a plain <a href> navigation can't attach the Authorization
-// bearer header this function needs, so the settings UI calls this via
-// supabase.functions.invoke() — which the client library does with fetch,
-// carrying the header — and then navigates the browser itself.)
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -33,10 +12,6 @@ const SCOPES: Record<string, string[]> = {
   calendar: ["https://www.googleapis.com/auth/calendar.events"],
 };
 
-// Called from the browser (supabase.functions.invoke), which means a CORS
-// preflight — without these headers the browser blocks the request before
-// it ever reaches this function ("Failed to fetch" client-side, no useful
-// error). Found live: this was untested-from-a-real-browser code until now.
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "POST, OPTIONS",
@@ -70,7 +45,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       if (body?.tier) tier = body.tier;
     } catch {
-      // no body, or not JSON — fall back to query param / default
+
     }
   }
   const scopes = SCOPES[tier];
@@ -88,24 +63,11 @@ Deno.serve(async (req) => {
   } = await sb.auth.getUser();
   if (!user) return json({ error: "Not authenticated" }, 401);
 
-  // Capture where the browser is calling from, so the callback (which runs
-  // on the Supabase domain, not the app's) can redirect back to the right
-  // place without depending on an APP_SETTINGS_URL secret — there's no way
-  // to set function secrets from this environment yet, and a relative
-  // "/settings" fallback resolves against the wrong (Supabase) origin, which
-  // is exactly the bug this replaces (found live: redirect landed on
-  // .../settings?google=connected but on the supabase.co domain, 404s).
   const appOrigin = req.headers.get("origin") ?? req.headers.get("referer")?.replace(/\/[^/]*$/, "") ?? null;
 
-  // Single-use state: nonce -> staff_id (+ where to redirect back to), so
-  // the callback can recover who this connection belongs to and where the
-  // browser came from.
   const nonce = crypto.randomUUID();
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-  // Plain insert, not upsert: the nonce is embedded in the key, so each call
-  // produces a brand-new row and there's no conflict target to worry about
-  // (integration_settings' unique index is partial, which plain upsert
-  // syntax can't target anyway).
+
   await admin.from("integration_settings").insert({
     staff_id: user.id,
     key: `oauth_state_${nonce}`,

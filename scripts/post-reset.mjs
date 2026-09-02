@@ -38,10 +38,7 @@ function seedPersonas() {
 }
 
 function restartEdgeRuntime() {
-  // `supabase db reset` restarts storage, auth and realtime but leaves the edge
-  // runtime up holding connections to the storage container it just replaced.
-  // Any function that uploads (careers-apply, intake-email-parser) then fails
-  // with StorageApiError 502 until the runtime is recycled.
+
   let name;
   try {
     name = execSync("docker ps --format '{{.Names}}' | grep '^supabase_edge_runtime_' | head -1", {
@@ -59,10 +56,7 @@ function restartEdgeRuntime() {
 }
 
 async function waitForStack() {
-  // `supabase db reset` restarts storage, auth and realtime, and the edge
-  // runtime is recycled just above. A suite started before they finish sees a
-  // 502 from storage or a realtime channel that never joins, which shows up as
-  // a single failure on the first run after a reset and none afterwards.
+
   const apiUrl = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
   const checks = [
     ['REST', `${apiUrl}/rest/v1/`],
@@ -80,7 +74,7 @@ async function waitForStack() {
           break;
         }
       } catch {
-        // not up yet
+
       }
       await new Promise((r) => setTimeout(r, 750));
     }

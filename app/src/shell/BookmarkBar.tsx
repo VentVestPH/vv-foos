@@ -32,7 +32,7 @@ export function BookmarkToggle() {
     >
       <BookmarkIcon
         size={16}
-        strokeWidth={1.6}
+
         fill={bookmarked ? 'currentColor' : 'none'}
         aria-hidden="true"
       />

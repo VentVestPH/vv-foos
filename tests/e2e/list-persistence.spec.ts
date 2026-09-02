@@ -6,6 +6,7 @@ const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const VIEW_NAME = `QA Saved View ${RUN}`;
+const PENDING_NAME = '…';
 
 async function apiAs(email: string): Promise<SupabaseClient> {
   const client = createClient(SUPABASE_URL, ANON_KEY);
@@ -56,8 +57,6 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
 
     await first.close();
 
-    // A brand-new context shares no cookies, storage or cache with the first,
-    // which is what makes this a different session rather than a reload.
     const second = await browser.newContext();
     const page2 = await second.newPage();
     await signIn(page2, PERSONA_EMAILS.recruiter);
@@ -97,6 +96,16 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
 
     const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
     await expect(rows.first()).toBeVisible({ timeout: 25000 });
+
+    await expect
+      .poll(
+        async () =>
+          (await rows.locator('.link-btn').allInnerTexts()).filter(
+            (t) => t.trim() === PENDING_NAME,
+          ).length,
+        { timeout: 25000, message: 'candidate names are still resolving' },
+      )
+      .toBe(0);
 
     const onScreen: string[] = [];
     for (const row of await rows.all()) {

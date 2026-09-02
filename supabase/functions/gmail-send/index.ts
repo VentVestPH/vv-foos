@@ -1,31 +1,9 @@
-// Agent 6 — send email from a record view (instructions 5, 6). Sends through
-// the calling staff user's own Gmail account (their real address, appears in
-// their Sent folder) — FOOS never sends from a system address. Writes the
-// activities row immediately rather than waiting for the next sync pass.
-//
-// NOT YET LIVE-TESTED — needs OAuth credentials and a connected account.
-//
-// Deploy: supabase functions deploy gmail-send
-// Request: POST {
-//   personId: string, to: string, subject: string, bodyText: string,
-//   threadId?: string,          // reply-in-thread continuity
-//   dealId?: string, applicationId?: string, companyId?: string, requisitionId?: string,
-// }
-// Response: { activityId: string, gmailMessageId: string }
-//
-// Template merge-field resolution (instruction 6) happens client-side before
-// calling this endpoint — bodyText here must already be fully resolved; this
-// function refuses to send if it still contains `{` `}` placeholder braces,
-// per "never send unresolved {placeholders}".
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Called from the browser — needs a CORS preflight response or the request
-// never leaves the browser ("Failed to fetch", found live during testing).
 const CORS_HEADERS: Record<string, string> = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "POST, OPTIONS",

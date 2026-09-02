@@ -9,9 +9,10 @@ import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
-import { HandshakeIcon } from '../../../shell/icons';
+import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useCanEditCrm, useStaffList } from '../hooks';
 import { fmtDate, locationLabel, type Company } from '../lib';
+import { EMPTY_CELL } from '../../../lib/format';
 
 const TYPE_OPTIONS = [
   { value: 'client', label: 'Client' },
@@ -101,18 +102,18 @@ export function CompaniesListPage() {
       key: 'city',
       header: 'City',
       sortable: true,
-      render: (c) => c.city ?? '—',
+      render: (c) => c.city ?? EMPTY_CELL,
     },
     {
       key: 'state',
       header: 'State/Territory',
       sortable: true,
-      render: (c) => c.state ?? '—',
+      render: (c) => c.state ?? EMPTY_CELL,
     },
     {
       key: 'phone',
       header: 'Phone',
-      render: (c) => c.phone ?? '—',
+      render: (c) => c.phone ?? EMPTY_CELL,
     },
     {
       key: 'types',
@@ -130,7 +131,7 @@ export function CompaniesListPage() {
     {
       key: 'country',
       header: 'Country',
-      render: (c) => c.country ?? '—',
+      render: (c) => c.country ?? EMPTY_CELL,
     },
     {
       key: 'owner',
@@ -142,7 +143,7 @@ export function CompaniesListPage() {
     {
       key: 'website',
       header: 'Website',
-      render: (c) => c.website ?? '—',
+      render: (c) => c.website ?? EMPTY_CELL,
     },
   ];
 

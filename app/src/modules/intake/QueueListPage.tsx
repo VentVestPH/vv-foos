@@ -6,7 +6,7 @@ import { ListPage } from '../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../components/ui/Table';
 import { TaleoPager, usePagination } from '../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction, usePlaceholder } from '../../shell/TaleoPlaceholder';
-import { GearIcon, InboxIcon } from '../../shell/icons';
+import { Inbox as InboxIcon, Settings as GearIcon } from 'lucide-react';
 import { useIntakeQueue } from './hooks';
 import {
   CHANNEL_ICON,
@@ -56,7 +56,7 @@ export function QueueListPage() {
         const Icon = CHANNEL_ICON[r.channel];
         return (
           <span title={CHANNEL_LABEL[r.channel]}>
-            <Icon size={16} strokeWidth={1.6} aria-label={CHANNEL_LABEL[r.channel]} />
+            <Icon size={16} aria-label={CHANNEL_LABEL[r.channel]} />
           </span>
         );
       },

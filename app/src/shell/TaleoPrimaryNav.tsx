@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRole } from '../auth/SessionProvider';
 import { primaryNavForRole } from './navConfig';
-import { HomeIcon } from './icons';
+import { House as HomeIcon } from 'lucide-react';
 import { useIntakeBadge } from '../modules/intake';
 
 export function TaleoPrimaryNav() {

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 export interface TableColumn<T> {
   key: string;
@@ -106,6 +106,23 @@ export function Table<T>({
     setSelection(allSelected ? new Set() : new Set(rows.map(rowKey)));
   };
 
+  const signature = `${sorted.length}:${sorted.length ? rowKey(sorted[0]) : ''}`;
+  const lastSignature = useRef(signature);
+  const [resultsPulse, setResultsPulse] = useState(0);
+
+  useEffect(() => {
+    if (lastSignature.current === signature) return;
+    lastSignature.current = signature;
+    setResultsPulse((n) => n + 1);
+  }, [signature]);
+
+  const resultsClass =
+    resultsPulse === 0
+      ? undefined
+      : resultsPulse % 2 === 1
+        ? 'results-in-a'
+        : 'results-in-b';
+
   const toggleRow = (key: string) => {
     const next = new Set(sel);
     if (next.has(key)) {
@@ -155,7 +172,7 @@ export function Table<T>({
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className={resultsClass}>
           {sorted.length === 0 && (
             <tr>
               <td

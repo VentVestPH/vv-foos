@@ -85,11 +85,10 @@ a:hover {
   white-space: nowrap;
 }
 
-.taleo-brand-word {
-  color: var(--taleo-brand-red);
-  font-size: var(--fs-page-title);
-  font-weight: 700;
-  letter-spacing: 0.02em;
+.taleo-brand-logo {
+  width: 132px;
+  height: auto;
+  display: block;
 }
 
 .taleo-brand-sub {
@@ -168,7 +167,7 @@ a:hover {
   min-width: 220px;
   padding: var(--sp-1) 0;
   z-index: 40;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-raised);
 }
 
 .taleo-utility-menu-item {
@@ -214,7 +213,7 @@ a:hover {
 
 .taleo-primary-nav a:hover,
 .taleo-primary-nav button.taleo-nav-tab:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--tint-on-dark);
 }
 
 .taleo-primary-nav a.active,
@@ -438,16 +437,11 @@ a:hover {
   margin-top: var(--sp-1);
 }
 
-.login-mark {
-  display: inline-flex;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius);
-  background: var(--slate);
-  color: var(--surface);
-  font-weight: 600;
-  align-items: center;
-  justify-content: center;
+.login-logo {
+  width: 200px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
 }
 
 .login-divider {
@@ -1204,7 +1198,7 @@ a:hover {
 .taleo-placeholder-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1216,7 +1210,7 @@ a:hover {
   border: 1px solid var(--taleo-border);
   width: 380px;
   max-width: calc(100vw - 32px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-overlay);
 }
 
 .taleo-placeholder-titlebar {
@@ -1469,7 +1463,7 @@ summary:focus-visible,
     color var(--motion-instant) var(--ease-out);
 }
 
-.table th.sortable .sort-caret {
+.table th.sortable .sort-arrow {
   transition: opacity var(--motion-instant) var(--ease-out);
 }
 
@@ -1477,29 +1471,87 @@ summary:focus-visible,
   transition: background-color var(--motion-quick) var(--ease-out);
 }
 
-.intake-drawer,
-.taleo-drawer {
-  transition:
-    transform var(--motion-panel) var(--ease-out),
-    opacity var(--motion-panel) var(--ease-out);
+@keyframes panel-slide-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 
-.taleo-placeholder-backdrop,
-.modal-backdrop,
-.dialog-backdrop {
-  transition: opacity var(--motion-panel) var(--ease-out);
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-fade-in {
+  from {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.intake-drawer {
+  animation: panel-slide-in var(--motion-panel) var(--ease-out);
+}
+
+.intake-drawer-overlay,
+.taleo-placeholder-overlay,
+.sales-modal-overlay,
+.rq-overlay {
+  animation: overlay-fade-in var(--motion-quick) var(--ease-out);
 }
 
 .taleo-placeholder-modal,
-.modal,
-.dialog {
-  transition: opacity var(--motion-panel) var(--ease-out);
+.sales-modal,
+.rq-dialog {
+  animation: panel-fade-in var(--motion-quick) var(--ease-out);
 }
 
 .sales-promote-banner,
 .form-error,
 .field-error-text {
   transition: opacity var(--motion-quick) var(--ease-out);
+}
+
+@keyframes kanban-drop-settle {
+  from {
+    transform: scale(0.97);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.kanban-card.settling {
+  animation: kanban-drop-settle var(--motion-quick) var(--ease-out);
+}
+
+@keyframes table-results-in {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.table tbody.results-in-a,
+.table tbody.results-in-b {
+  animation: table-results-in var(--motion-quick) var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1671,4 +1723,27 @@ summary:focus-visible,
 .task-related,
 .task-priority {
   text-transform: capitalize;
+}
+
+.star-grade {
+  display: inline-flex;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.star-grade .star {
+  display: inline-flex;
+  color: var(--border);
+  line-height: 1;
+}
+
+.star-grade .star.on {
+  color: var(--warning);
+}
+
+.star-grade.editable .star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 1px;
 }

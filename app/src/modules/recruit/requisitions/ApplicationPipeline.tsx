@@ -391,7 +391,7 @@ export function ApplicationPipeline({
               void toggleShortlist(r);
             }}
           >
-            <Star size={14} strokeWidth={1.6} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
+            <Star size={14} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
           </button>
         ),
       },
@@ -463,7 +463,7 @@ export function ApplicationPipeline({
                 }
                 onClick={() => void toggleShortlist(r)}
               >
-                <Star size={14} strokeWidth={1.6} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
+                <Star size={14} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
               </button>
               {r.rank != null && <span>#{r.rank}</span>}
               {r.next_step && <span>{r.next_step}</span>}

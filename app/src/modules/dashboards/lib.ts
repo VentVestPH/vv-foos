@@ -1,3 +1,5 @@
+import { EMPTY_CELL } from '../../lib/format';
+
 export interface AtsFunnelRow {
   application_id: string;
   display_code: string;
@@ -165,12 +167,12 @@ export function fmtPct(n: number): string {
 }
 
 export function fmtDays(n: number | null): string {
-  if (n === null || Number.isNaN(n)) return '—';
+  if (n === null || Number.isNaN(n)) return EMPTY_CELL;
   return `${n.toFixed(1)}d`;
 }
 
 export function fmtMoney(n: number | null, currency = 'USD'): string {
-  if (n === null) return '—';
+  if (n === null) return EMPTY_CELL;
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
 }
 

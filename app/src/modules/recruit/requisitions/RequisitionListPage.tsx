@@ -12,7 +12,7 @@ import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
-import { BriefcaseIcon, PersonIcon } from '../../../shell/icons';
+import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
 import {
   errMsg,
   fmtDate,
@@ -26,6 +26,7 @@ import {
   type SortState,
 } from '../lib/data';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../lib/savedViews';
+import { EMPTY_CELL } from '../../../lib/format';
 
 interface ReqFilters {
   status: string;
@@ -200,7 +201,7 @@ export function RequisitionListPage() {
     const ownersByReq = new Map<string, string[]>();
     for (const o of owners) {
       const list = ownersByReq.get(o.requisition_id) ?? [];
-      list.push(staffName.get(o.staff_id) ?? '—');
+      list.push(staffName.get(o.staff_id) ?? EMPTY_CELL);
       ownersByReq.set(o.requisition_id, list);
     }
     const appsByReq = new Map<string, AppSlim[]>();

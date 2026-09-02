@@ -6,7 +6,7 @@ import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { HandshakeIcon } from '../../../shell/icons';
+import { Handshake as HandshakeIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { useStaffList } from '../hooks';
 import {
@@ -20,6 +20,7 @@ import {
   type Deal,
   type Person,
 } from '../lib';
+import { EMPTY_CELL } from '../../../lib/format';
 
 interface ContactRow {
   profile: ContactProfile;
@@ -144,12 +145,12 @@ export function CompanyRecordPage() {
     {
       key: 'title',
       header: 'Title',
-      render: (r) => r.profile.title ?? '—',
+      render: (r) => r.profile.title ?? EMPTY_CELL,
     },
     {
       key: 'email',
       header: 'Email',
-      render: (r) => primaryEmail(r.person) || '—',
+      render: (r) => primaryEmail(r.person) || EMPTY_CELL,
     },
     {
       key: 'since',
@@ -206,15 +207,15 @@ export function CompanyRecordPage() {
         <dl className="sales-record-meta">
           <div>
             <dt>Website</dt>
-            <dd>{company.website ?? '—'}</dd>
+            <dd>{company.website ?? EMPTY_CELL}</dd>
           </div>
           <div>
             <dt>Phone</dt>
-            <dd>{company.phone ?? '—'}</dd>
+            <dd>{company.phone ?? EMPTY_CELL}</dd>
           </div>
           <div>
             <dt>Location</dt>
-            <dd>{locationLabel(company) || '—'}</dd>
+            <dd>{locationLabel(company) || EMPTY_CELL}</dd>
           </div>
           <div>
             <dt>Owner</dt>

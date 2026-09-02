@@ -7,7 +7,7 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { RecordSection } from '../../../components/ui/RecordPage';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
-import { BriefcaseIcon } from '../../../shell/icons';
+import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { errMsg, supabase, todayIso, useLookups, type ApproverRow } from '../lib/data';
 
 interface FormState {

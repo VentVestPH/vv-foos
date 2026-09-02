@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRole } from '../../auth/SessionProvider';
 import { db as supabase } from './db';
+import { EMPTY_CELL } from '../../lib/format';
 
 let staffCache: { id: string; full_name: string }[] | null = null;
 
@@ -26,7 +27,7 @@ export function useStaffNames() {
   }, []);
 
   const byId = useMemo(() => new Map(staff.map((s) => [s.id, s.full_name])), [staff]);
-  return (id: string | null | undefined) => (id ? (byId.get(id) ?? '—') : '—');
+  return (id: string | null | undefined) => (id ? (byId.get(id) ?? EMPTY_CELL) : EMPTY_CELL);
 }
 
 export function useCanViewDashboards(): boolean {

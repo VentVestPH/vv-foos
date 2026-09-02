@@ -10,9 +10,14 @@ import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction, usePlaceholder } from '../../../shell/TaleoPlaceholder';
-import { FlagIcon, GearIcon, PersonIcon, ResumeIcon } from '../../../shell/icons';
+import {
+  FileText as ResumeIcon,
+  Flag as FlagIcon,
+  Settings as GearIcon,
+  User as PersonIcon,
+} from 'lucide-react';
 import { Dialog } from '../components/Dialog';
-import { StarGrade } from '../components/StarGrade';
+import { StarGrade } from '../../../components/ui/StarGrade';
 import {
   errMsg,
   fetchPeopleByIds,

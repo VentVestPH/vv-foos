@@ -8,7 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
-import { BriefcaseIcon } from '../../../shell/icons';
+import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { LostReasonDialog } from '../components/LostReasonDialog';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';

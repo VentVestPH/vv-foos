@@ -67,11 +67,18 @@ Never generate `display_code` client-side; the database sequence owns it (leave 
 | `KanbanBoard` | `<KanbanBoard stages={DEAL_STAGES.map(…)} cards={cards} onMove={(id, stage) => write(id, stage)} />` — generic columns-from-stage-list board on @dnd-kit/core; do any blocking dialog (rejection/lost reason) inside `onMove` before the write |
 | `Timeline` | `<Timeline items={activities} />` — feed grouped by day, newest first, one icon per activity kind |
 | `SidePanelTabs` | `<SidePanelTabs tabs={[{key,label,count,content}]} />` — frame for the nine-panel person toolkit (Notes, Calls, Meetings, Events, Emails, Tasks, Reminders, Files, Resumes); `PERSON_TOOLKIT_TABS` lists the keys in Gate 1 order |
+| `StarGrade` | `<StarGrade value={grade} size={18} onChange={setGrade} />`. 1 to 3 stars, read-only without `onChange`, `role="radiogroup"` with it. One component for recruit and intake; colour comes from `.star` and `.star.on`, never from a prop |
+| `StatusHistory` | `<StatusHistory rows={changes} />`. The structured status-change list on both record pages |
+| `TaleoPager` | `<TaleoPager page total pageSize onPage={…} />`. The `1-20 of N` pager, repeated above and below every list |
 
 Shared helpers:
 
 - `src/lib/csv.ts` — `downloadCsv(filename, rows, columns?)`; exports only rows already on the client, so RLS holds.
+- `src/lib/format.ts`: `EMPTY_CELL`. Use it for an empty table or record cell; never write the dash literal.
+- `src/lib/useBackstopRefresh.ts`: a 20s interval plus `visibilitychange` and `online`, for surfaces that must not go stale if a Realtime message is dropped.
 - `src/hooks/useRecentlyViewed.ts` — `record({ type, id, label, href })` on record mount; the nav rail renders the last 15, persisted in localStorage keyed by staff id.
+
+Icons: `lucide-react` only, imported directly and aliased where the local name differs. There is no local SVG icon set. Size and stroke come from the single `LucideProvider size={20} strokeWidth={1.6}` in `main.tsx`; pass `size` at a call site only for a deliberate exception.
 
 ## Rules that carry over from the architecture doc
 

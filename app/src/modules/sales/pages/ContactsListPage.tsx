@@ -8,7 +8,7 @@ import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
-import { ContactCardIcon } from '../../../shell/icons';
+import { Contact as ContactCardIcon } from 'lucide-react';
 import { useCanEditCrm, useCompanyOptions } from '../hooks';
 import {
   emailList,
@@ -19,6 +19,7 @@ import {
   type ContactProfile,
   type Person,
 } from '../lib';
+import { EMPTY_CELL } from '../../../lib/format';
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
@@ -139,17 +140,17 @@ export function ContactsListPage() {
     {
       key: 'title',
       header: 'Title',
-      render: (r) => r.profile.title ?? '—',
+      render: (r) => r.profile.title ?? EMPTY_CELL,
     },
     {
       key: 'phone',
       header: 'Phone',
-      render: (r) => primaryPhone(r.person) || '—',
+      render: (r) => primaryPhone(r.person) || EMPTY_CELL,
     },
     {
       key: 'email',
       header: 'Email',
-      render: (r) => primaryEmail(r.person) || '—',
+      render: (r) => primaryEmail(r.person) || EMPTY_CELL,
     },
     {
       key: 'since',

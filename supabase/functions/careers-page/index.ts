@@ -1,21 +1,3 @@
-// Agent 4 — public careers page. Unauthenticated. Server-renders full HTML
-// for every route so crawlers see real content in the initial response (the
-// exact Taleo failure this replaces: boilerplate-to-crawlers). Reads
-// `requisitions` with the service role, filtered to is_published=true and
-// is_test=false — the anon/public key is never used here, so there is no
-// direct anon table exposure to lock down.
-//
-// Deploy: supabase functions deploy careers-page --no-verify-jwt
-// Routes (path is everything after the function name):
-//   GET /                      -> listing (?q=, ?location= filters)
-//   GET /jobs/:slug            -> role detail + apply form
-//   GET /sitemap.xml           -> sitemap of published roles
-//   GET /robots.txt            -> allow-all + sitemap pointer
-//
-// Production note: map a friendly host (e.g. careers.ventvest.com) to this
-// function via your edge/CDN rewrite so robots.txt and sitemap.xml resolve
-// at the domain root. That mapping is an infra step outside this repo.
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   buildSlug,
@@ -304,16 +286,9 @@ ${urls}
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
-  // Strip the function-name prefix so routing works whether this is called
-  // as /functions/v1/careers-page/... or rewritten to a bare domain.
+
   const path = url.pathname.replace(/^\/(functions\/v1\/)?careers-page/, "") || "/";
-  // Edge Functions sit behind multiple proxy hops that terminate TLS
-  // upstream; both req.url and x-forwarded-proto were observed reporting the
-  // *internal* hop's scheme (http) rather than the real client-facing
-  // scheme. This surface is never actually served over plain http, so force
-  // https unconditionally rather than trust either signal — canonical/OG
-  // URLs and the sitemap must never advertise the wrong scheme. Set
-  // CAREERS_PUBLIC_ORIGIN to override entirely once a custom domain is wired up.
+
   const origin = Deno.env.get("CAREERS_PUBLIC_ORIGIN") ?? `https://${url.host}`;
   const base = `${origin}${url.pathname.replace(/\/(jobs\/.*|sitemap\.xml|robots\.txt|privacy)?$/, "")}`;
   const sb = client();
@@ -359,7 +334,6 @@ Deno.serve(async (req) => {
       return htmlResponse(renderDetail(base, applyEndpoint, role as Req, canonicalSlug));
     }
 
-    // Listing (default route)
     const roles = await fetchPublishedRequisitions(sb);
     const q = url.searchParams.get("q") ?? "";
     const location = url.searchParams.get("location") ?? "";

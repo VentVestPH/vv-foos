@@ -7,6 +7,7 @@ import { Table, type TableColumn } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import { useOutboxRefresh } from './hooks';
 import { exportFilename, type DateRange, type RequisitionAgingRow, type Threshold } from './lib';
+import { EMPTY_CELL } from '../../lib/format';
 
 export function RequisitionAging({ range }: { range: DateRange }) {
   const navigate = useNavigate();
@@ -69,7 +70,7 @@ export function RequisitionAging({ range }: { range: DateRange }) {
       key: 'unviewed_applications',
       header: 'Unviewed (me)',
       sortable: true,
-      render: (r) => (r.i_am_owner ? r.unviewed_applications : '—'),
+      render: (r) => (r.i_am_owner ? r.unviewed_applications : EMPTY_CELL),
     },
   ];
 

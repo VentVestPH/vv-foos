@@ -25,8 +25,7 @@ async function dragTo(page: Page, card: Locator, target: Locator) {
 
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();
-  // Past the PointerSensor's 4px activation distance, then in steps so dnd-kit
-  // registers the move over the target droppable before the release.
+
   await page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2 + 12, { steps: 5 });
   await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 15 });
   await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2 + 4, { steps: 5 });

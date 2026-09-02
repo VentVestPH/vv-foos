@@ -8,7 +8,7 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { Table } from '../../../components/ui/Table';
-import { ContactCardIcon } from '../../../shell/icons';
+import { Contact as ContactCardIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { Modal } from '../components/Modal';
 import { useCanEditCrm, useCompanyOptions } from '../hooks';
@@ -24,6 +24,7 @@ import {
   type Person,
 } from '../lib';
 import { sendEmail, scheduleMeeting } from '../../../lib/googleActions';
+import { EMPTY_CELL } from '../../../lib/format';
 
 export function ContactRecordPage() {
   const { personId } = useParams<{ personId: string }>();
@@ -252,7 +253,7 @@ export function ContactRecordPage() {
             <dd>
               {emails.length > 0
                 ? emails.map((e) => `${e.address} (${e.type})`).join(', ')
-                : '—'}
+                : EMPTY_CELL}
             </dd>
           </div>
           <div>
@@ -260,12 +261,12 @@ export function ContactRecordPage() {
             <dd>
               {phones.length > 0
                 ? phones.map((p) => `${p.number} (${p.type})`).join(', ')
-                : '—'}
+                : EMPTY_CELL}
             </dd>
           </div>
           <div>
             <dt>Location</dt>
-            <dd>{locationLabel(person) || '—'}</dd>
+            <dd>{locationLabel(person) || EMPTY_CELL}</dd>
           </div>
           <div>
             <dt>LinkedIn</dt>
@@ -279,7 +280,7 @@ export function ContactRecordPage() {
                   Profile
                 </a>
               ) : (
-                '—'
+                EMPTY_CELL
               )}
             </dd>
           </div>
@@ -294,7 +295,7 @@ export function ContactRecordPage() {
           </div>
           <div>
             <dt>Title</dt>
-            <dd>{profile.title ?? '—'}</dd>
+            <dd>{profile.title ?? EMPTY_CELL}</dd>
           </div>
           <div>
             <dt>Contact since</dt>
@@ -302,7 +303,7 @@ export function ContactRecordPage() {
           </div>
           <div>
             <dt>Headline</dt>
-            <dd>{person.headline ?? '—'}</dd>
+            <dd>{person.headline ?? EMPTY_CELL}</dd>
           </div>
         </dl>
       </RecordSection>

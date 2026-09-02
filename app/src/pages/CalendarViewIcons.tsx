@@ -32,7 +32,7 @@ export function CalendarViewIcons() {
           aria-disabled
           onClick={() => show(label)}
         >
-          <Icon size={16} strokeWidth={1.6} aria-hidden="true" />
+          <Icon size={16} aria-hidden="true" />
         </button>
       ))}
     </span>

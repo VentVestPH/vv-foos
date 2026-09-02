@@ -21,11 +21,6 @@ export function mapNote(row, lookups, unresolved, resolveParent) {
   const parentZohoId = (row['Parent Id'] ?? '').trim();
   if (!parentZohoId) return { skip: 'no Parent Id', warnings };
 
-  // Module decides which column Parent Id lands in. Applications rows are routed
-  // through the application map; Candidates rows through the person map. A note
-  // whose parent has not been imported is held back rather than orphaned, because
-  // an activity with every link null is invisible to can_access_activity for
-  // anyone but an admin.
   let personId = null;
   let applicationId = null;
   let requisitionId = null;

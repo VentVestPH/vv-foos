@@ -11,6 +11,7 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | If you want | Read |
 | :---- | :---- |
 | The plan and the decisions needed | `03-plan/…Plan_CRM-ATS-Improvement…` |
+| What is still open, as a checklist | `03-plan/…Plan_CRM-ATS-Improvement…` section 8 |
 | What is broken and how bad | `01-current-state/…Register_Defects-and-Risks…` |
 | How close the UI is to Taleo | `02-taleo-fidelity/…Report_Taleo-Fidelity-Audit…` |
 | What is documented about Taleo versus assumed | `04-research/…Report_External-Research-Findings…` |
@@ -42,7 +43,7 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 
 | Document | Contents |
 | :---- | :---- |
-| `VVPH_VV-FOOS_Plan_CRM-ATS-Improvement_2026-09-01_v1.0_Draft.md` | Six workstreams, priority order by consequence of delay, a schedule bounded by the Gate 6 measurement window, six decisions needed from John, and explicit scope exclusions |
+| `VVPH_VV-FOOS_Plan_CRM-ATS-Improvement_2026-09-01_v1.0_Draft.md` | Nine workstreams (A to J), priority order by consequence of delay, a schedule bounded by the Gate 6 measurement window, ten decisions of which two are now decided, a tasklist of everything open in section 8, and explicit scope exclusions. Revised 2026-09-02 to add workstream H (frontend consistency and the rest of the motion) and workstream J (repository cleanup) |
 
 ## 04-research
 

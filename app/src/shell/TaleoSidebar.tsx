@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { usePlaceholder } from './TaleoPlaceholder';
-import { ChevronLeftIcon, SearchIcon, PersonIcon, GearIcon } from './icons';
+import {
+  ChevronLeft as ChevronLeftIcon,
+  Search as SearchIcon,
+  Settings as GearIcon,
+  User as PersonIcon,
+} from 'lucide-react';
 
 export function TaleoSidebar() {
   const [collapsed, setCollapsed] = useState(false);

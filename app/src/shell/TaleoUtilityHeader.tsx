@@ -2,7 +2,11 @@ import { BookmarkToggle } from './BookmarkBar';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 import { usePlaceholder } from './TaleoPlaceholder';
-import { MegaphoneIcon, GearIcon, BarChartIcon } from './icons';
+import {
+  ChartColumn as BarChartIcon,
+  Megaphone as MegaphoneIcon,
+  Settings as GearIcon,
+} from 'lucide-react';
 
 export function TaleoUtilityHeader() {
   const { staff, signOut } = useSession();
@@ -28,7 +32,13 @@ export function TaleoUtilityHeader() {
   return (
     <header className="taleo-utility-header">
       <div className="taleo-brand">
-        <span className="taleo-brand-word">VENTVEST</span>
+        <img
+          className="taleo-brand-logo"
+          src="/ventvest-logo.webp"
+          alt="VentVest"
+          width={1038}
+          height={231}
+        />
         <span className="taleo-brand-sub">Front Office OS</span>
       </div>
 

@@ -73,7 +73,7 @@ No dependency. This is a date arithmetic loop and a CSS grid or table, roughly 6
 
 ### 2.2 View icons
 
-Six controls in the panel header action row: day, 7-day, 31-day, person, group, agenda. Render as icon buttons in `shell/icons.tsx` style, thin outline, `--taleo-icon` (`#4a7098`).
+Six controls in the panel header action row: day, 7-day, 31-day, person, group, agenda. Render as lucide icon buttons, thin outline, `--taleo-icon` (`#4a7098`). `shell/icons.tsx` no longer exists; size and stroke come from the root `LucideProvider`.
 
 FOOS has no calendar or events feature, so these have no data to switch between. They are therefore screenshot-accurate placeholders and must route through `TaleoPlaceholder` with a `FOOS-TBD` comment, exactly as the existing 41 markers do. Give each an `aria-label`, since the audit confirmed all current icon buttons carry accessible names and that property should not regress.
 

@@ -43,10 +43,6 @@ export function parseZohoDate(value) {
   return ts ? ts.slice(0, 10) : null;
 }
 
-// Zoho's "Initial Date" exports as MM/DD with no year. The year is taken from the
-// candidate's own Created Time, which is always populated, rather than from the
-// current year: importing in 2026 a candidate created in 2025 would otherwise
-// silently move their initial date forward by a year.
 export function parsePartialDate(value, yearSourceTimestamp) {
   if (!value) return null;
   const trimmed = value.trim();
@@ -84,8 +80,6 @@ export function parseZohoNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-// "Rating" exports as 2.0 / 3.0. star_grade is a 1-3 integer with a CHECK
-// constraint, so anything outside that range is reported rather than clamped.
 export function parseStarGrade(value) {
   const n = parseZohoNumber(value);
   if (n === null) return { grade: null, reason: value ? 'unparseable' : 'empty' };

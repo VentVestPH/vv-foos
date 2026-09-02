@@ -1,7 +1,7 @@
 import './settings.css';
 import { RecordPage, RecordSection } from '../../components/ui/RecordPage';
 import { TaleoPlaceholderAction } from '../../shell/TaleoPlaceholder';
-import { GearIcon } from '../../shell/icons';
+import { Settings as GearIcon } from 'lucide-react';
 import { GoogleIntegrationCard } from './GoogleIntegrationCard';
 
 export function SettingsPage() {
@@ -18,11 +18,8 @@ export function SettingsPage() {
           message as there.
         </p>
         <div className="settings-other-admin-actions">
-          {/* FOOS-TBD: no General Configuration module exists yet. */}
           <TaleoPlaceholderAction label="General Configuration" size="sm" />
-          {/* FOOS-TBD: no Career Section admin module exists yet. */}
           <TaleoPlaceholderAction label="Career Section" size="sm" />
-          {/* FOOS-TBD: no User Accounts admin module exists yet (staff are managed directly in the database today). */}
           <TaleoPlaceholderAction label="User Accounts" size="sm" />
         </div>
       </RecordSection>

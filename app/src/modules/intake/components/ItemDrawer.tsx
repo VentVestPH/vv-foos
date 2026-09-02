@@ -14,7 +14,7 @@ import {
   STATUS_LABEL,
   type IntakeItem,
 } from '../lib';
-import { StarGrade } from './StarGrade';
+import { StarGrade } from '../../../components/ui/StarGrade';
 import { Drawer } from './Drawer';
 
 interface ItemDrawerProps {
@@ -209,7 +209,7 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
 
       {item.target_type === 'candidate' && !isReadOnly(item) && item.status !== 'imported' && (
         <RecordSection title={`Grading${needsGrading ? ' (required before import)' : ' (optional)'}`}>
-          <StarGrade value={grade} onChange={setGrade} />
+          <StarGrade value={grade} size={18} onChange={setGrade} />
           <Input
             label="Grade comment"
             value={gradeComment}

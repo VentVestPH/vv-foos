@@ -1,44 +1,31 @@
+import { Star } from 'lucide-react';
+
 interface StarGradeProps {
   value: number | null;
+  size?: number;
   onChange?: (value: number | null) => void;
 }
 
-function StarMark({ on }: { on: boolean }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="star-mark"
-    >
-      <path
-        d="M12 3.5l2.55 5.17 5.7.83-4.13 4.02.98 5.68L12 16.5l-5.1 2.7.98-5.68-4.13-4.02 5.7-.83z"
-        fill={on ? 'var(--taleo-count, #c9a227)' : 'none'}
-        stroke={on ? 'var(--taleo-count, #c9a227)' : 'var(--taleo-icon, #4a7098)'}
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+const GRADES = [1, 2, 3];
 
-export function StarGrade({ value, onChange }: StarGradeProps) {
+export function StarGrade({ value, size = 14, onChange }: StarGradeProps) {
   const grade = value ?? 0;
+
   if (!onChange) {
     return (
       <span className="star-grade" aria-label={grade ? `${grade} star grade` : 'Ungraded'}>
-        {[1, 2, 3].map((i) => (
+        {GRADES.map((i) => (
           <span key={i} className={i <= grade ? 'star on' : 'star'}>
-            <StarMark on={i <= grade} />
+            <Star size={size} fill={i <= grade ? 'currentColor' : 'none'} />
           </span>
         ))}
       </span>
     );
   }
+
   return (
     <span className="star-grade editable" role="radiogroup" aria-label="Star grade">
-      {[1, 2, 3].map((i) => (
+      {GRADES.map((i) => (
         <button
           key={i}
           type="button"
@@ -51,7 +38,7 @@ export function StarGrade({ value, onChange }: StarGradeProps) {
             onChange(grade === i ? null : i);
           }}
         >
-          <StarMark on={i <= grade} />
+          <Star size={size} fill={i <= grade ? 'currentColor' : 'none'} />
         </button>
       ))}
     </span>

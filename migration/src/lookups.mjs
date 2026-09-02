@@ -1,7 +1,3 @@
-// Zoho source values that do not match a FOOS sources row byte for byte.
-// "Digital Assistant - Facebook Messenger" is the value in the export; the seeded
-// FOOS row abbreviates it. Recorded as defect D4: the migration plan claimed zero
-// unresolved source lookups on the strength of a string that is not in the export.
 export const SOURCE_ALIASES = new Map([
   ['Digital Assistant - Facebook Messenger', 'Digital Assistant - FB Messenger'],
 ]);
@@ -26,17 +22,12 @@ export const ACTIVITY_KIND_BY_NOTE_TITLE = new Map([
   ['Note', 'note'],
 ]);
 
-// Columns excluded from migration on security grounds regardless of fill rate,
-// per the field-mapping workbook's Schema Gaps row 15.
 export const EXCLUDED_COLUMNS = new Set([
   'SSN',
   'PASSPORT NUMBER',
   'LICENSE NUMBER',
 ]);
 
-// Filenames that look like identity or employment records rather than recruitment
-// documents. Matching one does not drop the row; it gates it behind an explicit
-// flag and reports it. See migration/FINDINGS.md.
 const IDENTITY_PATTERNS = [
   /\bpassport\b/i,
   /\bbirth\s*certificate\b/i,
@@ -52,10 +43,7 @@ const IDENTITY_PATTERNS = [
 ];
 
 export function looksLikeIdentityDocument(fileName) {
-  // Zoho prefixes every filename with its record id and an underscore, and `_` is
-  // a word character, so \b never matches between them: "<id>_Passport - X.pdf"
-  // failed every pattern anchored with \b. Underscores and hyphens are normalised
-  // to spaces first. This was caught by the dry run flagging 4 of 8 known files.
+
   const name = (fileName ?? '').replace(/[_-]+/g, ' ');
   return IDENTITY_PATTERNS.some((re) => re.test(name));
 }

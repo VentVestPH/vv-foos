@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage } from '../../../components/ui/RecordPage';
-import { BriefcaseIcon } from '../../../shell/icons';
+import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { useCompanyOptions, useStaffList } from '../hooks';
 import {
   personName,

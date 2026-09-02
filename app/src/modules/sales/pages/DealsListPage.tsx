@@ -11,9 +11,10 @@ import { Table, type TableColumn } from '../../../components/ui/Table';
 import { TaleoPager, usePagination } from '../../../components/ui/TaleoPager';
 import { LostReasonDialog } from '../components/LostReasonDialog';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
-import { BriefcaseIcon } from '../../../shell/icons';
+import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
 import { fmtDate, fmtMoney, stageLabel, type Deal } from '../lib';
+import { EMPTY_CELL } from '../../../lib/format';
 
 type ViewMode = 'kanban' | 'table';
 
@@ -169,7 +170,7 @@ export function DealsListPage() {
     {
       key: 'probability',
       header: 'Prob.',
-      render: (d) => (d.probability === null ? '—' : `${d.probability}%`),
+      render: (d) => (d.probability === null ? EMPTY_CELL : `${d.probability}%`),
     },
     {
       key: 'expected_close',

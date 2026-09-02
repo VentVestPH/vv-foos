@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage } from '../../../components/ui/RecordPage';
-import { HandshakeIcon } from '../../../shell/icons';
+import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useStaffList } from '../hooks';
 import type { CompanyType } from '../../../lib/database.types';
 

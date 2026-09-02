@@ -192,9 +192,7 @@ export function mapCandidate(row, lookups, unresolved) {
   };
 
   if (profile.star_grade !== null && !profile.grade_comment) {
-    // candidate_profiles carries a trigger requiring a comment whenever a grade is
-    // set, matching the intake grading gate. Zoho's Rating has no comment of its
-    // own, so its provenance becomes the comment rather than blocking the import.
+
     profile.grade_comment = `Imported from Zoho Rating: ${row['Rating']}`;
   }
 

@@ -10,7 +10,7 @@ import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
-import { BriefcaseIcon } from '../../../shell/icons';
+import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import {
   ActivityPanel,
@@ -34,6 +34,7 @@ import {
   type Requisition,
 } from '../lib/data';
 import { ApplicationPipeline } from './ApplicationPipeline';
+import { EMPTY_CELL } from '../../../lib/format';
 
 export function RequisitionRecordPage() {
   const backToList = useBackToList('/recruit/requisitions');
@@ -357,7 +358,7 @@ export function RequisitionRecordPage() {
             [
               'Pay range',
               req.pay_min != null || req.pay_max != null
-                ? `${req.pay_min ?? '—'} – ${req.pay_max ?? '—'} ${req.pay_currency ?? ''}`.trim()
+                ? `${req.pay_min ?? EMPTY_CELL} – ${req.pay_max ?? EMPTY_CELL} ${req.pay_currency ?? ''}`.trim()
                 : '',
             ],
             ['Pay notes', req.pay_notes ?? ''],
