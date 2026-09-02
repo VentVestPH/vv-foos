@@ -335,7 +335,13 @@ The instructive part is the file written and then deleted. Following CLAUDE.md, 
 **`engagement.tsx` is not split, and that is the finding rather than an omission.** It is not one component: it is a hook, three async helpers and six independent panels, each with only local state. There is nothing interleaved to untangle, so splitting would buy file length at the cost of six files plus a barrel to keep two record pages' imports working. Its panels are also not candidates for `components/ui/`, because sales renders the same feature with different markup, so unifying them would change rendered output on one side.
 
 One flake was introduced and fixed here, in the O4 test rather than the app: a full page load drops the previous document's channels without sending `phx_leave`, so a dashboard join that landed after the counter was cleared leaked into the next route's set. The watcher now resets when a new websocket opens. Eight consecutive passes of that spec, then six consecutive clean full gates | Four files carried unrelated responsibilities, and the largest was 1,166 lines | done |
-| N7 | Adopt React Compiler | Stable, and **confirmed to support React 18**, not only 19. There is no `React.memo` anywhere in the app today and any single-cell change re-renders a whole table, so the alternative is hand-placing memoization across every list | 1 d |
+| N7 | **DECIDED 2026-09-02: not adopted, on measured evidence, and revisit at React 19.** It was installed and configured properly first rather than argued about: `babel-plugin-react-compiler` 1.0.0 with `target: '18'` plus `react-compiler-runtime` 1.0.0, both required for React 18 per React's own compatibility reference, and the transform was confirmed to have run by finding the runtime import in the built output.
+
+Then it was measured. Interaction latency on the candidate list, twelve samples per run, typing into the search box and waiting two frames for the filtered result: **median 14.9 ms with the compiler and 14.6 ms without**, and across every run of both configurations the medians sat between 14.6 and 15.8 ms. That is noise. It agrees with the K1 measurement, which found the list render flat at about 60 ms from 10 rows to 5,000: this app is not render-bound, so automatic memoisation has nothing to reclaim.
+
+The cost is not noise. Adding the Babel plugin took the production build from **0.86 to 2.83 seconds**, three runs each, a 3.3x slowdown on the step that runs in every gate pass and every CI job. It also adds two dependencies, one of which (`react-compiler-runtime`) exists **only** because we are on React 18 and is thrown away by the eventual React 19 upgrade.
+
+So: three times the build time and two dependencies, one of them temporary, for no measurable gain on a codebase that is not render-bound. Declined and reverted cleanly, with the packages uninstalled and knip confirming nothing was left behind. The case to revisit is React 19, where the runtime shim is unnecessary and the compiler is the default path | Stable, supports React 18, and there is no `React.memo` anywhere today | done |
 | N8 | **DECIDED 2026-09-02, and the decision is split: `exactOptionalPropertyTypes` adopted, `noUncheckedIndexedAccess` declined.** Both flags were measured on both TypeScript programs rather than argued about. `exactOptionalPropertyTypes` produced 5 errors in `app` and 1 in `tests`, all of them honest: three of our own interfaces (`IntakeFilters`, `SendEmailArgs`, `ScheduleMeetingArgs`) and one `useState` type declare `?: T` while every caller passes `x || undefined`, so the declarations now say `?: T | undefined`, which is what they always meant. The two remaining were library types that genuinely reject a present-but-undefined key, and both became conditional spreads: the Realtime `filter` in `RequisitionListPage` and `webServer` in `playwright.config.ts`. The flag is on in both programs and the gate is green.
 
 `noUncheckedIndexedAccess` is 18 errors across 7 sites in `app` and 20 across 9 files in `tests`, and reading every one of them found no latent bug in `app`: each is an array read that is provably guarded at runtime by a `length` check or a loop bound TypeScript cannot correlate. Satisfying it would mean adding roughly 35 branches that can never execute, which is untestable code added to buy nothing, and it does not touch this codebase's actual unsafe boundary, where jsonb and PostgREST rows arrive through `as` casts that indexed access does not re-check. Declined on that basis, not on effort.
@@ -471,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**143½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**144½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -489,7 +495,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 10½ | M1 to M3, M6, M9 and M10 done, and `npm audit --omit=dev` now reports 0 vulnerabilities. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
-| **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
+| **N** Code and stylesheet architecture | 10 | 10 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 8 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
 | **S** Dead code | 8 | 8 | New on 2026-09-02. S1 to S7 done: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed. Committing the gate exposed that `npm run db:validate` could never fail. S8 open |
@@ -687,7 +693,7 @@ The three specs are fixed by not scraping the list: two now read a known seeded 
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **143½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **144½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -715,7 +721,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.5 Architecture, each needs a decision first
 
-- [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
 
 ### 8.6 Waiting on one authorised command from you
 
