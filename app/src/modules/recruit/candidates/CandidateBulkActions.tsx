@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { useEmailTemplates } from '../../../hooks/useEmailTemplates';
+import { applyTemplate } from '../../../lib/emailTemplates';
 import { supabase } from '../../../lib/supabase';
 import { sendEmail } from '../../../lib/googleActions';
 import { Dialog } from '../components/Dialog';
@@ -25,6 +27,8 @@ interface Recipient {
   name: string;
   email: string | null;
   doNotContact: boolean;
+  firstName: string;
+  lastName: string;
 }
 
 export function CandidateBulkActions({
@@ -43,6 +47,7 @@ export function CandidateBulkActions({
   const [outcome, setOutcome] = useState<string | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const templates = useEmailTemplates();
 
   const ids = useMemo(() => [...selected], [selected]);
   const count = ids.length;
@@ -57,6 +62,8 @@ export function CandidateBulkActions({
           name: person ? personName(person) : personId,
           email: person ? (personEmails(person)[0]?.address ?? null) : null,
           doNotContact: profile?.do_not_contact ?? false,
+          firstName: person?.first_name ?? '',
+          lastName: person?.last_name ?? '',
         };
       }),
     [ids, people, profiles],
@@ -112,11 +119,16 @@ export function CandidateBulkActions({
     const failures: string[] = [];
     let sent = 0;
     for (const recipient of mailable) {
+      const fields = {
+        first_name: recipient.firstName,
+        last_name: recipient.lastName,
+        full_name: recipient.name,
+      };
       const { error: err } = await sendEmail({
         personId: recipient.personId,
         to: recipient.email as string,
-        subject: subject.trim(),
-        bodyText: body.trim(),
+        subject: applyTemplate(subject.trim(), fields),
+        bodyText: applyTemplate(body.trim(), fields),
       });
       if (err) failures.push(`${recipient.name}: ${err}`);
       else sent += 1;
@@ -271,10 +283,30 @@ export function CandidateBulkActions({
             </>
           }
         >
+          {templates.length > 0 && (
+            <Select
+              label="Template"
+              placeholder="Start from scratch"
+              options={templates.map((template) => ({
+                value: template.id,
+                label: template.name,
+              }))}
+              value=""
+              onChange={(e) => {
+                const template = templates.find((t) => t.id === e.target.value);
+                if (!template) return;
+                setSubject(template.subject);
+                setBody(template.body);
+              }}
+            />
+          )}
           <Input label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
           <div className="field">
-            <span className="field-label">Message</span>
+            <label className="field-label" htmlFor="bulk-email-body">
+              Message
+            </label>
             <textarea
+              id="bulk-email-body"
               className="rq-textarea"
               rows={6}
               value={body}
@@ -282,8 +314,8 @@ export function CandidateBulkActions({
             />
           </div>
           <p className="text-secondary">
-            One separate email each, through your own connected Gmail account. Everyone receives the
-            same text and nobody sees another recipient.
+            One separate email each, through your own connected Gmail account. Nobody sees another
+            recipient, and any placeholder is filled in per person.
           </p>
           <div className="field">
             <span className="field-label">Recipients</span>

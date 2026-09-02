@@ -1,5 +1,6 @@
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { Select } from '../../../components/ui/Select';
 import { Dialog } from '../components/Dialog';
 import { type Person, personEmails } from '../lib';
 import type { CandidateOutreach } from './useCandidateOutreach';
@@ -25,6 +26,18 @@ export function CandidateOutreachDialogs({ outreach, person }: CandidateOutreach
             </>
           }
         >
+          {outreach.templates.length > 0 && (
+            <Select
+              label="Template"
+              placeholder="Start from scratch"
+              options={outreach.templates.map((template) => ({
+                value: template.id,
+                label: template.name,
+              }))}
+              value=""
+              onChange={(e) => outreach.applyTemplateToDraft(e.target.value)}
+            />
+          )}
           <Input label="To" value={outreach.emailTo} onChange={(e) => outreach.setEmailTo(e.target.value)} />
           <Input
             label="Subject"
@@ -33,8 +46,11 @@ export function CandidateOutreachDialogs({ outreach, person }: CandidateOutreach
             autoFocus
           />
           <div className="field">
-            <span className="field-label">Message</span>
+            <label className="field-label" htmlFor="outreach-email-body">
+              Message
+            </label>
             <textarea
+              id="outreach-email-body"
               className="rq-textarea"
               rows={6}
               value={outreach.emailBody}

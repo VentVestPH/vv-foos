@@ -80,4 +80,57 @@
   gap: var(--sp-1);
   margin-top: var(--sp-1);
 }
+.template-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.template-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.template-list li:last-child {
+  border-bottom: none;
+}
+
+.template-list li div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.template-list-actions {
+  display: flex;
+  flex-direction: row;
+  gap: var(--sp-1);
+}
+
+.template-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding-top: var(--sp-2);
+}
+
+.template-form textarea {
+  font-family: inherit;
+  font-size: var(--fs-body);
+  padding: 8px var(--cell-pad);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  resize: vertical;
+}
+
+.template-form-actions {
+  display: flex;
+  gap: var(--sp-1);
+}
+
 }

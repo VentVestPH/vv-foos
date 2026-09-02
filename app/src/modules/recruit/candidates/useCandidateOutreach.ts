@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useEmailTemplates, type EmailTemplate } from '../../../hooks/useEmailTemplates';
+import { applyTemplate } from '../../../lib/emailTemplates';
 import { scheduleMeeting, sendEmail } from '../../../lib/googleActions';
 import { type Person, personEmails, personName } from '../lib';
 
@@ -15,6 +17,8 @@ export interface CandidateOutreach {
   emailError: string | null;
   openSendEmail: () => void;
   submitSendEmail: () => Promise<void>;
+  templates: EmailTemplate[];
+  applyTemplateToDraft: (templateId: string) => void;
   showSchedule: boolean;
   closeSchedule: () => void;
   meetingSubject: string;
@@ -35,6 +39,7 @@ export function useCandidateOutreach(
   person: Person | null,
   onSent: () => Promise<void>,
 ): CandidateOutreach {
+  const templates = useEmailTemplates();
   const [showSendEmail, setShowSendEmail] = useState(false);
   const [emailTo, setEmailTo] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
@@ -57,6 +62,20 @@ export function useCandidateOutreach(
     setEmailBody('');
     setEmailError(null);
     setShowSendEmail(true);
+  };
+
+  const applyTemplateToDraft = (templateId: string) => {
+    const template = templates.find((t) => t.id === templateId);
+    if (!template) return;
+    const subject = person
+      ? {
+          first_name: person.first_name,
+          last_name: person.last_name,
+          full_name: personName(person),
+        }
+      : {};
+    setEmailSubject(applyTemplate(template.subject, subject));
+    setEmailBody(applyTemplate(template.body, subject));
   };
 
   const submitSendEmail = async () => {
@@ -131,6 +150,8 @@ export function useCandidateOutreach(
     emailError,
     openSendEmail,
     submitSendEmail,
+    templates,
+    applyTemplateToDraft,
     showSchedule,
     closeSchedule: () => setShowSchedule(false),
     meetingSubject,

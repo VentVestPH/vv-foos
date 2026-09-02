@@ -684,4 +684,46 @@ begin
   raise notice 'PASS 20: client_errors is insert-only for staff, admin-readable, and pruned after % days', keep;
 end $$;
 
+do $$
+declare
+  read_using text;
+  write_check text;
+  n integer;
+begin
+  select pg_get_expr(polqual, polrelid) into read_using
+  from pg_policy where polrelid = 'email_templates'::regclass and polcmd = 'r';
+  select pg_get_expr(polwithcheck, polrelid) into write_check
+  from pg_policy where polrelid = 'email_templates'::regclass and polcmd = 'a';
+
+  if read_using is null or read_using not like '%get_my_role%' then
+    raise exception 'FAIL 21: email_templates is readable without a staff role';
+  end if;
+  if write_check is null or write_check not like '%recruiter%' then
+    raise exception 'FAIL 21: email_templates is writable by a role other than admin or recruiter';
+  end if;
+
+  select count(*) into n from pg_indexes
+   where tablename = 'email_templates' and indexdef like '%lower(name)%';
+  if n = 0 then
+    raise exception 'FAIL 21: email_templates allows two templates with the same name';
+  end if;
+
+  select count(*) into n from pg_policy where polrelid = 'ats_saved_views'::regclass;
+  if n <> 4 then
+    raise exception 'FAIL 21: ats_saved_views has % policies; sharing needs SELECT separate from the writes', n;
+  end if;
+  select pg_get_expr(polqual, polrelid) into read_using
+  from pg_policy where polrelid = 'ats_saved_views'::regclass and polcmd = 'r';
+  if read_using not like '%is_shared%' then
+    raise exception 'FAIL 21: a shared saved view is not readable by the team';
+  end if;
+  select pg_get_expr(polqual, polrelid) into write_check
+  from pg_policy where polrelid = 'ats_saved_views'::regclass and polcmd = 'd';
+  if write_check like '%is_shared%' then
+    raise exception 'FAIL 21: sharing a saved view also lets the team delete it';
+  end if;
+
+  raise notice 'PASS 21: email templates are team-readable and staff-writable, and a shared view is read-only to the team';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;

@@ -2,6 +2,7 @@ import './settings.css';
 import { RecordPage, RecordSection } from '../../components/ui/RecordPage';
 import { PlaceholderAction } from '../../shell/Placeholder';
 import { Settings as GearIcon } from 'lucide-react';
+import { EmailTemplatesCard } from './EmailTemplatesCard';
 import { GoogleIntegrationCard } from './GoogleIntegrationCard';
 
 export function SettingsPage() {
@@ -9,6 +10,7 @@ export function SettingsPage() {
     <RecordPage title="Administration: Settings" icon={<GearIcon size={40} />}>
       <RecordSection title="Google Integration:">
         <GoogleIntegrationCard />
+        <EmailTemplatesCard />
       </RecordSection>
 
       <RecordSection title="Other Administration Areas:" defaultOpen={false}>

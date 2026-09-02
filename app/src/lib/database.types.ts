@@ -228,6 +228,28 @@ export interface Database {
         >;
         Relationships: [];
       };
+      email_templates: {
+        Row: {
+          id: string;
+          name: string;
+          subject: string;
+          body: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          subject: string;
+          body: string;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['email_templates']['Insert']>;
+        Relationships: [];
+      };
       client_errors: {
         Row: {
           id: string;

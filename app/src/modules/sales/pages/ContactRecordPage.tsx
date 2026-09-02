@@ -346,8 +346,11 @@ export function ContactRecordPage() {
             autoFocus
           />
           <div className="field">
-            <span className="field-label">Message</span>
+            <label className="field-label" htmlFor="contact-email-body">
+              Message
+            </label>
             <textarea
+              id="contact-email-body"
               className="sales-textarea"
               rows={6}
               value={emailBody}
