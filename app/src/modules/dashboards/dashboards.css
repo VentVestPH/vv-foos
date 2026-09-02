@@ -76,7 +76,7 @@
 
 .dash-kpi-label {
   font-size: var(--fs-meta);
-  color: var(--text-secondary);
+  color: var(--fo-tab-label);
 }
 
 .dash-kpi-value {

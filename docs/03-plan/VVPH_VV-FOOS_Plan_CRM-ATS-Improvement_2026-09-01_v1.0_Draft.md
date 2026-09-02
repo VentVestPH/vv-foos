@@ -477,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**146½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**147½ of 157 numbered tasks are done.** T1 is done and added four follow-ups, T2 to T5. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -715,9 +715,28 @@ One thing measurement stopped. Raising the id chunk from 200 to 1,000 to cut req
 **What is still open, and the honest threshold.** True server-side filtering, sorting and pagination is unbuilt. At the real data volume, 75 imported candidates, none of this matters. The projection buys roughly a 2x headroom improvement, so the point at which it needs building is a few thousand candidates, or sooner for anyone on a slow connection, since 2.5 MB per list visit in production is real. The pieces that make it a two to three day job rather than an afternoon are the ones already tested against client-side behaviour: saved views, and the assertion that the CSV export matches the filtered set on screen.
 
 
+## 7.11 T1: the screen-by-screen discovery
+
+Full report at `docs/10-discovery/VVPH_VV-FOOS_Report_Screen-by-Screen-Discovery_2026-09-03_v1.0_Draft.md`. Every route in `App.tsx` and in all five module route trees, 27 screens, each captured at 1440x900 and 390x844 full page: **54 screenshots in a gitignored `discovery/`**, measured rather than eyeballed.
+
+**Already right, and worth saying:** no console or page errors on any of the 27, no sideways scroll on any of them at 390px (Q8 had been verified on seven), and exactly one `h1` each.
+
+**Three defects found, all three fixed.**
+
+`select-name` at **critical** impact on `/?tab=pipeline`: the dashboard's date-range select had no accessible name, nor did its two custom-range date inputs. The reason it survived is the more useful finding, that **the axe test covered 7 of 27 routes**; the list is now 17, including the pipeline tab, global search, all four new-record forms, contacts, tickets, promote and both intake sub-pages.
+
+A **serious** contrast failure on the dashboard KPI labels, measured at 3.59:1. `--fo-text-secondary` is fine on the three grounds `check-contrast.mjs` knows about, 5.60:1 at worst, but the KPI cards are painted on the section tint `#a9c6dc`, for which no pair existed. They now use `--fo-tab-label`, 4.98:1 on that tint and already guarded. The durable fix is the axe coverage rather than another token pair, because axe computes the rendered pair and needs nobody to have anticipated the combination.
+
+**All 27 screens shared one document title.** In an app that ships a bookmark bar, every bookmark, history entry and tab was indistinguishable. `useDocumentTitle` in `ListPage` and `RecordPage` fixes it, a record page carrying its display code, held by two tests including one that no two list screens share a title.
+
+**Four items recorded rather than fixed**, as T2 to T5, because each needs a decision rather than a patch: the uncapped activity timeline (362 items and 1,456 SVG paths on one deal record, though 361 of those activities are this suite's own residue), whether one screen should hold 17 collapsible sections, `deals-list` having neither a table nor a section unlike every other list, and generating the axe route list from the router so a new route cannot ship uncovered.
+
+**One number worth keeping:** 175 controls across the 27 screens are `aria-disabled` placeholders. That is the honest size of the looks-finished-but-is-not surface, and the screens with the fewest placeholders are not the ones that look most complete.
+
+
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **146½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **147½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -739,7 +758,10 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
-- [ ] **T1** A discovery pass over every screen: screenshot each page and state, inventory the components, hooks and functions per screen, and record what to rework, improve or optimise
+- [ ] **T2** Cap the activity timeline. 362 items and 1,456 SVG paths on one deal record, unbounded by design
+- [ ] **T3** Whether one screen should hold 17 collapsible sections. The candidate record renders 2,836 nodes and 108 controls
+- [ ] **T4** `deals-list` has neither a table nor a record section, unlike every other list
+- [ ] **T5** Generate the axe route list from the router, so a new route cannot ship without coverage
 
 ### 8.5 Architecture, each needs a decision first
 

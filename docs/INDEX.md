@@ -107,3 +107,9 @@ A third source of authority was added on 2026-09-01: for questions about what Ta
 ## Structure note
 
 Folders here are numbered in reading order, with `03-plan` as the hub that references `04`, `05` and `06`. The sibling `Kappa-Omini-typescript` repository organises its 46 documents by taxonomy instead (`requirements`, `architecture`, `governance`, `codebase-review`, `engineering`, `reference`) with an `INDEX.md` at the root. That taxonomy scales better past roughly 20 documents. Realigning this tree to match is a straightforward move if consistency across the two VentVest repositories is worth more than reading order here.
+
+## 10-discovery
+
+| Document | Contents |
+| :---- | :---- |
+| `VVPH_VV-FOOS_Report_Screen-by-Screen-Discovery_2026-09-03_v1.0_Draft.md` | Every one of the 27 screens captured at desktop and phone width and measured: DOM size, interactive and placeholder counts, axe at AA, console errors, sideways scroll and document title. Records the two accessibility defects it found and fixed, the uncapped activity timeline, and the 175-control placeholder surface. The 54 screenshots live in a gitignored `discovery/` directory |

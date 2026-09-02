@@ -39,3 +39,6 @@ tests/.scratch-audit/
 
 # knip cache
 .knip/
+
+# Discovery screenshots. Binary, regenerable, and they render seeded candidate names.
+discovery/

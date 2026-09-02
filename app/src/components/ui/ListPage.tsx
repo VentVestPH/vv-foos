@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useDismissable } from '../../hooks/useDismissable';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { Button } from './Button';
 import { Input } from './Input';
 import { downloadCsv } from '../../lib/csv';
@@ -46,6 +47,7 @@ export function ListPage({
   exportColumns,
   exportFilename,
 }: ListPageProps) {
+  useDocumentTitle(title);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   const filters = useDismissable(filtersOpen, closeFilters);

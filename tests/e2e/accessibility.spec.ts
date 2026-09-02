@@ -8,11 +8,21 @@ const AXE_SOURCE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 
 const ROUTES = [
   ['home', '/'],
+  ['home pipeline tab', '/?tab=pipeline'],
+  ['global search', '/search?q=an'],
   ['requisitions', '/recruit/requisitions'],
+  ['requisition new', '/recruit/requisitions/new'],
   ['candidates', '/recruit/candidates'],
   ['accounts', '/sales/companies'],
+  ['account new', '/sales/companies/new'],
+  ['contacts', '/sales/contacts'],
   ['deals', '/sales/deals'],
+  ['deal new', '/sales/deals/new'],
+  ['tickets', '/sales/tickets'],
+  ['promote contact', '/sales/promote'],
   ['intake', '/intake'],
+  ['intake linkedin', '/intake/linkedin'],
+  ['intake sheet', '/intake/sheet'],
   ['settings', '/settings'],
 ] as const;
 

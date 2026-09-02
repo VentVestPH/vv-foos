@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface RecordPageProps {
   code?: string;
@@ -21,6 +22,8 @@ export function RecordPage({
   actionBar,
   children,
 }: RecordPageProps) {
+  useDocumentTitle(code ? `${code} ${title}` : title);
+
   return (
     <div className="record-page">
       <div className="record-title-row">

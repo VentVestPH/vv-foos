@@ -21,6 +21,7 @@ export function DateRangeFilter({
   return (
     <div className="dash-daterange">
       <Select
+        aria-label="Date range"
         options={PRESETS}
         value={range.preset}
         onChange={(e) =>
@@ -31,6 +32,7 @@ export function DateRangeFilter({
         <>
           <Input
             type="date"
+            aria-label="Range start"
             value={range.from}
             max={range.to}
             onChange={(e) => onChange({ ...range, from: e.target.value })}
@@ -38,6 +40,7 @@ export function DateRangeFilter({
           <span>to</span>
           <Input
             type="date"
+            aria-label="Range end"
             value={range.to}
             min={range.from}
             onChange={(e) => onChange({ ...range, to: e.target.value })}
