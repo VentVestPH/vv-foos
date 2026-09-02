@@ -8,16 +8,27 @@ import type {
   StaffRow,
 } from './lib';
 
-export async function fetchPeopleByIds(ids: string[]): Promise<Person[]> {
+const PEOPLE_ID_CHUNK = 200;
+
+export const CANDIDATE_LIST_COLUMNS =
+  'person_id, status_id, star_grade, grade_comment, current_title, current_employer, initial_date, source_id, sourcer_id, do_not_contact';
+
+export const PERSON_LIST_COLUMNS =
+  'id, first_name, middle_name, last_name, updated_at, city, state, country, emails';
+
+export async function fetchPeopleByIds(
+  ids: string[],
+  columns: string = '*',
+): Promise<Person[]> {
   const out: Person[] = [];
-  for (let i = 0; i < ids.length; i += 200) {
-    const chunk = ids.slice(i, i + 200);
+  for (let i = 0; i < ids.length; i += PEOPLE_ID_CHUNK) {
+    const chunk = ids.slice(i, i + PEOPLE_ID_CHUNK);
     const { data, error } = await supabase
       .from('people')
-      .select('*')
+      .select(columns)
       .in('id', chunk);
     if (error) throw new Error(error.message);
-    out.push(...(data ?? []));
+    out.push(...((data ?? []) as unknown as Person[]));
   }
   return out;
 }

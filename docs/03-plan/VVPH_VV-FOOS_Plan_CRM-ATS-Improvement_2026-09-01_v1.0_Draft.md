@@ -477,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**144½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**145½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -492,7 +492,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **D** Data | 11 | 6 | D1, D6, D7, D8, D9, D10 done. D2 to D5 and D11 all wait on data or credentials this environment cannot produce |
 | **H** Frontend consistency | 7 | 7 | Complete. H5 turned out to be six dead CSS selectors rather than a taste decision. H7 is the real logo, added at your request |
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
-| **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
+| **K** Data access and performance | 12 | 11 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 10½ | M1 to M3, M6, M9 and M10 done, and `npm audit --omit=dev` now reports 0 vulnerabilities. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 10 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
@@ -691,13 +691,27 @@ The three specs are fixed by not scraping the list: two now read a known seeded 
 **Two lessons about the gate itself.** Piping `gate.sh` through `grep` reports grep's exit code, so a failing gate looked like a pass; the run must be judged on the script's own exit code. And filtering its output while hunting a failure throws away the detail the script printed.
 
 
+### 7.10 K1's remainder, measured properly, and what it changed
+
+The remainder was written off as "efficiency, not correctness, and not urgent". Measuring it at volume changed that description, so the record is corrected here.
+
+With **5,000 candidates** loaded into the local database, the candidate list rendered its first row in 467 ms, which is fine, and then pulled **9.2 MB over 84 REST requests to display 20 rows**. Broken down by table, the cost was almost entirely two of them: `people` at 52 requests and 5.5 MB, `candidate_profiles` at 12 requests and 3.7 MB. Everything else together came to under 30 KB.
+
+The cause was not client-side filtering in the abstract. It was `select('*')`: the list fetched every person row **in full**, including the `emails`, `phones`, `education` and `experience` jsonb, and every profile row in full including `assessment_scores`, while rendering ten person fields and ten profile fields. Two narrow projections, `PERSON_LIST_COLUMNS` and `CANDIDATE_LIST_COLUMNS`, took the payload to **5.1 MB**, a 44% reduction, with the request count unchanged because chunking was never the problem.
+
+The type system earned its place here. Narrowing the query broke the build, because `profiles` was declared as the full `CandidateProfile` row. Rather than cast that away, the projection is now expressed as a type, `CandidateListProfile`, a `Pick` of exactly the ten columns fetched, so the code cannot read a column it did not ask for.
+
+One thing measurement stopped. Raising the id chunk from 200 to 1,000 to cut request count looked free and was not: 1,000 uuids is roughly 37 KB of query string, the request failed, and `people` vanished from the breakdown entirely while the search silently returned nothing. **The 200 was load-bearing** and is restored, with the reason now in the code as a named constant.
+
+**What is still open, and the honest threshold.** True server-side filtering, sorting and pagination is unbuilt. At the real data volume, 75 imported candidates, none of this matters. The projection buys roughly a 2x headroom improvement, so the point at which it needs building is a few thousand candidates, or sooner for anyone on a slow connection, since 2.5 MB per list visit in production is real. The pieces that make it a two to three day job rather than an afternoon are the ones already tested against client-side behaviour: saved views, and the assertion that the CSV export matches the filtered set on screen.
+
+
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **144½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **145½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
-- [ ] **K1 remainder** Server-side filtering, sorting and pagination. The silent-truncation half is fixed and tested; what is left is efficiency, not correctness, and the measurements say it is not urgent. 2 to 3 d
 
 ### 8.2 Under two hours each, no product risk
 

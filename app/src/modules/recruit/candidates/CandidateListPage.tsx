@@ -20,7 +20,6 @@ import { StarGrade } from '../../../components/ui/StarGrade';
 import { supabase } from '../../../lib/supabase';
 import {
   type Application,
-  type CandidateProfile,
   type Person,
   type Requisition,
   type SortState,
@@ -35,8 +34,15 @@ import {
   filterCandidateRows,
   type CandFilters,
   type CandRow,
+  type CandidateListProfile,
 } from './candidateRows';
-import { fetchPeopleByIds, useIsMobile, useLookups } from '../hooks';
+import {
+  CANDIDATE_LIST_COLUMNS,
+  PERSON_LIST_COLUMNS,
+  fetchPeopleByIds,
+  useIsMobile,
+  useLookups,
+} from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 import { CandidateBulkActions } from './CandidateBulkActions';
 import { CandidateFilterRail } from './CandidateFilterRail';
@@ -67,20 +73,22 @@ export function CandidateListPage() {
   const [sort, setSort] = useState<SortState | null>(null);
   const [visibleCols, setVisibleCols] = useState<string[]>(ALL_COLUMN_KEYS);
 
-  const [profiles, setProfiles] = useState<CandidateProfile[]>([]);
+  const [profiles, setProfiles] = useState<CandidateListProfile[]>([]);
   const [people, setPeople] = useState<Map<string, Person>>(new Map());
   const [apps, setApps] = useState<Application[]>([]);
   const [reqs, setReqs] = useState<Requisition[]>([]);
   const [resumePersonIds, setResumePersonIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [commentEdit, setCommentEdit] = useState<CandidateProfile | null>(null);
+  const [commentEdit, setCommentEdit] = useState<CandidateListProfile | null>(null);
   const [commentDraft, setCommentDraft] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
       const [profRows, appRows, reqRows, attRows] = await Promise.all([
-        fetchAllRows((f, t) => supabase.from('candidate_profiles').select('*').range(f, t)),
+        fetchAllRows((f, t) =>
+          supabase.from('candidate_profiles').select(CANDIDATE_LIST_COLUMNS).range(f, t),
+        ),
         fetchAllRows((f, t) => supabase.from('applications').select('*').range(f, t)),
         fetchAllRows((f, t) => supabase.from('requisitions').select('*').range(f, t)),
         fetchAllRows((f, t) =>
@@ -96,7 +104,10 @@ export function CandidateListPage() {
       setApps(appRows);
       setReqs(reqRows);
       setResumePersonIds(new Set(attRows.map((x) => x.parent_id)));
-      const persons = await fetchPeopleByIds(profRows.map((p) => p.person_id));
+      const persons = await fetchPeopleByIds(
+        profRows.map((p) => p.person_id),
+        PERSON_LIST_COLUMNS,
+      );
       setPeople(new Map(persons.map((p) => [p.id, p] as [string, Person])));
       setError(null);
     } catch (e) {
@@ -142,7 +153,7 @@ export function CandidateListPage() {
   const canBulkEdit = !mobile && (role === 'admin' || role === 'recruiter');
 
   const canGrade = useCallback(
-    (profile: CandidateProfile) =>
+    (profile: CandidateListProfile) =>
       !mobile &&
       (role === 'admin' ||
         role === 'recruiter' ||

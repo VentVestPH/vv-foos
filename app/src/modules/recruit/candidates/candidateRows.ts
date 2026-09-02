@@ -6,6 +6,20 @@ import type {
 } from '../lib';
 import { personEmails, personName, sortRows } from '../lib';
 
+export type CandidateListProfile = Pick<
+  CandidateProfile,
+  | 'person_id'
+  | 'status_id'
+  | 'star_grade'
+  | 'grade_comment'
+  | 'current_title'
+  | 'current_employer'
+  | 'initial_date'
+  | 'source_id'
+  | 'sourcer_id'
+  | 'do_not_contact'
+>;
+
 export interface CandFilters {
   statusId: string;
   starGrade: string;
@@ -65,7 +79,7 @@ export const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
 export const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
 export interface CandidateRowInput {
-  profiles: CandidateProfile[];
+  profiles: CandidateListProfile[];
   people: Map<string, Person>;
   apps: Application[];
   statusLabel: Map<string, string>;
@@ -130,7 +144,7 @@ export function buildCandidateRows({
 
 export interface CandidateFilterInput {
   rows: CandRow[];
-  profiles: CandidateProfile[];
+  profiles: CandidateListProfile[];
   filters: CandFilters;
   search: string;
   firstName: string;

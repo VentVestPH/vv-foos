@@ -7,14 +7,15 @@ import { applyTemplate } from '../../../lib/emailTemplates';
 import { supabase } from '../../../lib/supabase';
 import { sendEmail } from '../../../lib/googleActions';
 import { Dialog } from '../components/Dialog';
-import type { CandidateProfile, CandidateStatus, Person } from '../lib';
+import type { CandidateStatus, Person } from '../lib';
+import type { CandidateListProfile } from './candidateRows';
 import { personEmails, personName } from '../lib';
 
 type Pending = 'status' | 'flag-on' | 'flag-off' | 'email' | null;
 
 export interface CandidateBulkActionsProps {
   selected: Set<string>;
-  profiles: CandidateProfile[];
+  profiles: CandidateListProfile[];
   people: Map<string, Person>;
   statuses: CandidateStatus[];
   canEdit: boolean;
