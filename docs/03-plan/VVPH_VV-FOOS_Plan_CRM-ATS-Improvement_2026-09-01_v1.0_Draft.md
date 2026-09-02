@@ -293,7 +293,7 @@ Added 2026-09-02. Two research passes and two codebase audits.
 | # | Task | Evidence | Est. |
 | :---- | :---- | :---- | :---- |
 | N1 | Delete the four `db.ts` shims and import `lib/supabase.ts` directly | `CLAUDE.md` says they work around missing `Relationships` typing. `database.types.ts` already carries `Relationships: []` on all 25 tables, so they are one-line re-exports doing nothing, and only four of five modules use them anyway | 3 h |
-| N2 | One canonical `fmtDate` and `fmtMoney` in `lib/format.ts` | Both are duplicated four times. The two `fmtMoney` copies differ materially: the sales version validates the currency code, the dashboards version does not and **throws `RangeError` on an invalid code**. A latent crash, not a style nit | 2 h |
+| N2 | **DONE 2026-09-02.** One implementation in `lib/format.ts`: `formatDate`, `formatDateTime`, `formatMoney`, each taking an explicit fallback. All three modules delegate to it. The design point that mattered: recruit's `fmtDate` returned an empty string and `RequisitionRecordPage` **depends on that**, filtering fields on `v !== ''` before rendering the grid. Forcing one fallback on all three callers would have put a dash into every empty field instead of hiding it, so the fallback is a parameter and recruit passes `''`. There is a regression test naming that dependency. The `RangeError` is gone: `formatMoney` validates the currency code and falls back to a plain locale string, covered by a test that asserts no throw for `XX`, `DOLLARS`, `12`, `US$` and `''` | Both are duplicated four times. The two `fmtMoney` copies differ materially: the sales version validates the currency code, the dashboards version does not and **throws `RangeError` on an invalid code**. A latent crash, not a style nit | 2 h |
 | N3 | Adopt `@layer` and split `app.css` into about 20 files by concern | There is a concrete bucket-by-bucket plan with the required import order. `@layer` is at roughly 94% support and makes source order irrelevant to the cascade, which is what de-risks the split | 1 d |
 | N4 | Extract the duplicated `.fo-advanced-search` block | Six rules, byte-identical, copy-pasted in `recruit.css` and `intake.css`. Harmless today; nondeterministic per session once one copy is edited, because module CSS loads in navigation order | 1 h |
 | N5 | Give `recruit` the same `db.ts`, `hooks.ts`, `lib.ts` shape as the other four modules | `recruit/lib/data.ts` does all three jobs in one file: client, 13 types, five formatters, `sortRows`, `useLookups`, `useIsMobile`. It is the largest module, so the divergence compounds | 4 h |
@@ -311,7 +311,7 @@ Added 2026-09-02. These came from asking what nobody had looked at yet, rather t
 
 | # | Task | Evidence | Est. |
 | :---- | :---- | :---- | :---- |
-| O1 | Add a React error boundary around the route outlet, and a per-panel one on the dashboards | **There is no error boundary anywhere in the application.** Zero matches for `componentDidCatch`, `ErrorBoundary` or `getDerivedStateFromError` across all 113 source files. Any throw during render blanks the entire page to white with no message and no recovery. This is not theoretical: N2's `fmtMoney` throws `RangeError` on an invalid currency code, so one bad currency string in one dashboard cell takes down the whole app | 4 h |
+| O1 | **DONE 2026-09-02.** `components/ui/ErrorBoundary.tsx`, wrapped around the route outlet in `AppShell` and keyed on `location.pathname` so navigating away clears a failed page, and wrapped around every dashboard widget's content inside `Widget` so one panel cannot take the others. It shows the message, says the rest of the app still works and nothing saved is affected, and offers Try again and Reload. Three browser tests cover it. Found while testing: `DashboardsHome` was **dead code**, a second unreachable copy of the whole widget layout that only the module barrel exported, and it is deleted | **There is no error boundary anywhere in the application.** Zero matches for `componentDidCatch`, `ErrorBoundary` or `getDerivedStateFromError` across all 113 source files. Any throw during render blanks the entire page to white with no message and no recovery. This is not theoretical: N2's `fmtMoney` throws `RangeError` on an invalid currency code, so one bad currency string in one dashboard cell takes down the whole app | 4 h |
 | O2 | Prune `audit_log` and `events_outbox` | Neither table is ever pruned. No migration contains a delete against either. `audit_log` receives a row from a security-definer trigger on **every write to every business table**, and `events_outbox` keeps processed rows forever with `processed_at` set. Both grow without bound, which is a slow problem that becomes a handover problem | 4 h |
 | O3 | Add error tracking before handover | No Sentry, no `window.onerror`, no global error listener anywhere. After cutover nobody will know a production error happened unless a user reports it, and the 30-day measurement window that gates cancelling the old subscriptions depends on knowing whether the replacement actually works | 4 h |
 | O4 | Measure and reduce Realtime subscriptions per page | **10 `.channel(` call sites across 9 files.** D30 already records the Realtime messages-per-second limit as an October scaling risk, and the Playwright suite is capped at two workers because of it, but no task ever followed. Nobody has counted how many channels a single page actually opens, or whether they can share one | 1 d |
@@ -357,7 +357,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**81½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**83½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -375,8 +375,8 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **K** Data access and performance | 11 | 2 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 12 | 6 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 3½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
-| **N** Code and stylesheet architecture | 10 | 0 | New from the audits. N2 has a live crash behind it |
-| **O** Resilience and handover | 8 | 0 | New. O1: there is no error boundary anywhere, so any render throw blanks the app |
+| **N** Code and stylesheet architecture | 10 | 1 | N2 done, which removes the only live crash in the workstream |
+| **O** Resilience and handover | 8 | 1 | O1 done. A render throw is now contained to one page or one widget |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
@@ -478,16 +478,14 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **81½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **83½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
 - [ ] **K1 remainder** Server-side filtering, sorting and pagination. The silent-truncation half is fixed and tested; what is left is efficiency, not correctness, and the measurements say it is not urgent. 2 to 3 d
 - [ ] **L7** Keyboard support on `KanbanBoard`. The requisition pipeline board cannot be operated by keyboard at all, which fails SC 2.1.1 and 2.5.7. 3 h
-- [ ] **N2** One canonical `fmtMoney`. The dashboards copy throws `RangeError` on an invalid currency code. 2 h
 - [ ] **L9** Single-column reflow below about 900px. At 768px the table sits 1400px below the fold and 950px right, inside a nested scroll pane. 1 d
 - [ ] **L10** The sidebar quick-search says "Candidate Keywords" and submits to the candidates route on every page, including sales and intake. 2 h
-- [ ] **O1** There is no error boundary anywhere, so any render-time throw blanks the whole app. Pairs with N2, whose `RangeError` is exactly such a throw. 4 h
 
 ### 8.2 Under two hours each, no product risk
 
@@ -577,6 +575,8 @@ Detail on the parked items is in `VVPH_VV-FOOS_Register_Parked-and-Blocked-Items
 - [x] **D6, D7, D9, D10 accounts half, E7, F4 decision** and eight of ten section 6 decisions
 - [x] **L1 to L6** A real focus failure, a skip link, four ARIA roles, target sizes, a landmark name, three contrast failures
 - [x] **M1 to M3** An open redirect, the security headers, invalid JobPosting structured data
+- [x] **K1 correctness half and K11** Silent 1000-row truncation on all six list pages, and two duplicate requests firing on every page load
+- [x] **N2 and O1** One canonical set of formatters, killing the `RangeError`, and an error boundary so a render throw can no longer blank the app. `DashboardsHome` deleted as dead code
 - [x] **The Taleo rename**, 521 prefix occurrences and 11 component identifiers, on the copyright concern
 
 ### 8.9 Provenance of the audit findings

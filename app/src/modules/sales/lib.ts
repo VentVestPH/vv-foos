@@ -4,7 +4,7 @@ import type {
   PersonPhone,
   Tables,
 } from '../../lib/database.types';
-import { EMPTY_CELL } from '../../lib/format';
+import { formatDate, formatMoney } from '../../lib/format';
 
 export type Person = Tables<'people'>;
 export type Company = Tables<'companies'>;
@@ -66,29 +66,14 @@ export function locationLabel(row: {
 }
 
 export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return EMPTY_CELL;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return formatDate(iso);
 }
 
 export function fmtMoney(
   value: number | null,
   currency: string | null,
 ): string {
-  if (value === null || value === undefined) return EMPTY_CELL;
-  if (currency && /^[A-Za-z]{3}$/.test(currency)) {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(value);
-  }
-  return `${currency ? currency + ' ' : ''}${value.toLocaleString()}`;
+  return formatMoney(value, currency);
 }
 
 export const CURRENCIES = ['PHP', 'USD', 'AUD', 'NZD', 'SGD', 'EUR', 'GBP'];

@@ -1,4 +1,4 @@
-import { EMPTY_CELL } from '../../lib/format';
+import { EMPTY_CELL, formatMoney } from '../../lib/format';
 
 export interface AtsFunnelRow {
   application_id: string;
@@ -172,8 +172,7 @@ export function fmtDays(n: number | null): string {
 }
 
 export function fmtMoney(n: number | null, currency = 'USD'): string {
-  if (n === null) return EMPTY_CELL;
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
+  return formatMoney(n, currency);
 }
 
 export function countBy<T>(

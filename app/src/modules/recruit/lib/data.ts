@@ -10,6 +10,7 @@ import type {
   RequisitionStatus,
   Tables,
 } from '../../../lib/database.types';
+import { formatDate, formatDateTime } from '../../../lib/format';
 
 type TablesWithRelationships = {
   [K in keyof Database['public']['Tables']]: Database['public']['Tables'][K] & {
@@ -87,27 +88,11 @@ export async function fetchPeopleByIds(ids: string[]): Promise<Person[]> {
 }
 
 export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return formatDate(iso, '');
 }
 
 export function fmtDateTime(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatDateTime(iso, '');
 }
 
 export function todayIso(): string {

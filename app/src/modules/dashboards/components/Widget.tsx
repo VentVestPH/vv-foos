@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Button } from '../../../components/ui/Button';
+import { ErrorBoundary } from '../../../components/ui/ErrorBoundary';
 import { downloadCsv } from '../../../lib/csv';
 
 export function Widget({
@@ -36,7 +37,7 @@ export function Widget({
           )}
         </div>
       </header>
-      {children}
+      <ErrorBoundary label={title}>{children}</ErrorBoundary>
     </section>
   );
 }

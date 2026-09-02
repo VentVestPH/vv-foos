@@ -1792,3 +1792,37 @@ summary:focus-visible,
 .table .checkbox-col {
   width: 44px;
 }
+
+.error-boundary {
+  border: 1px solid var(--fo-border);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--sp-3);
+  max-width: 640px;
+}
+
+.error-boundary-title {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-lg);
+}
+
+.error-boundary-body {
+  margin: 0 0 var(--sp-1);
+  color: var(--text-secondary);
+}
+
+.error-boundary-detail {
+  margin: 0 0 var(--sp-2);
+  padding: var(--sp-1);
+  background: var(--fo-canvas);
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--fs-meta);
+  overflow-wrap: anywhere;
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: var(--sp-1);
+}
