@@ -83,6 +83,23 @@ const TOKENS_CSS = `
   #confirm { display: none; }
 `;
 
+const OG_IMAGE = (() => {
+  const origin = (Deno.env.get("APP_PRIMARY_ORIGIN") ?? "").trim().replace(/\/$/, "");
+  if (!origin || !/^https?:\/\//.test(origin)) return null;
+  return `${origin}/og-careers.png`;
+})();
+
+function ogImageTags(): string {
+  if (!OG_IMAGE) return "";
+  return [
+    `<meta property="og:image" content="${OG_IMAGE}" />`,
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    '<meta name="twitter:card" content="summary_large_image" />',
+    `<meta name="twitter:image" content="${OG_IMAGE}" />`,
+  ].join("\n");
+}
+
 export function renderPage(opts: {
   title: string;
   description: string;
@@ -103,6 +120,7 @@ export function renderPage(opts: {
 <meta property="og:title" content="${escapeHtml(title)}" />
 <meta property="og:description" content="${escapeHtml(description)}" />
 <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+${ogImageTags()}
 <meta name="robots" content="index, follow" />
 ${
   structuredData

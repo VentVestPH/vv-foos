@@ -4,7 +4,33 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const RATE_LIMIT_PER_HOUR = 5;
-const MAX_FILE_BYTES = 10 * 1024 * 1024; 
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
+
+class RequestTooLarge extends Error {}
+
+async function readBoundedFormData(req: Request): Promise<FormData> {
+  if (!req.body) return await req.formData();
+  let seen = 0;
+  const bounded = req.body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        seen += chunk.byteLength;
+        if (seen > MAX_REQUEST_BYTES) {
+          controller.error(new RequestTooLarge());
+          return;
+        }
+        controller.enqueue(chunk);
+      },
+    }),
+  );
+  return await new Request(req.url, {
+    method: req.method,
+    headers: req.headers,
+    body: bounded,
+  }).formData();
+}
+
 const ALLOWED_EXT = [".pdf", ".doc", ".docx"];
 
 const CORS_HEADERS: Record<string, string> = {
@@ -63,10 +89,18 @@ Deno.serve(async (req) => {
   const sb = client();
   const ip = clientIp(req);
 
+  const declaredLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES) {
+    return json({ ok: false, message: "Submission is too large." }, 413);
+  }
+
   let form: FormData;
   try {
-    form = await req.formData();
-  } catch {
+    form = await readBoundedFormData(req);
+  } catch (e) {
+    if (e instanceof RequestTooLarge) {
+      return json({ ok: false, message: "Submission is too large." }, 413);
+    }
     return json({ ok: false, message: "Could not read submission." }, 400);
   }
 

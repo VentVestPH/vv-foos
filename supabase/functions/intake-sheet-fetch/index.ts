@@ -1,9 +1,12 @@
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
+const ALLOW_ORIGIN = Deno.env.get("APP_PRIMARY_ORIGIN") ?? "*";
+
 const MAX_ROWS = 500; 
 
 const CORS_HEADERS: Record<string, string> = {
-  "access-control-allow-origin": "*",
+  "access-control-allow-origin": ALLOW_ORIGIN,
+  vary: "Origin",
   "access-control-allow-methods": "POST, OPTIONS",
   "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
 };

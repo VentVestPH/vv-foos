@@ -162,6 +162,26 @@ describe('Careers endpoint security (criteria 4.1, 4.5, 4.6, 4.7, 4.8)', () => {
     }
   });
 
+  it('4.2c social preview tags are emitted with a real image, or omitted entirely', async () => {
+    const html = await (await fetch(PAGE_URL)).text();
+    const hasImage = html.includes('property="og:image"');
+
+    if (hasImage) {
+      const src = /property="og:image" content="([^"]+)"/.exec(html)?.[1];
+      expect(src, 'og:image must be an absolute URL, relative ones are ignored by crawlers').toMatch(
+        /^https?:\/\/.+\/og-careers\.png$/,
+      );
+      expect(html).toContain('property="og:image:width" content="1200"');
+      expect(html).toContain('property="og:image:height" content="630"');
+      expect(html).toContain('name="twitter:card" content="summary_large_image"');
+    } else {
+      expect(
+        html,
+        'with no origin configured, no partial image tags should leak',
+      ).not.toContain('twitter:image');
+    }
+  });
+
   it('4.2b a requisition with no location emits no JSON-LD rather than invalid JSON-LD', async () => {
     const listing = await (await fetch(PAGE_URL)).text();
     const hrefs = [...listing.matchAll(/href="([^"]*\/jobs\/[^"]+)"/g)].map((m) => m[1]);

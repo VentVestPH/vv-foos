@@ -1,11 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const ALLOW_ORIGIN = Deno.env.get("APP_PRIMARY_ORIGIN") ?? "*";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const CORS_HEADERS: Record<string, string> = {
-  "access-control-allow-origin": "*",
+  "access-control-allow-origin": ALLOW_ORIGIN,
+  vary: "Origin",
   "access-control-allow-methods": "POST, OPTIONS",
   "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
 };
