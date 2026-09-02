@@ -226,7 +226,7 @@ Added 2026-09-02 from six background audits. **K1 is the single largest piece of
 
 | # | Task | Evidence | Est. |
 | :---- | :---- | :---- | :---- |
-| K1 | Server-side filtering, sorting and pagination on the six list pages | **Every list page fetches its entire table.** There is no `.ilike(` and no `.range(` anywhere in `app/src`: candidates, requisitions, deals, companies, contacts and tickets all issue `select('*')` with no WHERE and no LIMIT, then filter and search in JavaScript. Fine at 10 seed rows, fails at 10,000. No index can fix it | 2 to 3 d |
+| K1 | **REFRAMED 2026-09-02 by measurement, and the urgent half is DONE.** The claim in this row was that client-side filtering will not scale. Measured against a production build at 500, 2,000 and 5,000 candidate rows, that is **not supported**: load stayed at 60ms LCP, keystroke latency at 24 to 27ms and sort at 32ms at every volume, and 32ms is the floor of the measuring technique rather than real cost. What the test found instead was a **correctness bug that fires first**: PostgREST caps a response at 1000 rows, `Content-Range: 0-999/5007` confirmed by direct call, and no list page paginated or checked. The pager read "1-20 of 1000" while the table held 5,007 rows, silently discarding the rest with no error. Fixed the same day with `lib/fetchAll.ts`, applied to all six list pages, with 6 unit tests. Server-side filtering is still the right destination, but it is now an efficiency task rather than a correctness one | **Every list page fetches its entire table.** There is no `.ilike(` and no `.range(` anywhere in `app/src`: candidates, requisitions, deals, companies, contacts and tickets all issue `select('*')` with no WHERE and no LIMIT, then filter and search in JavaScript. Fine at 10 seed rows, fails at 10,000. No index can fix it | 2 to 3 d |
 | K2 | Four missing indexes: `reminders(related_type, related_id)`, `activities(person_id, occurred_at desc)`, `applications(requisition_id, applied_at desc)`, `attachments(parent_type, parent_id, kind)` | Measured with EXPLAIN ANALYZE against 200k synthetic activity rows and 50k applications inside a rolled-back transaction: Bitmap Heap Scan followed by a separate Sort node, which is the composite-index gap. `tasks` already has the equivalent index and `reminders` does not | 1 h |
 | K3 | Index the three unindexed foreign keys on the documented purge path: `deals.primary_contact_id`, `tickets.person_id`, `intake_items.duplicate_of` | All three are `ON DELETE SET NULL`, so deleting one person forces a full scan of three tables. The README's purge order starts with `people` | 30 min |
 | K4 | Drop `idx_applications_requisition` | A strict leading prefix of the unique `(requisition_id, person_id)` index, so Postgres never needs it. Pure write overhead | 15 min |
@@ -237,7 +237,11 @@ Added 2026-09-02 from six background audits. **K1 is the single largest piece of
 | K9 | Set `emptyOutDir: true`, or clean before build | Measured: `dist-redesign-2` held **69 files across four build generations** before a manual clean, 21 after. Stale hashed chunks ship in the deploy artifact | 30 min |
 | K10 | Measure authenticated Core Web Vitals and interaction latency | Currently unmeasured. `app/.env` points the production build at the live project, so `vite preview` cannot sign in locally. Needs either the live credentials or a decision to measure against the local stack, which measures loopback latency instead | Decision + 2 h |
 
-**Status 2026-09-02.** All open. K2, K3, K4 and K9 are under two hours combined and carry no product risk.
+| K11 | **DONE 2026-09-02.** Two duplicate requests on every page load, app-wide | `SessionProvider` called `loadStaff` from both the `getSession()` resolution and the `onAuthStateChange` callback, which also fires on mount, so two identical `staff` requests landed within 1ms. And `useIntakeBadge` called `refresh()` from its mount effect and again from the `SUBSCRIBED` callback, so two `intake_items` HEAD requests fired on every page in the application, both aborting. Both now fire once | done |
+
+**Status 2026-09-02.** Done: the urgent half of K1, and K11. Open: K2 to K10. K2, K3, K4 and K9 are under two hours combined and carry no product risk.
+
+**What the measurement changed.** Performance at real scale is not the problem this workstream assumed. Every Core Web Vital is far inside budget: LCP 56 to 68ms across five routes, CLS at or below 0.007, **zero long tasks anywhere**, and all five measured interactions at about 32ms, which is the measurement floor. Nothing is close to the 100ms threshold, let alone 200ms. So K7, and K5's per-row RLS concern, should be treated as hygiene rather than as urgent, and the ranking above reflects that. First-load JS for `/recruit/candidates` is 159.2KB gzipped, of which `vendor-supabase` is 55.9KB and `vendor-react` 53.2KB, so two thirds is framework and only K8's 15.3KB of `googleActions` is obviously wasted.
 
 ### Workstream L. Accessibility and responsive
 
@@ -353,7 +357,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**79½ of 135 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**81½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -368,7 +372,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **D** Data | 11 | 6 | D1, D6, D7, D8, D9, D10 done. D2 to D5 and D11 all wait on data or credentials this environment cannot produce |
 | **H** Frontend consistency | 7 | 7 | Complete. H5 turned out to be six dead CSS selectors rather than a taste decision. H7 is the real logo, added at your request |
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
-| **K** Data access and performance | 10 | 0 | New from the audits. K1 is the largest open item in the codebase |
+| **K** Data access and performance | 11 | 2 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 12 | 6 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 3½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
 | **N** Code and stylesheet architecture | 10 | 0 | New from the audits. N2 has a live crash behind it |
@@ -474,11 +478,11 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the six audits. **79½ of 135 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **81½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
-- [ ] **K1** Server-side filtering, sorting and pagination on the six list pages. Every one currently fetches its whole table and filters in JavaScript. The largest open item in the codebase, and the plan had never named it. 2 to 3 d
+- [ ] **K1 remainder** Server-side filtering, sorting and pagination. The silent-truncation half is fixed and tested; what is left is efficiency, not correctness, and the measurements say it is not urgent. 2 to 3 d
 - [ ] **L7** Keyboard support on `KanbanBoard`. The requisition pipeline board cannot be operated by keyboard at all, which fails SC 2.1.1 and 2.5.7. 3 h
 - [ ] **N2** One canonical `fmtMoney`. The dashboards copy throws `RangeError` on an invalid currency code. 2 h
 - [ ] **L9** Single-column reflow below about 900px. At 768px the table sits 1400px below the fold and 950px right, inside a nested scroll pane. 1 d

@@ -9,6 +9,7 @@ import { Ticket as TicketIcon } from 'lucide-react';
 import { useCompanyOptions, useStaffList } from '../hooks';
 import { fmtDate, type Ticket } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
+import { fetchAllRows } from '../../../lib/fetchAll';
 
 export function TicketsListPage() {
   const [loading, setLoading] = useState(true);
@@ -21,15 +22,14 @@ export function TicketsListPage() {
   useEffect(() => {
     let cancelled = false;
       setLoading(true);
-    supabase
-      .from('tickets')
-      .select('*')
-      .then(({ data }) => {
+    void fetchAllRows((f, t) => supabase.from('tickets').select('*').range(f, t)).then(
+      (rows) => {
         if (!cancelled) {
-            setTickets(data ?? []);
-            setLoading(false);
-          }
-      });
+          setTickets(rows);
+          setLoading(false);
+        }
+      },
+    );
     return () => {
       cancelled = true;
     };

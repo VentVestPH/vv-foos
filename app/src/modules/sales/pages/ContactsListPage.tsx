@@ -20,6 +20,7 @@ import {
   type Person,
 } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
+import { fetchAllRows } from '../../../lib/fetchAll';
 
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
@@ -46,10 +47,10 @@ export function ContactsListPage() {
       setLoading(true);
 
     async function load() {
-      const { data: profiles } = await supabase
-        .from('contact_profiles')
-        .select('*');
-      if (!profiles || profiles.length === 0) {
+      const profiles = await fetchAllRows((f, t) =>
+        supabase.from('contact_profiles').select('*').range(f, t),
+      );
+      if (profiles.length === 0) {
         if (!cancelled) setRows([]);
         return;
       }

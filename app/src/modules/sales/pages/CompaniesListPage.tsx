@@ -13,6 +13,7 @@ import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useCanEditCrm, useStaffList } from '../hooks';
 import { fmtDate, locationLabel, type Company } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
+import { fetchAllRows } from '../../../lib/fetchAll';
 
 const TYPE_OPTIONS = [
   { value: 'client', label: 'Client' },
@@ -35,16 +36,14 @@ export function CompaniesListPage() {
   useEffect(() => {
     let cancelled = false;
       setLoading(true);
-    supabase
-      .from('companies')
-      .select('*')
-      .order('name')
-      .then(({ data }) => {
-        if (!cancelled) {
-            setCompanies(data ?? []);
-            setLoading(false);
-          }
-      });
+    void fetchAllRows((f, t) =>
+      supabase.from('companies').select('*').order('name').range(f, t),
+    ).then((rows) => {
+      if (!cancelled) {
+        setCompanies(rows);
+        setLoading(false);
+      }
+    });
     return () => {
       cancelled = true;
     };

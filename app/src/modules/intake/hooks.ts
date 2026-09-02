@@ -14,7 +14,7 @@ export function useIntakeBadge() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    let subscribedOnce = false;
     const channel = supabase
       .channel('intake-badge')
       .on(
@@ -23,7 +23,13 @@ export function useIntakeBadge() {
         () => refresh(),
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') void refresh();
+        if (status !== 'SUBSCRIBED') return;
+        if (subscribedOnce) {
+          void refresh();
+          return;
+        }
+        subscribedOnce = true;
+        void refresh();
       });
     return () => {
       void supabase.removeChannel(channel);

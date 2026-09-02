@@ -35,6 +35,7 @@ import {
   type SortState,
 } from '../lib/data';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../lib/savedViews';
+import { fetchAllRows } from '../../../lib/fetchAll';
 
 interface CandFilters {
   statusId: string;
@@ -131,23 +132,23 @@ export function CandidateListPage() {
 
   const load = useCallback(async () => {
     try {
-      const [prof, a, r, att] = await Promise.all([
-        supabase.from('candidate_profiles').select('*'),
-        supabase.from('applications').select('*'),
-        supabase.from('requisitions').select('*'),
-        supabase
-          .from('attachments')
-          .select('parent_id')
-          .eq('parent_type', 'person')
-          .eq('kind', 'resume'),
+      const [profRows, appRows, reqRows, attRows] = await Promise.all([
+        fetchAllRows((f, t) => supabase.from('candidate_profiles').select('*').range(f, t)),
+        fetchAllRows((f, t) => supabase.from('applications').select('*').range(f, t)),
+        fetchAllRows((f, t) => supabase.from('requisitions').select('*').range(f, t)),
+        fetchAllRows((f, t) =>
+          supabase
+            .from('attachments')
+            .select('parent_id')
+            .eq('parent_type', 'person')
+            .eq('kind', 'resume')
+            .range(f, t),
+        ),
       ]);
-      const firstError = prof.error ?? a.error ?? r.error ?? att.error ?? null;
-      if (firstError) throw new Error(firstError.message);
-      const profRows = prof.data ?? [];
       setProfiles(profRows);
-      setApps(a.data ?? []);
-      setReqs(r.data ?? []);
-      setResumePersonIds(new Set((att.data ?? []).map((x) => x.parent_id)));
+      setApps(appRows);
+      setReqs(reqRows);
+      setResumePersonIds(new Set(attRows.map((x) => x.parent_id)));
       const persons = await fetchPeopleByIds(profRows.map((p) => p.person_id));
       setPeople(new Map(persons.map((p) => [p.id, p] as [string, Person])));
       setError(null);

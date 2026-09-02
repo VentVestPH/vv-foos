@@ -51,17 +51,26 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (!cancelled) setStaff(data ?? null);
     }
 
+    let loadedForUser: string | null | undefined;
+
+    async function syncStaff(next: Session | null) {
+      const userId = next?.user.id ?? null;
+      if (loadedForUser === userId) return;
+      loadedForUser = userId;
+      await loadStaff(next);
+    }
+
     supabase.auth.getSession().then(async ({ data }) => {
       if (cancelled) return;
       setSession(data.session);
-      await loadStaff(data.session);
+      await syncStaff(data.session);
       if (!cancelled) setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         setSession(newSession);
-        void loadStaff(newSession);
+        void syncStaff(newSession);
       },
     );
 

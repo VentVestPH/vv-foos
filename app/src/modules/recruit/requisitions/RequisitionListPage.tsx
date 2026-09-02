@@ -27,6 +27,7 @@ import {
 } from '../lib/data';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../lib/savedViews';
 import { EMPTY_CELL } from '../../../lib/format';
+import { fetchAllRows } from '../../../lib/fetchAll';
 
 interface ReqFilters {
   status: string;
@@ -112,17 +113,18 @@ export function RequisitionListPage() {
 
   const loadStatic = useCallback(async () => {
     try {
-      const [r, o] = await Promise.all([
-        supabase
-          .from('requisitions')
-          .select('*')
-          .order('created_at', { ascending: false }),
-        supabase.from('requisition_owners').select('*'),
+      const [reqRows, ownerRows] = await Promise.all([
+        fetchAllRows((f, t) =>
+          supabase
+            .from('requisitions')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .range(f, t),
+        ),
+        fetchAllRows((f, t) => supabase.from('requisition_owners').select('*').range(f, t)),
       ]);
-      if (r.error) throw new Error(r.error.message);
-      if (o.error) throw new Error(o.error.message);
-      setReqs(r.data ?? []);
-      setOwners(o.data ?? []);
+      setReqs(reqRows);
+      setOwners(ownerRows);
     } catch (e) {
       setError(errMsg(e));
     }

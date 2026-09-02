@@ -15,6 +15,7 @@ import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
 import { fmtDate, fmtMoney, stageLabel, type Deal } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
+import { fetchAllRows } from '../../../lib/fetchAll';
 
 type ViewMode = 'kanban' | 'table';
 
@@ -38,11 +39,14 @@ export function DealsListPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('deals')
-      .select('*')
-      .order('updated_at', { ascending: false });
-    setDeals(data ?? []);
+    const rows = await fetchAllRows((f, t) =>
+      supabase
+        .from('deals')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .range(f, t),
+    );
+    setDeals(rows);
     setLoading(false);
   };
 
