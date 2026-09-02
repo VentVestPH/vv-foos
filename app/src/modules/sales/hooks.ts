@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { db as supabase } from './db';
+import { supabase } from '../../lib/supabase';
 import { useRole } from '../../auth/SessionProvider';
 import type { Company, Staff } from './lib';
 import { EMPTY_CELL } from '../../lib/format';

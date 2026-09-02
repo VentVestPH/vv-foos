@@ -82,11 +82,11 @@ Zoho exports come in two dialects and `parseZohoTimestamp` handles both: Recruit
 
 `app/src/lib/database.types.ts` is **hand-derived** from the migrations, not generated. It holds all 24 tables (Row/Insert/Update), the 12 enums, the locked stage-order arrays (`REQUISITION_STATUSES`, `APPLICATION_STAGES`, `DEAL_STAGES`, `TICKET_STATUSES`) and the jsonb shapes for `people.emails/phones/education`. If a migration changes a table, change this file in the same edit. Stage sets are locked: do not reorder or extend them.
 
-### The `Relationships` shim (a live wart)
+### The Supabase client
 
-`database.types.ts` predates postgrest-js's requirement that every table type carry a `Relationships` array, and the installed supabase-js floats to 2.110 from `^2.45`. Without `Relationships`, the typed client collapses Insert/Update payloads to `never`. Four modules each work around this with a local `db.ts` that maps `Relationships: []` over the shared tables: `modules/sales/db.ts`, `modules/intake/db.ts`, `modules/settings/db.ts`, `modules/dashboards/db.ts`. The fix is to add `Relationships: []` to each table in `database.types.ts` and delete all four shims; until then, new module code should import `db` from its module's shim rather than `supabase` from `lib/supabase.ts` when it writes.
+One client, `lib/supabase.ts`, imported directly everywhere. `database.types.ts` carries `Relationships: []` on all 25 tables, which is what postgrest-js needs to keep Insert and Update payloads from collapsing to `never`.
 
-`modules/dashboards/db.ts` also exports `dashDb`, the same client scoped to the `dash` Postgres schema.
+Four module-local `db.ts` shims used to work around that missing field. They were reduced to one-line re-exports once the types were fixed, and were deleted on 2026-09-02. `modules/dashboards/db.ts` survives for one reason only: it exports `dashDb`, the same client scoped to the `dash` Postgres schema. Use `dashDb` for `dash` views and `supabase` for everything else.
 
 ### Frontend structure
 

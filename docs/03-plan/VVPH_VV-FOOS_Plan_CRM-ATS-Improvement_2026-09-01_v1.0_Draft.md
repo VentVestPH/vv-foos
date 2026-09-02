@@ -231,10 +231,10 @@ Added 2026-09-02 from six background audits. **K1 is the single largest piece of
 | K3 | Index the three unindexed foreign keys on the documented purge path: `deals.primary_contact_id`, `tickets.person_id`, `intake_items.duplicate_of` | All three are `ON DELETE SET NULL`, so deleting one person forces a full scan of three tables. The README's purge order starts with `people` | 30 min |
 | K4 | Drop `idx_applications_requisition` | A strict leading prefix of the unique `(requisition_id, person_id)` index, so Postgres never needs it. Pure write overhead | 15 min |
 | K5 | Wrap RLS predicates as `(select get_my_role())` and `(select auth.uid())` across roughly 40 policies | Every policy function is correctly marked `STABLE`, which was the first thing checked, but all are called bare. Supabase's own performance guidance is to wrap them so the planner caches the call as an InitPlan instead of re-invoking per row | 3 h |
-| K6 | Batch the owner and approver deletes in `RequisitionFormPage.tsx:212` | Two `for` loops with an `await` inside each, so N removed approvers means N serial round trips | 1 h |
+| K6 | **DONE 2026-09-02.** Both loops collapse to one request each. Owners use `.in('staff_id', removed)`. Approvers need a pair-wise match, because the key is `(staff_id, approver_type)` and a staff-wide delete would remove an approver's other role, so they use `.or()` with an `and(...)` clause per pair. Three API tests prove it against a real database, including one asserting that removing `(staff, requisition)` leaves that same staff's `(staff, offer)` row intact, which is the failure mode a naive fix would have introduced | Two `for` loops with an `await` inside each, so N removed approvers means N serial round trips | 1 h |
 | K7 | Explicit column lists in place of `select('*')`, dashboards first | 73 call sites. The dashboard queries refresh every 15 minutes over the widest tables and pull every column to compute aggregates | 4 h |
-| K8 | Lazy-load `CandidateRecordPage` and `ContactRecordPage` out of their list chunks | Both are statically imported beside the list page, which drags `googleActions` into the list view. Measured first load of `/recruit/candidates`: **543 KB raw, 159 KB gzipped**. This defers about 19 KB gzipped | 1 h |
-| K9 | Set `emptyOutDir: true`, or clean before build | Measured: `dist-redesign-2` held **69 files across four build generations** before a manual clean, 21 after. Stale hashed chunks ship in the deploy artifact | 30 min |
+| K8 | **DONE 2026-09-02, and it went further than planned.** Deferring `CandidateRecordPage` and `ContactRecordPage` took first load from 159.2 to 136 KB gzipped. Re-measuring then showed `KanbanBoard`, at 14 KB and carrying `@dnd-kit`, still loading on the candidates list, which has no board: it arrived through `ApplicationPipeline` on the requisition record page. Deferring the requisition record and form pages too moved `KanbanBoard`, `SidePanelTabs`, `RecordPage`, `engagement` and `googleActions` off the list route. **Measured first load of `/recruit/candidates`: 129.6 KB gzipped, down from 159.2, a 19% cut.** The 10 remaining chunks are two thirds framework: 54.4 KB supabase and 51.8 KB react | Both are statically imported beside the list page, which drags `googleActions` into the list view. Measured first load of `/recruit/candidates`: **543 KB raw, 159 KB gzipped**. This defers about 19 KB gzipped | 1 h |
+| K9 | **DONE 2026-09-02.** `emptyOutDir: true`. The comment claiming a sandbox file-sync layer prevented it is gone along with every other comment in the codebase, and a clean build now produces 20 chunks rather than accumulating generations | Measured: `dist-redesign-2` held **69 files across four build generations** before a manual clean, 21 after. Stale hashed chunks ship in the deploy artifact | 30 min |
 | K10 | Measure authenticated Core Web Vitals and interaction latency | Currently unmeasured. `app/.env` points the production build at the live project, so `vite preview` cannot sign in locally. Needs either the live credentials or a decision to measure against the local stack, which measures loopback latency instead | Decision + 2 h |
 
 | K11 | **DONE 2026-09-02.** Two duplicate requests on every page load, app-wide | `SessionProvider` called `loadStaff` from both the `getSession()` resolution and the `onAuthStateChange` callback, which also fires on mount, so two identical `staff` requests landed within 1ms. And `useIntakeBadge` called `refresh()` from its mount effect and again from the `SUBSCRIBED` callback, so two `intake_items` HEAD requests fired on every page in the application, both aborting. Both now fire once | done |
@@ -292,7 +292,7 @@ Added 2026-09-02. Two research passes and two codebase audits.
 
 | # | Task | Evidence | Est. |
 | :---- | :---- | :---- | :---- |
-| N1 | Delete the four `db.ts` shims and import `lib/supabase.ts` directly | `CLAUDE.md` says they work around missing `Relationships` typing. `database.types.ts` already carries `Relationships: []` on all 25 tables, so they are one-line re-exports doing nothing, and only four of five modules use them anyway | 3 h |
+| N1 | **DONE 2026-09-02.** Three shims deleted (`sales`, `intake`, `settings`), 20 importers repointed at `lib/supabase.ts`. `modules/dashboards/db.ts` survives, reduced to its one real job of exporting `dashDb`, the client scoped to the `dash` schema. `CLAUDE.md`'s "live wart" section is replaced with what is actually true | `CLAUDE.md` says they work around missing `Relationships` typing. `database.types.ts` already carries `Relationships: []` on all 25 tables, so they are one-line re-exports doing nothing, and only four of five modules use them anyway | 3 h |
 | N2 | **DONE 2026-09-02.** One implementation in `lib/format.ts`: `formatDate`, `formatDateTime`, `formatMoney`, each taking an explicit fallback. All three modules delegate to it. The design point that mattered: recruit's `fmtDate` returned an empty string and `RequisitionRecordPage` **depends on that**, filtering fields on `v !== ''` before rendering the grid. Forcing one fallback on all three callers would have put a dash into every empty field instead of hiding it, so the fallback is a parameter and recruit passes `''`. There is a regression test naming that dependency. The `RangeError` is gone: `formatMoney` validates the currency code and falls back to a plain locale string, covered by a test that asserts no throw for `XX`, `DOLLARS`, `12`, `US$` and `''` | Both are duplicated four times. The two `fmtMoney` copies differ materially: the sales version validates the currency code, the dashboards version does not and **throws `RangeError` on an invalid code**. A latent crash, not a style nit | 2 h |
 | N3 | Adopt `@layer` and split `app.css` into about 20 files by concern | There is a concrete bucket-by-bucket plan with the required import order. `@layer` is at roughly 94% support and makes source order irrelevant to the cascade, which is what de-risks the split | 1 d |
 | N4 | Extract the duplicated `.fo-advanced-search` block | Six rules, byte-identical, copy-pasted in `recruit.css` and `intake.css`. Harmless today; nondeterministic per session once one copy is edited, because module CSS loads in navigation order | 1 h |
@@ -357,7 +357,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**83½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**87½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -372,10 +372,10 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **D** Data | 11 | 6 | D1, D6, D7, D8, D9, D10 done. D2 to D5 and D11 all wait on data or credentials this environment cannot produce |
 | **H** Frontend consistency | 7 | 7 | Complete. H5 turned out to be six dead CSS selectors rather than a taste decision. H7 is the real logo, added at your request |
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
-| **K** Data access and performance | 11 | 2 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
+| **K** Data access and performance | 11 | 5 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 12 | 6 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 3½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
-| **N** Code and stylesheet architecture | 10 | 1 | N2 done, which removes the only live crash in the workstream |
+| **N** Code and stylesheet architecture | 10 | 2 | N2 done, which removes the only live crash in the workstream |
 | **O** Resilience and handover | 8 | 1 | O1 done. A render throw is now contained to one page or one widget |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
@@ -478,7 +478,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **83½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **87½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -492,9 +492,6 @@ State after the 2026-09-02 passes and the seven audits. **83½ of 136 tasks done
 - [ ] **K2** Four missing indexes, each measured against synthetic volume with EXPLAIN
 - [ ] **K3** Three unindexed foreign keys on the documented purge path
 - [ ] **K4** Drop the redundant `idx_applications_requisition`
-- [ ] **K9** `emptyOutDir: false` ships four build generations; 69 files before a clean, 21 after
-- [ ] **K6** Batch the owner and approver deletes in `RequisitionFormPage.tsx:212`
-- [ ] **K8** Lazy-load the two record pages out of their list chunks, about 19 KB gzipped off first load
 - [ ] **M5** Narrow CORS on `google-oauth-start` from `*`
 - [ ] **M7** Reconcile `node_modules` with the lockfile so `npm ci` is reproducible
 - [ ] **M4** Cap the request body in `careers-apply` before `req.formData()` buffers it
@@ -530,7 +527,6 @@ State after the 2026-09-02 passes and the seven audits. **83½ of 136 tasks done
 
 - [ ] **N3** Adopt `@layer` and split `app.css` by concern. Three named source-order hazards must be resolved first
 - [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
-- [ ] **N1** Delete the four dead `db.ts` shims
 - [ ] **N5** Align the `recruit` module's shape with the other four
 - [ ] **N6** Split the four largest components on responsibility, not on line count
 - [ ] **N8** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`, both now in TypeScript's own recommended template
@@ -577,6 +573,7 @@ Detail on the parked items is in `VVPH_VV-FOOS_Register_Parked-and-Blocked-Items
 - [x] **M1 to M3** An open redirect, the security headers, invalid JobPosting structured data
 - [x] **K1 correctness half and K11** Silent 1000-row truncation on all six list pages, and two duplicate requests firing on every page load
 - [x] **N2 and O1** One canonical set of formatters, killing the `RangeError`, and an error boundary so a render throw can no longer blank the app. `DashboardsHome` deleted as dead code
+- [x] **N1, K6, K8, K9** Three dead client shims deleted, two delete loops batched into one request each, first-load JS cut 19% to 129.6 KB gzipped, and the build stops accumulating stale chunks
 - [x] **The Taleo rename**, 521 prefix occurrences and 11 component identifiers, on the copyright concern
 
 ### 8.9 Provenance of the audit findings

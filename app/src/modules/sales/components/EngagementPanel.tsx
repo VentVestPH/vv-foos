@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { db as supabase } from '../db';
+import { supabase } from '../../../lib/supabase';
 import { useSession } from '../../../auth/SessionProvider';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';

@@ -210,12 +210,12 @@ export function RequisitionFormPage() {
 
       const removedOwners = originalOwners.filter((s) => !ownerIds.includes(s));
       const addedOwners = ownerIds.filter((s) => !originalOwners.includes(s));
-      for (const staffId of removedOwners) {
+      if (removedOwners.length > 0) {
         const { error: err } = await supabase
           .from('requisition_owners')
           .delete()
           .eq('requisition_id', reqId)
-          .eq('staff_id', staffId);
+          .in('staff_id', removedOwners);
         if (err) throw new Error(err.message);
       }
       if (addedOwners.length > 0) {
@@ -229,16 +229,18 @@ export function RequisitionFormPage() {
         `${a.staff_id}|${a.approver_type}`;
       const currentKeys = new Set(approvers.map(keyOf));
       const originalKeys = new Set(originalApprovers.map(keyOf));
-      for (const orig of originalApprovers) {
-        if (!currentKeys.has(keyOf(orig))) {
-          const { error: err } = await supabase
-            .from('requisition_approvers')
-            .delete()
-            .eq('requisition_id', reqId)
-            .eq('staff_id', orig.staff_id)
-            .eq('approver_type', orig.approver_type);
-          if (err) throw new Error(err.message);
-        }
+      const removedApprovers = originalApprovers.filter((a) => !currentKeys.has(keyOf(a)));
+      if (removedApprovers.length > 0) {
+        const { error: err } = await supabase
+          .from('requisition_approvers')
+          .delete()
+          .eq('requisition_id', reqId)
+          .or(
+            removedApprovers
+              .map((a) => `and(staff_id.eq.${a.staff_id},approver_type.eq.${a.approver_type})`)
+              .join(','),
+          );
+        if (err) throw new Error(err.message);
       }
       const added = approvers.filter((a) => !originalKeys.has(keyOf(a)));
       if (added.length > 0) {

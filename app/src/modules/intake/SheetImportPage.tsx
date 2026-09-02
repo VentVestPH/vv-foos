@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { Inbox as InboxIcon } from 'lucide-react';
-import { db as supabase } from './db';
+import { supabase } from '../../lib/supabase';
 import { checkDedup } from './hooks';
 
 const PARSED_FIELDS = [

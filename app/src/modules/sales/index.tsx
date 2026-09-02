@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import type { StaffRole } from '../../lib/database.types';
 import './sales.css';
@@ -7,7 +8,6 @@ import { CompanyNewPage } from './pages/CompanyNewPage';
 import { CompanyRecordPage } from './pages/CompanyRecordPage';
 import { ContactsListPage } from './pages/ContactsListPage';
 import { ContactNewPage } from './pages/ContactNewPage';
-import { ContactRecordPage } from './pages/ContactRecordPage';
 import { DealsListPage } from './pages/DealsListPage';
 import { DealNewPage } from './pages/DealNewPage';
 import { DealRecordPage } from './pages/DealRecordPage';
@@ -29,6 +29,10 @@ export const salesNavItems: SalesNavItem[] = [
   { label: 'Tickets', href: '/sales/tickets', roles: CRM_ROLES },
 ];
 
+const ContactRecordPage = lazy(() =>
+  import('./pages/ContactRecordPage').then((m) => ({ default: m.ContactRecordPage })),
+);
+
 export function SalesRoutes() {
   return (
     <>
@@ -40,7 +44,14 @@ export function SalesRoutes() {
         <Route path="companies/:id" element={<CompanyRecordPage />} />
         <Route path="contacts" element={<ContactsListPage />} />
         <Route path="contacts/new" element={<ContactNewPage />} />
-        <Route path="contacts/:personId" element={<ContactRecordPage />} />
+        <Route
+          path="contacts/:personId"
+          element={
+            <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+              <ContactRecordPage />
+            </Suspense>
+          }
+        />
         <Route path="deals" element={<DealsListPage />} />
         <Route path="deals/new" element={<DealNewPage />} />
         <Route path="deals/:id" element={<DealRecordPage />} />

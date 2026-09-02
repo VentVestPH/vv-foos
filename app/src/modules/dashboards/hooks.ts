@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRole } from '../../auth/SessionProvider';
-import { db as supabase } from './db';
+import { supabase } from '../../lib/supabase';
 import { EMPTY_CELL } from '../../lib/format';
 
 let staffCache: { id: string; full_name: string }[] | null = null;

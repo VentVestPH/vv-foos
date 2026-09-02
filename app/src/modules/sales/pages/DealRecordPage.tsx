@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { db as supabase } from '../db';
+import { supabase } from '../../../lib/supabase';
 import { DEAL_STAGES, type DealStage } from '../../../lib/database.types';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';

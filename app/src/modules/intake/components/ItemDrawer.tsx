@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { RecordSection } from '../../../components/ui/RecordPage';
-import { db as supabase } from '../db';
+import { supabase } from '../../../lib/supabase';
 import { checkDedup, type DedupMatch } from '../hooks';
 import {
   CHANNEL_LABEL,

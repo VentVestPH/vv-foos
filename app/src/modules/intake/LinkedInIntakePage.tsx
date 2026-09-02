@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { useSession } from '../../auth/SessionProvider';
-import { db as supabase } from './db';
+import { supabase } from '../../lib/supabase';
 import { StarGrade } from '../../components/ui/StarGrade';
 import { Inbox as InboxIcon } from 'lucide-react';
 

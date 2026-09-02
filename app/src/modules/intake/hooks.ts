@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { db as supabase } from './db';
+import { supabase } from '../../lib/supabase';
 import type { IntakeItem } from './lib';
 
 export function useIntakeBadge() {

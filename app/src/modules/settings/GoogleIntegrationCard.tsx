@@ -13,7 +13,7 @@ function ScopeMark({ granted }: { granted: boolean }) {
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { db } from './db';
+import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { scopeLabel, hasScope, type GoogleTokensSummary } from './lib';
 
@@ -26,7 +26,7 @@ export function GoogleIntegrationCard() {
 
   async function reload() {
     setLoading(true);
-    const { data, error: err } = await db.rpc('get_my_google_status');
+    const { data, error: err } = await supabase.rpc('get_my_google_status');
     if (err) setError(err.message);
     else setStatus((data as GoogleTokensSummary | null) ?? null);
     setLoading(false);
@@ -51,7 +51,7 @@ export function GoogleIntegrationCard() {
   async function connect(tier: 'base' | 'send' | 'calendar') {
     setBusy(tier);
     setError(null);
-    const { data, error: err } = await db.functions.invoke('google-oauth-start', {
+    const { data, error: err } = await supabase.functions.invoke('google-oauth-start', {
       body: { tier },
     });
     setBusy(null);
@@ -65,7 +65,7 @@ export function GoogleIntegrationCard() {
   async function disconnect() {
     if (!confirm('Disconnect Google? Sync, send, and meeting-creation will stop until reconnected.')) return;
     setBusy('disconnect');
-    const { error: err } = await db.rpc('disconnect_my_google');
+    const { error: err } = await supabase.rpc('disconnect_my_google');
     setBusy(null);
     if (err) setError(err.message);
     else await reload();

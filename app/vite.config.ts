@@ -22,6 +22,6 @@ export default defineConfig({
       },
     },
     outDir: 'dist-redesign-2',
-    emptyOutDir: false,
+    emptyOutDir: true,
   },
 });

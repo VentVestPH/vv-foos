@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db as supabase } from '../db';
+import { supabase } from '../../../lib/supabase';
 import { useRole } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { useCompanyOptions } from '../hooks';

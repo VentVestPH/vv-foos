@@ -1,22 +1,62 @@
+import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import type { StaffRole } from '../../lib/database.types';
 import './recruit.css';
 import { RequisitionListPage } from './requisitions/RequisitionListPage';
-import { RequisitionFormPage } from './requisitions/RequisitionFormPage';
-import { RequisitionRecordPage } from './requisitions/RequisitionRecordPage';
 import { CandidateListPage } from './candidates/CandidateListPage';
-import { CandidateRecordPage } from './candidates/CandidateRecordPage';
+
+const RequisitionFormPage = lazy(() =>
+  import('./requisitions/RequisitionFormPage').then((m) => ({ default: m.RequisitionFormPage })),
+);
+
+const RequisitionRecordPage = lazy(() =>
+  import('./requisitions/RequisitionRecordPage').then((m) => ({
+    default: m.RequisitionRecordPage,
+  })),
+);
+
+const CandidateRecordPage = lazy(() =>
+  import('./candidates/CandidateRecordPage').then((m) => ({ default: m.CandidateRecordPage })),
+);
 
 export function RecruitRoutes() {
   return (
     <Routes>
       <Route index element={<Navigate to="requisitions" replace />} />
       <Route path="requisitions" element={<RequisitionListPage />} />
-      <Route path="requisitions/new" element={<RequisitionFormPage />} />
-      <Route path="requisitions/:id" element={<RequisitionRecordPage />} />
-      <Route path="requisitions/:id/edit" element={<RequisitionFormPage />} />
+      <Route
+        path="requisitions/new"
+        element={
+          <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+            <RequisitionFormPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="requisitions/:id"
+        element={
+          <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+            <RequisitionRecordPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="requisitions/:id/edit"
+        element={
+          <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+            <RequisitionFormPage />
+          </Suspense>
+        }
+      />
       <Route path="candidates" element={<CandidateListPage />} />
-      <Route path="candidates/:id" element={<CandidateRecordPage />} />
+      <Route
+        path="candidates/:id"
+        element={
+          <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+            <CandidateRecordPage />
+          </Suspense>
+        }
+      />
       <Route
         path="*"
         element={

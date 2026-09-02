@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { db as supabase } from '../db';
+import { supabase } from '../../../lib/supabase';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
