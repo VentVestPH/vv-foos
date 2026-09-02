@@ -12,7 +12,10 @@ import { Timeline } from '../../../components/ui/Timeline';
 import { SidePanelTabs } from '../../../components/ui/SidePanelTabs';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { TaleoPlaceholderAction, usePlaceholder } from '../../../shell/TaleoPlaceholder';
-import { User as PersonIcon } from 'lucide-react';
+import {
+  CircleArrowUp,
+  User as PersonIcon,
+} from 'lucide-react';
 import { StarGrade } from '../../../components/ui/StarGrade';
 import { Dialog } from '../components/Dialog';
 import {
@@ -442,6 +445,7 @@ export function CandidateRecordPage() {
             className="link-btn taleo-back-to-list"
             onClick={backToList}
           >
+            <CircleArrowUp size={18} aria-hidden="true" />
             Back To List
           </button>
           <span className="text-secondary">|</span>

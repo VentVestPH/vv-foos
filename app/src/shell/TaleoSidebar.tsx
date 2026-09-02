@@ -72,7 +72,10 @@ export function TaleoSidebar() {
           >
             Advanced Search
           </button>
-          <hr className="taleo-qs-divider" />
+        </form>
+      </div>
+
+      <form className="taleo-sidebar-card" onSubmit={runQuickSearch}>
           <div className="taleo-qs-field">
             <span className="taleo-qs-label">Candidate First Name</span>
             <div className="taleo-qs-input-row">
@@ -96,8 +99,7 @@ export function TaleoSidebar() {
               />
             </div>
           </div>
-        </form>
-      </div>
+      </form>
 
       <div className="taleo-sidebar-panel">
         <div className="taleo-sidebar-panel-header">

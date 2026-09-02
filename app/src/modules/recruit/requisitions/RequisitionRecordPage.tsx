@@ -10,7 +10,10 @@ import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { TaleoPlaceholderAction } from '../../../shell/TaleoPlaceholder';
-import { Briefcase as BriefcaseIcon } from 'lucide-react';
+import {
+  Briefcase as BriefcaseIcon,
+  CircleArrowUp,
+} from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import {
   ActivityPanel,
@@ -308,6 +311,7 @@ export function RequisitionRecordPage() {
             className="link-btn taleo-back-to-list"
             onClick={backToList}
           >
+            <CircleArrowUp size={18} aria-hidden="true" />
             Back To List
           </button>
         </>
@@ -348,22 +352,24 @@ export function RequisitionRecordPage() {
       <RecordSection title="Requisition Information:">
         <dl className="info-grid">
           {[
-            ['Job code', req.job_code ?? ''],
-            ['Location', req.location ?? ''],
-            ['Employment type', req.employment_type ?? ''],
-            ['Openings', String(req.num_openings)],
-            ['Budget status', req.budget_status ?? ''],
-            ['Reason for opening', req.reason_for_opening ?? ''],
+            ['Opened Date', fmtDate(req.opened_date)],
+            ['Budget Status', req.budget_status ?? ''],
+            ['Job Code', req.job_code ?? ''],
+            ['Reason for Opening', req.reason_for_opening ?? ''],
+            ['Title', req.title ?? ''],
             ['Replacement for', req.replacement_for ?? ''],
+            ['Location', req.location ?? ''],
+            ['Employment duration', req.employment_type ?? ''],
+            ['Status', req.status ?? ''],
             [
               'Pay range',
               req.pay_min != null || req.pay_max != null
                 ? `${req.pay_min ?? EMPTY_CELL} – ${req.pay_max ?? EMPTY_CELL} ${req.pay_currency ?? ''}`.trim()
                 : '',
             ],
+            ['# of openings', String(req.num_openings)],
             ['Pay notes', req.pay_notes ?? ''],
-            ['Opened', fmtDate(req.opened_date)],
-            ['Filled', fmtDate(req.filled_date)],
+            ['Filled date', fmtDate(req.filled_date)],
           ]
             .filter(([, v]) => v !== '')
             .map(([label, value]) => (

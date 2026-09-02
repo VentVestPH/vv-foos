@@ -169,20 +169,39 @@
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--sp-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--sp-4);
+  row-gap: var(--sp-2);
+  padding-left: var(--sp-3);
+  max-width: 1400px;
+}
+
+.info-item {
+  display: grid;
+  grid-template-columns: minmax(90px, 200px) minmax(0, 1fr);
+  column-gap: var(--sp-2);
+  align-items: baseline;
 }
 
 .info-item dt {
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
-  margin: 0 0 2px;
+  margin: 0;
+  text-align: right;
+  color: var(--taleo-text);
+  font-size: var(--fs-body);
 }
 
 .info-item dd {
   margin: 0;
   font-size: var(--fs-body);
+  font-weight: 700;
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  .info-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding-left: 0;
+  }
 }
 
 .approver-line {
@@ -457,6 +476,17 @@
 
 .taleo-next-steps-label {
   font-weight: 600;
+}
+
+.taleo-next-steps > * + *::before {
+  content: '/';
+  color: var(--taleo-muted);
+  margin-right: var(--sp-1);
+}
+
+.taleo-next-steps > .taleo-next-steps-label + *::before {
+  content: none;
+  margin-right: 0;
 }
 
 .taleo-next-step-disabled {
