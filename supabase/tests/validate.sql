@@ -492,4 +492,37 @@ begin
   raise notice 'PASS 15: teardown removed % validation reminder(s)', removed;
 end $$;
 
+-- 16: the indexes the application's own query shapes depend on. Each was added
+-- after measuring a Bitmap Heap Scan plus a separate Sort against synthetic
+-- volume; at 30k activities for one person the composite index turns that into
+-- a bare Index Scan with no sort. The three foreign-key indexes cover the
+-- documented purge path, where each is ON DELETE SET NULL and would otherwise
+-- force a sequential scan per deleted person.
+do $$
+declare
+  wanted text[] := array[
+    'idx_reminders_related',
+    'idx_activities_person_occurred',
+    'idx_applications_requisition_applied',
+    'idx_attachments_parent_kind',
+    'idx_deals_primary_contact',
+    'idx_tickets_person',
+    'idx_intake_items_duplicate_of'
+  ];
+  missing text[];
+begin
+  select array_agg(w) into missing
+    from unnest(wanted) w
+   where not exists (select 1 from pg_indexes where schemaname = 'public' and indexname = w);
+  if missing is not null then
+    raise exception 'FAIL 16: missing query indexes: %', array_to_string(missing, ', ');
+  end if;
+
+  if exists (select 1 from pg_indexes where schemaname = 'public' and indexname = 'idx_applications_requisition') then
+    raise exception 'FAIL 16: idx_applications_requisition is redundant with the unique (requisition_id, person_id) index and should stay dropped';
+  end if;
+
+  raise notice 'PASS 16: all 7 query indexes present, and the redundant one stays dropped';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;

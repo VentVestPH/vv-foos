@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     port: 5175,
     strictPort: true,
+    watch: {
+      ignored: ['**/dist/**', '**/dist-redesign-2/**'],
+    },
   },
   preview: {
     port: 5175,
