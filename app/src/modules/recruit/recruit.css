@@ -488,6 +488,30 @@
   min-width: 160px;
 }
 
+.bulk-recipient-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--sp-half) 0 0;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-meta);
+}
+
+.bulk-recipient-list li {
+  display: flex;
+  gap: var(--sp-1);
+  justify-content: space-between;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.bulk-recipient-list li:last-child {
+  border-bottom: none;
+}
+
 @media (max-width: 640px) {
   .rq-form-actions,
   .record-action-bar .btn-primary,

@@ -38,6 +38,7 @@ import {
 } from './candidateRows';
 import { fetchPeopleByIds, useIsMobile, useLookups } from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
+import { CandidateBulkActions } from './CandidateBulkActions';
 import { CandidateFilterRail } from './CandidateFilterRail';
 import { fetchAllRows } from '../../../lib/fetchAll';
 
@@ -137,6 +138,8 @@ export function CandidateListPage() {
     () => new Map(reqs.map((r) => [r.id, r.display_code])),
     [reqs],
   );
+
+  const canBulkEdit = !mobile && (role === 'admin' || role === 'recruiter');
 
   const canGrade = useCallback(
     (profile: CandidateProfile) =>
@@ -389,10 +392,14 @@ export function CandidateListPage() {
 
       <div className="record-action-bar fo-list-action-bar">
         {}
-        <PlaceholderAction
-          label="Send Email"
-          size="sm"
-          detail="Bulk email from the candidate list isn't implemented — open a candidate record to send a real email."
+        <CandidateBulkActions
+          selected={selected}
+          profiles={profiles}
+          people={people}
+          statuses={lookups.statuses}
+          canEdit={canBulkEdit}
+          onDone={load}
+          onClear={() => setSelected(new Set())}
         />
         {}
         <PlaceholderAction label="View Resume" size="sm" />
@@ -403,10 +410,6 @@ export function CandidateListPage() {
         {}
         <PlaceholderAction label="More" size="sm" caret />
         <CandidateGearButton />
-        {}
-        <PlaceholderAction label="Mark as…" size="sm" caret />
-        {}
-        <PlaceholderAction label="Change Main Status to…" size="sm" caret />
       </div>
 
       <Pager

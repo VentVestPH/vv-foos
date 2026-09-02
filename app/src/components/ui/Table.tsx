@@ -188,6 +188,7 @@ export function Table<T>({
             return (
               <tr
                 key={key}
+                data-row-key={key}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 style={onRowClick ? { cursor: 'pointer' } : undefined}
               >

@@ -393,7 +393,11 @@ Each was verified against the code rather than assumed.
 
 | # | Task | What exists already | Est. |
 | :---- | :---- | :---- | :---- |
-| Q1 | Make the bulk actions real: "Mark as", "Change Main Status to" and "Send Email" on the candidate list | **The plumbing is already there and unused.** `Table` supports `selectable`, `selected` and `onSelectionChange`, so the checkbox column works, but all three bulk buttons route through `PlaceholderAction`. Selecting twenty candidates and advancing them together is the single most repeated action in an ATS, and right now it is twenty separate record visits. Highest value per hour of work in this plan | 2 d |
+| Q1 | **DONE 2026-09-02.** All three bulk buttons on the candidate list are real. **Change Main Status to…** updates every selected candidate in one statement, so migration 10's trigger writes one `status_change` activity and one `candidate.status_changed` event per candidate exactly as it would if they were edited one at a time. **Mark as…** sets or clears `do_not_contact`, which is the only flag `candidate_profiles` carries. **Send Email** sends one separate message each through the caller's own Gmail, never a shared thread, and reports per-recipient failures without hiding the ones that succeeded.
+
+The email path is the one that can reach outsiders, so it is built to make that hard to do by accident: the dialog names every recipient with their address, lists the excluded ones with the reason, refuses to send without both a subject and a body, and **hard-excludes anyone marked `do_not_contact`**, which no amount of clicking overrides. The Send button counts only the mailable ones, so choosing twenty and sending to eighteen is visible before the click rather than after. Both write paths are limited to admin and recruiter, matching the single-record rule, and a sourcer sees the buttons disabled with the reason in the title.
+
+`tests/e2e/bulk-actions.spec.ts` covers the four things that matter: the buttons are disabled until something is selected; changing two candidates writes both rows and produces one `status_change` activity per candidate rather than one per statement; marking do-not-contact removes both from the next bulk email and the Send button drops to zero and disables; and a sourcer cannot bulk-edit at all. The spec snapshots each candidate's status and flag before touching it and restores both afterwards, so it leaves the seed data as it found it. `Table` also gained `data-row-key`, so the spec selects candidates by identity rather than by row position | The selection plumbing was already built and all three buttons were placeholders. Advancing twenty candidates was twenty record visits | done |
 | Q2 | A merge path for two existing candidate records | Deduplication exists **only at intake**: `QueueListPage` and `ItemDrawer` handle it, and `intake_items.duplicate_of` records it. Nothing merges two people rows that are already in the system. Duplicate candidates are the classic way an ATS's data quality decays, and the importer will create some the first time a Zoho record matches an existing person imperfectly | 3 d |
 | Q3 | Cross-entity global search | The sidebar Quick Search is hardcoded to candidates on every route, which is L10 as a defect. As a capability, the gap is bigger: there is no way to search requisitions, companies, contacts or deals from anywhere. Fixing L10 and building Q3 are the same piece of work, so they should be done together | 3 d |
 | Q4 | Email templates | No template support anywhere in `recruit` or `settings`. `GoogleIntegrationCard` sends through the user's real Gmail, so the transport is built; what is missing is not having to retype the same outreach. Acceptance criterion 6.5 assumes templates exist, which is worth flagging as a scope mismatch rather than a test failure | 2 d |
@@ -402,7 +406,7 @@ Each was verified against the code rather than assumed.
 | Q7 | A candidate-facing application status page | `careers-apply` accepts an application and the applicant then hears nothing until a human writes. A status link removes the "did you get my CV" email, which is the highest-volume inbound message any ATS receives | 2 d |
 | Q8 | Usable on a phone | L9 as a defect is "the layout does not reflow below 900px". As a capability it is bigger: a recruiter cannot look at a candidate between meetings. Whether that matters is a product judgement, not an accessibility one | 1 w |
 
-**Status 2026-09-02.** All open, none started, none of them a defect. Q1 is the recommendation: the selection plumbing is built, the buttons are already on screen in the right places, and it removes the most repeated manual work in the product.
+**Status 2026-09-02.** Q1 is done. The rest are open, none of them a defect.
 
 **Deliberately not proposed:** interview scheduling with availability picking, offer management, and scheduled report delivery. All three are real ATS features and all three are larger than the remaining calendar, so proposing them before October would be dishonest about what fits.
 
@@ -418,7 +422,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**118½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**119½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -438,7 +442,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
-| **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
+| **Q** Product capability | 8 | 1 | Q1 done: all three bulk actions on the candidate list are real, with the email path built so a mistaken send is hard |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -548,7 +552,7 @@ Auditing the cascade to plan N3 turned up three live defects that had nothing to
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **118½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **119½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -571,7 +575,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
-- [ ] **Q1** Make the bulk actions real. The selection plumbing and the buttons already exist; only the behaviour is missing. Recommended first
 - [ ] **Q3** Cross-entity global search, done together with L10
 - [ ] **Q2** A merge path for two existing candidate records
 - [ ] **Q6** Keyboard-first list navigation
