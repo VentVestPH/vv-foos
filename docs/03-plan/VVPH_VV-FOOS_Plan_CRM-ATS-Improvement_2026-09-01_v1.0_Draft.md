@@ -454,7 +454,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**140½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**141½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -475,7 +475,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 6 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
-| **S** Dead code | 8 | 7 | New on 2026-09-02. S1 to S7 done: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed. Committing the gate exposed that `npm run db:validate` could never fail. S8 open |
+| **S** Dead code | 8 | 8 | New on 2026-09-02. S1 to S7 done: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed. Committing the gate exposed that `npm run db:validate` could never fail. S8 open |
 | **R** Interaction polish | 6 | 0 | New on 2026-09-02, from looking at the running app. Exit transitions, accordion mechanics and a measured 2.8 px tab shift, none of which workstream G specified |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
@@ -640,7 +640,17 @@ The standard tool was checked rather than assumed: `ts-prune` is in maintenance 
 | S6 | Documentation and ignore drift | **DONE.** `docs/INDEX.md` was missing the parked-items register and still described nine workstreams; the root `.gitignore` covered `dist/` but not `dist-redesign-2/`, so the build output was ignored only by `app/.gitignore` | 20 m |
 | S7 | Verify the S1 to S6 batch and commit it | **DONE.** Nine consecutive clean gate passes. The gate itself is now `scripts/gate.sh` in the repo, run as `npm run gate` or `bash scripts/gate.sh 5`, instead of living in a scratch directory where it died with the session |
 | S7a | **A finding from committing the gate.** Writing the runner properly meant deciding how a `validate.sql` failure is detected, and testing that rather than assuming it. **Without `-v ON_ERROR_STOP=1`, psql exits 0 and still prints `VALIDATION COMPLETE` even when a check raises**, proven by forcing check 23 to fail: exit 0 and the sentinel printed, and with the flag exit 3. So `npm run db:validate`, the command README tells a human to run, **could never fail**. It has the flag now, and the gate decides on the exit code rather than on a hardcoded PASS count, which was itself a maintenance trap: that number needed editing four times today as checks were added | done |
-| S8 | The cleanup not yet attempted | **Not started.** Dead SQL (functions, indexes and columns nothing references), Edge Functions nothing calls, seed data no test or demo uses, and declarations duplicated across the five module stylesheets | 3 h |
+| S8 | The cleanup not yet attempted | **DONE, and most of it turned out to be clean.** Four of the five categories came back empty once checked properly, which is worth recording so nobody re-runs the hunt.
+
+**SQL functions: one dead of 40.** Thirty-two of them look unreferenced by a grep and are not: they are trigger functions, reached only through `create trigger`, or policy helpers reached only from a `using` clause, or `next_display_code`, reached from four column defaults. Checking `pg_policy`, `pg_trigger`, `pg_attrdef` and other function bodies instead of grepping is what separates the two. **`clear_google_tokens(uuid)` is genuinely dead**: `disconnect_my_google` inlines the same two deletes rather than calling it, which is also why keeping both invites drift, and it is `security definer`, so dropping it removes an unused privileged entry point.
+
+**Indexes: two redundant of many.** `idx_activities_person` and `idx_attachments_parent` are strict prefixes of a wider index on the same table, so the wider one already serves every lookup and the narrow one only costs write time. Dropped. **Deliberately not dropped:** `idx_integration_settings_staff`, whose only cover is a **partial** unique index (`where staff_id is not null`). The planner can use a partial index when the query implies its predicate and `staff_id = $1` does, so it is redundant in theory, but the table is tiny and the reasoning is a step less direct than the other two.
+
+**Edge Functions: none dead.** `google-oauth-callback` has zero references in the repo and is correct: Google calls it, we do not.
+
+**Duplicated CSS: none.** Zero selector-plus-declaration blocks appear in more than one stylesheet. Twenty selectors are styled in two files, and all but one are the layer architecture working as designed: `narrow.css` for the responsive override, `print.css` for print, `motion.css` for the transition. The exception was `.fo-back-to-list`, split between the shared `widgets` layer and `recruit.css` although only recruit uses it; it is consolidated into the module.
+
+**Seed data: none unused.** Every seeded row is load-bearing for `validate.sql` check 9, which asserts exact counts for sources, statuses, staff, companies, people, both profile tables, requisitions, applications and deals | 3 h |
 
 
 ### 7.9 What the R work exposed in the test suite
@@ -660,7 +670,7 @@ The three specs are fixed by not scraping the list: two now read a known seeded 
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **140½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **141½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -685,7 +695,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 - [ ] **R8** `CappedCell` expansion, and whether the sidebar collapse should animate at all given the width ban
 - [ ] **T1** A discovery pass over every screen: screenshot each page and state, inventory the components, hooks and functions per screen, and record what to rework, improve or optimise
-- [ ] **S8** The cleanup not yet attempted: dead SQL, uncalled Edge Functions, unused seed data, duplicated CSS declarations
 - [ ] **Q7** A candidate-facing application status page
 - [ ] **Q8** Usable on a phone, the capability framing of L9
 

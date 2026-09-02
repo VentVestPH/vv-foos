@@ -206,13 +206,6 @@
   min-width: 0;
 }
 
-.fo-back-to-list {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-half);
-  text-decoration: underline;
-}
-
 .skip-link {
   position: absolute;
   left: var(--sp-1);

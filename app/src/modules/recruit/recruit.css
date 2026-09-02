@@ -429,6 +429,10 @@
 }
 
 .fo-back-to-list {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-half);
+  text-decoration: underline;
   font-size: var(--fs-meta);
   white-space: nowrap;
 }
