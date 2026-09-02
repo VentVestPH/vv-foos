@@ -292,12 +292,18 @@ Added 2026-09-02. Row-level security was out of scope for this audit, having bee
 | M3 | **DONE 2026-09-02.** JobPosting structured data | Google requires five properties. The code set `datePosted` and `jobLocation` to `undefined` when a requisition had no `opened_date` or `location`, and `JSON.stringify` drops undefined keys, so the page shipped structured data silently missing a required property. Now gated: all five present or nothing is emitted. The existing test had been asserting against invalid JSON-LD, because its own fixture inserted a requisition with no location | done |
 | M4 | **DONE 2026-09-02.** The body is now bounded before it is buffered. `content-length` is rejected above 12 MB up front, and the stream itself is piped through a counting `TransformStream` that errors past the same ceiling, because a chunked request can lie about or omit its length. The existing 10 MB per-file check still runs afterwards on the parsed file, so an oversized single attachment is still rejected with its own message. The oversized-resume test still passes | The 10 MB check runs after the entire multipart body is already buffered, so an unauthenticated caller can force the buffering first. Supabase may impose its own ceiling, which was not verified | 1 h |
 | M5 | **DONE 2026-09-02.** Six authenticated functions (`google-oauth-start`, `google-sync`, `calendar-create-meeting`, `gmail-send`, `intake-sheet-commit`, `intake-sheet-fetch`) take their allowed origin from `APP_PRIMARY_ORIGIN` instead of `*`, and send `Vary: Origin`. It defaults to `*` when unset so nothing breaks silently on a deploy that has not set it yet. `careers-apply` and `careers-page` deliberately keep `*`: they are the public careers surface and are meant to be reachable from anywhere. A first attempt tried to echo the request origin per call through a shared helper, and was reverted: `json()` in these functions has no `req` in scope, so it produced code that could not compile | Same function whose header fed M1 | 30 min |
-| M6 | **PARTLY DONE 2026-09-02, and the earlier finding was wrong.** The audit reported this as needing a 6-to-7 major migration because `npm audit` said "fix available" while the caret range could not reach 7.x. Checking the registry directly showed **6.30.5 and 6.30.6 exist**, and the advisory that actually names our installed version, "Open redirect leading to XSS", is scoped `>=6.30.2 <=6.30.4`. Bumped to **6.30.6**, a patch, and that advisory is gone. Two advisories against `react-router` remain, both fixed only in 7.18.0: an open redirect via backslash in `<Link>` and `useNavigate`, which does apply; and arbitrary constructor injection in `deserializeErrors()` during **SSR hydration**, which does not, because this is a client-only SPA with no `renderToString`, no `StaticRouter` and no `hydrateRoot` anywhere. So the remaining exposure is one moderate open-redirect advisory, and the v7 migration can be scheduled rather than rushed | Two moderate advisories against the installed 6.30.4. `npm audit` reports a fix as available, which is misleading: the caret range cannot reach 7.x, so this is a major-version migration | 1 d |
+| M6 | **DONE 2026-09-02.** `react-router-dom` 7.18.3. Both remaining advisories are cleared and `npm audit --omit=dev` reports 0 vulnerabilities.
+
+Worth recording what the advisories actually were, because only one of them could ever have applied. GHSA-337j-9hxr-rhxg is arbitrary constructor injection in `deserializeErrors()` during **SSR hydration**, and this app has no SSR, so it was never reachable. GHSA-wrjc-x8rr-h8h6 is an open redirect through a backslash in `<Link>` or `useNavigate`, affecting `>= 6.0.0, < 7.18.0` with **no 6.x patch at all**, which is why clearing it required the major version. Whether it was exploitable here was checked rather than assumed: every `navigate()` and every `<Link to>` in the app takes either a literal or a database id, the only user text goes into a query string rather than a path, and the two places that navigate to a stored value (bookmarks and recently-viewed) read from the user's **own** `localStorage`, so a user could only redirect themselves.
+
+The migration was two steps so a failure would be attributable. First the two future flags (`v7_startTransition`, `v7_relativeSplatPath`) were enabled on v6 and the browser suite run; then the version bump, after which the flags are the default and the prop no longer exists, so it was removed.
+
+One thing nearly produced a false pass: the first suite run after the upgrade still reported 101 green **while the dev server was serving react-router 6 from its cached module graph**. The tell was that the v6 future-flag warnings were still in the console. Killing the server, clearing `app/node_modules/.vite` and restarting it made the console clean, and only that run counts. Five gate passes on 7.18.3, plus three more browser-suite runs chasing one unreproducible failure that has not recurred in eight | Two moderate advisories, one of them fixed only in a major version | done |
 | M7 | **DONE 2026-09-02.** The only drift was `axe-core`, installed unsaved by the accessibility audit. Rather than remove it, it is now a proper dev dependency of `tests`, which makes `npm ci` reproducible and puts the tool in place for L12 | `npm ci --dry-run` reports it would remove packages, so the live tree has drifted from the lockfile and `npm ci` is not reproducible against what is checked out | 30 min |
 | M8 | **DONE 2026-09-02.** A 1200x630 `og-careers.png` generated from the logo, plus `og:image`, its width and height, `twitter:card` and `twitter:image`. Emitted **only** when `APP_PRIMARY_ORIGIN` is set to an absolute URL, on the same principle as the JobPosting fix: a relative or missing image URL is ignored by crawlers, so half a tag set is worse than none. A test covers both branches | Title, description, canonical, Open Graph, `lang`, sitemap and robots are all present and correct. `og:image` is the one gap | 1 h |
 | M9 | **DONE 2026-09-02.** `scripts/check-env-target.mjs`, wired as `npm run check:env` and `check:env:production`. The hazard is Vite's own precedence: in production mode `app/.env.local` overrides `app/.env`, so a `.env.local` left behind from local measurement silently produces a deploy bundle pointing at `127.0.0.1`, and the reverse (building here without it) produces a bundle pointing at the live project. The guard reads both files, prints the effective host and which file it came from, and exits 1 when the effective target disagrees with the flag. Verified both ways: with `.env.local` present, `check:env` passes and `check:env:production` refuses; with it absent, the reverse | The two failure modes are silent and only visible after the bundle is served | done |
 | M10 | **DONE 2026-09-02, and the answer is no: `require-corp` cannot be enabled while the resume preview is an iframe on the Storage origin.** Measured rather than reasoned about. Supabase Storage sends no `Cross-Origin-Resource-Policy` and no `Cross-Origin-Embedder-Policy`, only `Access-Control-Allow-Origin: *`, and that is true of both the local container and the live project behind Cloudflare (checked read-only against a nonexistent object, no write). MDN's own wording settles what that costs: a `no-cors` cross-origin subresource needs CORP, while "requests made in `cors` mode won't be blocked by COEP", which an `<img crossorigin>` gets but an `<iframe>` cannot. `tests/e2e/coep.spec.ts` proves all three outcomes in Chromium against the real Storage endpoint: the no-cors image dies with `ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep`, the iframe document dies with `ERR_BLOCKED_BY_RESPONSE`, and the same URL in an `<img crossorigin>` still loads. A control run without the header loads all three, so the test cannot pass vacuously. Ten consecutive passes. The one path to enabling it later is to make the preview same-origin, for example a Vercel rewrite from `/attachment/*` onto the signed Storage URL, which is a proxy surface to design rather than a header to add | The app has exactly one cross-origin embed, and it is the one thing `require-corp` cannot be talked out of blocking | done |
-**Status 2026-09-02.** Done: M1, M2, M3, M9, M10, and M6 reduced to one moderate advisory by a patch bump. Open: M4, M5, M7, M8, and the eventual v7 migration. Verified clean and needing no work: no `dangerouslySetInnerHTML`, `innerHTML`, `eval` or `new Function` anywhere in `app/src`; only the anon key reaches the browser bundle, confirmed by decoding the one JWT-shaped string in the built output; the careers apply endpoint already has rate limiting, a honeypot, an extension allowlist and magic-byte signature checks; and a nonexistent and a closed requisition return identical pages, so there is no enumeration.
+**Status 2026-09-02.** Done: M1, M2, M3, M6, M9, M10. `npm audit --omit=dev` reports 0 vulnerabilities. Open: M4, M5, M7, M8. Verified clean and needing no work: no `dangerouslySetInnerHTML`, `innerHTML`, `eval` or `new Function` anywhere in `app/src`; only the anon key reaches the browser bundle, confirmed by decoding the one JWT-shaped string in the built output; the careers apply endpoint already has rate limiting, a honeypot, an extension allowlist and magic-byte signature checks; and a nonexistent and a closed requisition return identical pages, so there is no enumeration.
 
 ### Workstream N. Code and stylesheet architecture
 
@@ -448,7 +454,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**124½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**126½ of 144 numbered tasks are done.** Workstream R added six on 2026-09-02. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -465,10 +471,11 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
 | **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
-| **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
+| **M** Security and public surface | 10 | 10½ | M1 to M3, M6, M9 and M10 done, and `npm audit --omit=dev` now reports 0 vulnerabilities. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 6 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
+| **R** Interaction polish | 6 | 0 | New on 2026-09-02, from looking at the running app. Exit transitions, accordion mechanics and a measured 2.8 px tab shift, none of which workstream G specified |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -598,9 +605,25 @@ Adding `erasure_log` surfaced something that had been true since the schema was 
 `validate.sql` check 23 fails if any table in `public` ever grants those three to `anon` or `authenticated` again, and if the migration-owned default privileges would grant TRUNCATE on the next table.
 
 
+## 7.7 Workstream R: interaction polish that workstream G never specified
+
+Raised on 2026-09-02 after looking at the running app, and confirmed by measurement rather than by reading the CSS. Workstream G delivered motion tokens, the `prefers-reduced-motion` block, colour transitions on hover and active, the modal and overlay **entry** fade, the intake drawer slide, the Kanban drop settle and the filter-results change. What it never specified is everything below, and none of it is covered by an existing task.
+
+| # | Item | What is actually there now, measured | Est. |
+|---|---|---|---|
+| R1 | Exit transitions for every dialog, drawer and overlay | **None anywhere.** Entry animates over 140 ms, then React unmounts the node, so every dialog and the intake drawer vanish in one frame. Needs a shared `useDismissable` (or equivalent) that keeps the node mounted for the exit duration and a matching `@keyframes`, applied to `Dialog`, the sales modal, the placeholder modal and the intake drawer | 4 h |
+| R2 | Accordion chevron rotation | **Impossible as built.** `RecordSection` swaps a text glyph, `▾` for `▸`, so there is nothing to transform. Needs one element whose `rotate` transitions, which also removes two Unicode glyphs from the DOM | 2 h |
+| R3 | Accordion content open and close | **No transition.** The body is `{open && <div>}`, so it unmounts; height cannot animate a node that is not there. Needs either a grid-template-rows or a max-height technique with the content kept mounted, plus care that a collapsed section stays out of the tab order | 3 h |
+| R4 | Tab metric shift when a tab becomes active | **Confirmed defect, and visible.** `font-weight: 700` on the active tab changes its width: measured 111.89 px to 114.66 px on activation, with the neighbour moving 107.95 px to 105.91 px. Every tab switch nudges the whole nav row. Fix without losing the bold: reserve the bold metrics for all tabs, whether by a hidden bold ghost, a fixed per-tab width, or `text-shadow` faux-bold instead of a weight change | 2 h |
+| R5 | Micro-transitions on the controls G7 did not list | `.btn`, `.link-btn`, nav tabs, table rows, sort carets and pager buttons have 90 ms colour transitions. Selects, checkboxes, radios, badges, the star grade and the sidebar collapse have none, so the set feels uneven | 2 h |
+| R6 | A motion test that asserts what a user sees | `scripts/check-motion.mjs` bounds durations and enforces the reduced-motion block, which is a budget rather than a behaviour check. Nothing asserts that a dialog is still on screen one frame after its close, or that a tab row does not move when the active tab changes. Both are measurable with the computed-style and bounding-box harness already used for N3 and R4 | 3 h |
+
+**Not in scope for R, deliberately.** Route transitions and list-row stagger. Both are the kind of motion that reads as slow the tenth time and neither is a Taleo behaviour, so they would be added on request rather than on principle.
+
+
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **124½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **126½ of 144 tasks done**, six of them added the same day as workstream R. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -623,13 +646,18 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
+- [ ] **R1** Exit transitions for every dialog, drawer and overlay. None exist: entry animates, exit is one frame
+- [ ] **R2** Accordion chevron rotation. Impossible as built, the chevron is a swapped text glyph
+- [ ] **R3** Accordion content open and close. The body unmounts, so height cannot animate
+- [ ] **R4** Tab metric shift: the active tab's bold weight moves the whole nav row, measured at 2.8 px
+- [ ] **R5** Micro-transitions on selects, checkboxes, radios, badges, star grade and the sidebar collapse
+- [ ] **R6** A motion test that asserts behaviour rather than budget
 - [ ] **Q7** A candidate-facing application status page
 - [ ] **Q8** Usable on a phone, the capability framing of L9
 
 ### 8.5 Architecture, each needs a decision first
 
 - [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
-- [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
 
 ### 8.6 Waiting on one authorised command from you
 
