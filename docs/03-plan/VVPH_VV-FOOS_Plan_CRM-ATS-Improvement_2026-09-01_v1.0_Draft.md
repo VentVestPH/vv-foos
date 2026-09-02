@@ -477,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**150½ of 157 numbered tasks are done.** T1 added four follow-ups; T2, T4 and T5 are done and T3 is a design decision rather than a patch. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**151½ of 158 numbered tasks are done.** T1 added four follow-ups; T2, T4 and T5 are done, and T3 turned out to be measurable rather than a design decision: its premise was a node count my own R3 and T2 work had already invalidated, so it is answered in section 7.13 and split, leaving T3a, a single default, as the only part that is yours. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -745,6 +745,20 @@ A **serious** contrast failure on the dashboard KPI labels, measured at 3.59:1. 
 Running it immediately found what the manual list had missed: `/sales/contacts/new` had no axe coverage at all, and the account, contact and deal **record** pages had none either, since the record block only visited requisitions and candidates. All four are covered now, and the six parameterised routes are exempt with the reason attached. Proven by adding a throwaway route and watching the guard name it.
 
 
+## 7.13 T3: the question was framed on a number my own later work had already invalidated
+
+T3 asked whether one screen should hold 17 collapsible sections, on the strength of the candidate record rendering "2,836 nodes and 108 controls". That figure was taken during T1's discovery pass, before R3 made section children lazy and before T2 capped the timeline. Re-measured on the same route with both in place: **894 nodes and 73 controls**. The premise was two thirds too high and I am the reason it was, having quoted it forward into a report without re-measuring after fixing the two things that caused it.
+
+Measured properly, the section count is not the cost. A closed section is a header and a chevron: **7 nodes and 58px**, and eight of the seventeen are closed at load. All eight together account for **56 of 894 nodes and 464 of 5,979px**. Collapsing more sections by default would recover about 8% of the page, so "too many sections" cannot be the finding.
+
+One section is the cost. History Log / Timeline is **563 of 894 nodes (63%)** and **2,812 of 5,979px (47%)**, on its own, already capped at 50 entries. Everything else on the page put together is smaller than it.
+
+The page is **5,979px of content in a 572px window, 10.5 screens**, and the first two sections are the only ones above the fold. That is the real shape of the screen, and it is worth stating plainly rather than as a node count.
+
+Two sections hold history and their defaults disagree: Status History is closed at load, History Log / Timeline is open. Closing the timeline by default would take the page from 5,979px to roughly 3,220px and 894 nodes to roughly 340, and would match the convention the page already follows for its other history section. That is a one-line change and I have not made it, because it changes what loads first on the primary record screen of a fidelity replica and I have no screenshot evidence for which way Taleo has it. It is the only part of T3 still open.
+
+The seventeen-section structure itself is answered: it costs 56 nodes, and it stays.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -769,7 +783,8 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
-- [ ] **T3** Whether one screen should hold 17 collapsible sections. The candidate record renders 2,836 nodes and 108 controls
+- [x] **T3 measured and answered, one default left to you.** The "2,836 nodes and 108 controls" premise was stale: with R3 and T2 in place the candidate record is **894 nodes and 73 controls**. A closed section costs 7 nodes and 58px, and the eight closed ones total 56 nodes, so the section count is not the cost. History Log / Timeline alone is 63% of the nodes and 47% of the 5,979px page. Section 7.13 has the figures
+- [ ] **T3a, yours to call.** Status History defaults closed, History Log / Timeline defaults open, on the same page. Closing the timeline too takes the page from 5,979px to about 3,220px and 894 nodes to about 340. One line, not made, because it changes what loads first on the primary record screen
 
 ### 8.5 Architecture, each needs a decision first
 
