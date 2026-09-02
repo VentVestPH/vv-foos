@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { usePlaceholder } from './Placeholder';
 import {
@@ -9,6 +9,29 @@ import {
   User as PersonIcon,
 } from 'lucide-react';
 
+interface SearchScope {
+  noun: string;
+  to: string;
+  namedFields: boolean;
+}
+
+const SCOPES: Array<[RegExp, SearchScope]> = [
+  [/^\/recruit\/requisitions/, { noun: 'Requisition', to: '/recruit/requisitions', namedFields: false }],
+  [/^\/recruit/, { noun: 'Candidate', to: '/recruit/candidates', namedFields: true }],
+  [/^\/sales\/companies/, { noun: 'Account', to: '/sales/companies', namedFields: false }],
+  [/^\/sales\/deals/, { noun: 'Deal', to: '/sales/deals', namedFields: false }],
+  [/^\/sales\/tickets/, { noun: 'Ticket', to: '/sales/tickets', namedFields: false }],
+  [/^\/sales/, { noun: 'Contact', to: '/sales/contacts', namedFields: true }],
+  [/^\/intake/, { noun: 'Intake', to: '/intake', namedFields: false }],
+];
+
+export function searchScope(pathname: string): SearchScope {
+  for (const [pattern, scope] of SCOPES) {
+    if (pattern.test(pathname)) return scope;
+  }
+  return { noun: 'Candidate', to: '/recruit/candidates', namedFields: true };
+}
+
 export function ShellSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [keywords, setKeywords] = useState('');
@@ -17,13 +40,15 @@ export function ShellSidebar() {
   const { items: recent } = useRecentlyViewed();
   const { show } = usePlaceholder();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const scope = searchScope(pathname);
 
   const runQuickSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = keywords || [firstName, lastName].filter(Boolean).join(' ');
     if (!q.trim()) return;
 
-    navigate(`/recruit/candidates?search=${encodeURIComponent(q)}`);
+    navigate(`${scope.to}?search=${encodeURIComponent(q)}`);
   };
 
   return (
@@ -49,13 +74,13 @@ export function ShellSidebar() {
         </div>
         <form className="fo-sidebar-panel-body" onSubmit={runQuickSearch}>
           <div className="fo-qs-field">
-            <span className="fo-qs-label">Candidate Keywords</span>
+            <span className="fo-qs-label">{scope.noun} Keywords</span>
             <div className="fo-qs-input-row">
               <input
                 type="text"
                 value={keywords}
                 onChange={(e) => setKeywords(e.target.value)}
-                aria-label="Candidate keywords"
+                aria-label={`${scope.noun} keywords`}
               />
               <button
                 type="submit"
@@ -78,31 +103,33 @@ export function ShellSidebar() {
         </form>
       </div>
 
+{scope.namedFields && (
       <form className="fo-sidebar-card" onSubmit={runQuickSearch}>
           <div className="fo-qs-field">
-            <span className="fo-qs-label">Candidate First Name</span>
+            <span className="fo-qs-label">{scope.noun} First Name</span>
             <div className="fo-qs-input-row">
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                aria-label="Candidate first name"
+                aria-label={`${scope.noun} first name`}
               />
               <SearchIcon size={16} className="fo-qs-search-icon" />
             </div>
           </div>
           <div className="fo-qs-field">
-            <span className="fo-qs-label">Candidate Last Name</span>
+            <span className="fo-qs-label">{scope.noun} Last Name</span>
             <div className="fo-qs-input-row">
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                aria-label="Candidate last name"
+                aria-label={`${scope.noun} last name`}
               />
             </div>
           </div>
       </form>
+      )}
 
       <div className="fo-sidebar-panel">
         <div className="fo-sidebar-panel-header">

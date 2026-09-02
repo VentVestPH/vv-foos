@@ -187,12 +187,70 @@ a:hover {
   background: var(--fo-row-hover);
 }
 
+.fo-primary-nav-wrap {
+  position: relative;
+  flex-shrink: 0;
+  background: var(--fo-nav);
+}
+
 .fo-primary-nav {
   display: flex;
   align-items: stretch;
   background: var(--fo-nav);
   flex-shrink: 0;
   overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.fo-primary-nav-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 48px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(to right, transparent, var(--fo-nav));
+}
+
+.fo-primary-nav-wrap[data-overflowing='end']::after,
+.fo-primary-nav-wrap[data-overflowing='both']::after {
+  opacity: 1;
+}
+
+.fo-nav-scroll-btn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 28px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--fo-nav);
+  color: var(--surface);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-body);
+}
+
+.fo-primary-nav-wrap[data-overflowing]:not([data-overflowing='none']) .fo-nav-scroll-btn {
+  display: flex;
+}
+
+.fo-nav-scroll-btn[data-side='start'] {
+  left: 0;
+}
+
+.fo-nav-scroll-btn[data-side='end'] {
+  right: 0;
+}
+
+.fo-primary-nav-wrap[data-overflowing='end'] .fo-nav-scroll-btn[data-side='start'],
+.fo-primary-nav-wrap[data-overflowing='start'] .fo-nav-scroll-btn[data-side='end'] {
+  display: none;
 }
 
 .fo-primary-nav a,

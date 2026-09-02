@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRole } from '../auth/SessionProvider';
 import { primaryNavForRole } from './navConfig';
@@ -10,9 +11,60 @@ export function PrimaryNav() {
   const navigate = useNavigate();
   const items = primaryNavForRole(role);
   const intakeCount = useIntakeBadge();
+  const navRef = useRef<HTMLElement>(null);
+  const [overflowing, setOverflowing] = useState<'none' | 'start' | 'end' | 'both'>('none');
+
+  const measure = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const slack = el.scrollWidth - el.clientWidth;
+    if (slack <= 1) {
+      setOverflowing('none');
+      return;
+    }
+    const atStart = el.scrollLeft <= 1;
+    const atEnd = el.scrollLeft >= slack - 1;
+    setOverflowing(atStart ? 'end' : atEnd ? 'start' : 'both');
+  }, []);
+
+  useEffect(() => {
+    measure();
+    const el = navRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    el.addEventListener('scroll', measure, { passive: true });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener('scroll', measure);
+    };
+  }, [measure, items.length]);
+
+  const scrollBy = (direction: -1 | 1) => {
+    navRef.current?.scrollBy({ left: direction * 240, behavior: 'smooth' });
+  };
 
   return (
-    <nav className="fo-primary-nav" aria-label="Primary">
+    <div className="fo-primary-nav-wrap" data-overflowing={overflowing}>
+      <button
+        type="button"
+        className="fo-nav-scroll-btn"
+        data-side="start"
+        aria-label="Scroll the navigation left"
+        onClick={() => scrollBy(-1)}
+      >
+        &lsaquo;
+      </button>
+      <button
+        type="button"
+        className="fo-nav-scroll-btn"
+        data-side="end"
+        aria-label="Scroll the navigation right"
+        onClick={() => scrollBy(1)}
+      >
+        &rsaquo;
+      </button>
+    <nav className="fo-primary-nav" aria-label="Primary" ref={navRef}>
       {items.map((item) => {
         const active = item.isActive
           ? item.isActive(location.pathname, location.search)
@@ -50,5 +102,6 @@ export function PrimaryNav() {
         );
       })}
     </nav>
+    </div>
   );
 }
