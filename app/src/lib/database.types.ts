@@ -877,6 +877,19 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: void;
       };
+      fn_merge_candidates: {
+        Args: { p_survivor: string; p_duplicate: string };
+        Returns: {
+          survivor: string;
+          duplicate: string;
+          applications_moved: number;
+          applications_dropped: number;
+          activities_moved: number;
+          tasks_moved: number;
+          reminders_moved: number;
+          attachments_moved: number;
+        };
+      };
     };
     Enums: {
       staff_role: StaffRole;

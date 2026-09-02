@@ -32,6 +32,7 @@ import { type Application, type CandidateProfile, type Person, type Requisition,
 import { useIsMobile, useLookups } from '../hooks';
 import { EMPTY_CELL } from '../../../lib/format';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
+import { CandidateMergeDialog } from './CandidateMergeDialog';
 import { CandidateOutreachDialogs } from './CandidateOutreachDialogs';
 import { useCandidateOutreach } from './useCandidateOutreach';
 import { toDraft, useCandidateProfileDraft } from './useCandidateProfileDraft';
@@ -57,6 +58,7 @@ export function CandidateRecordPage() {
 
   const engagement = useEngagement('person', personId);
   const outreach = useCandidateOutreach(personId, person, engagement.refresh);
+  const [merging, setMerging] = useState(false);
   const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const reload = useCallback(() => loadRef.current(), []);
   const { draft, setDraft, canEditProfile, canGrade, saved, saveProfile } =
@@ -201,6 +203,18 @@ export function CandidateRecordPage() {
         onClick={scrollToProfile}
       >
         Edit
+      </Button>
+      <Button
+        size="sm"
+        disabled={!canEditProfile}
+        title={
+          canEditProfile
+            ? 'Merge another candidate record into this one'
+            : 'Only an admin or a recruiter can merge candidates'
+        }
+        onClick={() => setMerging(true)}
+      >
+        Merge duplicate…
       </Button>
       <Button
         size="sm"
@@ -894,6 +908,14 @@ export function CandidateRecordPage() {
       {engagement.error && <p className="rq-error">{engagement.error}</p>}
 
       <CandidateOutreachDialogs outreach={outreach} person={person} />
+
+      {merging && (
+        <CandidateMergeDialog
+          survivor={person}
+          onClose={() => setMerging(false)}
+          onMerged={load}
+        />
+      )}
     </RecordPage>
   );
 }

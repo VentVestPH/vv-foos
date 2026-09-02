@@ -512,6 +512,43 @@
   border-bottom: none;
 }
 
+.merge-match-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.merge-match-list li {
+  border-bottom: 1px solid var(--border);
+}
+
+.merge-match-list li:last-child {
+  border-bottom: none;
+}
+
+.merge-match-list .rq-checkline {
+  align-items: flex-start;
+  padding: 6px 0;
+}
+
+.merge-match-list .rq-checkline > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.merge-compare {
+  margin-top: var(--sp-2);
+}
+
+.merge-compare th[scope='row'] {
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
 @media (max-width: 640px) {
   .rq-form-actions,
   .record-action-bar .btn-primary,

@@ -398,7 +398,13 @@ Each was verified against the code rather than assumed.
 The email path is the one that can reach outsiders, so it is built to make that hard to do by accident: the dialog names every recipient with their address, lists the excluded ones with the reason, refuses to send without both a subject and a body, and **hard-excludes anyone marked `do_not_contact`**, which no amount of clicking overrides. The Send button counts only the mailable ones, so choosing twenty and sending to eighteen is visible before the click rather than after. Both write paths are limited to admin and recruiter, matching the single-record rule, and a sourcer sees the buttons disabled with the reason in the title.
 
 `tests/e2e/bulk-actions.spec.ts` covers the four things that matter: the buttons are disabled until something is selected; changing two candidates writes both rows and produces one `status_change` activity per candidate rather than one per statement; marking do-not-contact removes both from the next bulk email and the Send button drops to zero and disables; and a sourcer cannot bulk-edit at all. The spec snapshots each candidate's status and flag before touching it and restores both afterwards, so it leaves the seed data as it found it. `Table` also gained `data-row-key`, so the spec selects candidates by identity rather than by row position | The selection plumbing was already built and all three buttons were placeholders. Advancing twenty candidates was twenty record visits | done |
-| Q2 | A merge path for two existing candidate records | Deduplication exists **only at intake**: `QueueListPage` and `ItemDrawer` handle it, and `intake_items.duplicate_of` records it. Nothing merges two people rows that are already in the system. Duplicate candidates are the classic way an ATS's data quality decays, and the importer will create some the first time a Zoho record matches an existing person imperfectly | 3 d |
+| Q2 | **DONE 2026-09-02.** A **Merge duplicate…** action on the candidate record finds another candidate by name, shows a kept-versus-merged-in comparison, and on confirmation moves the duplicate's applications, activities, tasks, reminders, attachments, intake items, tickets and deal contact links onto the surviving record and deletes the duplicate.
+
+It is a single security-definer function, `fn_merge_candidates`, not a sequence of client updates, for two reasons. Atomicity: reassigning five tables and then deleting a person is a set of statements that must all land or none. And one case the client cannot see coming: `applications` is unique on `(requisition_id, person_id)`, so if both candidates applied to the same requisition, reassigning would violate it. The function deletes the duplicate's application in that case and reports how many it dropped, rather than failing halfway.
+
+Two safety properties are deliberate. The merge is **fill-the-blanks only**: every field takes `coalesce(survivor, duplicate)`, so a merge cannot overwrite anything the surviving record already had, and a test asserts exactly that with both records populated. And `do_not_contact` is OR-ed rather than coalesced, so merging a suppressed record into a contactable one keeps the suppression. The function also writes a `note` activity recording what moved, so the merge is visible in the timeline afterwards.
+
+`security definer` bypasses RLS, so the role check inside the function is the real control: it refuses anyone who is not an admin or a recruiter, refuses a self-merge, and refuses a survivor or duplicate that is not a candidate. Four API tests and two browser tests cover all of it, including that a refused merge leaves both records in place | Deduplication existed only at intake. Nothing merged two people rows already in the system | done |
 | Q3 | **DONE 2026-09-02.** `/search` searches candidates, requisitions, contacts, accounts, deals and tickets in one pass, grouped by entity with a count, each hit linking to its record. It runs entirely through RLS, so a sourcer's results contain only what a sourcer may read, and a role with no CRM access sees no Deals group at all rather than an empty one.
 
 It complements L10 rather than replacing it. The sidebar's Quick Search stays scoped to the module you are in, which is what L10 fixed; a new **Search everything** link under it carries whatever is already typed into the global search, so the scoped and unscoped searches are one gesture apart.
@@ -442,7 +448,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**123½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**124½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -462,7 +468,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
-| **Q** Product capability | 8 | 5 | Q1, Q3, Q4, Q5 and Q6 done: real bulk actions, one search across every entity, email templates, shareable views, and the lists usable from the keyboard |
+| **Q** Product capability | 8 | 6 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -572,7 +578,7 @@ Auditing the cascade to plan N3 turned up three live defects that had nothing to
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **123½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **124½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -595,7 +601,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
-- [ ] **Q2** A merge path for two existing candidate records
 - [ ] **Q7** A candidate-facing application status page
 - [ ] **Q8** Usable on a phone, the capability framing of L9
 - [ ] Dependency licence compliance, for the handover
