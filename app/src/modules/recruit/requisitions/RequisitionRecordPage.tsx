@@ -271,7 +271,9 @@ export function RequisitionRecordPage() {
       </Button>
       <PlaceholderAction label="Send To" size="sm" />
       <PlaceholderAction label="Forms" size="sm" />
-      <PlaceholderAction label="Printable View" size="sm" />
+      <Button size="sm" variant="secondary" onClick={() => window.print()}>
+        Printable View
+      </Button>
       <PlaceholderAction label="More" size="sm" caret />
       {lifecycleTargets.map((target) => {
         const openGated = target === 'open' && !allApproved;

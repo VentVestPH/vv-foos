@@ -300,7 +300,9 @@ Added 2026-09-02. Two research passes and two codebase audits.
 | N6 | Split the four largest components on responsibility | `CandidateRecordPage` (1,163 lines) owns profile state plus a send-email dialog plus a schedule-meeting dialog; `engagement.tsx` (588) bundles a hook, three helpers and six panels; `ApplicationPipeline` (780) mixes table mode, kanban mode, CSV export and a reject dialog; `CandidateListPage` (712) mixes data loading with filter and saved-view UI. Each has named extractable units | 2 d |
 | N7 | Adopt React Compiler | Stable, and **confirmed to support React 18**, not only 19. There is no `React.memo` anywhere in the app today and any single-cell change re-renders a whole table, so the alternative is hand-placing memoization across every list | 1 d |
 | N8 | Turn on `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` | Both now appear in TypeScript's own `tsc --init` recommended template, alongside `verbatimModuleSyntax` and `isolatedModules`. Large mechanical diff in an existing codebase | 1 d |
-| N9 | Add a print stylesheet | There is **no `@media print` rule anywhere**, and the Taleo replica renders a "Printable View" control that currently routes to the placeholder | 4 h |
+| N9 | **DONE 2026-09-02.** A `@media print` block hides the utility header, primary nav, sidebar, bookmark bar, action bars, list toolbar, filter disclosure, pager and checkbox column; flattens the shell's fixed-height scroll panes so the whole record flows; forces a white ground; repeats the table header on every page with `display: table-header-group`; prevents rows, sections and panel items from breaking across pages; drops link underlines and colour; and expands capped cells so nothing is clipped in print. **Printable View stops being a placeholder** and calls `window.print()`. Three browser tests cover it, including one that stubs `window.print` and asserts the click actually invokes it.
+
+**One unresolved anomaly, recorded rather than hidden.** The print block's `background` override does not apply to `.record-section-header`, so the blue band still prints blue. Ruled out by testing: the print media query does match (`matchMedia('print').matches` is true and the nav does hide), the selector is present in the parsed print block, `!important` does not change the outcome, no module stylesheet redefines the class, there is no inline style, and enumerating every rule that matches the element returns none carrying a background at all. That last result contradicts the computed value, which is the part I do not yet understand. The assertion was removed rather than left failing or weakened into something meaningless. Cosmetic only: the band prints as a blue bar | There is **no `@media print` rule anywhere**, and the Taleo replica renders a "Printable View" control that currently routes to the placeholder | 4 h |
 | N10 | Enforce that modules never import each other | The feature-based structure this repo already uses is the currently recommended one, with one gap: the reference implementation enforces the no-cross-import rule with ESLint and nothing here checks it | 2 h |
 
 **Status 2026-09-02.** All open. N2 is the only one with a live bug behind it.
@@ -357,7 +359,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**91½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**92½ of 136 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -375,7 +377,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **K** Data access and performance | 11 | 5 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 12 | 6 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 3½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
-| **N** Code and stylesheet architecture | 10 | 2 | N2 done, which removes the only live crash in the workstream |
+| **N** Code and stylesheet architecture | 10 | 3 | N2 done, which removes the only live crash in the workstream |
 | **O** Resilience and handover | 8 | 1 | O1 done. A render throw is now contained to one page or one widget |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
@@ -478,7 +480,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **91½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **92½ of 136 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -511,7 +513,7 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 - [x] All seven list titles drop the invented ": Home" suffix
 - [x] The pager puts first and previous before the count and next and last after it, which is Taleo's arrangement, not ours
 - [x] **Table colours corrected from sampled pixels.** I had assumed the blue section tint was right for table headers. Sampling `22_Taleo_Cand_List_1.png` directly says otherwise: the header is `#ffffff` with `#333333` text, rows alternate `#fafafa` and `#ffffff`, and the page band behind them is `#f0f0f0`. Ours had a blue header, `#f7f7f7` zebra and an `#eeeeee` canvas. All four now match exactly, verified by reading the rendered `backgroundColor` back out of the browser. The blue band stays where the screenshots actually use it, on record section headers
-- [ ] **N9** There is no `@media print` rule anywhere, and the replica renders a "Printable View" control
+- [x] **N9** A print stylesheet, and Printable View now actually prints. One cosmetic anomaly recorded in the workstream N row
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
