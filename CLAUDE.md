@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 VentVest Front Office OS (FOOS): ATS + CRM on Supabase (Postgres, Auth, Storage, Edge Functions, Realtime) with React 18 + Vite + TypeScript on top.
 
-This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend. It is one of several interchangeable frontends against the *same* live Supabase project (`mebfbbvrqdctamnzvbbs`): `/foos` runs on port 5173, `/foos_redesign` on 5174, this one on **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port). Build output goes to `dist-redesign-2/` with `emptyOutDir: false`.
+This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend. It is one of several interchangeable frontends against the *same* live Supabase project (`mebfbbvrqdctamnzvbbs`): `/foos` runs on port 5173, `/foos_redesign` on 5174, this one on **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port). Build output goes to `dist-redesign-2/` with `emptyOutDir: true`.
 
 This tree is a git repository on branch `develop`, with `origin/main` and `origin/develop`. History is available and worth consulting; the docs in `docs/03-plan/` point at commits for superseded status notes.
 
@@ -111,21 +111,16 @@ Screenshot-accurate controls that have no real FOOS behavior yet must route thro
 
 ### Styling
 
-`styles/tokens.css` holds the design tokens; `styles/app.css` is the shared stylesheet and each module adds its own. No CSS framework and no charting library (dashboard bars are hand-rolled CSS in `dashboards/components/BarList.tsx`). Use the token variables; never hard-code a colour. Inter with Roboto fallback, 8px grid, 12px cell padding.
+`styles/tokens.css` holds the design tokens verbatim from the architecture doc and is the only file that defines custom properties. Everything else lives in **cascade layers**, and `styles/app.css` is now nothing but the layer order: fourteen `@import './layers/<name>.css' layer(<name>)` lines followed by one `@layer` statement that also declares the five `module.*` layers. Layer order is `base, shell, auth, controls, tables, pages, panels, narrow, taleo, states, pagination, motion, widgets, print`, then the modules.
 
-Every colour value lives in `tokens.css` and nowhere else: 79 tokens, and zero raw hex or `rgba()` in any other stylesheet. `--shadow` is `none`, which is the Taleo-flat default; `--shadow-raised` and `--shadow-overlay` are the two deliberate exceptions, for the dropdown and the placeholder modal.
+Two consequences worth knowing before editing CSS:
 
-Motion: `--motion-instant` 90ms, `--motion-quick` 140ms, `--motion-panel` 220ms, and nothing may exceed 220ms. `scripts/check-motion.mjs` enforces the budget, bans transitions on `width`, `height`, `top` and `left`, bans motion on shell selectors, and requires the `prefers-reduced-motion` block. **When adding a state or motion rule, check the selector against the class the component actually renders**; six such rules once matched nothing at all (D34). Components that mount and unmount need `animation`, not `transition`.
+- **An unlayered rule beats every layered rule, whatever its specificity.** One stray rule outside a layer silently outranks the entire stylesheet. `node scripts/check-css-layers.mjs` fails the build on that, and on a layer file that is not imported or that declares its own layer.
+- **Across layers, layer order decides and specificity does not.** A module rule now beats a shared rule even when the shared one is more specific, so the fix for a conflict is to move the rule to the right layer rather than to add a class to the selector.
 
-### Icons and shared UI
+`import './styles/app.css'` must stay the **first** import in `main.tsx`. It is not cosmetic: the intake module's stylesheet reaches the entry bundle through `useIntakeBadge` in `PrimaryNav`, and if it is emitted first then `module.intake` becomes the document's first-declared layer and the whole order inverts.
 
-Icons come from `lucide-react` only. There is no local SVG icon set: `shell/icons.tsx` was deleted on 2026-09-02 and its 21 hand-rolled icons were replaced with lucide equivalents, imported directly and aliased where the local name differs (`import { House as HomeIcon } from 'lucide-react'`).
-
-Size and stroke come from one `LucideProvider size={20} strokeWidth={1.6}` in `main.tsx`, so per-call-site props are for deliberate exceptions only. lucide v1 adds `aria-hidden` itself when an icon carries no accessible name, so decorative icons need nothing. Lucide v1 has no brand icons: the LinkedIn channel uses `Link2`.
-
-Brand assets live in `app/public/` and are referenced by absolute path, so Vite copies them unhashed: `ventvest-logo.webp` is the 1038x231 wordmark used on the login page and in the utility header, `favicon.png` is a 64px square cropped from the same file's V-and-arrow mark, and `apple-touch-icon.png` is its 180px opaque version. The header brand was a red CSS wordmark in the Taleo screenshots; the real logo replaces it, which is a deliberate and approved divergence.
-
-`components/ui/` holds the 14 shared components, including one `StarGrade` used by both recruit and intake. Empty table and record cells use `EMPTY_CELL` from `lib/format.ts`, never a literal dash.
+No CSS framework and no charting library (dashboard bars are hand-rolled CSS in `dashboards/components/BarList.tsx`). Use the token variables; never hard-code a color. Inter with Roboto fallback, 8px grid, 12px cell padding, max shadow `0 1px 2px rgba(0,0,0,.05)`.
 
 ### Edge Functions
 

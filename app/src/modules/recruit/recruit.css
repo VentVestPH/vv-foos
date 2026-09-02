@@ -1,3 +1,4 @@
+@layer module.recruit {
 .rq-overlay {
   position: fixed;
   inset: 0;
@@ -493,4 +494,5 @@
   .panel-form {
     display: none;
   }
+}
 }

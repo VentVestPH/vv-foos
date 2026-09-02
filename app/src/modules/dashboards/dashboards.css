@@ -1,3 +1,4 @@
+@layer module.dashboards {
 .dash-home-head {
   display: flex;
   align-items: center;
@@ -169,4 +170,5 @@
 .dash-empty {
   color: var(--text-secondary);
   font-size: var(--fs-body);
+}
 }

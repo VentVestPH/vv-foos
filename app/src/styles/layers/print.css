@@ -1,0 +1,88 @@
+@media print {
+  .fo-utility-header,
+  .fo-primary-nav,
+  .fo-sidebar,
+  .fo-bookmark-bar,
+  .record-action-bar,
+  .fo-record-bottom-bar,
+  .list-page-toolbar,
+  .list-page-filter-toggle,
+  .filter-rail,
+  .fo-pager,
+  .skip-link,
+  .checkbox-col {
+    display: none !important;
+  }
+
+  html,
+  body,
+  .shell,
+  .fo-body,
+  .shell-main,
+  .shell-content {
+    display: block;
+    height: auto;
+    overflow: visible;
+    background: #ffffff;
+  }
+
+  .shell-content {
+    padding: 0;
+    background: #ffffff !important;
+  }
+
+  .record-section-header,
+  .table th,
+  .side-tabs-bar {
+    background: #ffffff !important;
+    border-bottom: 1px solid #999999;
+  }
+
+  .record-section-body {
+    display: block !important;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table th,
+  .table td {
+    border-bottom: 1px solid #cccccc;
+    padding: 4px 6px;
+  }
+
+  .table thead {
+    display: table-header-group;
+  }
+
+  .table tr,
+  .record-section,
+  .panel-item {
+    break-inside: avoid;
+  }
+
+  .table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .link-btn,
+  a {
+    color: #000000;
+    text-decoration: none;
+  }
+
+  .cell-capped {
+    display: block;
+    overflow: visible;
+  }
+
+  .error-boundary {
+    display: none;
+  }
+}

@@ -1,0 +1,117 @@
+.fo-nav-tab,
+.record-section-header,
+.table th.sortable,
+.table tbody tr,
+.btn,
+.link-btn,
+.fo-utility-link,
+.fo-utility-icon,
+.fo-pager-controls button,
+.fo-cal-view-btn {
+  transition:
+    background-color var(--motion-instant) var(--ease-out),
+    border-color var(--motion-instant) var(--ease-out),
+    color var(--motion-instant) var(--ease-out);
+}
+
+.table th.sortable .sort-arrow {
+  transition: opacity var(--motion-instant) var(--ease-out);
+}
+
+.unviewed-badge {
+  transition: background-color var(--motion-quick) var(--ease-out);
+}
+
+@keyframes panel-slide-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-fade-in {
+  from {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.intake-drawer {
+  animation: panel-slide-in var(--motion-panel) var(--ease-out);
+}
+
+.intake-drawer-overlay,
+.fo-placeholder-overlay,
+.sales-modal-overlay,
+.rq-overlay {
+  animation: overlay-fade-in var(--motion-quick) var(--ease-out);
+}
+
+.fo-placeholder-modal,
+.sales-modal,
+.rq-dialog {
+  animation: panel-fade-in var(--motion-quick) var(--ease-out);
+}
+
+.sales-promote-banner,
+.form-error,
+.field-error-text {
+  transition: opacity var(--motion-quick) var(--ease-out);
+}
+
+@keyframes kanban-drop-settle {
+  from {
+    transform: scale(0.97);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.kanban-card.settling {
+  animation: kanban-drop-settle var(--motion-quick) var(--ease-out);
+}
+
+@keyframes table-results-in {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.table tbody.results-in-a,
+.table tbody.results-in-b {
+  animation: table-results-in var(--motion-quick) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

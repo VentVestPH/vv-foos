@@ -1,3 +1,4 @@
+@layer module.intake {
 .intake-showall-toggle {
   display: flex;
   align-items: center;
@@ -174,5 +175,4 @@
   box-sizing: border-box;
   resize: vertical;
 }
-
-
+}

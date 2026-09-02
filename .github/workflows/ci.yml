@@ -22,6 +22,7 @@ jobs:
       - run: npm run build --workspace=app
       - run: node scripts/check-contrast.mjs
       - run: node scripts/check-motion.mjs
+      - run: node scripts/check-css-layers.mjs
       - run: node scripts/check-comments.mjs
 
   schema:

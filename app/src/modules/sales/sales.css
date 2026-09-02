@@ -1,3 +1,4 @@
+@layer module.sales {
 .sales-modal-overlay {
   position: fixed;
   inset: 0;
@@ -337,4 +338,5 @@
   .sales-form-grid .sales-span-2 {
     grid-column: span 1;
   }
+}
 }

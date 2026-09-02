@@ -1,0 +1,135 @@
+.list-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.list-page-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.list-page-head h1 {
+  margin-right: auto;
+}
+
+.list-page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.list-page-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.list-page-search input {
+  width: 100%;
+}
+
+.list-page-body {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+}
+
+.filter-rail {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.filter-rail h2 {
+  font-size: var(--fs-meta);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.list-page-table {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.record-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.record-code {
+  color: var(--text-secondary);
+  font-size: var(--fs-section);
+}
+
+.record-action-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--sp-1) var(--sp-2);
+}
+
+.record-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.record-section-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: var(--sp-1);
+  background: var(--section-tint);
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-section);
+  font-weight: 700;
+  color: var(--text);
+  padding: 10px var(--sp-2);
+  cursor: pointer;
+  text-align: left;
+  min-height: 40px;
+}
+
+.record-section-chevron {
+  color: var(--fo-nav);
+  font-size: var(--fs-sm);
+  flex-shrink: 0;
+}
+
+.record-section-body {
+  padding: var(--sp-2);
+}
+
+
+.info-grid-form {
+  margin-top: var(--sp-2);
+}

@@ -1,0 +1,292 @@
+.table input[type='checkbox'] {
+  accent-color: var(--fo-primary);
+}
+
+.table tbody tr:has(input[type='checkbox']:checked) {
+  background: var(--fo-row-hover);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fo-bookmark-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  flex-wrap: wrap;
+  padding: var(--sp-half) var(--sp-2);
+  background: var(--surface);
+  border-top: 1px solid var(--fo-border);
+}
+
+.fo-bookmark {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  background: var(--canvas);
+}
+
+.fo-bookmark.is-current {
+  background: var(--fo-row-hover);
+  border-color: var(--fo-primary);
+}
+
+.fo-bookmark button {
+  padding: 2px var(--sp-1);
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  color: var(--fo-link);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.fo-bookmark-remove {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px !important;
+  color: var(--text-secondary) !important;
+}
+
+.fo-utility-icon.is-active {
+  color: var(--fo-primary);
+}
+
+.dash-gate-tag {
+  display: inline-block;
+  margin-left: var(--sp-1);
+  padding: 0 4px;
+  border: 1px solid var(--fo-control-border);
+  border-radius: 2px;
+  background: var(--fo-row-alt);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.fo-nav-badge {
+  display: inline-block;
+  min-width: 16px;
+  margin-left: 5px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--fo-surface);
+  color: var(--fo-nav);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.reminders-heading {
+  margin: var(--sp-2) 0 var(--sp-1);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.reminder-count {
+  display: inline-block;
+  min-width: 16px;
+  margin-left: var(--sp-1);
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--status-danger-bg);
+  color: var(--danger);
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  text-align: center;
+}
+
+.reminder-list,
+.task-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reminder-row,
+.task-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr minmax(5rem, auto) auto;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-row {
+  grid-template-columns: minmax(9rem, auto) 1fr minmax(5rem, auto) auto auto;
+}
+
+.reminder-row:last-child,
+.task-row:last-child {
+  border-bottom: 0;
+}
+
+.reminder-row.is-due .reminder-when,
+.task-row.is-overdue .task-due {
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.reminder-when,
+.task-due,
+.reminder-related,
+.task-related,
+.task-priority {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.reminder-related,
+.task-related,
+.task-priority {
+  text-transform: capitalize;
+}
+
+.star-grade {
+  display: inline-flex;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.star-grade .star {
+  display: inline-flex;
+  color: var(--border);
+  line-height: 1;
+}
+
+.star-grade .star.on {
+  color: var(--warning);
+}
+
+.star-grade.editable .star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 1px;
+}
+
+.file-pending-name {
+  color: var(--text-secondary);
+  cursor: help;
+}
+
+.file-pending-note {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-2);
+}
+
+.grade-comment-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-1);
+}
+
+.grade-comment-cell .cell-capped,
+.grade-comment-cell .cell-expanded {
+  flex: 1;
+  min-width: 0;
+}
+
+.fo-back-to-list {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-half);
+  text-decoration: underline;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--sp-1);
+  top: -100px;
+  z-index: 100;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface);
+  color: var(--fo-link);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  font-size: var(--fs-body);
+}
+
+.skip-link:focus {
+  top: var(--sp-1);
+}
+
+.star-grade .star {
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.table .checkbox-col input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 3px;
+}
+
+.table .checkbox-col {
+  width: 44px;
+}
+
+.error-boundary {
+  border: 1px solid var(--fo-border);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--sp-3);
+  max-width: 640px;
+}
+
+.error-boundary-title {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-lg);
+}
+
+.error-boundary-body {
+  margin: 0 0 var(--sp-1);
+  color: var(--text-secondary);
+}
+
+.error-boundary-detail {
+  margin: 0 0 var(--sp-2);
+  padding: var(--sp-1);
+  background: var(--fo-canvas);
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--fs-meta);
+  overflow-wrap: anywhere;
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.list-page-filter-toggle {
+  padding: 0 0 var(--sp-1);
+}
+
+.list-page-filter-toggle .link-btn {
+  font-weight: 700;
+  min-height: 24px;
+  padding: 2px 0;
+}

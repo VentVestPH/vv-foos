@@ -1,0 +1,123 @@
+.fo-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-left: auto;
+  padding: var(--sp-1) 0;
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fo-pager-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-half);
+}
+
+.fo-pager-controls button {
+  min-width: 26px;
+  padding: 2px var(--sp-half);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: var(--fo-link);
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.fo-pager-controls button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.fo-pager-controls button:active:not(:disabled) {
+  background: var(--fo-row-hover);
+}
+
+.fo-pager-pos {
+  min-width: 54px;
+  text-align: center;
+}
+
+.fo-calendar-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.fo-calendar-main {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.fo-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.fo-cal-views {
+  display: inline-flex;
+  gap: var(--sp-half);
+}
+
+.fo-cal-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  padding: 0;
+  color: var(--fo-icon);
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.fo-cal-view-btn:active {
+  background: var(--fo-row-hover);
+}
+
+.fo-mini-calendar {
+  flex: 0 0 auto;
+  border-collapse: collapse;
+  font-size: var(--fs-meta);
+}
+
+.fo-mini-calendar caption {
+  padding-bottom: var(--sp-half);
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.fo-mini-calendar th,
+.fo-mini-calendar td {
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+  border: 1px solid var(--fo-border);
+}
+
+.fo-mini-calendar th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--section-tint);
+}
+
+.fo-mini-calendar td.is-today {
+  font-weight: 700;
+  background: var(--fo-row-hover);
+}

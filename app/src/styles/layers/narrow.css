@@ -1,0 +1,44 @@
+@media (max-width: 900px) {
+  .list-page-body {
+    flex-direction: column;
+  }
+
+  .filter-rail {
+    width: 100%;
+  }
+
+  .shell-content {
+    padding: var(--sp-2);
+  }
+
+  .fo-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .fo-sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--fo-border);
+  }
+
+  .fo-sidebar.collapsed {
+    width: 100%;
+    max-height: 32px;
+  }
+
+  .shell-main,
+  .shell-content {
+    overflow: visible;
+  }
+
+  .fo-record-title-row,
+  .record-action-bar {
+    flex-wrap: wrap;
+  }
+
+  .fo-search-row {
+    flex-wrap: wrap;
+  }
+}

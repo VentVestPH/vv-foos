@@ -309,7 +309,11 @@ Added 2026-09-02. Two research passes and two codebase audits.
 | :---- | :---- | :---- | :---- |
 | N1 | **DONE 2026-09-02.** Three shims deleted (`sales`, `intake`, `settings`), 20 importers repointed at `lib/supabase.ts`. `modules/dashboards/db.ts` survives, reduced to its one real job of exporting `dashDb`, the client scoped to the `dash` schema. `CLAUDE.md`'s "live wart" section is replaced with what is actually true | `CLAUDE.md` says they work around missing `Relationships` typing. `database.types.ts` already carries `Relationships: []` on all 25 tables, so they are one-line re-exports doing nothing, and only four of five modules use them anyway | 3 h |
 | N2 | **DONE 2026-09-02.** One implementation in `lib/format.ts`: `formatDate`, `formatDateTime`, `formatMoney`, each taking an explicit fallback. All three modules delegate to it. The design point that mattered: recruit's `fmtDate` returned an empty string and `RequisitionRecordPage` **depends on that**, filtering fields on `v !== ''` before rendering the grid. Forcing one fallback on all three callers would have put a dash into every empty field instead of hiding it, so the fallback is a parameter and recruit passes `''`. There is a regression test naming that dependency. The `RangeError` is gone: `formatMoney` validates the currency code and falls back to a plain locale string, covered by a test that asserts no throw for `XX`, `DOLLARS`, `12`, `US$` and `''` | Both are duplicated four times. The two `fmtMoney` copies differ materially: the sales version validates the currency code, the dashboards version does not and **throws `RangeError` on an invalid code**. A latent crash, not a style nit | 2 h |
-| N3 | Adopt `@layer` and split `app.css` into about 20 files by concern | There is a concrete bucket-by-bucket plan with the required import order. `@layer` is at roughly 94% support and makes source order irrelevant to the cascade, which is what de-risks the split | 1 d |
+| N3 | **DONE 2026-09-02.** `app.css` is now 18 lines: fourteen `@import './layers/<name>.css' layer(<name>)` declarations and one `@layer` statement that also fixes the five module layers. The cuts are **contiguous in the original source order**, so layer order equals the order the rules were already in and precedence is preserved by construction rather than by inspection: `base, shell, auth, controls, tables, pages, panels, narrow, taleo, states, pagination, motion, widgets, print`. The five module sheets are wrapped in `module.*`, which was mandatory rather than optional: leaving them unlayered would have made every module rule beat every shared rule regardless of specificity.
+
+Proved inert with a computed-style diff harness, not by eye: 44 page states (eleven routes at 1440px, at 800px, under `print`, and under `prefers-reduced-motion`), 11,295 elements, the 92 properties the stylesheets actually declare. Layering alone came back at **0 differences**. The split then showed two real ones and both were fixed rather than accepted: the last row of a printed table gained a bottom border, because `print` as a later layer now outranks the more specific `.table tr:last-child td`, so the print layer cancels it explicitly. The only remaining difference is `color` and `outline` on `a.skip-link` in print, and the snapshot itself records `display: none` for that element in that state, so it cannot be seen.
+
+The step that made it work was not a CSS change at all. The first attempt inverted the order and shrank `.fo-back-to-list` from 13px to 14px, because `intake.css` reaches the entry bundle through `useIntakeBadge` in `PrimaryNav` and Vite emitted it **before** `app.css`, making `module.intake` the document's first-declared layer. Moving `import './styles/app.css'` to the first line of `main.tsx` fixed it and also removed the route-order nondeterminism the audit had flagged as latent. `scripts/check-css-layers.mjs` now fails the build on any rule outside a layer, any layer file not imported by `app.css`, and any layer file that declares its own layer; proven to fail on all three | A single stylesheet of 2,100 lines, and an unlayered rule beats a layered one whatever its specificity, so the split had to be all-or-nothing | done |
 | N4 | **DONE 2026-09-02.** The six-rule disclosure block, byte-identical in `recruit.css` and `intake.css`, now lives once in `app.css`. This was the latent hazard the CSS audit named: module stylesheets load in navigation order, so once one copy was edited the winner would have depended on which page the user visited first | Six rules, byte-identical, copy-pasted in `recruit.css` and `intake.css`. Harmless today; nondeterministic per session once one copy is edited, because module CSS loads in navigation order | 1 h |
 | N5 | Give `recruit` the same `db.ts`, `hooks.ts`, `lib.ts` shape as the other four modules | `recruit/lib/data.ts` does all three jobs in one file: client, 13 types, five formatters, `sortRows`, `useLookups`, `useIsMobile`. It is the largest module, so the divergence compounds | 4 h |
 | N6 | Split the four largest components on responsibility | `CandidateRecordPage` (1,163 lines) owns profile state plus a send-email dialog plus a schedule-meeting dialog; `engagement.tsx` (588) bundles a hook, three helpers and six panels; `ApplicationPipeline` (780) mixes table mode, kanban mode, CSV export and a reject dialog; `CandidateListPage` (712) mixes data loading with filter and saved-view UI. Each has named extractable units | 2 d |
@@ -388,7 +392,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**113½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**114½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -406,7 +410,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
-| **N** Code and stylesheet architecture | 10 | 6 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
+| **N** Code and stylesheet architecture | 10 | 7 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 5 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
@@ -507,9 +511,18 @@ Ten were listed. **Eight are now closed.** Each one is recorded with what it was
 
 Two research angles returned no verified findings and remain genuinely open rather than cleared: modern 2026 ATS and CRM functional benchmarks, and the engineering risk of running multiple React frontends against one shared schema with hand-maintained generated types. The second is uncomfortable, because FOOS has three frontends on one schema and a confirmed case of type files agreeing with production while migrations disagree with both. That risk is measured internally as D3; it simply has no external literature here to calibrate against.
 
+### 7.4 Three interaction defects the layering investigation found
+
+Auditing the cascade to plan N3 turned up three live defects that had nothing to do with layers. All three were confirmed in Chromium before and after the fix, and all three are now held by `tests/e2e/interaction-states.spec.ts`.
+
+1. **Every other table row gave no hover feedback.** `.table.zebra tbody tr:nth-child(even)` is specificity (0,3,2) and `.table tbody tr:hover` is (0,2,2), so the zebra tint outranked the hover tint on even rows. Measured: row 0 hovered to `rgb(240,246,251)`, row 1 stayed `rgb(250,250,250)`. The hover rule now also matches `.table.zebra tbody tr:nth-child(even):hover`, which wins.
+2. **A pressed primary button turned near-white.** `.btn:active:not(:disabled):not([aria-disabled='true'])` is (0,4,0) and beat `.btn-primary:active:not(:disabled)` at (0,3,0), so the generic grey won. Measured: `rgb(54,121,181)` becoming `rgb(240,246,251)` on press. The primary and danger active rules now carry the same shape and win on order, giving `#2e6da4`.
+3. **Link buttons printed in link blue, which is the anomaly recorded on 2026-09-02 as unexplained.** The cause was `.list-page-filter-toggle .link-btn` at (0,2,0) outranking the print block's `.link-btn` at (0,1,0). Media queries add no specificity, which is what made it look impossible. The toggle rule was restating the colour `.link-btn` already sets, so deleting that one declaration restored the print override.
+
+
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **113½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **114½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -545,7 +558,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.5 Architecture, each needs a decision first
 
-- [ ] **N3** Adopt `@layer` and split `app.css` by concern. Three named source-order hazards must be resolved first
 - [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
 - [ ] **N5** Align the `recruit` module's shape with the other four
 - [ ] **N6** Split the four largest components on responsibility, not on line count

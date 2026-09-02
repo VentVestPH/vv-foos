@@ -1,0 +1,227 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-half);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  padding: 9px 18px;
+  cursor: pointer;
+  line-height: 1.25;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-sm {
+  padding: 6px var(--sp-1);
+  font-size: var(--fs-meta);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-primary {
+  background: var(--fo-primary);
+  color: var(--surface);
+  border-color: var(--fo-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--fo-primary-hover);
+  border-color: var(--fo-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--fo-surface);
+  color: var(--fo-link);
+  border-color: var(--fo-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--fo-row-hover);
+}
+
+.btn-danger {
+  background: var(--fo-logout);
+  color: var(--surface);
+  border-color: var(--fo-logout);
+}
+
+.btn-danger:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--fo-link);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--fo-row-hover);
+}
+
+.btn-caret::after {
+  content: '\25BE';
+  font-size: var(--fs-2xs);
+  margin-left: 4px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--fo-link-on-tint);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-btn:hover {
+  color: var(--primary-deep);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+}
+
+.field-label {
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.field-required {
+  color: var(--danger);
+}
+
+.field input,
+.field select,
+.field textarea,
+.input {
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  padding: 8px var(--cell-pad);
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible,
+.input:focus-visible,
+.fo-qs-input-row input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+.field-error-text {
+  color: var(--danger);
+  font-size: var(--fs-meta);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--fo-radius);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.badge-neutral {
+  background: var(--fo-surface);
+  color: var(--fo-text-secondary);
+  border: 1px solid var(--fo-border);
+}
+
+.badge-primary {
+  background: var(--fo-surface);
+  color: var(--fo-link);
+  border: 1px solid var(--fo-primary);
+}
+
+.badge-success {
+  background: var(--fo-count);
+
+  color: var(--fo-text);
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+
+.badge-warning {
+  background: var(--fo-surface);
+  color: var(--status-warn-text);
+  border: 1px solid var(--warning);
+}
+
+.badge-danger {
+  background: var(--fo-surface);
+  color: var(--fo-danger);
+  border: none;
+  font-weight: 700;
+}
+
+.badge-outline {
+  background: var(--fo-surface);
+  color: var(--fo-text-secondary);
+  border: 1px solid var(--fo-border);
+}
+
+.unviewed-badge {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  color: var(--fo-danger);
+  font-size: var(--fs-meta);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+
+.fo-advanced-search {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.fo-advanced-search summary {
+  cursor: pointer;
+  padding: var(--sp-1);
+  font-weight: 600;
+  color: var(--fo-link, var(--primary));
+  list-style: none;
+}
+
+.fo-advanced-search summary::-webkit-details-marker {
+  display: none;
+}
+
+.fo-advanced-search summary::before {
+  content: '\25b8 ';
+}
+
+.fo-advanced-search[open] summary::before {
+  content: '\25be ';
+}
+
+.fo-advanced-search-body {
+  padding: 0 var(--sp-1) var(--sp-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
