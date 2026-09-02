@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { reportError } from '../../lib/errorReporter';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -18,6 +19,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    reportError(
+      `boundary:${this.props.label ?? 'app'}`,
+      error,
+      `${error.stack ?? ''}${info.componentStack ?? ''}`,
+    );
     console.error(
       `Unhandled error in ${this.props.label ?? 'the application'}:`,
       error,

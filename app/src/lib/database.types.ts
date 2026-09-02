@@ -228,6 +228,30 @@ export interface Database {
         >;
         Relationships: [];
       };
+      client_errors: {
+        Row: {
+          id: string;
+          staff_id: string;
+          occurred_at: string;
+          route: string | null;
+          origin: string;
+          message: string;
+          stack: string | null;
+          user_agent: string | null;
+        };
+        Insert: {
+          id?: string;
+          staff_id?: string;
+          occurred_at?: string;
+          route?: string | null;
+          origin: string;
+          message: string;
+          stack?: string | null;
+          user_agent?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['client_errors']['Insert']>;
+        Relationships: [];
+      };
       audit_log: {
         Row: {
           id: string;

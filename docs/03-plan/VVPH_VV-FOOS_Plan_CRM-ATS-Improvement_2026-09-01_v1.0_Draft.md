@@ -353,7 +353,13 @@ Added 2026-09-02. These came from asking what nobody had looked at yet, rather t
 Migration `20260902000003` adds a `retention_policy` table so the windows are data rather than literals, `fn_prune_retained_rows()` as a security-definer function granted to `service_role` only, and a nightly `pg_cron` job guarded the same way migration 04 guards its own. Defaults: **365 days for `audit_log`**, because an audit trail has evidential value and a month would be too aggressive, and 7 days for processed `events_outbox` rows.
 
 The assertion that matters is negative. `validate.sql` check 18 seeds aged and recent rows of both kinds, runs the prune, and fails if a **pending** outbox event was touched: consumers read exactly those, so removing one would drop a business event with no trace. It also fails if recent audit rows were taken. An API test proves no application session can call the prune, and that `events_outbox` still refuses application writes outright, which is what keeps retention from being gamed | Neither table is ever pruned. No migration contains a delete against either. `audit_log` receives a row from a security-definer trigger on **every write to every business table**, and `events_outbox` keeps processed rows forever with `processed_at` set. Both grow without bound, which is a slow problem that becomes a handover problem | 4 h |
-| O3 | Add error tracking before handover | No Sentry, no `window.onerror`, no global error listener anywhere. After cutover nobody will know a production error happened unless a user reports it, and the 30-day measurement window that gates cancelling the old subscriptions depends on knowing whether the replacement actually works | 4 h |
+| O3 | **DONE 2026-09-02, and deliberately without a vendor.** Sentry's EU region on the free plan was the researched alternative and is defensible, but the payload here is candidate data: a route embeds candidate and requisition ids, and an error message can quote a Postgres detail. Keeping it in this database means no third party, no Content-Security-Policy change, no sourcemap upload and no build change. `20260902000005_client_errors.sql` adds the table, insert-only for staff through a policy scoped to `(select auth.uid())` and readable only by an admin, with CHECK constraints on every length so an oversized payload is a visible failure rather than silent truncation, and a 30-day entry in `retention_policy` wired into `fn_prune_retained_rows()`.
+
+`app/src/lib/errorReporter.ts` caps itself at 20 reports per session and de-duplicates on origin plus message plus the first 200 characters of the stack, so a render loop cannot flood a table that shares an instance with the product. `ErrorBoundary.componentDidCatch` reports with the boundary's label, and `installGlobalErrorReporting()` adds the two listeners the boundary cannot see: `window.error` and `unhandledrejection`, which is where a promise rejection or an event-handler throw actually goes.
+
+Two things the work turned up. First, a write-only table has a trap: `insert(...).select(...)` fails for a non-admin because RETURNING needs the SELECT policy to pass, which cost three test failures before the cause was clear and is now written into the migration header. Second, `validate.sql` check 17 immediately flagged the new policy for calling `auth.uid()` per row instead of once per statement, which is the guard from the RLS work earning its place.
+
+Third, the existing O1 boundary test was not testing the boundary: it threw inside `page.evaluate`, where the throw is caught by Playwright and never reaches React. It now aborts the request for a lazily-imported route chunk, which is a real post-deploy failure, and asserts the boundary appears with `Failed to fetch dynamically imported module`, that the shell and both recovery buttons survive, and that a `client_errors` row was written with a `boundary:` origin. `tests/e2e/error-reporting.spec.ts` covers the other three paths: an uncaught error recorded once with its route despite five identical dispatches, an unhandled rejection, and 60 distinct failures capped at 20 | Nothing recorded a production failure. `console.error` in a boundary is invisible, and a boundary never sees a rejection at all |
 | O4 | **DONE 2026-09-02, and the premise was wrong in a way that hid a real bug.** The 10 was a count of `.channel()` call sites, not of open subscriptions: they are per-component, so most are route-scoped. Measured by reading `phx_join` and `phx_leave` frames off the Realtime websocket in Chromium across sign-in, five SPA navigations and three record routes. Peak concurrency is **3**, on the dashboard (`intake-items`, `my-reminders`, `my-tasks`) and on a requisition record (`intake-items`, the pipeline and next-steps channels). Every other route holds 1 or 2, and none rejoins once settled.
 
 What the measurement did find is a defect nobody had reported: **`/intake` was tearing down and rejoining `intake-queue` in a continuous loop**, several times a second, for as long as the page was open. `useIntakeQueue` built its loader with `useCallback(..., [filters])` while `QueueListPage` passes a fresh object literal every render, so `load` changed identity every render, the subscribe effect reran, and its own `load()` triggered the next render. This is exactly the pattern that trips the Realtime messages-per-second limit that already caps Playwright at 2 workers.
@@ -404,7 +410,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**116½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**117½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -423,7 +429,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
-| **O** Resilience and handover | 8 | 5 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
+| **O** Resilience and handover | 8 | 6 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
@@ -534,7 +540,7 @@ Auditing the cascade to plan N3 turned up three live defects that had nothing to
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **116½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **117½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -573,7 +579,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 - [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
 - [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
 - [ ] **F4** Archive the other two frontends (decided, not yet executed)
-- [ ] **O3** Error tracking, so production failures are visible during the 30-day measurement window
 - [ ] **O5** Decide the session policy: no idle timeout on a product holding candidate PII
 
 ### 8.6 Waiting on one authorised command from you

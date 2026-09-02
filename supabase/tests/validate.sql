@@ -638,4 +638,50 @@ begin
   raise notice 'PASS 19: attachments bucket caps uploads at % bytes and allows % mime types, none of them renderable', limit_bytes, array_length(types, 1);
 end $$;
 
+do $$
+declare
+  ins_check text;
+  sel_using text;
+  keep integer;
+  removed bigint;
+  old_id uuid;
+  new_id uuid;
+begin
+  select pg_get_expr(polwithcheck, polrelid) into ins_check
+  from pg_policy where polrelid = 'client_errors'::regclass and polcmd = 'a';
+  select pg_get_expr(polqual, polrelid) into sel_using
+  from pg_policy where polrelid = 'client_errors'::regclass and polcmd = 'r';
+
+  if ins_check is null or ins_check not like '%auth.uid()%' then
+    raise exception 'FAIL 20: client_errors has no INSERT policy scoped to auth.uid()';
+  end if;
+  if sel_using is null or sel_using not like '%admin%' then
+    raise exception 'FAIL 20: client_errors is readable by someone other than an admin';
+  end if;
+
+  select keep_days into keep from retention_policy where table_name = 'client_errors';
+  if keep is null then
+    raise exception 'FAIL 20: client_errors is not covered by the retention policy';
+  end if;
+
+  insert into client_errors (staff_id, origin, message, occurred_at)
+  values (gen_random_uuid(), 'validation', 'aged', now() - make_interval(days => keep + 1))
+  returning id into old_id;
+  insert into client_errors (staff_id, origin, message)
+  values (gen_random_uuid(), 'validation', 'recent')
+  returning id into new_id;
+
+  perform public.fn_prune_retained_rows();
+
+  if exists (select 1 from client_errors where id = old_id) then
+    raise exception 'FAIL 20: pruning left a client_errors row past its window';
+  end if;
+  if not exists (select 1 from client_errors where id = new_id) then
+    raise exception 'FAIL 20: pruning removed a recent client_errors row';
+  end if;
+
+  delete from client_errors where id = new_id;
+  raise notice 'PASS 20: client_errors is insert-only for staff, admin-readable, and pruned after % days', keep;
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;
