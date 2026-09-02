@@ -239,15 +239,15 @@ The other half is real but small. On `candidate_profiles` the ten columns the ca
 So: a 27% saving on one table's transfer, on an application measured at 60ms LCP with zero long tasks at 5,000 rows, bought with either a dishonest type or a refactor of shared helpers. Not worth it now. Revisit if K1's server-side filtering lands, since that changes which columns cross the wire anyway | 73 call sites. The dashboard queries refresh every 15 minutes over the widest tables and pull every column to compute aggregates | 4 h |
 | K8 | **DONE 2026-09-02, and it went further than planned.** Deferring `CandidateRecordPage` and `ContactRecordPage` took first load from 159.2 to 136 KB gzipped. Re-measuring then showed `KanbanBoard`, at 14 KB and carrying `@dnd-kit`, still loading on the candidates list, which has no board: it arrived through `ApplicationPipeline` on the requisition record page. Deferring the requisition record and form pages too moved `KanbanBoard`, `SidePanelTabs`, `RecordPage`, `engagement` and `googleActions` off the list route. **Measured first load of `/recruit/candidates`: 129.6 KB gzipped, down from 159.2, a 19% cut.** The 10 remaining chunks are two thirds framework: 54.4 KB supabase and 51.8 KB react | Both are statically imported beside the list page, which drags `googleActions` into the list view. Measured first load of `/recruit/candidates`: **543 KB raw, 159 KB gzipped**. This defers about 19 KB gzipped | 1 h |
 | K9 | **DONE 2026-09-02.** `emptyOutDir: true`. The comment claiming a sandbox file-sync layer prevented it is gone along with every other comment in the codebase, and a clean build now produces 20 chunks rather than accumulating generations | Measured: `dist-redesign-2` held **69 files across four build generations** before a manual clean, 21 after. Stale hashed chunks ship in the deploy artifact | 30 min |
-| K10 | Measure authenticated Core Web Vitals and interaction latency | Currently unmeasured. `app/.env` points the production build at the live project, so `vite preview` cannot sign in locally. Needs either the live credentials or a decision to measure against the local stack, which measures loopback latency instead | Decision + 2 h |
+| K10 | Measure authenticated Core Web Vitals and interaction latency | **Measured 2026-09-03 on the local stack.** Worst CLS 0.007, worst INP 16ms, zero long tasks over 50ms across seven authenticated routes on the production bundle. LCP and TTFB over loopback are not deployed figures and are not quoted as such. `npm run cwv --workspace=tests`. Section 7.14 |
 
 | K12 | **DONE 2026-09-02.** The Vite dev server was watching its own build output | Found by looping the gates 30 times rather than 10. The suite failed roughly one run in eight, and only ever when `build` ran before `e2e` in the same pass: 14 consecutive browser-only runs never failed, and 12 consecutive test-then-e2e runs never failed either. Writing 20 hashed files into `app/dist-redesign-2` tripped the dev server's file watcher mid-test. `server.watch.ignored` now excludes both `dist` directories. **20 consecutive clean gate passes afterwards** |
 
 | K11 | **DONE 2026-09-02.** Two duplicate requests on every page load, app-wide | `SessionProvider` called `loadStaff` from both the `getSession()` resolution and the `onAuthStateChange` callback, which also fires on mount, so two identical `staff` requests landed within 1ms. And `useIntakeBadge` called `refresh()` from its mount effect and again from the `SUBSCRIBED` callback, so two `intake_items` HEAD requests fired on every page in the application, both aborting. Both now fire once | done |
 
-**Status 2026-09-02.** Done: the urgent half of K1, and K11. Open: K2 to K10. K2, K3, K4 and K9 are under two hours combined and carry no product risk.
+**Status 2026-09-03.** K1 to K9, K11 and K12 are done or declined on measurement. K10 is measured on the local stack (section 7.14); only its deployed half, K10b, is open, and that needs a URL and a login. Nothing in this workstream is waiting on work I can do here.
 
-**What the measurement changed.** Performance at real scale is not the problem this workstream assumed. Every Core Web Vital is far inside budget: LCP 56 to 68ms across five routes, CLS at or below 0.007, **zero long tasks anywhere**, and all five measured interactions at about 32ms, which is the measurement floor. Nothing is close to the 100ms threshold, let alone 200ms. So K7, and K5's per-row RLS concern, should be treated as hygiene rather than as urgent, and the ranking above reflects that. First-load JS for `/recruit/candidates` is 159.2KB gzipped, of which `vendor-supabase` is 55.9KB and `vendor-react` 53.2KB, so two thirds is framework and only K8's 15.3KB of `googleActions` is obviously wasted.
+**What the measurement changed.** Performance at real scale is not the problem this workstream assumed. Every Core Web Vital is far inside budget: LCP 56 to 68ms across five routes, CLS at or below 0.007, **zero long tasks anywhere**, and interaction latency under the 16ms floor the Event Timing API can report (the "about 32ms" figure first recorded here was an artifact of timing two `requestAnimationFrame` callbacks, whose floor is one frame interval; it measured the harness, not the app, and section 7.14 replaces it with a real INP). Nothing is close to the 100ms threshold, let alone 200ms. So K7, and K5's per-row RLS concern, should be treated as hygiene rather than as urgent, and the ranking above reflects that. First-load JS for `/recruit/candidates` is 159.2KB gzipped, of which `vendor-supabase` is 55.9KB and `vendor-react` 53.2KB, so two thirds is framework and only K8's 15.3KB of `googleActions` is obviously wasted.
 
 ### Workstream L. Accessibility and responsive
 
@@ -477,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**151½ of 158 numbered tasks are done.** T1 added four follow-ups; T2, T4 and T5 are done, and T3 turned out to be measurable rather than a design decision: its premise was a node count my own R3 and T2 work had already invalidated, so it is answered in section 7.13 and split, leaving T3a, a single default, as the only part that is yours. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**152 of 159 numbered tasks are done.** T1 added four follow-ups; T2, T4 and T5 are done, and T3 turned out to be measurable rather than a design decision: its premise was a node count my own R3 and T2 work had already invalidated, so it is answered in section 7.13 and split, leaving T3a, a single default, as the only part that is yours. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -514,7 +514,7 @@ Four of them would have reached production unnoticed, because inspection cannot 
 | Save view failed on a NOT NULL column | The button, dialog and handler all exist and look right |
 | Every table created after migration 11 has no grants | Policies read correctly; Postgres checks GRANTs first |
 
-**Verification, run in loops rather than once.** Eight consecutive passes of all four gates clean: 64 API tests, 39 browser tests, 18 schema checks and the attachment-queue guard, from a clean `npm run db:reset` with no manual steps, leaving no rows, storage objects or queue entries behind. Getting there meant fixing six test-isolation bugs that a single run would never have exposed, including two specs that deleted each other's fixtures and a timezone bug that only appears east of UTC.
+**Verification, run in loops rather than once.** Eight consecutive passes of all four gates clean, from a clean `npm run db:reset` with no manual steps, leaving no rows, storage objects or queue entries behind. The suite counts quoted here were 64 API tests, 39 browser tests and 18 schema checks when this was written on 2026-09-01; they are 164, 128 and 27 as of 2026-09-03, and `scripts/gate.sh` is the runner rather than four separate commands. Getting there meant fixing six test-isolation bugs that a single run would never have exposed, including two specs that deleted each other's fixtures and a timezone bug that only appears east of UTC.
 
 Also holding: 0 TypeScript errors, 0 lint problems, 0 build errors, contrast 17 of 17 pairs, motion budget respected, no migration drift, comments 7 of 19,206 lines.
 
@@ -759,6 +759,58 @@ Two sections hold history and their defaults disagree: Status History is closed 
 
 The seventeen-section structure itself is answered: it costs 56 nodes, and it stays.
 
+## 7.14 K10: measured on the local stack, because the metrics that matter locally are the ones that transfer
+
+K10 sat open waiting for a deployed URL. Its own entry named the alternative, measuring the local stack, and dismissed it as "loopback latency". That is right about half the metrics and wrong about the other half, so the useful move was to measure and label which is which.
+
+LCP and TTFB over loopback are not deployed figures and are not quoted as any. CLS, layout-shift counts, long tasks and INP are layout- and CPU-bound rather than network-bound, so they do transfer. `tests/scripts/measure-cwv.mjs` (`npm run cwv --workspace=tests`) signs in and walks seven authenticated routes with `PerformanceObserver`.
+
+Measured on the production bundle, built against the local stack and served by `vite preview`:
+
+| Route | LCP | CLS | shifts | tasks >50ms | INP |
+| :---- | :---- | :---- | :---- | :---- | :---- |
+| Dashboard | 52ms | 0.000 | 0 | 0 | 16ms |
+| Requisitions list | 76ms | 0.007 | 2 | 0 | under 16ms |
+| Candidates list | 40ms | 0.004 | 1 | 0 | 16ms |
+| Candidate record | 64ms | 0.001 | 1 | 0 | 16ms |
+| Deals board | 52ms | 0.000 | 0 | 0 | 16ms |
+| Accounts list | 24ms | 0.000 | 0 | 0 | not measured |
+| Intake queue | 24ms | 0.000 | 1 | 0 | 16ms |
+
+**Worst CLS 0.007 against a 0.1 "good" bound. Worst INP 16ms against 200ms. Zero long tasks over 50ms on any route, and zero total blocking time.** The dev server measures slightly worse, worst CLS 0.013 and worst INP 24ms, which is the expected direction for a React development build and makes those the conservative numbers.
+
+Three things went wrong building the harness, all of which would have produced a confident wrong answer:
+
+- The first version clicked the first visible button to provoke an interaction. On most routes that is a nav link, so it navigated, and `performance.interactionCount` was read from a fresh document. Every route reported INP 0 with 0 interactions. It now only clicks controls that leave the URL unchanged, skips destructive labels, and dismisses any dialog it opens.
+- An INP of 0 is ambiguous, because the Event Timing API clamps `durationThreshold` to a 16ms minimum and never reports anything faster. The table now carries a clicks column from `performance.interactionCount`, which has no threshold, so "fast" is distinguishable from "never happened".
+- An earlier column reported the turnaround of two `requestAnimationFrame` callbacks as though it were interaction latency. Its floor is one frame interval, so it read 33 to 42ms on every route and meant nothing. Removed rather than reinterpreted.
+
+The production measurement needed `app/.env.local`, because `app/.env` points the build at the live project and the bundle tried to authenticate against production. `scripts/check-env-target.mjs`, added in workstream O, printed exactly that and named the remedy. The override was deleted and the bundle rebuilt afterwards, verified by counting local and production references in the emitted assets.
+
+**What is still yours:** the deployed authenticated figure. LCP and TTFB from a real network are the half this cannot produce, and they need a URL and a login. Counted as a half, not a whole.
+
+## 7.15 The intermittent browser failure, and the four defects found chasing it
+
+A gate run went red on the browser step and the runner could not say which test. That is the first defect, and it is in the runner I wrote: `run()` printed `tail -8` of the failed command's output, and npm's own error trailer is eight lines long, so the only useful line was pushed off the top every time. I also read that run as green, because I put the gate behind a compound command ending in `echo` and reported `echo`'s exit code, which is the same mistake as piping the gate through `grep` and reading `grep`'s status. Twice now, so the gate prints its own verdict and I read the log, not the exit code.
+
+`gate.sh` now strips npm noise, greps for signal lines rather than blindly tailing, and for the browser step writes a per-pass Playwright JSON report and parses it into `file :: title [status] message`. Proven against a deliberately failing spec before being trusted.
+
+With attribution in place, three separate flakes surfaced, each with a different cause:
+
+**One, the CSV export assertion, `list-persistence.spec.ts` 2.11.** Reported "8 records for 8 rows" when it wanted 9: the export held seven data rows while eight were on screen. Seven is exactly the seeded candidate count, so another spec had created a candidate, the test read eight rows, that candidate was deleted, and the export then saw seven. The test was asserting an exact count against the shared unfiltered candidate list while other spec files mutate candidates on a second worker. It now creates three candidates under a run-unique token, narrows the list to that token, and asserts against a set only it controls, with checked teardown.
+
+Two real defects in that assertion turned up on the way. It split the file on `/\r?\n/` and counted **physical lines**, but `lib/csv.ts` escapes to RFC 4180 and quotes any field containing a quote, comma, CR or LF, so a correct record may legally span several lines; on a two-row export with an embedded newline that reads 4 where the answer is 3, verified against the extracted parser. And it pushed only truthy names into the on-screen list, so an unresolved row was dropped from one side of the comparison and not the other. It now parses records with a quote-aware reader, asserts no row has an empty name, compares name sets, and attaches the CSV and the on-screen list to the result.
+
+**Two, the hover-tint probe, `interaction-states.spec.ts`.** Received `rgba(0, 0, 0, 0)`, no background at all, meaning the hover never landed for the full three seconds rather than landing on a wrong colour. The probe table was appended to `main`, which is the scroll container, so when the candidate list resolved its names late the table moved and the cursor was no longer over the row. The probe is now pinned with `position: fixed` so nothing can move it, and the poll re-hovers each iteration so a shift is recovered from. 40 consecutive runs alongside its siblings, clean.
+
+The sibling test in that file had the same shape: it captured a `boundingBox()` and then moved the mouse there, which is a measurement taken before the page has settled. It now uses `hover()`, which re-resolves the position with actionability checks. `drag-and-drop.spec.ts` uses the same pattern and was left alone deliberately: a drag genuinely needs coordinates, and re-measuring the target after pickup would be worse, because lifting a card reflows the board. It has not flaked.
+
+**Three, the axe sweep timing out at 30s.** Not a violation, a `Test timeout of 30000ms exceeded`. T5 added four routes to a single test that walks every route in one body, and never raised its limit, so under two-worker contention it began brushing the ceiling. That is a regression I introduced in T5. The sweep is now three tests, screen routes, CRM records and ATS records, each with an explicit timeout, which also means a failure names which group failed.
+
+**Four, two hardcoded absolute paths.** `route-coverage.spec.ts`, also mine from T5, read `accessibility.spec.ts` and `app/src` through `/Users/klentz/Work/VV-FoOS/...`. The guard would have failed on any other machine, which for a guard whose whole job is to run everywhere is worse than the gap it closes. Both are now resolved from `import.meta.url`, and a sweep of `app/src`, `tests`, `scripts`, `supabase`, `migration` and `.github` confirms no absolute path remains in committed source.
+
+One consequence worth recording: the `client_errors` leak check fired twice during this hunt, two rows each time. It was not a new leak. A browser test that dies mid-body skips its teardown, so the leak is a *symptom* of the browser failure rather than an independent fault, and the check correctly refused to call the run clean.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -796,7 +848,8 @@ Each is written, proven locally and idempotent, and refuses a non-local target w
 - [ ] **A3 and A4** `scripts/backfill-zoho-candidate-fields.mjs`. Restores 37 star grades and corrects 74 initial dates
 - [ ] **B2** `scripts/rotate-persona-passwords.mjs`. Fresh random passwords, printed once, stored nowhere
 - [ ] **B3** Whether a production `staff` row is created for you
-- [ ] **K10** Authenticated Core Web Vitals. Needs either the live credentials or a decision to measure the local stack instead, which measures loopback latency
+- [x] **K10 measured locally, half.** Production bundle over seven authenticated routes: worst CLS **0.007** against a 0.1 bound, worst INP **16ms** against 200ms, **zero** long tasks over 50ms and zero blocking time. CLS, long tasks and INP are CPU- and layout-bound so they transfer; LCP and TTFB over loopback are not quoted as deployed figures. `npm run cwv --workspace=tests`. Section 7.14, including three harness bugs that each gave a confidently wrong answer first
+- [ ] **K10b** The deployed LCP and TTFB, the half loopback cannot produce. Needs a URL and a login
 
 ### 8.7 Waiting on data or credentials only you can supply
 
