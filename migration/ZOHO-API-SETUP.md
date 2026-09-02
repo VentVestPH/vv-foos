@@ -1,13 +1,32 @@
 # Getting the Zoho data by API instead of by export
 
-The API reaches three things the CSV exports cannot, which is why it is worth the setup:
+The API reaches things the CSV exports cannot. Two of the three original reasons survive contact with the live API, and the first does not. Verified 2026-09-03 with a live Recruit token.
 
-1. **Education and Experience.** These are subforms. The CSV export produced only
-   `TABULARROWID, Candidate Id, Candidate Name` with no institution, degree, employer,
-   title or date column, so nothing was importable. The API returns them inline on the
-   candidate detail record.
-2. **Attachment file bytes.** `Attachment URL` was empty on all 50 exported rows, so the
-   export is metadata only. The API has a download endpoint per attachment.
+1. ~~**Education and Experience.**~~ **Wrong, corrected 2026-09-03 against the live API.**
+   The claim was that the CSV export was lossy and the API would return these subforms
+   inline on the candidate detail record. Neither half is true. There is no education or
+   experience data in the Zoho org at all, so there was never anything to import.
+
+   Two independent sources agree. `Candidates_Educational_Details.csv` and
+   `Candidates_Experience_Details.csv` each hold **0 data rows** under their three
+   header columns. And a live run over 40 candidates returned 0 subform entries, with
+   **no education or experience field among the 97 keys** present on a detail record;
+   the only subform-shaped key is `Skill_Set`, empty on all 40. The detail endpoint does
+   not return them inline because there is nothing to return, and Recruit exposes no
+   Education or Experience module among its 23 modules.
+
+   This does not need chasing further. It needs the migration plan to stop listing it.
+2. **Attachment file bytes. Confirmed 2026-09-03 against the live API.** `Attachment URL`
+   was empty on all 50 exported rows, so the export is metadata only. The API returns
+   the real files: 50 attachments across 40 distinct candidates, PDFs of 60KB to 220KB,
+   with `File_Name`, `Size` and an `id` per attachment. This is the reason the API route
+   is worth the setup.
+
+   **The export's `Parent Id` is prefixed `Zrecruit_`.** `Zrecruit_837085000004666040`
+   must be stripped to `837085000004666040` to address a candidate. Unstripped, the
+   attachments endpoint returns HTTP 404 `INVALID_URL_PATTERN`; stripped, HTTP 200 with
+   the attachment list. Anything joining export rows to API records has to strip it, or
+   every attachment silently fails to find its candidate.
 3. **Job openings and applications.** Never exported at all. Without them, 13 of the 154
    notes have no parent to attach to.
 
@@ -30,6 +49,21 @@ It also removes the need to ask anyone to run an export by hand each time.
 
    node migration/zoho-api.mjs --limit 5
    ```
+
+### Proving the credentials, one product at a time
+
+`migration/zoho-token.mjs` mints a client-credentials token per product and proves it with a read, so a credential problem is separated from a client problem:
+
+```sh
+node migration/zoho-token.mjs            # both products
+node migration/zoho-token.mjs crm        # just one
+```
+
+It reports the scope Zoho actually granted, the api domain it returned, and the result of a live `settings/modules` read. Each error carries its cause: `invalid_soid` means the org id belongs to the other product, `invalid_client` means a wrong client id or a `ZOHO_DC` mismatch, and `invalid_scope` means the product is not enabled on the Self Client or API access is not permitted on your Zoho profile.
+
+**The two products do not share a host.** Recruit answers on `recruit.zoho.{dc}` and returns 404 on `zohoapis.com/recruit`; CRM answers on `www.zohoapis.com/crm` and not on `crm.zoho.com`. Verified 2026-09-03.
+
+Nothing needs keeping from this script. It exists to prove the four values are right; after that `zoho-api.mjs` mints its own tokens per product and re-mints on expiry.
 
 The `soid` parameter is `{service}.{orgid}`, for example `ZohoRecruit.748xxxxxx`, and the client builds it. Because the scope is per request, Recruit and CRM get separate access tokens, which the client mints and caches independently.
 

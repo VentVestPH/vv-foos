@@ -219,7 +219,12 @@ function saveAsExportCsv(exportFileName, records) {
   mkdirSync(join(OUT_DIR, 'api-csv'), { recursive: true });
   writeFileSync(out, toCsv(header, rows));
   console.log(`  wrote ${rows.length} row(s) to ${out}`);
-  if (missing.length) {
+  if (!records.length) {
+    console.log(
+      `    no ${exportFileName} records came back, so no column mapping was checked. ` +
+        'That is a fact about this sample, not a mapping fault.',
+    );
+  } else if (missing.length) {
     console.warn(
       `    ${missing.length} of ${header.length} column(s) matched no API field and are blank.\n` +
         '    These are name guesses that need correcting in src/api-field-names.mjs:\n' +
