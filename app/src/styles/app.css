@@ -1061,24 +1061,8 @@ a:hover {
   overflow-y: auto;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--sp-2);
-  margin-top: var(--sp-2);
-}
 
-.dashboard-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: var(--sp-2);
-}
 
-.dashboard-card h2 {
-  margin-bottom: var(--sp-1);
-}
 
 .stub-panel {
   background: var(--surface);
@@ -1170,30 +1154,6 @@ a:hover {
 
 .fo-second-search-row .fo-search-label {
   min-width: 84px;
-}
-
-.fo-pager {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.fo-pager button {
-  background: none;
-  border: none;
-  color: var(--fo-link);
-  cursor: pointer;
-  padding: 2px 4px;
-  font-size: var(--fs-meta);
-}
-
-.fo-pager button:disabled {
-  color: var(--fo-border);
-  cursor: default;
 }
 
 .fo-gear-btn {
@@ -1345,9 +1305,11 @@ summary:focus-visible,
   align-items: center;
   justify-content: flex-end;
   gap: var(--sp-2);
+  margin-left: auto;
   padding: var(--sp-1) 0;
   font-size: var(--fs-meta);
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .fo-pager-controls {

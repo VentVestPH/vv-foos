@@ -10,6 +10,7 @@ const EXE = new Uint8Array([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00]);
 let publishedReqId: string;
 let unpublishedReqId: string;
 let testFlaggedReqId: string;
+let noLocationReqId: string;
 const createdEmails: string[] = [];
 
 const RUN_ID = Math.random().toString(36).slice(2, 10);
@@ -52,16 +53,26 @@ describe('Careers endpoint security (criteria 4.1, 4.5, 4.6, 4.7, 4.8)', () => {
       throw new Error(`Refusing to run against ${host}: this suite publishes real requisitions.`);
     }
     const admin = await clientAs('admin');
-    const mk = async (title: string, is_published: boolean, is_test: boolean) => {
+    const mk = async (
+      title: string,
+      is_published: boolean,
+      is_test: boolean,
+      extra: Record<string, unknown> = {},
+    ) => {
       const { data, error } = await admin
         .from('requisitions')
-        .insert({ title, status: 'open', is_published, is_test })
+        .insert({ title, status: 'open', is_published, is_test, ...extra })
         .select('id')
         .single();
       if (error) throw error;
       return data.id as string;
     };
-    publishedReqId = await mk('QA Sec: Published Open Requisition', true, false);
+    publishedReqId = await mk('QA Sec: Published Open Requisition', true, false, {
+      location: 'Manila, Philippines',
+      description: 'QA fixture description for the structured-data assertions.',
+      opened_date: '2026-09-01',
+    });
+    noLocationReqId = await mk('QA Sec: Published No Location', true, false);
     unpublishedReqId = await mk('QA Sec: Unpublished Requisition', false, false);
     testFlaggedReqId = await mk('QA Sec: Test-Flagged Requisition', true, true);
   });
@@ -87,7 +98,7 @@ describe('Careers endpoint security (criteria 4.1, 4.5, 4.6, 4.7, 4.8)', () => {
       }
     }
     await admin.from('intake_items').delete().ilike('full_name', 'Qa SecurityProbe%');
-    for (const id of [publishedReqId, unpublishedReqId, testFlaggedReqId]) {
+    for (const id of [publishedReqId, noLocationReqId, unpublishedReqId, testFlaggedReqId]) {
       if (id) {
         await admin.from('applications').delete().eq('requisition_id', id);
         await admin.from('requisitions').delete().eq('id', id);
@@ -142,6 +153,31 @@ describe('Careers endpoint security (criteria 4.1, 4.5, 4.6, 4.7, 4.8)', () => {
     expect(html).toMatch(/"@type"\s*:\s*"JobPosting"/);
     expect(html).toMatch(/"@type"\s*:\s*"Organization"/);
     expect(html).toContain('QA Sec: Published Open Requisition');
+
+    const ld = /<script type="application\/ld\+json">(.*?)<\/script>/s.exec(html);
+    expect(ld, 'the JSON-LD block should be parseable').toBeTruthy();
+    const posting = JSON.parse(ld![1]) as Record<string, unknown>;
+    for (const key of ['title', 'description', 'datePosted', 'hiringOrganization', 'jobLocation']) {
+      expect(posting[key], `Google requires ${key} on JobPosting`).toBeTruthy();
+    }
+  });
+
+  it('4.2b a requisition with no location emits no JSON-LD rather than invalid JSON-LD', async () => {
+    const listing = await (await fetch(PAGE_URL)).text();
+    const hrefs = [...listing.matchAll(/href="([^"]*\/jobs\/[^"]+)"/g)].map((m) => m[1]);
+    const own = hrefs.find((h) => h.includes('qa-sec-published-no-location'));
+    expect(own, 'the listing should still link to a location-less requisition').toBeTruthy();
+
+    const slug = own!.slice(own!.indexOf('/jobs/'));
+    const detail = await fetch(`${PAGE_URL}${slug}`);
+    expect(detail.status).toBe(200);
+    const html = await detail.text();
+
+    expect(html).toContain('QA Sec: Published No Location');
+    expect(
+      html,
+      'jobLocation is required by Google, so incomplete structured data must be omitted entirely',
+    ).not.toContain('application/ld+json');
   });
 
   it('4.7 rejects a renamed executable disguised as a PDF', async () => {

@@ -227,12 +227,6 @@
   gap: var(--sp-half);
 }
 
-.cand-layout {
-  display: grid;
-  grid-template-columns: minmax(280px, 340px) 1fr;
-  gap: var(--sp-2);
-  align-items: start;
-}
 
 @media (max-width: 900px) {
   .cand-layout {
@@ -240,12 +234,6 @@
   }
 }
 
-.cand-col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  min-width: 0;
-}
 
 .panel-stack {
   display: flex;

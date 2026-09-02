@@ -8,6 +8,33 @@ const REDIRECT_URI = Deno.env.get("GOOGLE_OAUTH_REDIRECT_URI");
 
 const FALLBACK_SETTINGS_URL = Deno.env.get("APP_SETTINGS_URL") ?? "/settings";
 
+const ALLOWED_APP_ORIGINS = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "")
+  .split(",")
+  .map((o) => o.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function allowedOrigin(candidate: string | undefined): string | null {
+  if (!candidate) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    return null;
+  }
+  const normalised = `${parsed.protocol}//${parsed.host}`;
+  if (ALLOWED_APP_ORIGINS.includes(normalised)) return normalised;
+  if (LOCAL_ORIGIN.test(normalised)) return normalised;
+  try {
+    const fallback = new URL(FALLBACK_SETTINGS_URL);
+    if (`${fallback.protocol}//${fallback.host}` === normalised) return normalised;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 function redirect(location: string): Response {
   return new Response(null, { status: 302, headers: { location } });
 }
@@ -26,7 +53,11 @@ Deno.serve(async (req) => {
       .select("value")
       .eq("key", `oauth_state_${state}`)
       .maybeSingle();
-    const origin = (data?.value as { app_origin?: string } | null)?.app_origin;
+    const stored = (data?.value as { app_origin?: string } | null)?.app_origin;
+    const origin = allowedOrigin(stored ?? undefined);
+    if (stored && !origin) {
+      console.warn("google-oauth-callback: refused an app_origin that is not allowlisted");
+    }
     return origin ? `${origin}/settings` : FALLBACK_SETTINGS_URL;
   }
 

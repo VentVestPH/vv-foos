@@ -208,11 +208,4 @@
   resize: vertical;
 }
 
-.intake-sample-preview {
-  margin-top: var(--sp-1);
-}
 
-.intake-sample-preview h3 {
-  font-size: var(--fs-body);
-  font-weight: 600;
-}

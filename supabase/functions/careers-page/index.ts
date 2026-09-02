@@ -26,7 +26,52 @@ type Req = {
   employment_type: string | null;
   status: string;
   opened_date: string | null;
+  created_at?: string | null;
 };
+
+const REQUIRED_JOBPOSTING_KEYS = [
+  "title",
+  "description",
+  "datePosted",
+  "hiringOrganization",
+  "jobLocation",
+] as const;
+
+function buildJobPosting(r: Req, url: string): Record<string, unknown> | undefined {
+  const datePosted = r.opened_date ?? r.created_at ?? null;
+  const posting: Record<string, unknown> = {
+    "@context": "https://schema.org/",
+    "@type": "JobPosting",
+    title: r.title,
+    description: r.description ?? r.title,
+    datePosted,
+    employmentType: r.employment_type ?? undefined,
+    directApply: true,
+    identifier: {
+      "@type": "PropertyValue",
+      name: "VentVest",
+      value: r.display_code,
+    },
+    url,
+    hiringOrganization: {
+      "@type": "Organization",
+      name: "VentVest",
+      sameAs: "https://ventvest.com",
+    },
+    jobLocation: r.location
+      ? {
+          "@type": "Place",
+          address: { "@type": "PostalAddress", addressLocality: r.location },
+        }
+      : undefined,
+  };
+
+  for (const key of REQUIRED_JOBPOSTING_KEYS) {
+    const value = posting[key];
+    if (value === undefined || value === null || value === "") return undefined;
+  }
+  return posting;
+}
 
 function excerpt(text: string | null, len = 200): string {
   if (!text) return "";
@@ -38,7 +83,7 @@ async function fetchPublishedRequisitions(sb: ReturnType<typeof client>) {
   const { data, error } = await sb
     .from("requisitions")
     .select(
-      "id, display_code, title, description, location, employment_type, status, opened_date",
+      "id, display_code, title, description, location, employment_type, status, opened_date, created_at",
     )
     .eq("is_published", true)
     .eq("is_test", false)
@@ -153,24 +198,7 @@ function renderClosedNotice(base: string): string {
 
 function renderDetail(base: string, applyEndpoint: string, r: Req, slug: string): string {
   const url = `${base}/jobs/${slug}`;
-  const structuredData = {
-    "@context": "https://schema.org/",
-    "@type": "JobPosting",
-    title: r.title,
-    description: r.description ?? r.title,
-    datePosted: r.opened_date ?? undefined,
-    employmentType: r.employment_type ?? undefined,
-    hiringOrganization: {
-      "@type": "Organization",
-      name: "VentVest",
-    },
-    jobLocation: r.location
-      ? {
-          "@type": "Place",
-          address: { "@type": "PostalAddress", addressLocality: r.location },
-        }
-      : undefined,
-  };
+  const structuredData = buildJobPosting(r, url);
 
   const body = `
     <div class="card">
@@ -319,7 +347,7 @@ Deno.serve(async (req) => {
       const { data: role, error } = await sb
         .from("requisitions")
         .select(
-          "id, display_code, title, description, location, employment_type, status, opened_date, is_published, is_test",
+          "id, display_code, title, description, location, employment_type, status, opened_date, created_at, is_published, is_test",
         )
         .eq("display_code", displayCode)
         .maybeSingle();
