@@ -15,6 +15,24 @@ nav. Both export from `src/modules/recruit/index.tsx`.
 | `/recruit/candidates` | Candidate list (grades, verbatim statuses, saved views, CSV) |
 | `/recruit/candidates/:id` | Candidate record: identity, profile, nine-panel toolkit |
 
+## Files
+
+| File | Holds |
+|---|---|
+| `index.tsx` | The `<Routes>` tree and `recruitNavItems` |
+| `lib.ts` | Row type aliases, the `person*` jsonb readers, `fmtDate`/`fmtDateTime`/`todayIso`/`errMsg`, `REQ_TRANSITIONS`, `REQ_ACTION_LABELS`, `sortRows`. Pure, no client |
+| `hooks.ts` | `useLookups`, `useIsMobile`, `fetchPeopleByIds`. Everything that talks to Postgres or holds React state |
+| `savedViews.tsx` | `useSavedViews` and `SavedViewsControl`, shared by both list pages |
+| `candidates/`, `requisitions/`, `components/` | Screens and module-private components |
+
+`fmtDate` and `fmtDateTime` return `''` rather than a dash, because
+`RequisitionRecordPage` filters its info grid on `v !== ''`. Use the `fallback`
+argument of `lib/format.ts` directly if you want a visible placeholder.
+
+There is no `db.ts`. The module imports `supabase` from `src/lib/supabase.ts`
+like the other four; the `Relationships` shim that used to justify a local
+client was deleted once `database.types.ts` carried the field itself.
+
 ## Query param contract (for Agent 7 drill-through links)
 
 `/recruit/requisitions` accepts: `status`, `company_id`, `owner_id`,

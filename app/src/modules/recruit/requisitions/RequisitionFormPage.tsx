@@ -8,7 +8,9 @@ import { Select } from '../../../components/ui/Select';
 import { RecordSection } from '../../../components/ui/RecordPage';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon } from 'lucide-react';
-import { errMsg, supabase, todayIso, useLookups, type ApproverRow } from '../lib/data';
+import { supabase } from '../../../lib/supabase';
+import { type ApproverRow, errMsg, todayIso } from '../lib';
+import { useLookups } from '../hooks';
 
 interface FormState {
   title: string;

@@ -9,8 +9,9 @@ import type {
   AttachmentKind,
   TablesInsert,
 } from '../../../lib/database.types';
-import type { Activity, Attachment, Reminder, TaskRow } from '../lib/data';
-import { errMsg, fmtDate, fmtDateTime, supabase } from '../lib/data';
+import type { Activity, Attachment, Reminder, TaskRow } from '../lib';
+import { supabase } from '../../../lib/supabase';
+import { errMsg, fmtDate, fmtDateTime } from '../lib';
 import {
   attachmentRejection,
   isPendingFile,

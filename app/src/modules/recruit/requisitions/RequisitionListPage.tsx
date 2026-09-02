@@ -13,19 +13,10 @@ import { Table, CappedCell, type TableColumn } from '../../../components/ui/Tabl
 import { Pager, usePagination } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
-import {
-  errMsg,
-  fmtDate,
-  sortRows,
-  supabase,
-  useIsMobile,
-  useLookups,
-  type Application,
-  type OwnerRow,
-  type Requisition,
-  type SortState,
-} from '../lib/data';
-import { SavedViewsControl, useSavedViews, type ViewState } from '../lib/savedViews';
+import { supabase } from '../../../lib/supabase';
+import { type Application, type OwnerRow, type Requisition, type SortState, errMsg, fmtDate, sortRows } from '../lib';
+import { useIsMobile, useLookups } from '../hooks';
+import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 import { EMPTY_CELL } from '../../../lib/format';
 import { fetchAllRows } from '../../../lib/fetchAll';
 

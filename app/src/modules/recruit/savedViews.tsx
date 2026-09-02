@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useSession } from '../../../auth/SessionProvider';
-import type { Json } from '../../../lib/database.types';
-import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
-import { Select } from '../../../components/ui/Select';
-import { Dialog } from '../components/Dialog';
-import { supabase } from './data';
-import type { SavedView, SortState } from './data';
+import { useSession } from '../../auth/SessionProvider';
+import type { Json } from '../../lib/database.types';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Dialog } from './components/Dialog';
+import { supabase } from '../../lib/supabase';
+import type { SavedView, SortState } from './lib';
 
 export interface ViewState {
   filters: Record<string, string>;

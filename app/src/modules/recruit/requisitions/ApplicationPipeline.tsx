@@ -15,19 +15,9 @@ import { Table, CappedCell, type TableColumn } from '../../../components/ui/Tabl
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { downloadCsv } from '../../../lib/csv';
 import { Dialog } from '../components/Dialog';
-import {
-  errMsg,
-  fetchPeopleByIds,
-  fmtDate,
-  personName,
-  supabase,
-  type Application,
-  type CandidateProfile,
-  type Company,
-  type Person,
-  type Requisition,
-  type Source,
-} from '../lib/data';
+import { supabase } from '../../../lib/supabase';
+import { type Application, type CandidateProfile, type Company, type Person, type Requisition, type Source, errMsg, fmtDate, personName } from '../lib';
+import { fetchPeopleByIds } from '../hooks';
 
 interface PipelineProps {
   requisition: Requisition;

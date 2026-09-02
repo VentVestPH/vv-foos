@@ -101,7 +101,7 @@ Four module-local `db.ts` shims used to work around that missing field. They wer
 | `/settings/*` | `modules/settings` | all four |
 | `/employees`, `/onboard`, `/users`, `/courses` | `pages/TaleoModulePlaceholderPage.tsx` | all / admin for Users |
 
-Each module is self-contained: `index.tsx` exports its `<Routes>` tree plus its nav items, alongside `db.ts`, `hooks.ts`, `lib.ts`, `<module>.css`, and **its own `README.md`**. Those module READMEs are the authoritative per-module documentation (routes, query-param contracts for dashboard drill-through, data behavior, legal state transitions, Gate 3 demo scripts). Read the relevant one before changing a module. `app/README-APP.md` documents the shared shell, auth, and the `components/ui/` inventory.
+Each module is self-contained and all five now have the same shape: `index.tsx` exports its `<Routes>` tree plus its nav items, alongside `hooks.ts` (data access and React hooks), `lib.ts` (row types and pure helpers), `<module>.css`, and **its own `README.md`**. Only `dashboards` also has a `db.ts`, for `dashDb`. ESLint forbids a module importing another module, so anything genuinely shared belongs in `lib/`, `components/` or `shell/`. Those module READMEs are the authoritative per-module documentation (routes, query-param contracts for dashboard drill-through, data behavior, legal state transitions, Gate 3 demo scripts). Read the relevant one before changing a module. `app/README-APP.md` documents the shared shell, auth, and the `components/ui/` inventory.
 
 ### The Taleo replica shell
 

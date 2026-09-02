@@ -18,23 +18,10 @@ import {
 } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import { StarGrade } from '../../../components/ui/StarGrade';
-import {
-  errMsg,
-  fetchPeopleByIds,
-  fmtDate,
-  personEmails,
-  personName,
-  sortRows,
-  supabase,
-  useIsMobile,
-  useLookups,
-  type Application,
-  type CandidateProfile,
-  type Person,
-  type Requisition,
-  type SortState,
-} from '../lib/data';
-import { SavedViewsControl, useSavedViews, type ViewState } from '../lib/savedViews';
+import { supabase } from '../../../lib/supabase';
+import { type Application, type CandidateProfile, type Person, type Requisition, type SortState, errMsg, fmtDate, personEmails, personName, sortRows } from '../lib';
+import { fetchPeopleByIds, useIsMobile, useLookups } from '../hooks';
+import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 import { fetchAllRows } from '../../../lib/fetchAll';
 
 interface CandFilters {

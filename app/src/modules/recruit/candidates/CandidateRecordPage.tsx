@@ -28,22 +28,9 @@ import {
   TasksPanel,
   useEngagement,
 } from '../components/engagement';
-import {
-  errMsg,
-  fmtDate,
-  personEducation,
-  personEmails,
-  personExperience,
-  personName,
-  personPhones,
-  supabase,
-  useIsMobile,
-  useLookups,
-  type Application,
-  type CandidateProfile,
-  type Person,
-  type Requisition,
-} from '../lib/data';
+import { supabase } from '../../../lib/supabase';
+import { type Application, type CandidateProfile, type Person, type Requisition, errMsg, fmtDate, personEducation, personEmails, personExperience, personName, personPhones } from '../lib';
+import { useIsMobile, useLookups } from '../hooks';
 import { sendEmail, scheduleMeeting } from '../../../lib/googleActions';
 import { EMPTY_CELL } from '../../../lib/format';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
