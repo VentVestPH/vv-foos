@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useDismissable } from '../../hooks/useDismissable';
 import { Button } from './Button';
 import { Input } from './Input';
 import { downloadCsv } from '../../lib/csv';
@@ -46,6 +47,8 @@ export function ListPage({
   exportFilename,
 }: ListPageProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const closeFilters = useCallback(() => setFiltersOpen(false), []);
+  const filters = useDismissable(filtersOpen, closeFilters);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -132,7 +135,7 @@ export function ListPage({
             className="link-btn"
             aria-expanded={filtersOpen}
             aria-controls="list-filter-rail"
-            onClick={() => setFiltersOpen((v) => !v)}
+            onClick={() => (filtersOpen ? filters.requestClose() : setFiltersOpen(true))}
           >
             {filtersOpen ? 'Hide search options' : 'Search these records'}
           </button>
@@ -140,7 +143,11 @@ export function ListPage({
       )}
       <div className="list-page-body">
         {filterRail && filtersOpen && (
-          <aside className="filter-rail" id="list-filter-rail">
+          <aside
+            className="filter-rail"
+            id="list-filter-rail"
+            data-closing={filters.closing ? 'true' : undefined}
+          >
             <h2>Filters</h2>
             {filterRail}
           </aside>

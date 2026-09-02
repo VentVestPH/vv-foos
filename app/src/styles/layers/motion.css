@@ -112,6 +112,37 @@ input[type='radio'] {
   animation: panel-fade-in var(--motion-quick) var(--ease-out);
 }
 
+@keyframes toast-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.sales-toast {
+  animation: toast-in var(--motion-quick) var(--ease-out);
+}
+
+.sales-toast[data-closing='true'] {
+  animation: overlay-fade-out var(--motion-quick) var(--ease-out) forwards;
+}
+
+.intake-inline-panel {
+  animation: panel-fade-in var(--motion-quick) var(--ease-out);
+}
+
+.filter-rail {
+  animation: panel-fade-in var(--motion-quick) var(--ease-out);
+}
+
+.filter-rail[data-closing='true'] {
+  animation: panel-fade-out var(--motion-quick) var(--ease-out) forwards;
+}
+
 @keyframes menu-drop-in {
   from {
     transform: translateY(-4px);

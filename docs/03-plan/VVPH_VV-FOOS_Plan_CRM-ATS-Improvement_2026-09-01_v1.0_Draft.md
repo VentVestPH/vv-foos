@@ -477,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**145½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**146½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -642,8 +642,17 @@ Raised on 2026-09-02 after looking at the running app, and confirmed by measurem
 | R5 | Micro-transitions on the controls G7 did not list | **DONE.** Measured first: selects, text inputs, search inputs, checkboxes, badges, the star grade, the sidebar collapse, the gear buttons, the nav scroll chevrons and every dialog close cross all reported `transition: all 0s`. They now carry 90 ms transitions on the properties that actually change, and a test fails if any of thirteen named controls has no transition duration | 2 h |
 | R6 | A motion test that asserts behaviour rather than budget | **DONE.** `tests/e2e/interaction-motion.spec.ts`, nine tests. It asserts what a user sees: no tab moves, the chevron's matrix, the collapse height mid-transition in both directions, that a collapsed section is `inert` with zero reachable descendants, that a dialog is still mounted mid-fade after its close and after **Cancel**, that Escape closes it, that a menu animates in and out, and that no listed control lacks a transition. `check-motion.mjs` still guards the budget; this guards the behaviour | 3 h |
 | R7 | Dropdowns, toasts and inline panels | **DONE.** Raised mid-session: the list was never limited to the four things named. The two utility-header menus now animate in and out through `useDismissable`, including on an outside click, and their caret rotates 180 degrees. The two `sales-toast` notices fade out 140 ms before their 4-second auto-dismiss instead of vanishing. The intake drawer's raw-payload and reject panels fade in. One thing measurement stopped: a `display: inline-block` added for the caret turned out to be unnecessary, because the flex parent already blockifies it, so it came back out rather than stay as a no-op | 3 h |
-| R8 | Not done, and one of them cannot be | **Open.** `CappedCell` expands a table cell with no transition, which is the same measured-height technique as R3. The sidebar collapse animates nothing because it changes `width`, which `check-motion.mjs` bans outright and for good reason; animating it would need a transform or grid approach, and it is worth asking whether it should animate at all | 3 h |
+| R8 | **DONE 2026-09-02: one built, two declined on measurement, and one earlier claim corrected.**
 
+**Built: the filter rail.** It was conditionally rendered, so a large panel appeared and vanished in a single frame on every list. It now fades in and out through the same `useDismissable` delay as the menus, asserted by a test that the rail is still mounted with `data-closing` after the click.
+
+**Declined: `CappedCell`.** Measured before deciding: expanding a capped cell grows it from 32 px to 48 px, and the row height and table height are **identical before and after**, 73 px and 483 px. Nothing moves, so there is nothing jarring to smooth, and the mechanism would cost a `ResizeObserver` per cell on a list that can hold hundreds.
+
+**Declined: the sidebar collapse.** It changes `width`, and `scripts/check-motion.mjs` bans transitioning `width` *and* bans motion on `.fo-sidebar` as a shell selector. Both bans predate this work and exist for Taleo's flatness; animating it means overriding two deliberate guards, which is a decision for whoever owns the fidelity target rather than a polish task.
+
+**The correction.** The R7 commit's message claimed the toast fade and the intake inline-panel animations had landed. They had not: the script that was supposed to write them to `motion.css` hit a `sys.exit` on an earlier replacement in the same run, so the CSS was never written, and I read the output as success. `git show` on that commit confirms zero occurrences of the keyframes. Both are now written, and both are covered by a test that reads the rules out of the loaded stylesheets, so they cannot disappear silently again.
+
+That test needed two corrections of its own, each a real fact about the platform: module CSS is lazily loaded, so `.sales-toast` is invisible from a recruit route and the check has to visit the module that owns each rule; and `style.animationName` reads empty when the `animation` shorthand contains `var()`, because the longhands are not resolved at `cssRules` level, so the assertion reads the shorthand | `CappedCell` has no transition, and the sidebar collapse animates nothing | done |
 **Not in scope for R, deliberately.** Route transitions and list-row stagger. Both are the kind of motion that reads as slow the tenth time and neither is a Taleo behaviour, so they would be added on request rather than on principle.
 
 
@@ -708,7 +717,7 @@ One thing measurement stopped. Raising the id chunk from 200 to 1,000 to cut req
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **145½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **146½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -730,7 +739,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
-- [ ] **R8** `CappedCell` expansion, and whether the sidebar collapse should animate at all given the width ban
 - [ ] **T1** A discovery pass over every screen: screenshot each page and state, inventory the components, hooks and functions per screen, and record what to rework, improve or optimise
 
 ### 8.5 Architecture, each needs a decision first

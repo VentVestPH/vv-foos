@@ -169,7 +169,7 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
         <button type="button" className="intake-raw-toggle" onClick={() => setShowRaw((v) => !v)}>
           {showRaw ? 'Hide raw payload' : 'Show raw payload'}
         </button>
-        {showRaw && <pre className="intake-raw-payload">{JSON.stringify(item.raw_payload, null, 2)}</pre>}
+        {showRaw && <pre className="intake-raw-payload intake-inline-panel">{JSON.stringify(item.raw_payload, null, 2)}</pre>}
       </RecordSection>
 
       {dedup !== undefined && !isReadOnly(item) && item.status !== 'imported' && (
@@ -261,7 +261,7 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
       )}
 
       {showReject && (
-        <div className="intake-reject-panel">
+        <div className="intake-reject-panel intake-inline-panel">
           <Input
             label="Reject reason"
             required

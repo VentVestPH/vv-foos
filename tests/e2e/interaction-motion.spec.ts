@@ -264,6 +264,87 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     await expect(menu).toHaveCount(0, { timeout: 3000 });
   });
 
+  test('R8 the filter rail animates in and out rather than appearing whole', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/recruit/candidates');
+
+    const toggle = page.getByRole('button', { name: 'Search these records' });
+    await expect(toggle).toBeVisible({ timeout: 25000 });
+    const rail = page.locator('.filter-rail');
+    await expect(rail).toHaveCount(0);
+
+    await toggle.click();
+    await expect(rail).toHaveCount(1);
+    expect(await rail.evaluate((el) => getComputedStyle(el).animationName)).toBe('panel-fade-in');
+
+    await page.getByRole('button', { name: 'Hide search options' }).click();
+    const mid = await page.evaluate(() => {
+      const el = document.querySelector('.filter-rail');
+      return { mounted: !!el, closing: el?.getAttribute('data-closing') ?? null };
+    });
+    expect(mid.mounted, 'the rail must outlive the click so it can animate out').toBe(true);
+    expect(mid.closing).toBe('true');
+    await expect(rail).toHaveCount(0, { timeout: 3000 });
+  });
+
+  test('R7 a toast fades, and the intake panels animate, in the module that owns them', async ({
+    page,
+  }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+
+    const animationsFor = (selector: string) =>
+      page.evaluate((wanted) => {
+        const found: string[] = [];
+        for (const sheet of Array.from(document.styleSheets)) {
+          let rules: CSSRuleList;
+          try {
+            rules = sheet.cssRules;
+          } catch {
+            continue;
+          }
+          const walk = (list: CSSRuleList) => {
+            for (const rule of Array.from(list)) {
+              const r = rule as unknown as {
+                selectorText?: string;
+                style?: CSSStyleDeclaration;
+                cssRules?: CSSRuleList;
+              };
+              if (r.selectorText && r.style) {
+                const shorthand = r.style.animation || r.style.animationName;
+                if (r.selectorText.includes(wanted) && shorthand) {
+                  found.push(shorthand.split(' ')[0] ?? '');
+                }
+              } else if (r.cssRules) {
+                walk(r.cssRules);
+              }
+            }
+          };
+          walk(rules);
+        }
+        return found;
+      }, selector);
+
+    await gotoAsSignedIn(page, '/sales/deals');
+    await expect(page.getByRole('heading', { name: /^Deals/ })).toBeVisible({ timeout: 25000 });
+    expect(await animationsFor('.sales-toast'), 'a won-deal toast must animate in and out').toEqual(
+      expect.arrayContaining(['toast-in', 'overlay-fade-out']),
+    );
+
+    await gotoAsSignedIn(page, '/intake');
+    await expect(page.locator('.fo-page-header, .list-page-head').first()).toBeVisible({
+      timeout: 25000,
+    });
+    expect(await animationsFor('.intake-inline-panel')).toEqual(
+      expect.arrayContaining(['panel-fade-in']),
+    );
+
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    await expect(page.locator('.table-wrap').first()).toBeVisible({ timeout: 25000 });
+    expect(await animationsFor('.filter-rail')).toEqual(
+      expect.arrayContaining(['panel-fade-in', 'panel-fade-out']),
+    );
+  });
+
   test('R1 Cancel animates out too, not just the close cross', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, CANDIDATE);
