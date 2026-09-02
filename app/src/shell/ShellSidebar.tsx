@@ -33,7 +33,9 @@ function searchScope(pathname: string): SearchScope {
 }
 
 export function ShellSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches,
+  );
   const [keywords, setKeywords] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');

@@ -1,6 +1,7 @@
 @media (max-width: 900px) {
   .list-page-body {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .filter-rail {
@@ -41,3 +42,43 @@
     flex-wrap: wrap;
   }
 }
+
+@media (max-width: 640px) {
+  .fo-utility-header {
+    flex-wrap: wrap;
+    row-gap: var(--sp-half);
+    height: auto;
+    padding-bottom: var(--sp-half);
+  }
+
+  .fo-utility-actions {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+    row-gap: var(--sp-half);
+    gap: var(--sp-1);
+    white-space: normal;
+  }
+
+  .fo-brand {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .fo-brand-sub {
+    display: none;
+  }
+
+  .fo-bookmark-bar {
+    display: none;
+  }
+
+  .record-title-row {
+    flex-wrap: wrap;
+  }
+
+  .fo-page-header {
+    flex-wrap: wrap;
+  }
+}
+

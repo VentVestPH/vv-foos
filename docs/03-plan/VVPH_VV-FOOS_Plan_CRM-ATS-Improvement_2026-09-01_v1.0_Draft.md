@@ -446,8 +446,15 @@ Three decisions worth recording, because each is a place this could have leaked.
 **A wrong, malformed and missing token return the identical 404 body**, asserted by comparing all three, so the endpoint cannot be used to enumerate.
 
 Six API tests and `validate.sql` check 24. Two local-environment facts came out of the work and are worth knowing before anyone tests an Edge Function here: a **new** function returns 404 until the stack is restarted, because Kong's routes are generated at `supabase start` and the 404 comes from the gateway rather than the runtime; and an **edited** function keeps serving the old module until the edge container is restarted. `supabase stop` and `start` preserved the local database, and the personas needed re-seeding afterwards | An applicant hears nothing after applying, which is the highest-volume inbound message any ATS receives | done |
-| Q8 | Usable on a phone | L9 as a defect is "the layout does not reflow below 900px". As a capability it is bigger: a recruiter cannot look at a candidate between meetings. Whether that matters is a product judgement, not an accessibility one | 1 w |
+| Q8 | **DONE 2026-09-02, and it was a day rather than the week estimated, because measuring first shrank it.** At 390px every route scrolled sideways by exactly **333px**, and the culprit was the same everywhere: `.fo-utility-actions` in the header carried `white-space: nowrap` and never wrapped. Everything else already reflowed, which is L9 having done its job. The header now wraps below 640px, the brand subtitle and the bookmark bar step aside, and **`scrollWidth` equals `clientWidth` on all seven routes measured**.
 
+Two further problems came out of measuring rather than assuming, and the second is the interesting one.
+
+**The content began 489px down an 844px screen**, so 58% of the phone was header, nav and sidebar before a single candidate appeared, the sidebar alone accounting for 338px. It now starts collapsed below 640px, which puts the content at 183px, and the expand button still works. A test asserts it stays open at 1440px, because a phone default must not become a desktop default.
+
+**A wide table was not scrolling in its own box; the whole shell was scrolling instead.** `.table-wrap` measured 1449px on a 390px screen with `overflow-x: auto` that never engaged, because `clientWidth` equalled `scrollWidth`. `.list-page-table` already had `min-width: 0`, so that was not it. The cause was `align-items: flex-start` on `.list-page-body`, which becomes `flex-direction: column` at narrow widths: in a column flex container that makes children shrink-to-fit, so the table grew past its parent and `.fo-body` absorbed the overflow. One `align-items: stretch` in the narrow layer fixed it, and the wrap now measures 358px wide with a 1447px scroll width. Desktop was already correct, checked at 1440px, where the wrap is 1052px inside a 1451px scroll width.
+
+Five browser tests: no sideways scroll on any of seven routes, content in the top third, the sidebar collapsed on a phone and open on a desktop, and the table scrolling inside its own box | L9 fixed the reflow. Whether a recruiter can actually use this between meetings was never measured | done |
 **Status 2026-09-02.** Q1 is done. The rest are open, none of them a defect.
 
 **Deliberately not proposed:** interview scheduling with availability picking, offer management, and scheduled report delivery. All three are real ATS features and all three are larger than the remaining calendar, so proposing them before October would be dishonest about what fits.
@@ -464,7 +471,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**142½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**143½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -484,7 +491,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **M** Security and public surface | 10 | 10½ | M1 to M3, M6, M9 and M10 done, and `npm audit --omit=dev` now reports 0 vulnerabilities. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
-| **Q** Product capability | 8 | 7 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
+| **Q** Product capability | 8 | 8 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
 | **S** Dead code | 8 | 8 | New on 2026-09-02. S1 to S7 done: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed. Committing the gate exposed that `npm run db:validate` could never fail. S8 open |
 | **R** Interaction polish | 6 | 0 | New on 2026-09-02, from looking at the running app. Exit transitions, accordion mechanics and a measured 2.8 px tab shift, none of which workstream G specified |
 
@@ -680,7 +687,7 @@ The three specs are fixed by not scraping the list: two now read a known seeded 
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **142½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **143½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -705,7 +712,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 - [ ] **R8** `CappedCell` expansion, and whether the sidebar collapse should animate at all given the width ban
 - [ ] **T1** A discovery pass over every screen: screenshot each page and state, inventory the components, hooks and functions per screen, and record what to rework, improve or optimise
-- [ ] **Q8** Usable on a phone, the capability framing of L9
 
 ### 8.5 Architecture, each needs a decision first
 
