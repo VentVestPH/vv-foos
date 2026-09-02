@@ -794,4 +794,50 @@ begin
   raise notice 'PASS 23: anon and authenticated hold no TRUNCATE, TRIGGER or REFERENCES on any public table, now or by default';
 end $$;
 
+do $$
+declare
+  n integer;
+  tok uuid;
+  sample record;
+begin
+  select count(*) into n from information_schema.columns
+   where table_name = 'applications' and column_name = 'status_token';
+  if n <> 1 then
+    raise exception 'FAIL 24: applications has no status_token';
+  end if;
+
+  select count(*) into n from pg_indexes
+   where tablename = 'applications' and indexdef like '%status_token%' and indexdef like 'CREATE UNIQUE%';
+  if n = 0 then
+    raise exception 'FAIL 24: status_token is not unique, so one link could match two applications';
+  end if;
+
+  select count(*) into n from applications where status_token is null;
+  if n > 0 then
+    raise exception 'FAIL 24: % application(s) have no status token', n;
+  end if;
+
+  select count(*) into n
+    from information_schema.role_routine_grants
+   where routine_name = 'fn_application_status' and grantee in ('anon', 'authenticated');
+  if n > 0 then
+    raise exception 'FAIL 24: fn_application_status is executable by anon or authenticated; it is for the service role only';
+  end if;
+
+  select status_token into tok from applications order by display_code limit 1;
+  select * into sample from public.fn_application_status(tok);
+  if sample.headline is null or sample.reference is null then
+    raise exception 'FAIL 24: the applicant projection returned nothing for a real token';
+  end if;
+  if sample.headline in ('phone_screen', 'client_interview', 'screening', 'received') then
+    raise exception 'FAIL 24: the applicant projection leaks the internal stage name %', sample.headline;
+  end if;
+
+  if exists (select 1 from public.fn_application_status('00000000-0000-4000-8000-000000000000')) then
+    raise exception 'FAIL 24: an unknown token returned a row';
+  end if;
+
+  raise notice 'PASS 24: every application has a unique status token, the projection is service-role only, and it speaks applicant language rather than stage names';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;

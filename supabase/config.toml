@@ -442,6 +442,9 @@ enabled = true
 # public careers page and the webhook endpoints depend on, and the e2e and
 # mocked-webhook tests fail in a way that does not reproduce against the
 # deployed project.
+[functions.careers-status]
+verify_jwt = false
+
 [functions.careers-page]
 verify_jwt = false
 

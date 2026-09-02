@@ -5,6 +5,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const RATE_LIMIT_PER_HOUR = 5;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const STATUS_BASE = `${Deno.env.get("CAREERS_PUBLIC_ORIGIN") ?? ""}/functions/v1/careers-status`;
 const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
 
 class RequestTooLarge extends Error {}
@@ -201,7 +202,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-
+    let statusToken: string | null = null;
     let personId: string | null = null;
     let duplicateOf: string | null = null;
 
@@ -265,24 +266,32 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingApp) {
-      const { error: updateErr } = await sb
+      const { data: updated, error: updateErr } = await sb
         .from("applications")
         .update({
           answers: { consent_at: new Date().toISOString(), reapplied: true },
           applied_at: new Date().toISOString(),
         })
-        .eq("id", existingApp.id);
+        .eq("id", existingApp.id)
+        .select("status_token")
+        .single();
       if (updateErr) throw updateErr;
+      statusToken = updated?.status_token ?? null;
     } else {
-      const { error: appErr } = await sb.from("applications").insert({
-        requisition_id: requisitionId,
-        person_id: personId,
-        stage: "received",
-        source_id: source?.id ?? null,
-        answers: { consent_at: new Date().toISOString() },
-        applied_at: new Date().toISOString(),
-      });
+      const { data: created, error: appErr } = await sb
+        .from("applications")
+        .insert({
+          requisition_id: requisitionId,
+          person_id: personId,
+          stage: "received",
+          source_id: source?.id ?? null,
+          answers: { consent_at: new Date().toISOString() },
+          applied_at: new Date().toISOString(),
+        })
+        .select("status_token")
+        .single();
       if (appErr) throw appErr;
+      statusToken = created?.status_token ?? null;
     }
 
     const { error: importedErr } = await sb
@@ -291,7 +300,11 @@ Deno.serve(async (req) => {
       .eq("id", intakeItem.id);
     if (importedErr) throw importedErr;
 
-    return json({ ok: true, message: "Application received." });
+    return json({
+      ok: true,
+      message: "Application received.",
+      statusUrl: statusToken ? `${STATUS_BASE}?token=${statusToken}` : null,
+    });
   } catch (err) {
     console.error("careers-apply: import failed", err);
 

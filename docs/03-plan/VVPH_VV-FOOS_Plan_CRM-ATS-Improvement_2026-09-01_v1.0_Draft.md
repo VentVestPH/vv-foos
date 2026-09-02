@@ -435,7 +435,17 @@ The 75 tab stops the audit measured are now one: the table uses a roving tabinde
 `/` is suppressed inside an input, a textarea, a select or anything contenteditable, so typing a slash in a search box types a slash. `Space` calls `preventDefault`, so selecting a row does not scroll the page, and a test asserts `window.scrollY` is unchanged.
 
 One regression was introduced and fixed here, and it is worth recording because the cause was not obvious. Focusing a row from an effect whenever `activeIndex` changed meant clicking a checkbox moved focus to its row mid-click, and Playwright reported "Clicking the checkbox did not change its state" in the Q1 bulk-action spec, three passes in a row. The effect now moves focus only when the change came from a key, tracked by a ref that the keyboard handlers set and the effect clears. `Input` also had to start forwarding refs for `/` to reach the search box | 75 tab stops to reach the first data row, and recruiters live in these lists | done |
-| Q7 | A candidate-facing application status page | `careers-apply` accepts an application and the applicant then hears nothing until a human writes. A status link removes the "did you get my CV" email, which is the highest-volume inbound message any ATS receives | 2 d |
+| Q7 | **DONE 2026-09-02.** `careers-status` is a public Edge Function, `verify_jwt = false`, that renders one application's progress from an unguessable per-application token. `careers-apply` now returns the link in its response, for both a first application and a re-application.
+
+Three decisions worth recording, because each is a place this could have leaked.
+
+**The token is a random uuid on the application, not the application id**, with a unique index, so holding one link reveals exactly one application and tells you nothing about any other. `anon` is granted nothing on `applications`, which is why this cannot be a PostgREST read: the function uses the service role and selects one row by token.
+
+**The applicant never sees an internal stage name.** `fn_application_status` maps the eight locked stages onto applicant-facing language in SQL, so the endpoint cannot drift from the mapping: `screening` reads "Under review", `phone_screen` reads "Phone screen", `submitted` reads "Submitted to the hiring company", `client_interview` reads "Interviewing". A test asserts none of the internal names appears in the HTML, and that the page carries neither the applicant's email nor their phone, because the link is shareable by definition.
+
+**A wrong, malformed and missing token return the identical 404 body**, asserted by comparing all three, so the endpoint cannot be used to enumerate.
+
+Six API tests and `validate.sql` check 24. Two local-environment facts came out of the work and are worth knowing before anyone tests an Edge Function here: a **new** function returns 404 until the stack is restarted, because Kong's routes are generated at `supabase start` and the 404 comes from the gateway rather than the runtime; and an **edited** function keeps serving the old module until the edge container is restarted. `supabase stop` and `start` preserved the local database, and the personas needed re-seeding afterwards | An applicant hears nothing after applying, which is the highest-volume inbound message any ATS receives | done |
 | Q8 | Usable on a phone | L9 as a defect is "the layout does not reflow below 900px". As a capability it is bigger: a recruiter cannot look at a candidate between meetings. Whether that matters is a product judgement, not an accessibility one | 1 w |
 
 **Status 2026-09-02.** Q1 is done. The rest are open, none of them a defect.
@@ -454,7 +464,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**141½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**142½ of 153 numbered tasks are done.** Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -474,7 +484,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **M** Security and public surface | 10 | 10½ | M1 to M3, M6, M9 and M10 done, and `npm audit --omit=dev` now reports 0 vulnerabilities. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
-| **Q** Product capability | 8 | 6 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
+| **Q** Product capability | 8 | 7 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
 | **S** Dead code | 8 | 8 | New on 2026-09-02. S1 to S7 done: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed. Committing the gate exposed that `npm run db:validate` could never fail. S8 open |
 | **R** Interaction polish | 6 | 0 | New on 2026-09-02, from looking at the running app. Exit transitions, accordion mechanics and a measured 2.8 px tab shift, none of which workstream G specified |
 
@@ -670,7 +680,7 @@ The three specs are fixed by not scraping the list: two now read a known seeded 
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **141½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **142½ of 153 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -695,7 +705,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 - [ ] **R8** `CappedCell` expansion, and whether the sidebar collapse should animate at all given the width ban
 - [ ] **T1** A discovery pass over every screen: screenshot each page and state, inventory the components, hooks and functions per screen, and record what to rework, improve or optimise
-- [ ] **Q7** A candidate-facing application status page
 - [ ] **Q8** Usable on a phone, the capability framing of L9
 
 ### 8.5 Architecture, each needs a decision first

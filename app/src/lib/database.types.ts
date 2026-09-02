@@ -489,6 +489,7 @@ export interface Database {
           applied_at: string;
           hired_at: string | null;
           stage_changed_at: string;
+          status_token: string;
         };
         Insert: {
           id?: string;
@@ -505,6 +506,7 @@ export interface Database {
           applied_at?: string;
           hired_at?: string | null;
           stage_changed_at?: string;
+          status_token?: string;
         };
         Update: Partial<
           Database['public']['Tables']['applications']['Insert']
