@@ -407,7 +407,11 @@ Three details worth recording. The term is sanitised before it reaches PostgREST
 
 `tests/e2e/global-search.spec.ts` has six tests and found a real defect while being written: the tickets query ordered by `created_at`, a column `tickets` does not have, so the whole search failed with `column tickets.created_at does not exist` and the page showed the error rather than results. Only the empty-state test caught it, because the others were looking for hits | Quick Search was hardcoded to candidates on every route, and nothing searched requisitions, accounts, contacts or deals from anywhere | done |
 | Q4 | Email templates | No template support anywhere in `recruit` or `settings`. `GoogleIntegrationCard` sends through the user's real Gmail, so the transport is built; what is missing is not having to retype the same outreach. Acceptance criterion 6.5 assumes templates exist, which is worth flagging as a scope mismatch rather than a test failure | 2 d |
-| Q5 | Shareable saved views | Saved views are per-user by design, and an e2e test asserts that another staff member cannot see one. That is correct as security. As a capability it means a team cannot agree on a shortlist: "the roles Amir is screening" has to be rebuilt by each person | 1 d |
+| Q5 | **DONE 2026-09-02.** A saved view can now be shared with the team, and sharing grants read access only. The save dialog has a **Share with the team** checkbox, a shared view reads "name (shared)" in the picker, and **Delete view** is disabled for anyone but its owner with the reason in the title.
+
+The interesting part is the RLS shape. `ats_saved_views` had a single `for all` policy, which cannot express "everyone may read this row but only its owner may change it". `20260902000006_shared_saved_views.sql` replaces it with four: SELECT allows the owner, an admin, or any shared row; INSERT, UPDATE and DELETE stay owner-or-admin. That is why this needed a migration rather than a column and a client-side filter, and it means the disabled button is a courtesy, not the control. A test proves the difference by having a sourcer issue the delete through the API directly and asserting the row survives.
+
+Per-user privacy is unchanged and still tested: the existing 2.9 test asserting one staff member cannot see another's view still passes, because it saves a private one | Saved views were per-user by design, so "the roles Amir is screening" had to be rebuilt by every person who wanted it | done |
 | Q6 | **DONE 2026-09-02.** Every list is now navigable without the mouse: `/` focuses the list search from anywhere on the page, `j` and `k` or the arrow keys walk the rows, `Home` and `End` jump to the ends, `Enter` opens the focused record, and `Space` or `x` selects it. The shortcuts live in `Table` and `ListPage`, so all nine lists get them at once rather than the candidate list alone.
 
 The 75 tab stops the audit measured are now one: the table uses a roving tabindex, so exactly one row is ever in the tab order and the rest are reachable only by the row keys. A visually-hidden paragraph states the shortcuts for a screen reader instead of leaving them undiscoverable, and `aria-selected` on the row now reflects the checkbox, which it did not before.
@@ -434,7 +438,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**121½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**122½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -454,7 +458,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 9 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
-| **Q** Product capability | 8 | 3 | Q1, Q3 and Q6 done: real bulk actions, one search across every entity, and the lists usable from the keyboard |
+| **Q** Product capability | 8 | 4 | Q1, Q3, Q5 and Q6 done: real bulk actions, one search across every entity, shareable views, and the lists usable from the keyboard |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -564,7 +568,7 @@ Auditing the cascade to plan N3 turned up three live defects that had nothing to
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **121½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **122½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -589,7 +593,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 - [ ] **Q2** A merge path for two existing candidate records
 - [ ] **Q4** Email templates
-- [ ] **Q5** Shareable saved views
 - [ ] **Q7** A candidate-facing application status page
 - [ ] **Q8** Usable on a phone, the capability framing of L9
 - [ ] Dependency licence compliance, for the handover

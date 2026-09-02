@@ -369,6 +369,7 @@ export function CandidateListPage() {
           onApply={applyView}
           onSave={savedViews.save}
           onDelete={savedViews.remove}
+          ownStaffId={staff?.id}
         />
       }
       exportRows={filtered}

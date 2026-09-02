@@ -391,6 +391,7 @@ export function RequisitionListPage() {
           onApply={applyView}
           onSave={savedViews.save}
           onDelete={savedViews.remove}
+          ownStaffId={staff?.id}
         />
       }
       actions={

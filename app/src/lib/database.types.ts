@@ -753,6 +753,7 @@ export interface Database {
           filters: Json;
           columns: Json;
           sort: Json;
+          is_shared: boolean;
           created_at: string;
         };
         Insert: {
@@ -763,6 +764,7 @@ export interface Database {
           filters?: Json;
           columns?: Json;
           sort?: Json;
+          is_shared?: boolean;
           created_at?: string;
         };
         Update: Partial<

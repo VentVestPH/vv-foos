@@ -40,7 +40,7 @@ export function useSavedViews(entity: 'requisition' | 'candidate') {
       .from('ats_saved_views')
       .select('*')
       .eq('entity', entity)
-      .eq('staff_id', staff.id)
+      .or(`staff_id.eq.${staff.id},is_shared.is.true`)
       .order('created_at');
     if (err) {
       setError(err.message);
@@ -54,12 +54,13 @@ export function useSavedViews(entity: 'requisition' | 'candidate') {
   }, [refresh]);
 
   const save = useCallback(
-    async (name: string, state: ViewState) => {
+    async (name: string, state: ViewState, shared = false) => {
       if (!staff) return;
       const { error: err } = await supabase.from('ats_saved_views').insert({
         staff_id: staff.id,
         entity,
         name,
+        is_shared: shared,
         filters: (state.filters ?? {}) as unknown as Json,
         columns: (state.columns ?? []) as unknown as Json,
         sort: (state.sort ?? []) as unknown as Json,
@@ -96,8 +97,9 @@ interface SavedViewsControlProps {
 
   currentState: () => ViewState;
   onApply: (state: ViewState) => void;
-  onSave: (name: string, state: ViewState) => void | Promise<void>;
+  onSave: (name: string, state: ViewState, shared: boolean) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
+  ownStaffId?: string | undefined;
 }
 
 export function SavedViewsControl({
@@ -106,16 +108,24 @@ export function SavedViewsControl({
   onApply,
   onSave,
   onDelete,
+  ownStaffId,
 }: SavedViewsControlProps) {
   const [selectedId, setSelectedId] = useState('');
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
+  const [shared, setShared] = useState(false);
+
+  const selected = views.find((v) => v.id === selectedId);
+  const canDelete = Boolean(selected) && (!ownStaffId || selected?.staff_id === ownStaffId);
 
   return (
     <div className="saved-views">
       <Select
         aria-label="Saved views"
-        options={views.map((v) => ({ value: v.id, label: v.name }))}
+        options={views.map((v) => ({
+          value: v.id,
+          label: v.is_shared ? `${v.name} (shared)` : v.name,
+        }))}
         placeholder="Saved views…"
         value={selectedId}
         onChange={(e) => {
@@ -132,6 +142,8 @@ export function SavedViewsControl({
         <Button
           size="sm"
           variant="ghost"
+          disabled={!canDelete}
+          title={canDelete ? undefined : 'Only the person who shared this view can delete it'}
           onClick={() => {
             void onDelete(selectedId);
             setSelectedId('');
@@ -151,9 +163,10 @@ export function SavedViewsControl({
                 variant="primary"
                 disabled={!name.trim()}
                 onClick={() => {
-                  void onSave(name.trim(), currentState());
+                  void onSave(name.trim(), currentState(), shared);
                   setNaming(false);
                   setName('');
+                  setShared(false);
                 }}
               >
                 Save
@@ -168,6 +181,18 @@ export function SavedViewsControl({
             required
             autoFocus
           />
+          <label className="rq-checkline">
+            <input
+              type="checkbox"
+              checked={shared}
+              onChange={(e) => setShared(e.target.checked)}
+            />
+            Share with the team
+          </label>
+          <p className="text-secondary">
+            A shared view is visible to everyone who can open this list. Only you can rename or
+            delete it.
+          </p>
         </Dialog>
       )}
     </div>
