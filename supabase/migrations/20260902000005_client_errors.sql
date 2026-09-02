@@ -8,10 +8,12 @@
 -- Content-Security-Policy change and no sourcemap upload; the cost is no
 -- grouping, no release association and no alerting.
 --
--- Write-only for staff: an INSERT policy scoped to auth.uid() and a SELECT
--- policy for admin only. One consequence to remember when writing a client:
+-- Write-only for staff: an INSERT policy scoped to auth.uid(), with SELECT and
+-- DELETE for an admin only. Two consequences to remember when writing a client.
 -- `insert(...).select(...)` fails for a non-admin, because RETURNING needs the
--- SELECT policy to pass. The reporter inserts without reading back.
+-- SELECT policy to pass, so the reporter inserts without reading back. And a
+-- delete needs the admin policy: without it every teardown is refused, which is
+-- silent unless the caller checks the error.
 --
 -- Bounded on purpose. Lengths are CHECK constraints rather than truncation, so
 -- an oversized payload is a visible failure, and the client caps itself at 20
@@ -37,7 +39,7 @@ create index if not exists idx_client_errors_occurred_at on client_errors (occur
 
 alter table client_errors enable row level security;
 
-grant insert, select on client_errors to authenticated;
+grant insert, select, delete on client_errors to authenticated;
 
 drop policy if exists client_errors_insert on client_errors;
 create policy client_errors_insert on client_errors
@@ -47,6 +49,11 @@ create policy client_errors_insert on client_errors
 drop policy if exists client_errors_read on client_errors;
 create policy client_errors_read on client_errors
   for select to authenticated
+  using (( select get_my_role() ) = 'admin');
+
+drop policy if exists client_errors_delete on client_errors;
+create policy client_errors_delete on client_errors
+  for delete to authenticated
   using (( select get_my_role() ) = 'admin');
 
 insert into retention_policy (table_name, keep_days) values ('client_errors', 30)

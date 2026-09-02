@@ -4,7 +4,11 @@ import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 
 test.afterAll(async () => {
   const admin = await clientAs('admin');
-  await admin.from('client_errors').delete().like('message', '%dynamically imported module%');
+  const { error } = await admin
+    .from('client_errors')
+    .delete()
+    .like('message', '%dynamically imported module%');
+  if (error) throw new Error(`could not clean up client_errors: ${error.message}`);
 });
 
 test.describe('O1: a render error is contained instead of blanking the app', () => {

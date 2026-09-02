@@ -6,7 +6,8 @@ const tag = `e2e-error-${process.pid}-${Math.random().toString(36).slice(2, 8)}`
 
 test.afterAll(async () => {
   const admin = await clientAs('admin');
-  await admin.from('client_errors').delete().like('message', `%${tag}%`);
+  const { error } = await admin.from('client_errors').delete().like('message', `%${tag}%`);
+  if (error) throw new Error(`could not clean up client_errors: ${error.message}`);
 });
 
 async function rowsFor(message: string) {

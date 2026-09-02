@@ -5,7 +5,8 @@ const tag = `qa-client-error-${process.pid}-${Math.random().toString(36).slice(2
 
 afterAll(async () => {
   const admin = await clientAs('admin');
-  await admin.from('client_errors').delete().like('message', `${tag}%`);
+  const { error } = await admin.from('client_errors').delete().like('message', `${tag}%`);
+  if (error) throw new Error(`could not clean up client_errors: ${error.message}`);
 });
 
 async function record(persona: Persona, message: string) {
@@ -82,6 +83,24 @@ describe('client_errors is write-only for staff and readable only by an admin', 
     const { error } = await record('admin', `${tag}${'x'.repeat(2100)}`);
     expect(error).not.toBeNull();
     expect(error?.message).toMatch(/client_errors_message_len|check constraint/);
+  });
+
+  it('lets an admin clear the log but nobody else', async () => {
+    const message = `${tag} deletable`;
+    expect((await record('recruiter', message)).error).toBeNull();
+
+    const recruiter = await clientAs('recruiter');
+    const refused = await recruiter.from('client_errors').delete().eq('message', message);
+    expect(refused.error).toBeNull();
+
+    const admin = await clientAs('admin');
+    const still = await admin.from('client_errors').select('id').eq('message', message);
+    expect(still.data).toHaveLength(1);
+
+    const cleared = await admin.from('client_errors').delete().eq('message', message);
+    expect(cleared.error, cleared.error?.message).toBeNull();
+    const gone = await admin.from('client_errors').select('id').eq('message', message);
+    expect(gone.data).toHaveLength(0);
   });
 
   it('is covered by the retention policy', async () => {
