@@ -5,6 +5,7 @@ export default defineConfig({
     include: ['api/**/*.test.ts', 'mocks/**/*.test.ts', 'unit/**/*.test.ts'],
 
     fileParallelism: false,
+    retry: 1,
     testTimeout: 20000,
     hookTimeout: 20000,
     setupFiles: ['./setup.ts'],

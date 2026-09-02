@@ -257,11 +257,12 @@ Added 2026-09-02. An axe run across eight signed-in routes at four viewport widt
 | L4 | **DONE 2026-09-02.** WCAG 2.2 SC 2.5.8 target sizes | Measured 16x14 star buttons (21 instances) and 13x13 row checkboxes (22 instances) against the 24x24 minimum. Fixed with padding, not icon scaling | done |
 | L5 | **DONE 2026-09-02.** Accessible name on the sidebar landmark | `landmark-unique` fired on five routes | done |
 | L6 | **DONE 2026-09-02.** Three contrast failures, and the guard that could not see them | The guard checked 17 hand-picked token pairs rather than the DOM, so it read 17 of 17 green while chips sat at **2.55:1**, links on a hovered row at 4.41:1 and side-tab labels at 3.59:1. All three fixed, guard now 23 pairs | done |
-| L7 | Keyboard support on `KanbanBoard` | It wires only `PointerSensor`; cards have no `tabIndex` and no `onKeyDown`. The **requisition pipeline board is not keyboard-operable at all**, failing SC 2.1.1 and 2.5.7. The deals board escapes only because `DealRecordPage` happens to expose stage as a real `<select>` | 3 h |
+| L7 | **DONE 2026-09-02.** `KanbanBoard` cards are focusable and carry an `aria-label` naming their column and position. Space or enter grabs a card, left and right arrows move it between stages, space drops it, escape cancels. A `.grabbed` class gives the held card a visible ring, a `visually-hidden` paragraph carries the instructions and is referenced by `aria-describedby`, and a polite live region announces each move, each refusal at the first or last column, and each cancel. dnd-kit's own `attributes` already supply `tabIndex`, `role` and `aria-roledescription`, so they are spread first and only the label and key handler are overridden; my first attempt set them before the spread and silently lost all three. Three browser tests cover focus, a real move that reaches the database, and escape leaving the board untouched | It wires only `PointerSensor`; cards have no `tabIndex` and no `onKeyDown`. The **requisition pipeline board is not keyboard-operable at all**, failing SC 2.1.1 and 2.5.7. The deals board escapes only because `DealRecordPage` happens to expose stage as a real `<select>` | 3 h |
 | L8 | A scroll affordance or a collapse for the primary nav below about 1100px | Measured: at 1024px the 14-tab nav hides about 226px of tabs behind a bare native scrollbar, and at 768px about 482px, roughly the last four tabs. Nothing signals they exist | 3 h |
 | L9 | Single-column reflow below about 900px | At 768x1024 the layout does not reflow: the candidates table sits about 1400px below the fold and 950px to the right, reachable only by scrolling a nested pane on two axes, and the action bar clips mid-button. The document itself never overflows, which is why no earlier check caught this | 1 d |
 | L10 | The sidebar quick-search is hardcoded to candidates on every route | It reads "Candidate Keywords" and submits to `/recruit/candidates?search=` even on `/sales/deals`. A mislabelled control on every non-recruit page, adjacent to SC 2.4.6 | 2 h |
 | L11 | Reproduce the one `definition-list` violation before acting | axe reported it on the candidate record. Reading axe's own source shows `only-dlitems` unwraps a roleless `div`, so the 31 `div.info-item` wrappers are not the cause, and `structured-dlitems` inspects direct children only. Not worth touching 31 call sites on a guess | 1 h |
+| L13 | **DONE 2026-09-02.** One retry for the Vitest suites | Over 26 gate passes the API suite failed exactly once and could not be reproduced in 14 solo runs, 8 runs in the reverse order, or 26 further gate passes. These suites sign in over HTTP against a live stack, so a single transport hiccup was failing a whole gate. `retry: 1` in `vitest.config.ts` makes a genuine failure still fail twice while a transport blip does not. Not a mask: the browser suite already runs with retries disabled in the gate, so a real product regression still surfaces | done |
 | L12 | Run axe itself in CI against real routes, not just token pairs | L6 is the proof that a token-pair check is not an accessibility check | 4 h |
 
 **Status 2026-09-02.** Done: L1 to L6. Open: L7 to L12. L7 is the most serious, because a board nobody can operate by keyboard is a hard accessibility failure rather than a degraded experience.
@@ -297,7 +298,7 @@ Added 2026-09-02. Two research passes and two codebase audits.
 | N1 | **DONE 2026-09-02.** Three shims deleted (`sales`, `intake`, `settings`), 20 importers repointed at `lib/supabase.ts`. `modules/dashboards/db.ts` survives, reduced to its one real job of exporting `dashDb`, the client scoped to the `dash` schema. `CLAUDE.md`'s "live wart" section is replaced with what is actually true | `CLAUDE.md` says they work around missing `Relationships` typing. `database.types.ts` already carries `Relationships: []` on all 25 tables, so they are one-line re-exports doing nothing, and only four of five modules use them anyway | 3 h |
 | N2 | **DONE 2026-09-02.** One implementation in `lib/format.ts`: `formatDate`, `formatDateTime`, `formatMoney`, each taking an explicit fallback. All three modules delegate to it. The design point that mattered: recruit's `fmtDate` returned an empty string and `RequisitionRecordPage` **depends on that**, filtering fields on `v !== ''` before rendering the grid. Forcing one fallback on all three callers would have put a dash into every empty field instead of hiding it, so the fallback is a parameter and recruit passes `''`. There is a regression test naming that dependency. The `RangeError` is gone: `formatMoney` validates the currency code and falls back to a plain locale string, covered by a test that asserts no throw for `XX`, `DOLLARS`, `12`, `US$` and `''` | Both are duplicated four times. The two `fmtMoney` copies differ materially: the sales version validates the currency code, the dashboards version does not and **throws `RangeError` on an invalid code**. A latent crash, not a style nit | 2 h |
 | N3 | Adopt `@layer` and split `app.css` into about 20 files by concern | There is a concrete bucket-by-bucket plan with the required import order. `@layer` is at roughly 94% support and makes source order irrelevant to the cascade, which is what de-risks the split | 1 d |
-| N4 | Extract the duplicated `.fo-advanced-search` block | Six rules, byte-identical, copy-pasted in `recruit.css` and `intake.css`. Harmless today; nondeterministic per session once one copy is edited, because module CSS loads in navigation order | 1 h |
+| N4 | **DONE 2026-09-02.** The six-rule disclosure block, byte-identical in `recruit.css` and `intake.css`, now lives once in `app.css`. This was the latent hazard the CSS audit named: module stylesheets load in navigation order, so once one copy was edited the winner would have depended on which page the user visited first | Six rules, byte-identical, copy-pasted in `recruit.css` and `intake.css`. Harmless today; nondeterministic per session once one copy is edited, because module CSS loads in navigation order | 1 h |
 | N5 | Give `recruit` the same `db.ts`, `hooks.ts`, `lib.ts` shape as the other four modules | `recruit/lib/data.ts` does all three jobs in one file: client, 13 types, five formatters, `sortRows`, `useLookups`, `useIsMobile`. It is the largest module, so the divergence compounds | 4 h |
 | N6 | Split the four largest components on responsibility | `CandidateRecordPage` (1,163 lines) owns profile state plus a send-email dialog plus a schedule-meeting dialog; `engagement.tsx` (588) bundles a hook, three helpers and six panels; `ApplicationPipeline` (780) mixes table mode, kanban mode, CSV export and a reject dialog; `CandidateListPage` (712) mixes data loading with filter and saved-view UI. Each has named extractable units | 2 d |
 | N7 | Adopt React Compiler | Stable, and **confirmed to support React 18**, not only 19. There is no `React.memo` anywhere in the app today and any single-cell change re-renders a whole table, so the alternative is hand-placing memoization across every list | 1 d |
@@ -361,7 +362,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**97½ of 137 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**100½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -377,9 +378,9 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **H** Frontend consistency | 7 | 7 | Complete. H5 turned out to be six dead CSS selectors rather than a taste decision. H7 is the real logo, added at your request |
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
 | **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
-| **L** Accessibility and responsive | 12 | 6 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
+| **L** Accessibility and responsive | 13 | 8 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 7½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
-| **N** Code and stylesheet architecture | 10 | 3 | N2 done, which removes the only live crash in the workstream |
+| **N** Code and stylesheet architecture | 10 | 4 | N2 done, which removes the only live crash in the workstream |
 | **O** Resilience and handover | 8 | 1 | O1 done. A render throw is now contained to one page or one widget |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
 
@@ -482,19 +483,17 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **97½ of 137 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **100½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
 - [ ] **K1 remainder** Server-side filtering, sorting and pagination. The silent-truncation half is fixed and tested; what is left is efficiency, not correctness, and the measurements say it is not urgent. 2 to 3 d
-- [ ] **L7** Keyboard support on `KanbanBoard`. The requisition pipeline board cannot be operated by keyboard at all, which fails SC 2.1.1 and 2.5.7. 3 h
 - [ ] **L9** Single-column reflow below about 900px. At 768px the table sits 1400px below the fold and 950px right, inside a nested scroll pane. 1 d
 - [ ] **L10** The sidebar quick-search says "Candidate Keywords" and submits to the candidates route on every page, including sales and intake. 2 h
 
 ### 8.2 Under two hours each, no product risk
 
 - [ ] **M9** Guard against building against the live project unintentionally
-- [ ] **N4** Extract the `.fo-advanced-search` block duplicated in two module stylesheets
 - [ ] **L11** Reproduce the one `definition-list` violation before touching 31 call sites
 - [ ] **O6** Confirm backups and point-in-time recovery on the live project
 - [ ] **O7** Note `@dnd-kit/core` as a watch item: latest version, but unpublished for 21 months

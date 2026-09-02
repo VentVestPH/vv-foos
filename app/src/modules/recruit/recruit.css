@@ -421,39 +421,6 @@
   margin: var(--sp-2) 0;
 }
 
-.fo-advanced-search {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.fo-advanced-search summary {
-  cursor: pointer;
-  padding: var(--sp-1);
-  font-weight: 600;
-  color: var(--fo-link, var(--primary));
-  list-style: none;
-}
-
-.fo-advanced-search summary::-webkit-details-marker {
-  display: none;
-}
-
-.fo-advanced-search summary::before {
-  content: '▸ ';
-}
-
-.fo-advanced-search[open] summary::before {
-  content: '▾ ';
-}
-
-.fo-advanced-search-body {
-  padding: 0 var(--sp-1) var(--sp-1);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-
 .fo-next-steps {
   display: flex;
   flex-wrap: wrap;
