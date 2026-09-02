@@ -267,7 +267,13 @@ Added 2026-09-02. An axe run across eight signed-in routes at four viewport widt
 | L10 | **DONE 2026-09-02.** `searchScope(pathname)` derives the noun and the target route from the module you are in, so the sidebar reads "Deal Keywords" on the deals page and searching lands on `/sales/deals`, not on candidates. Seven scopes: requisitions, candidates, accounts, deals, tickets, contacts and intake. The first and last name card is hidden where the record is not a person, because asking for a first name on the tickets list is worse than asking nothing. Four browser tests, including one that searches from the deals page and asserts the URL it lands on | It reads "Candidate Keywords" and submits to `/recruit/candidates?search=` even on `/sales/deals`. A mislabelled control on every non-recruit page, adjacent to SC 2.4.6 | 2 h |
 | L11 | Reproduce the one `definition-list` violation before acting | axe reported it on the candidate record. Reading axe's own source shows `only-dlitems` unwraps a roleless `div`, so the 31 `div.info-item` wrappers are not the cause, and `structured-dlitems` inspects direct children only. Not worth touching 31 call sites on a guess | 1 h |
 | L13 | **DONE 2026-09-02.** One retry for the Vitest suites | Over 26 gate passes the API suite failed exactly once and could not be reproduced in 14 solo runs, 8 runs in the reverse order, or 26 further gate passes. These suites sign in over HTTP against a live stack, so a single transport hiccup was failing a whole gate. `retry: 1` in `vitest.config.ts` makes a genuine failure still fail twice while a transport blip does not. Not a mask: the browser suite already runs with retries disabled in the gate, so a real product regression still surfaces | done |
-| L12 | Run axe itself in CI against real routes, not just token pairs | L6 is the proof that a token-pair check is not an accessibility check | 4 h |
+| L12 | **DONE 2026-09-02, and it immediately caught a regression I had just introduced.** `tests/e2e/accessibility.spec.ts` injects axe-core from the installed package, runs the wcag2a, wcag2aa, wcag21a and wcag21aa rule sets across seven signed-in routes, and fails on any serious or critical violation. Two further tests assert the skip link is the first tab stop and that every control satisfies SC 2.5.8.
+
+It found four serious contrast violations on the first run, **one of them mine**: the "Search these records" disclosure I added earlier that day was link-blue on the grey page band at 4.43:1. The other three were pre-existing: the deals view toggle at 2.83:1 and the settings status pill at 3.59:1, both link or secondary text on the section tint. A new `--fo-link-on-tint` token at `#124a80` clears all three grounds at once, 5.09:1 on the tint, 7.95:1 on the band and 9.06:1 on white. The token guard is now 29 pairs.
+
+Four controls were under 24x24 and are fixed by padding, not by scaling icons: the sidebar collapse button, the quick-search submit, the advanced-search link and the filter toggle.
+
+The target-size test implements the two exceptions SC 2.5.8 actually defines rather than asserting a flat 24px, which would have been wrong. Inline links constrained by their line height are exempt, and so is an undersized control whose 24px centred circle does not intersect another target. The row checkboxes are 18px with a 3px margin, which satisfies the spacing exception; inflating them to 24px would have contradicted the screenshots for no accessibility gain | L6 is the proof that a token-pair check is not an accessibility check | 4 h |
 
 **Status 2026-09-02.** Done: L1 to L6. Open: L7 to L12. L7 is the most serious, because a board nobody can operate by keyboard is a hard accessibility failure rather than a degraded experience.
 
@@ -370,7 +376,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**103½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**104½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -386,7 +392,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **H** Frontend consistency | 7 | 7 | Complete. H5 turned out to be six dead CSS selectors rather than a taste decision. H7 is the real logo, added at your request |
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
 | **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
-| **L** Accessibility and responsive | 13 | 10 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
+| **L** Accessibility and responsive | 13 | 11 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
 | **M** Security and public surface | 10 | 7½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
 | **N** Code and stylesheet architecture | 10 | 4 | N2 done, which removes the only live crash in the workstream |
 | **O** Resilience and handover | 8 | 2 | O1 done. A render throw is now contained to one page or one widget |
@@ -491,7 +497,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **103½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **104½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -537,7 +543,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 - [ ] **N6** Split the four largest components on responsibility, not on line count
 - [ ] **N8** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`, both now in TypeScript's own recommended template
 - [ ] **N10** Enforce with ESLint that modules never import each other
-- [ ] **L12** Run axe in CI against real routes, not token pairs
 - [ ] **M10** Test `Cross-Origin-Embedder-Policy: require-corp` before enabling it
 - [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
 - [ ] **F4** Archive the other two frontends (decided, not yet executed)

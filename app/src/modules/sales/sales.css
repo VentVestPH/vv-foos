@@ -282,8 +282,8 @@
 
 .sales-view-toggle button.active {
   background: var(--section-tint);
-  color: var(--primary);
-  font-weight: 600;
+  color: var(--fo-link-on-tint);
+  font-weight: 700;
 }
 
 .sales-toast {

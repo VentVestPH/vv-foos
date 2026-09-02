@@ -33,7 +33,7 @@
 
 .settings-status-pill.off {
   background: var(--section-tint);
-  color: var(--text-secondary);
+  color: var(--fo-tab-label);
 }
 
 .settings-scope-list {

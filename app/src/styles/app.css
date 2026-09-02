@@ -356,6 +356,10 @@ a:hover {
   cursor: pointer;
   padding: 2px;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .fo-sidebar-panel-body {
@@ -400,6 +404,13 @@ a:hover {
   flex-shrink: 0;
 }
 
+button.fo-qs-search-icon {
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
 .fo-qs-advanced-link {
   color: var(--fo-link);
   font-size: var(--fs-meta);
@@ -407,7 +418,8 @@ a:hover {
   align-self: flex-start;
   background: none;
   border: none;
-  padding: 0;
+  padding: var(--sp-half) 0;
+  min-height: 24px;
   cursor: pointer;
   text-align: left;
 }
@@ -1899,6 +1911,9 @@ summary:focus-visible,
 
 .list-page-filter-toggle .link-btn {
   font-weight: 700;
+  color: var(--fo-link-on-tint);
+  min-height: 24px;
+  padding: 2px 0;
 }
 
 @media print {
