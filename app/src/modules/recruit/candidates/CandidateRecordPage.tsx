@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useBackToList } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
@@ -32,6 +32,7 @@ import { type Application, type CandidateProfile, type Person, type Requisition,
 import { useIsMobile, useLookups } from '../hooks';
 import { EMPTY_CELL } from '../../../lib/format';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
+import { CandidateEraseDialog } from './CandidateEraseDialog';
 import { CandidateMergeDialog } from './CandidateMergeDialog';
 import { CandidateOutreachDialogs } from './CandidateOutreachDialogs';
 import { useCandidateOutreach } from './useCandidateOutreach';
@@ -39,6 +40,7 @@ import { toDraft, useCandidateProfileDraft } from './useCandidateProfileDraft';
 
 export function CandidateRecordPage() {
   const backToList = useBackToList('/recruit/candidates');
+  const navigate = useNavigate();
   const { id } = useParams();
   const personId = id ?? '';
   const [params] = useSearchParams();
@@ -59,6 +61,7 @@ export function CandidateRecordPage() {
   const engagement = useEngagement('person', personId);
   const outreach = useCandidateOutreach(personId, person, engagement.refresh);
   const [merging, setMerging] = useState(false);
+  const [erasing, setErasing] = useState(false);
   const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const reload = useCallback(() => loadRef.current(), []);
   const { draft, setDraft, canEditProfile, canGrade, saved, saveProfile } =
@@ -216,6 +219,16 @@ export function CandidateRecordPage() {
       >
         Merge duplicate…
       </Button>
+      {role === 'admin' && (
+        <Button
+          size="sm"
+          variant="danger"
+          title="Erase this candidate and everything attached to them"
+          onClick={() => setErasing(true)}
+        >
+          Erase…
+        </Button>
+      )}
       <Button
         size="sm"
         disabled={dnc || personEmails(person).length === 0}
@@ -914,6 +927,14 @@ export function CandidateRecordPage() {
           survivor={person}
           onClose={() => setMerging(false)}
           onMerged={load}
+        />
+      )}
+
+      {erasing && (
+        <CandidateEraseDialog
+          person={person}
+          onClose={() => setErasing(false)}
+          onErased={() => navigate('/recruit/candidates')}
         />
       )}
     </RecordPage>

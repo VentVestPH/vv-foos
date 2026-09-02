@@ -576,6 +576,28 @@ Auditing the cascade to plan N3 turned up three live defects that had nothing to
 3. **Link buttons printed in link blue, which is the anomaly recorded on 2026-09-02 as unexplained.** The cause was `.list-page-filter-toggle .link-btn` at (0,2,0) outranking the print block's `.link-btn` at (0,1,0). Media queries add no specificity, which is what made it look impossible. The toggle rule was restating the colour `.link-btn` already sets, so deleting that one declaration restored the print override.
 
 
+### 7.5 Three items closed on 2026-09-02 that were not numbered tasks
+
+**F4 executed.** The decision was made on 2026-09-02 and is now written where it will be read: `README.md` opens with it and `CLAUDE.md`'s "What this checkout is" states that `foos_redesign_2` is the only frontend anyone should change, that `/foos` and `/foos_redesign` are archived rather than deleted, and that deletion waits on confirmation nobody demos from them. Nothing was deleted, because nothing needed deleting: neither tree exists on this machine.
+
+**Dependency licence compliance.** `scripts/check-licences.mjs` walks the runtime dependency tree, reads each package's own manifest, and classifies the licence into permissive, weak-copyleft-worth-naming, refuse, or unrecognised. All 18 runtime packages are permissive: MIT except `lucide-react` (ISC) and `tslib` (0BSD). The check is in the gate and in `ci.yml`, and `npm run check:licences` prints the full list for the handover. Proven to fail by removing MIT from the allow list. One thing the tree turned up that nobody had noticed: `@supabase/storage-js` pulls in `iceberg-js`, which is MIT and harmless but was not in anyone's mental model of what ships.
+
+**Candidate data retention and an erasure path.** `fn_erase_person` deletes a person and every application, activity, task, reminder, intake row and attachment row that references them, in one transaction, admin only, with the role checked inside the function because `security definer` bypasses RLS. `erasure_log` keeps a receipt: who erased whom, when, why, and how many rows of each kind, with no candidate content. The receipt table is granted `select` and nothing else, to admins only, so **nobody can delete a receipt through the API, including an admin**, because a deletable receipt is not evidence. Retention keeps them ten years. The UI is an admin-only **Erase…** action on the candidate record that requires both a reason and the candidate's name typed exactly.
+
+The Storage half is deliberately separate and the test says so out loud: deleting the `attachments` row queues the path, and once that row is gone the DELETE policy on `storage.objects` matches nothing, so the API cannot remove the file at all. The sweep script drains the queue with the service role. A test asserts `remove()` returns an empty array in that state, which is the documented trap made into an assertion.
+
+
+### 7.6 A finding from the erasure work: authenticated could TRUNCATE every table
+
+Adding `erasure_log` surfaced something that had been true since the schema was created. Every table in `public` granted all seven privileges to `anon` and `authenticated`, including **TRUNCATE**. Confirmed by running `truncate erasure_log` as the `authenticated` role, which succeeded.
+
+**RLS does not apply to TRUNCATE.** No policy can stop it, so none of the RLS work covered this. What limited the blast radius is that PostgREST never emits TRUNCATE, so a browser could not reach it through the API; the exposure was anything else running SQL as those roles, which is a future security-invoker function, a `pg_net` call, an extension, or a direct connection away.
+
+`20260902000010_revoke_truncate.sql` revokes TRUNCATE, TRIGGER and REFERENCES from both roles on every table in `public`, and alters the default privileges so the next table a migration creates does not inherit them. Two consequences are recorded in the migration header rather than left to be discovered. A table created by a future migration now gets **no** `anon` or `authenticated` grants at all, so each one must grant explicitly, which fails loudly rather than over-granting silently. And the default privileges owned by `supabase_admin` cannot be changed from the `postgres` role, so a table created through the dashboard rather than a migration still inherits the old blanket grant and needs this revoke run again.
+
+`validate.sql` check 23 fails if any table in `public` ever grants those three to `anon` or `authenticated` again, and if the migration-owned default privileges would grant TRUNCATE on the next table.
+
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits. **124½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -603,14 +625,11 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 - [ ] **Q7** A candidate-facing application status page
 - [ ] **Q8** Usable on a phone, the capability framing of L9
-- [ ] Dependency licence compliance, for the handover
-- [ ] Candidate data retention and an erasure path
 
 ### 8.5 Architecture, each needs a decision first
 
 - [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
 - [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
-- [ ] **F4** Archive the other two frontends (decided, not yet executed)
 
 ### 8.6 Waiting on one authorised command from you
 

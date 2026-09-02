@@ -228,6 +228,26 @@ export interface Database {
         >;
         Relationships: [];
       };
+      erasure_log: {
+        Row: {
+          id: string;
+          person_id: string;
+          erased_by: string;
+          erased_at: string;
+          reason: string | null;
+          counts: Json;
+        };
+        Insert: {
+          id?: string;
+          person_id: string;
+          erased_by: string;
+          erased_at?: string;
+          reason?: string | null;
+          counts?: Json;
+        };
+        Update: Partial<Database['public']['Tables']['erasure_log']['Insert']>;
+        Relationships: [];
+      };
       email_templates: {
         Row: {
           id: string;
@@ -876,6 +896,18 @@ export interface Database {
       disconnect_my_google: {
         Args: Record<PropertyKey, never>;
         Returns: void;
+      };
+      fn_erase_person: {
+        Args: { p_person: string; p_reason?: string | null };
+        Returns: {
+          person_id: string;
+          applications: number;
+          activities: number;
+          attachments_queued: number;
+          tasks: number;
+          reminders: number;
+          files_still_to_purge: number;
+        };
       };
       fn_merge_candidates: {
         Args: { p_survivor: string; p_duplicate: string };

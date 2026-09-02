@@ -23,6 +23,7 @@ jobs:
       - run: node scripts/check-contrast.mjs
       - run: node scripts/check-motion.mjs
       - run: node scripts/check-css-layers.mjs
+      - run: node scripts/check-licences.mjs
       - run: node scripts/check-comments.mjs
 
   schema:

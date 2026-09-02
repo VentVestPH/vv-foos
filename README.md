@@ -1,5 +1,7 @@
 # VentVest Front Office OS (FOOS)
 
+> **One frontend.** `foos_redesign_2` (port 5175) is the only frontend under change as of 2026-09-02. `/foos` (5173) and `/foos_redesign` (5174) are archived: not deleted, but frozen, and changes are not ported into them.
+
 Schema and backend for the VentVest ATS + CRM platform. Supabase (Postgres, Auth, Storage, Edge Functions, Realtime) with React on top. This repo currently holds the database layer built by Agent 1; the app workspace (`app/`) arrives with Agents 2-7.
 
 ## Setup

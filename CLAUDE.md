@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 VentVest Front Office OS (FOOS): ATS + CRM on Supabase (Postgres, Auth, Storage, Edge Functions, Realtime) with React 18 + Vite + TypeScript on top.
 
-This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend. It is one of several interchangeable frontends against the *same* live Supabase project (`mebfbbvrqdctamnzvbbs`): `/foos` runs on port 5173, `/foos_redesign` on 5174, this one on **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port). Build output goes to `dist-redesign-2/` with `emptyOutDir: true`.
+This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend, and as of 2026-09-02 it is **the only frontend anyone should change**. It runs on port **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port) against the live Supabase project (`mebfbbvrqdctamnzvbbs`). Build output goes to `dist-redesign-2/` with `emptyOutDir: true`.
+
+Two sibling frontends used to share this schema: `/foos` on port 5173 and `/foos_redesign` on 5174. Both are **archived, not deleted** (plan item F4). Neither is present on this machine, so nothing here depends on them, and every schema change or `database.types.ts` edit now costs one frontend instead of three. Do not port changes into them, do not reinstate them, and do not treat their absence as a bug. Deletion waits on confirmation that nobody demos from them.
 
 This tree is a git repository on branch `develop`, with `origin/main` and `origin/develop`. History is available and worth consulting; the docs in `docs/03-plan/` point at commits for superseded status notes.
 

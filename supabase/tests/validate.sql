@@ -726,4 +726,72 @@ begin
   raise notice 'PASS 21: email templates are team-readable and staff-writable, and a shared view is read-only to the team';
 end $$;
 
+do $$
+declare
+  n integer;
+  keep integer;
+  cnt integer;
+begin
+  select count(*) into n from pg_proc where proname = 'fn_erase_person' and pronamespace = 'public'::regnamespace;
+  if n <> 1 then
+    raise exception 'FAIL 22: fn_erase_person is missing';
+  end if;
+
+  select count(*) into n
+    from information_schema.role_table_grants
+   where table_name = 'erasure_log' and grantee = 'authenticated' and privilege_type <> 'SELECT';
+  if n > 0 then
+    raise exception 'FAIL 22: erasure_log grants % privilege(s) beyond SELECT; a receipt must not be deletable', n;
+  end if;
+
+  select keep_days into keep from retention_policy where table_name = 'erasure_log';
+  if keep is null or keep < 365 then
+    raise exception 'FAIL 22: erasure receipts are not retained long enough';
+  end if;
+
+  select count(*) into cnt from pg_policy where polrelid = 'erasure_log'::regclass;
+  if cnt <> 1 then
+    raise exception 'FAIL 22: erasure_log should carry exactly one policy, a SELECT for admin; found %', cnt;
+  end if;
+
+  select count(*) into n from pg_proc p
+    join pg_namespace ns on ns.oid = p.pronamespace
+   where p.proname in ('fn_erase_person', 'fn_merge_candidates')
+     and ns.nspname = 'public'
+     and p.prosecdef;
+  if n <> 2 then
+    raise exception 'FAIL 22: the erase and merge functions must be security definer to reach every table';
+  end if;
+
+  raise notice 'PASS 22: erasure removes the person, leaves an undeletable receipt kept % days, and both privileged functions are security definer', keep;
+end $$;
+
+do $$
+declare
+  n integer;
+begin
+  select count(*) into n
+    from information_schema.role_table_grants
+   where grantee in ('anon', 'authenticated')
+     and table_schema = 'public'
+     and privilege_type in ('TRUNCATE', 'TRIGGER', 'REFERENCES');
+  if n > 0 then
+    raise exception 'FAIL 23: % table grant(s) still give anon or authenticated TRUNCATE, TRIGGER or REFERENCES. RLS does not apply to TRUNCATE', n;
+  end if;
+
+  select count(*) into n
+    from pg_default_acl d
+    join pg_namespace ns on ns.oid = d.defaclnamespace
+   where ns.nspname = 'public'
+     and d.defaclobjtype = 'r'
+     and d.defaclrole = 'postgres'::regrole
+     and (array_to_string(d.defaclacl, ',') like '%anon=%D%'
+       or array_to_string(d.defaclacl, ',') like '%authenticated=%D%');
+  if n > 0 then
+    raise exception 'FAIL 23: default privileges would grant TRUNCATE on the next table a migration creates';
+  end if;
+
+  raise notice 'PASS 23: anon and authenticated hold no TRUNCATE, TRIGGER or REFERENCES on any public table, now or by default';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;
