@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from './Button';
 import { Input } from './Input';
 import { downloadCsv } from '../../lib/csv';
@@ -46,6 +46,22 @@ export function ListPage({
   exportFilename,
 }: ListPageProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable) return;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      event.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <div className="list-page">
@@ -66,10 +82,15 @@ export function ListPage({
           {actions}
         </div>
       )}
+      <p className="visually-hidden" id="list-keyboard-help">
+        Press slash to search. In the results, j or down arrow moves to the next row, k or up arrow
+        to the previous one, Enter opens the record, and space or x selects it.
+      </p>
       <div className="list-page-toolbar fo-search-row">
         <span className="fo-search-label">Search:</span>
         <div className="list-page-search">
           <Input
+            ref={searchRef}
             type="search"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}

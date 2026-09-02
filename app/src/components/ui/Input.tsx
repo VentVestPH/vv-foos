@@ -1,16 +1,19 @@
-import { useId, type InputHTMLAttributes } from 'react';
+import { forwardRef, useId, type InputHTMLAttributes } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
 }
 
-export function Input({ label, error, required, id, ...rest }: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, error, required, id, ...rest },
+  ref,
+) {
   const autoId = useId();
   const inputId = id ?? autoId;
 
   if (!label && !error) {
-    return <input id={inputId} className="input" required={required} {...rest} />;
+    return <input ref={ref} id={inputId} className="input" required={required} {...rest} />;
   }
 
   return (
@@ -21,8 +24,8 @@ export function Input({ label, error, required, id, ...rest }: InputProps) {
           {required && <span className="field-required"> *</span>}
         </label>
       )}
-      <input id={inputId} required={required} {...rest} />
+      <input ref={ref} id={inputId} required={required} {...rest} />
       {error && <span className="field-error-text">{error}</span>}
     </div>
   );
-}
+});

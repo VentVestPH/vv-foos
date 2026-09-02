@@ -123,6 +123,54 @@ export function Table<T>({
         ? 'results-in-a'
         : 'results-in-b';
 
+  const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const takeFocus = useRef(false);
+
+  useEffect(() => {
+    if (activeIndex < 0 || !takeFocus.current) return;
+    takeFocus.current = false;
+    const rowEls = tbodyRef.current?.querySelectorAll<HTMLTableRowElement>('tr[data-row-key]');
+    rowEls?.[Math.min(activeIndex, rowEls.length - 1)]?.focus();
+  }, [activeIndex, sorted]);
+
+  const goToRow = (index: number) => {
+    takeFocus.current = true;
+    setActiveIndex(index);
+  };
+
+  const moveActive = (delta: number, from?: number) => {
+    const last = sorted.length - 1;
+    if (last < 0) return;
+    const base = from ?? activeIndex;
+    goToRow(base < 0 ? (delta > 0 ? 0 : last) : Math.min(last, Math.max(0, base + delta)));
+  };
+
+  const onRowKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, index: number, row: T) => {
+    const key = event.key;
+    if (key === 'ArrowDown' || key === 'j') {
+      event.preventDefault();
+      moveActive(1, index);
+    } else if (key === 'ArrowUp' || key === 'k') {
+      event.preventDefault();
+      moveActive(-1, index);
+    } else if (key === 'Home') {
+      event.preventDefault();
+      goToRow(0);
+    } else if (key === 'End') {
+      event.preventDefault();
+      goToRow(sorted.length - 1);
+    } else if (key === 'Enter') {
+      if (!onRowClick) return;
+      event.preventDefault();
+      onRowClick(row);
+    } else if (key === ' ' || key === 'x') {
+      if (!selectable) return;
+      event.preventDefault();
+      toggleRow(rowKey(row));
+    }
+  };
+
   const toggleRow = (key: string) => {
     const next = new Set(sel);
     if (next.has(key)) {
@@ -172,7 +220,7 @@ export function Table<T>({
             ))}
           </tr>
         </thead>
-        <tbody className={resultsClass}>
+        <tbody className={resultsClass} ref={tbodyRef}>
           {sorted.length === 0 && (
             <tr>
               <td
@@ -183,12 +231,16 @@ export function Table<T>({
               </td>
             </tr>
           )}
-          {sorted.map((row) => {
+          {sorted.map((row, index) => {
             const key = rowKey(row);
             return (
               <tr
                 key={key}
                 data-row-key={key}
+                tabIndex={index === Math.max(activeIndex, 0) ? 0 : -1}
+                aria-selected={selectable ? sel.has(key) : undefined}
+                onKeyDown={(e) => onRowKeyDown(e, index, row)}
+                onFocus={() => setActiveIndex(index)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 style={onRowClick ? { cursor: 'pointer' } : undefined}
               >
