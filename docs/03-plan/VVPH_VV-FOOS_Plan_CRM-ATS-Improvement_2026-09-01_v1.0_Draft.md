@@ -1,6 +1,6 @@
 # CRM and ATS Improvement Plan
 
-**Project:** VV-FOOS · **Owner:** John Buena · **Prepared by:** Klent Roel Zarsuela · **Date:** 2026-09-01, revised 2026-09-02 · v1.1 Draft
+**Project:** VV-FOOS · **Owner:** John Buena · **Prepared by:** Klent Roel Zarsuela · **Date:** 2026-09-01, revised 2026-09-02 · v1.2 Draft
 
 Goal as stated on 2026-09-01: make the CRM and ATS look and feel like Oracle Taleo, replace the Excel and Zoho dependence with one repository, and be ready by October. This plan sequences that work against verified evidence rather than assumption. Every claim it rests on was measured on 2026-09-01 against the live Supabase project, the running application at 2560 x 1600, or the source exports.
 
@@ -9,6 +9,7 @@ Goal as stated on 2026-09-01: make the CRM and ATS look and feel like Oracle Tal
 Supporting documents, all in this `docs/` tree:
 
 - `01-current-state/` System inventory, and the defect and risk register
+- `03-plan/…Register_Parked-and-Blocked-Items…` Everything real but deliberately not being worked on, and what each one waits for
 - `02-taleo-fidelity/` Fidelity audit (the visual check the redesign report left open) and the gap-closure spec with exact values
 - `04-research/` Icon strategy and the Kappa repository comparison
 - `05-reference/` Drive source document index and authority order
@@ -219,6 +220,87 @@ Added 2026-09-02 at your request. Every item below was verified on disk, not inf
 **Not cleanup, do not delete:** `migration/zoho-exports/` and `migration/out/` hold real candidate and customer PII. Both are gitignored and both must stay on disk until the migration is signed off. `app/src/modules/recruit/__typecheck__.ts` and its `sales` twin look unreferenced to a scan but exist so `tsc` type-checks each module's public exports; they are load-bearing.
 
 
+### Workstream K. Data access and query performance
+
+Added 2026-09-02 from six background audits. **K1 is the single largest piece of work left in the codebase and the plan had never identified it.**
+
+| # | Task | Evidence | Est. |
+| :---- | :---- | :---- | :---- |
+| K1 | Server-side filtering, sorting and pagination on the six list pages | **Every list page fetches its entire table.** There is no `.ilike(` and no `.range(` anywhere in `app/src`: candidates, requisitions, deals, companies, contacts and tickets all issue `select('*')` with no WHERE and no LIMIT, then filter and search in JavaScript. Fine at 10 seed rows, fails at 10,000. No index can fix it | 2 to 3 d |
+| K2 | Four missing indexes: `reminders(related_type, related_id)`, `activities(person_id, occurred_at desc)`, `applications(requisition_id, applied_at desc)`, `attachments(parent_type, parent_id, kind)` | Measured with EXPLAIN ANALYZE against 200k synthetic activity rows and 50k applications inside a rolled-back transaction: Bitmap Heap Scan followed by a separate Sort node, which is the composite-index gap. `tasks` already has the equivalent index and `reminders` does not | 1 h |
+| K3 | Index the three unindexed foreign keys on the documented purge path: `deals.primary_contact_id`, `tickets.person_id`, `intake_items.duplicate_of` | All three are `ON DELETE SET NULL`, so deleting one person forces a full scan of three tables. The README's purge order starts with `people` | 30 min |
+| K4 | Drop `idx_applications_requisition` | A strict leading prefix of the unique `(requisition_id, person_id)` index, so Postgres never needs it. Pure write overhead | 15 min |
+| K5 | Wrap RLS predicates as `(select get_my_role())` and `(select auth.uid())` across roughly 40 policies | Every policy function is correctly marked `STABLE`, which was the first thing checked, but all are called bare. Supabase's own performance guidance is to wrap them so the planner caches the call as an InitPlan instead of re-invoking per row | 3 h |
+| K6 | Batch the owner and approver deletes in `RequisitionFormPage.tsx:212` | Two `for` loops with an `await` inside each, so N removed approvers means N serial round trips | 1 h |
+| K7 | Explicit column lists in place of `select('*')`, dashboards first | 73 call sites. The dashboard queries refresh every 15 minutes over the widest tables and pull every column to compute aggregates | 4 h |
+| K8 | Lazy-load `CandidateRecordPage` and `ContactRecordPage` out of their list chunks | Both are statically imported beside the list page, which drags `googleActions` into the list view. Measured first load of `/recruit/candidates`: **543 KB raw, 159 KB gzipped**. This defers about 19 KB gzipped | 1 h |
+| K9 | Set `emptyOutDir: true`, or clean before build | Measured: `dist-redesign-2` held **69 files across four build generations** before a manual clean, 21 after. Stale hashed chunks ship in the deploy artifact | 30 min |
+| K10 | Measure authenticated Core Web Vitals and interaction latency | Currently unmeasured. `app/.env` points the production build at the live project, so `vite preview` cannot sign in locally. Needs either the live credentials or a decision to measure against the local stack, which measures loopback latency instead | Decision + 2 h |
+
+**Status 2026-09-02.** All open. K2, K3, K4 and K9 are under two hours combined and carry no product risk.
+
+### Workstream L. Accessibility and responsive
+
+Added 2026-09-02. An axe run across eight signed-in routes at four viewport widths, plus a 100-stop keyboard trace and a bounding-box scan for WCAG 2.2 target size.
+
+| # | Task | Evidence | Est. |
+| :---- | :---- | :---- | :---- |
+| L1 | **DONE 2026-09-02.** Visible focus indicator on the sidebar quick-search input | `outline: none` with no replacement on `.fo-qs-input-row input`, which appears on every route. A genuine SC 2.4.11 failure that survived G1, because G1 verified the global ring and never checked for an override | done |
+| L2 | **DONE 2026-09-02.** Skip-to-main link | There was none, and the cost was measured, not assumed: on the candidates list the first data row is **tab stop 75**, after the utility header, 14 nav tabs and the whole sidebar | done |
+| L3 | **DONE 2026-09-02.** `role="img"` on four labelled spans | `aria-label` is prohibited on a generic element. Affected the star grade, the flag column header and the resume indicator, 10 nodes across 2 routes | done |
+| L4 | **DONE 2026-09-02.** WCAG 2.2 SC 2.5.8 target sizes | Measured 16x14 star buttons (21 instances) and 13x13 row checkboxes (22 instances) against the 24x24 minimum. Fixed with padding, not icon scaling | done |
+| L5 | **DONE 2026-09-02.** Accessible name on the sidebar landmark | `landmark-unique` fired on five routes | done |
+| L6 | **DONE 2026-09-02.** Three contrast failures, and the guard that could not see them | The guard checked 17 hand-picked token pairs rather than the DOM, so it read 17 of 17 green while chips sat at **2.55:1**, links on a hovered row at 4.41:1 and side-tab labels at 3.59:1. All three fixed, guard now 23 pairs | done |
+| L7 | Keyboard support on `KanbanBoard` | It wires only `PointerSensor`; cards have no `tabIndex` and no `onKeyDown`. The **requisition pipeline board is not keyboard-operable at all**, failing SC 2.1.1 and 2.5.7. The deals board escapes only because `DealRecordPage` happens to expose stage as a real `<select>` | 3 h |
+| L8 | A scroll affordance or a collapse for the primary nav below about 1100px | Measured: at 1024px the 14-tab nav hides about 226px of tabs behind a bare native scrollbar, and at 768px about 482px, roughly the last four tabs. Nothing signals they exist | 3 h |
+| L9 | Single-column reflow below about 900px | At 768x1024 the layout does not reflow: the candidates table sits about 1400px below the fold and 950px to the right, reachable only by scrolling a nested pane on two axes, and the action bar clips mid-button. The document itself never overflows, which is why no earlier check caught this | 1 d |
+| L10 | The sidebar quick-search is hardcoded to candidates on every route | It reads "Candidate Keywords" and submits to `/recruit/candidates?search=` even on `/sales/deals`. A mislabelled control on every non-recruit page, adjacent to SC 2.4.6 | 2 h |
+| L11 | Reproduce the one `definition-list` violation before acting | axe reported it on the candidate record. Reading axe's own source shows `only-dlitems` unwraps a roleless `div`, so the 31 `div.info-item` wrappers are not the cause, and `structured-dlitems` inspects direct children only. Not worth touching 31 call sites on a guess | 1 h |
+| L12 | Run axe itself in CI against real routes, not just token pairs | L6 is the proof that a token-pair check is not an accessibility check | 4 h |
+
+**Status 2026-09-02.** Done: L1 to L6. Open: L7 to L12. L7 is the most serious, because a board nobody can operate by keyboard is a hard accessibility failure rather than a degraded experience.
+
+### Workstream M. Frontend security and the public surface
+
+Added 2026-09-02. Row-level security was out of scope for this audit, having been tested separately; this is the browser side and the unauthenticated careers surface.
+
+| # | Task | Evidence | Est. |
+| :---- | :---- | :---- | :---- |
+| M1 | **DONE 2026-09-02.** Open redirect in `google-oauth-callback` | CWE-601, verified by reading the code. `app_origin` came from the request's Origin or Referer header, was stored unchecked, and was reflected into a 302 Location. A caller holding a valid JWT could forge the header and redirect post-consent to any domain. Now resolved through an allowlist with a logged refusal | done |
+| M2 | **DONE 2026-09-02, then redone the same day against the source.** The first pass added Content-Security-Policy, Strict-Transport-Security and Permissions-Policy from recall. Checking OWASP's own repository afterwards showed that was incomplete and in two places wrong: HSTS should be `max-age=63072000` not 31536000, Referrer-Policy should be `no-referrer` not `strict-origin-when-cross-origin`, the CSP was missing `upgrade-insecure-requests`, the Permissions-Policy list was a fraction of the recommended one, and four headers were absent entirely: `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control` (which OWASP recommends specifically for responses carrying personal data, and every authenticated page here does), `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy`. All corrected. **`Cross-Origin-Embedder-Policy: require-corp` is deliberately not set:** it blocks any cross-origin subresource that does not send CORP, which would break the Supabase-hosted resume preview iframe and attachment images. Adding it needs a test pass, so it is M10 | All three were missing from `vercel.json`. The CSP allows Supabase over https and wss, and allows `*.supabase.co` in `img-src` and `frame-src` because signed attachment URLs and the resume preview iframe come from there | done |
+| M3 | **DONE 2026-09-02.** JobPosting structured data | Google requires five properties. The code set `datePosted` and `jobLocation` to `undefined` when a requisition had no `opened_date` or `location`, and `JSON.stringify` drops undefined keys, so the page shipped structured data silently missing a required property. Now gated: all five present or nothing is emitted. The existing test had been asserting against invalid JSON-LD, because its own fixture inserted a requisition with no location | done |
+| M4 | Cap the request body in `careers-apply` before `req.formData()` | The 10 MB check runs after the entire multipart body is already buffered, so an unauthenticated caller can force the buffering first. Supabase may impose its own ceiling, which was not verified | 1 h |
+| M5 | Narrow CORS on `google-oauth-start` from `*` to the known app origins | Same function whose header fed M1 | 30 min |
+| M6 | **PARTLY DONE 2026-09-02, and the earlier finding was wrong.** The audit reported this as needing a 6-to-7 major migration because `npm audit` said "fix available" while the caret range could not reach 7.x. Checking the registry directly showed **6.30.5 and 6.30.6 exist**, and the advisory that actually names our installed version, "Open redirect leading to XSS", is scoped `>=6.30.2 <=6.30.4`. Bumped to **6.30.6**, a patch, and that advisory is gone. Two advisories against `react-router` remain, both fixed only in 7.18.0: an open redirect via backslash in `<Link>` and `useNavigate`, which does apply; and arbitrary constructor injection in `deserializeErrors()` during **SSR hydration**, which does not, because this is a client-only SPA with no `renderToString`, no `StaticRouter` and no `hydrateRoot` anywhere. So the remaining exposure is one moderate open-redirect advisory, and the v7 migration can be scheduled rather than rushed | Two moderate advisories against the installed 6.30.4. `npm audit` reports a fix as available, which is misleading: the caret range cannot reach 7.x, so this is a major-version migration | 1 d |
+| M7 | Reconcile `node_modules` with `package-lock.json` | `npm ci --dry-run` reports it would remove packages, so the live tree has drifted from the lockfile and `npm ci` is not reproducible against what is checked out | 30 min |
+| M8 | Add `og:image` and Twitter card tags to the careers pages | Title, description, canonical, Open Graph, `lang`, sitemap and robots are all present and correct. `og:image` is the one gap | 1 h |
+| M9 | Guard against unintentionally building against the live project | `app/.env` points the production build at `mebfbbvrqdctamnzvbbs.supabase.co`. `app/.env.development` correctly points the dev server at the local stack, which is why local sign-in works. But `npm run build` followed by `vite preview` talks to production, which is how the performance audit was blocked | 1 h |
+
+| M10 | Test `Cross-Origin-Embedder-Policy: require-corp` before enabling it | OWASP recommends it. It would break any cross-origin subresource that does not send a CORP header, and the resume preview iframe and attachment images are served from Supabase | 2 h |
+
+**Status 2026-09-02.** Done: M1, M2, M3, and M6 reduced to one moderate advisory by a patch bump. Open: M4, M5, M7, M8, M9, M10, and the eventual v7 migration. Verified clean and needing no work: no `dangerouslySetInnerHTML`, `innerHTML`, `eval` or `new Function` anywhere in `app/src`; only the anon key reaches the browser bundle, confirmed by decoding the one JWT-shaped string in the built output; the careers apply endpoint already has rate limiting, a honeypot, an extension allowlist and magic-byte signature checks; and a nonexistent and a closed requisition return identical pages, so there is no enumeration.
+
+### Workstream N. Code and stylesheet architecture
+
+Added 2026-09-02. Two research passes and two codebase audits.
+
+**Correction worth recording.** The premise that a 1,796-line stylesheet is itself the problem does not survive checking. No authoritative source names a line or selector threshold for splitting CSS, and every number in circulation is a blog opinion. The same is true of React component length: TypeScript, React and the major published style guides give no number. What *is* a documented anti-pattern is the architecture, one undifferentiated global file mixing tokens, resets, layout and every component with no cascade ordering. So the work below is justified on responsibility boundaries and on cascade control, not on line counts, and the plan should stop quoting line counts as if they were a standard.
+
+| # | Task | Evidence | Est. |
+| :---- | :---- | :---- | :---- |
+| N1 | Delete the four `db.ts` shims and import `lib/supabase.ts` directly | `CLAUDE.md` says they work around missing `Relationships` typing. `database.types.ts` already carries `Relationships: []` on all 25 tables, so they are one-line re-exports doing nothing, and only four of five modules use them anyway | 3 h |
+| N2 | One canonical `fmtDate` and `fmtMoney` in `lib/format.ts` | Both are duplicated four times. The two `fmtMoney` copies differ materially: the sales version validates the currency code, the dashboards version does not and **throws `RangeError` on an invalid code**. A latent crash, not a style nit | 2 h |
+| N3 | Adopt `@layer` and split `app.css` into about 20 files by concern | There is a concrete bucket-by-bucket plan with the required import order. `@layer` is at roughly 94% support and makes source order irrelevant to the cascade, which is what de-risks the split | 1 d |
+| N4 | Extract the duplicated `.fo-advanced-search` block | Six rules, byte-identical, copy-pasted in `recruit.css` and `intake.css`. Harmless today; nondeterministic per session once one copy is edited, because module CSS loads in navigation order | 1 h |
+| N5 | Give `recruit` the same `db.ts`, `hooks.ts`, `lib.ts` shape as the other four modules | `recruit/lib/data.ts` does all three jobs in one file: client, 13 types, five formatters, `sortRows`, `useLookups`, `useIsMobile`. It is the largest module, so the divergence compounds | 4 h |
+| N6 | Split the four largest components on responsibility | `CandidateRecordPage` (1,163 lines) owns profile state plus a send-email dialog plus a schedule-meeting dialog; `engagement.tsx` (588) bundles a hook, three helpers and six panels; `ApplicationPipeline` (780) mixes table mode, kanban mode, CSV export and a reject dialog; `CandidateListPage` (712) mixes data loading with filter and saved-view UI. Each has named extractable units | 2 d |
+| N7 | Adopt React Compiler | Stable, and **confirmed to support React 18**, not only 19. There is no `React.memo` anywhere in the app today and any single-cell change re-renders a whole table, so the alternative is hand-placing memoization across every list | 1 d |
+| N8 | Turn on `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` | Both now appear in TypeScript's own `tsc --init` recommended template, alongside `verbatimModuleSyntax` and `isolatedModules`. Large mechanical diff in an existing codebase | 1 d |
+| N9 | Add a print stylesheet | There is **no `@media print` rule anywhere**, and the Taleo replica renders a "Printable View" control that currently routes to the placeholder | 4 h |
+| N10 | Enforce that modules never import each other | The feature-based structure this repo already uses is the currently recommended one, with one gap: the reference implementation enforces the no-cross-import rule with ESLint and nothing here checks it | 2 h |
+
+**Status 2026-09-02.** All open. N2 is the only one with a live bug behind it.
+
 ### Workstream C notes from external research
 
 Three points change how items in this stream should be justified and built.
@@ -231,9 +313,9 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**70 of 77 numbered tasks are done**, summing the Done column below. Eight closed in the second pass of 2026-09-02: A4, D6, D7's second alias, D9, D10, E7, F4 and the long-text decision, plus A3 and B2 reduced to a single authorised command each.
+**79½ of 119 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, 42 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
-Counting caveats, stated rather than smoothed over. An earlier headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built at all. Both are corrected above. Every row-level status now has a status line under its table, which is J11.
+Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
 | Workstream | Tasks | Done | What remains, and why |
 | :---- | :---- | :---- | :---- |
@@ -246,6 +328,10 @@ Counting caveats, stated rather than smoothed over. An earlier headline read "52
 | **D** Data | 11 | 6 | D1, D6, D7, D8, D9, D10 done. D2 to D5 and D11 all wait on data or credentials this environment cannot produce |
 | **H** Frontend consistency | 7 | 7 | Complete. H5 turned out to be six dead CSS selectors rather than a taste decision. H7 is the real logo, added at your request |
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
+| **K** Data access and performance | 10 | 0 | New from the audits. K1 is the largest open item in the codebase |
+| **L** Accessibility and responsive | 12 | 6 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
+| **M** Security and public surface | 10 | 3½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
+| **N** Code and stylesheet architecture | 10 | 0 | New from the audits. N2 has a live crash behind it |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -346,51 +432,87 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the second pass of 2026-09-02. **70 of 77 numbered tasks are done.** Grouped by what actually gates each remaining item, because "open" means three different things here.
+State after the 2026-09-02 passes and the six audits. **79½ of 119 tasks done.** Ordered by what gates each item, then by consequence inside each group.
 
-### 8.1 Waiting on one authorised command from you
+### 8.1 Highest consequence, nothing blocking it
 
-Each of these is written, proven against the local stack, and idempotent. None of them can be run against production by me: you asked that production stay untouched, and the first two were also refused by the permission classifier.
+- [ ] **K1** Server-side filtering, sorting and pagination on the six list pages. Every one currently fetches its whole table and filters in JavaScript. The largest open item in the codebase, and the plan had never named it. 2 to 3 d
+- [ ] **L7** Keyboard support on `KanbanBoard`. The requisition pipeline board cannot be operated by keyboard at all, which fails SC 2.1.1 and 2.5.7. 3 h
+- [ ] **N2** One canonical `fmtMoney`. The dashboards copy throws `RangeError` on an invalid currency code. 2 h
+- [ ] **L9** Single-column reflow below about 900px. At 768px the table sits 1400px below the fold and 950px right, inside a nested scroll pane. 1 d
+- [ ] **L10** The sidebar quick-search says "Candidate Keywords" and submits to the candidates route on every page, including sales and intake. 2 h
 
-- [ ] **A3** `node scripts/backfill-zoho-candidate-fields.mjs --allow-remote` then `--apply`. Restores 37 star grades. Dry run first; it prints exactly what it would change
-- [ ] **B2** `node scripts/rotate-persona-passwords.mjs --allow-remote --apply`. Fresh random password on all four persona accounts, printed once, stored nowhere. Then put the value in `tests/.env`
-- [ ] **A4 (production half)** The same backfill also corrects the 74 initial dates. One run does both
-- [ ] **B3** Whether a production `staff` row is created for you. The recommendation is in 6.9
+### 8.2 Under two hours each, no product risk
 
-### 8.2 Waiting on data or credentials only you can supply
+- [ ] **K2** Four missing indexes, each measured against synthetic volume with EXPLAIN
+- [ ] **K3** Three unindexed foreign keys on the documented purge path
+- [ ] **K4** Drop the redundant `idx_applications_requisition`
+- [ ] **K9** `emptyOutDir: false` ships four build generations; 69 files before a clean, 21 after
+- [ ] **K6** Batch the owner and approver deletes in `RequisitionFormPage.tsx:212`
+- [ ] **K8** Lazy-load the two record pages out of their list chunks, about 19 KB gzipped off first load
+- [ ] **M5** Narrow CORS on `google-oauth-start` from `*`
+- [ ] **M7** Reconcile `node_modules` with the lockfile so `npm ci` is reproducible
+- [ ] **M4** Cap the request body in `careers-apply` before `req.formData()` buffers it
+- [ ] **M8** `og:image` and Twitter card tags on the careers pages
+- [ ] **M9** Guard against building against the live project unintentionally
+- [ ] **N4** Extract the `.fo-advanced-search` block duplicated in two module stylesheets
+- [ ] **L11** Reproduce the one `definition-list` violation before touching 31 call sites
 
-- [ ] **D11** A Zoho Self Client (client id and secret). The client is built and the scope string covers Recruit and CRM. A few hundred API credits against a 5,000 free allowance
-- [ ] **D2** The job-openings export, or D11
-- [ ] **D3** Education Details re-exported with its full field set. The file on disk is header only, 3 columns
-- [ ] **D4** Experience Details, same problem, and `people.experience` is ready to receive it
-- [ ] **D5** The attachment bytes. All 50 `storage_path` values are placeholders, and the UI now says so rather than breaking
-- [ ] **D10 (contacts half)** The Contacts export. The mapper is written, wired and unit-tested; it reports any column it does not recognise instead of guessing
-- [ ] **E6** The last 12 of 82 acceptance criteria. Each needs a Google account, a production publish, a hosted sheet, or a human click-through
-- [ ] **E7 (remaining third)** Job openings, education and experience cannot be rehearsed until they have data
-- [ ] The four monthly cost figures, so the cost metric stops reading "Not measured". Migration `20260901000004` seeds the systems with `monthly_cost` null rather than inventing numbers
-- [ ] The Agent 6 RPC drift on the live project, which needs the database password
-- [ ] **6.3** Whose contract ends 2026-11-21. A fact about an agreement, not a technical choice
+### 8.3 Frontend fidelity, still outstanding
 
-### 8.3 Closed in the 2026-09-02 passes
+- [ ] Table cell content should be bold, as it is in every Taleo screenshot
+- [ ] The filter rail squeezes the table; Taleo's table is full width
+- [ ] Titles read "Candidates: Home"; Taleo uses "Candidates: <requisition>" or just the module name
+- [ ] Pager needs the chevrons and export icon above the table
+- [ ] **N9** There is no `@media print` rule anywhere, and the replica renders a "Printable View" control
+
+### 8.4 Architecture, each needs a decision first
+
+- [ ] **N3** Adopt `@layer` and split `app.css` by concern. Three named source-order hazards must be resolved first
+- [ ] **N7** Adopt React Compiler. Stable, and it does support React 18. There is no `React.memo` anywhere today
+- [ ] **N1** Delete the four dead `db.ts` shims
+- [ ] **N5** Align the `recruit` module's shape with the other four
+- [ ] **N6** Split the four largest components on responsibility, not on line count
+- [ ] **N8** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`, both now in TypeScript's own recommended template
+- [ ] **N10** Enforce with ESLint that modules never import each other
+- [ ] **K5** Wrap the RLS predicates in a scalar subselect across about 40 policies
+- [ ] **K7** Explicit column lists in place of 73 `select('*')` sites
+- [ ] **L12** Run axe in CI against real routes, not token pairs
+- [ ] **M10** Test `Cross-Origin-Embedder-Policy: require-corp` before enabling it
+- [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
+- [ ] **F4** Archive the other two frontends (decided, not yet executed)
+
+### 8.5 Waiting on one authorised command from you
+
+Each is written, proven locally and idempotent, and refuses a non-local target without `--allow-remote`.
+
+- [ ] **A3 and A4** `scripts/backfill-zoho-candidate-fields.mjs`. Restores 37 star grades and corrects 74 initial dates
+- [ ] **B2** `scripts/rotate-persona-passwords.mjs`. Fresh random passwords, printed once, stored nowhere
+- [ ] **B3** Whether a production `staff` row is created for you
+- [ ] **K10** Authenticated Core Web Vitals. Needs either the live credentials or a decision to measure the local stack instead, which measures loopback latency
+
+### 8.6 Waiting on data or credentials only you can supply
+
+- [ ] **D11** A Zoho Self Client. **Unblocked as of 2026-09-02:** the client-credentials flow works and a token was proven against Recruit. Needs the client id, secret and the two org ids to run unattended
+- [ ] **D2 to D5** Job openings, education, experience, attachment bytes. All arrive with D11
+- [ ] **D10 contacts half** The Contacts export. Mapper written and unit-tested
+- [ ] **E6** The last 12 of 82 acceptance criteria, each needing a Google account, a production publish, a hosted sheet or a human click-through
+- [ ] **P2** The four monthly cost figures
+- [ ] **P3** Whose contract ends 2026-11-21
+
+Detail on the parked items is in `VVPH_VV-FOOS_Register_Parked-and-Blocked-Items_2026-09-02_v1.0_Draft.md`.
+
+### 8.7 Closed on 2026-09-02
 
 - [x] **H1 to H7** Icons on lucide, StarGrade merged, `EMPTY_CELL`, the two missing G6 interactions, six dead motion selectors repaired, `rgba()` tokenised, the real logo
-- [x] **J1 to J11** Every cleanup item, including five stale `CLAUDE.md` statements and a comment guard that was a no-op in CI
-- [x] **A4** A third `Initial Date` format found and handled. Parse rate 43 of 74 to **74 of 74**
-- [x] **D6** A real UI state for an attachment whose bytes have not arrived, with two browser tests
-- [x] **D7** A second alias: the Zoho status `Hired` is the FOOS status `Placed`. Unresolved statuses are now zero
-- [x] **D9** Inactive `staff` rows for the three unmatched Zoho owners. Unresolved staff went from 325 affected rows to **zero**
-- [x] **D10** The Accounts mapper: **86 of 86** rows, 0 skipped
-- [x] **E7** The migration rehearsed end to end on every export that exists, including a damage-and-repair cycle and a full purge
-- [x] **F4** Decided: archive the other two frontends
-- [x] **6.2** Decided: cap long text. The measured excess row height turned out to be a stacked Edit button, not wrapping; fixing the layout took the tallest candidate row from 83px to 69px
-- [x] **6.1, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10** All closed, with the reasoning recorded in section 6
+- [x] **J1 to J11** Every cleanup item, five stale `CLAUDE.md` statements, and a comment guard that was a no-op in CI
+- [x] **A4** A third `Initial Date` format found. Parse rate 43 of 74 to 74 of 74
+- [x] **D6, D7, D9, D10 accounts half, E7, F4 decision** and eight of ten section 6 decisions
+- [x] **L1 to L6** A real focus failure, a skip link, four ARIA roles, target sizes, a landmark name, three contrast failures
+- [x] **M1 to M3** An open redirect, the security headers, invalid JobPosting structured data
+- [x] **The Taleo rename**, 521 prefix occurrences and 11 component identifiers, on the copyright concern
 
-### 8.4 What I would take first when the blockers lift
+### 8.8 Provenance of the audit findings
 
-Create the Self Client, then `node migration/zoho-api.mjs` for both products. That single step unblocks D2, D3, D4, D5, the contacts half of D10 and the remaining third of E7. Everything downstream of it is already written and tested.
+Stated so nobody has to re-derive it. **Measured:** the index gaps (EXPLAIN against 200k synthetic rows in a rolled-back transaction), the bundle sizes and the 159 KB first load, the 69-versus-21 stale build files, every axe violation, the 75 tab stops, the target sizes, the nav overflow at four widths, and all contrast ratios. **Read from code:** the open redirect, the JobPosting undefined-drop, the `select('*')` count, the `RangeError`, the sequential deletes, the dead `db.ts` shims, the duplicate `.fo-pager` rule. **Verified against a primary source after being flagged as recall:** the OWASP header list and the react-router advisory ranges, both of which turned out to be materially different from the first answer. **Still unverified:** dependency maintenance status, because the session's web-search budget ran out at 200 calls.
 
-### 8.5 Verification behind every 2026-09-02 entry
-
-Twelve gates, run in loops rather than once: 0 TypeScript errors, 0 lint problems, a clean production build, contrast 17 of 17, motion budget respected, no comments in source, no migration drift, 18 of 18 schema checks with 0 failures, the API and unit suites, the browser suite, no orphaned attachment objects, and the Zoho importer holding at 75 of 75 candidates, 141 of 154 notes, 42 of 50 attachments and 86 of 86 companies.
-
-Two defects of my own were found by running things repeatedly. `list-persistence.spec.ts` 2.11 read row text before the people lookup resolved and captured a loading placeholder under full-suite load, which is D35. And the importer, run from inside `migration/`, wrote its report to `migration/migration/out/`; that directory was caught and removed before staging, because dry-run reports contain candidate data.
