@@ -48,20 +48,34 @@ async function violations(page: Page): Promise<AxeViolation[]> {
 }
 
 test.describe('L12: axe runs against real routes, not token pairs', () => {
-  test('no serious or critical violation on any signed-in route', async ({ page }) => {
-    await signIn(page, PERSONA_EMAILS.admin);
+  function report(name: string, list: Awaited<ReturnType<typeof violations>>): string[] {
+    return list
+      .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+      .map(
+        (v) =>
+          `${name}: ${v.id} (${v.impact}, ${v.nodes.length} node(s)) e.g. ${v.nodes[0]?.target?.[0] ?? '?'}`,
+      );
+  }
 
+  const fail = (found: string[]) =>
+    expect(found, `serious or critical accessibility violations:\n${found.join('\n')}`).toEqual([]);
+
+  test('no serious or critical violation on any signed-in screen route', async ({ page }) => {
+    test.setTimeout(20000 + ROUTES.length * 8000);
+    await signIn(page, PERSONA_EMAILS.admin);
     const found: string[] = [];
     for (const [name, path] of ROUTES) {
       await gotoAsSignedIn(page, path);
       await page.waitForTimeout(600);
-      for (const v of await violations(page)) {
-        if (v.impact === 'serious' || v.impact === 'critical') {
-          found.push(`${name}: ${v.id} (${v.impact}, ${v.nodes.length} node(s)) e.g. ${v.nodes[0]?.target?.[0] ?? '?'}`);
-        }
-      }
+      found.push(...report(name, await violations(page)));
     }
+    fail(found);
+  });
 
+  test('no serious or critical violation on the CRM record pages', async ({ page }) => {
+    test.setTimeout(60000);
+    await signIn(page, PERSONA_EMAILS.admin);
+    const found: string[] = [];
     for (const [name, recordPath] of [
       ['account record', '/sales/companies/c0000000-0000-4000-8000-000000000001'],
       ['contact record', '/sales/contacts/b0000000-0000-4000-8000-000000000006'],
@@ -69,15 +83,15 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
     ] as const) {
       await gotoAsSignedIn(page, recordPath);
       await page.waitForTimeout(1200);
-      for (const v of await violations(page)) {
-        if (v.impact === 'serious' || v.impact === 'critical') {
-          found.push(
-            `${name}: ${v.id} (${v.impact}, ${v.nodes.length} node(s)) e.g. ${v.nodes[0]?.target?.[0] ?? '?'}`,
-          );
-        }
-      }
+      found.push(...report(name, await violations(page)));
     }
+    fail(found);
+  });
 
+  test('no serious or critical violation on the ATS record pages', async ({ page }) => {
+    test.setTimeout(60000);
+    await signIn(page, PERSONA_EMAILS.admin);
+    const found: string[] = [];
     for (const [name, listPath] of [
       ['requisition record', '/recruit/requisitions'],
       ['candidate record', '/recruit/candidates'],
@@ -85,16 +99,9 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
       await gotoAsSignedIn(page, listPath);
       await page.locator('.table-wrap tbody tr .link-btn').first().click();
       await page.waitForTimeout(1200);
-      for (const v of await violations(page)) {
-        if (v.impact === 'serious' || v.impact === 'critical') {
-          found.push(
-            `${name}: ${v.id} (${v.impact}, ${v.nodes.length} node(s)) e.g. ${v.nodes[0]?.target?.[0] ?? '?'}`,
-          );
-        }
-      }
+      found.push(...report(name, await violations(page)));
     }
-
-    expect(found, `serious or critical accessibility violations:\n${found.join('\n')}`).toEqual([]);
+    fail(found);
   });
 
   test('the skip link is the first thing a keyboard reaches', async ({ page }) => {

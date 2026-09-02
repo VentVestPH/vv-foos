@@ -133,56 +133,86 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
   });
 
   test('2.11 the CSV export matches the filtered set on screen', async ({ page }) => {
-    await signIn(page, PERSONA_EMAILS.recruiter);
-    await gotoAsSignedIn(page, '/recruit/candidates');
+    const admin = await apiAs(PERSONA_EMAILS.admin);
+    const token = `Zexport${RUN.replace(/[^a-z0-9]/gi, '')}`;
+    const created: string[] = [];
 
-    const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
-    await expect(rows.first()).toBeVisible({ timeout: 25000 });
+    try {
+      for (const suffix of ['Alpha', 'Bravo', 'Charlie']) {
+        const { data, error } = await admin
+          .from('people')
+          .insert({ first_name: token, last_name: suffix, is_test: true })
+          .select('id')
+          .single();
+        if (error) throw error;
+        created.push(data.id);
+        const profile = await admin.from('candidate_profiles').insert({ person_id: data.id });
+        if (profile.error) throw profile.error;
+      }
 
-    await expect
-      .poll(
-        async () =>
-          (await rows.locator('.link-btn').allInnerTexts()).filter(
-            (t) => t.trim() === PENDING_NAME,
-          ).length,
-        { timeout: 25000, message: 'candidate names are still resolving' },
-      )
-      .toBe(0);
+      await signIn(page, PERSONA_EMAILS.recruiter);
+      await gotoAsSignedIn(page, '/recruit/candidates');
 
-    const onScreen: string[] = [];
-    for (const row of await rows.all()) {
-      const name = (await row.locator('.link-btn').first().innerText()).trim();
-      onScreen.push(name);
+      const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
+      await expect(rows.first()).toBeVisible({ timeout: 25000 });
+
+      await page.getByRole('searchbox', { name: 'Search Candidates' }).fill(token);
+
+      await expect(rows, 'the search narrows to exactly this run\'s three candidates').toHaveCount(
+        created.length,
+        { timeout: 25000 },
+      );
+      await expect
+        .poll(
+          async () =>
+            (await rows.locator('.link-btn').allInnerTexts()).filter((t) => t.trim() === PENDING_NAME)
+              .length,
+          { timeout: 25000, message: 'candidate names are still resolving' },
+        )
+        .toBe(0);
+
+      const onScreen: string[] = [];
+      for (const row of await rows.all()) {
+        onScreen.push((await row.locator('.link-btn').first().innerText()).trim());
+      }
+      expect(onScreen.filter((n) => n === ''), 'every visible row has a resolved name').toEqual([]);
+      expect(onScreen).toHaveLength(created.length);
+
+      const download = await Promise.all([
+        page.waitForEvent('download', { timeout: 25000 }),
+        page.getByRole('button', { name: 'Export CSV', exact: true }).click(),
+      ]).then(([d]) => d);
+
+      expect(download.suggestedFilename()).toMatch(/\.csv$/);
+      const stream = await download.createReadStream();
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) chunks.push(chunk as Buffer);
+      const csv = Buffer.concat(chunks).toString('utf8');
+
+      const records = csvRecords(csv);
+      await test.info().attach('export.csv', { body: csv, contentType: 'text/csv' });
+      await test.info().attach('on-screen.json', {
+        body: JSON.stringify(onScreen, null, 2),
+        contentType: 'application/json',
+      });
+
+      expect(
+        records.length,
+        `a header plus one record per visible row; got ${records.length} records for ${onScreen.length} rows`,
+      ).toBe(onScreen.length + 1);
+
+      const exportedNames = records.slice(1).map((r) => r[0]?.trim() ?? '');
+      expect(new Set(exportedNames), 'the export names are exactly the names on screen').toEqual(
+        new Set(onScreen),
+      );
+    } finally {
+      if (created.length) {
+        await admin.from('candidate_profiles').delete().in('person_id', created);
+        const { error } = await admin.from('people').delete().in('id', created);
+        if (error) throw new Error(`could not remove the export fixtures: ${error.message}`);
+        const { data } = await admin.from('people').select('id').in('id', created);
+        if (data?.length) throw new Error(`${data.length} export fixture(s) survived teardown`);
+      }
     }
-    expect(onScreen.length).toBeGreaterThan(0);
-    expect(onScreen.filter((n) => n === ''), 'every visible row has a resolved name').toEqual([]);
-
-    const download = await Promise.all([
-      page.waitForEvent('download', { timeout: 25000 }),
-      page.getByRole('button', { name: 'Export CSV', exact: true }).click(),
-    ]).then(([d]) => d);
-
-    expect(download.suggestedFilename()).toMatch(/\.csv$/);
-    const stream = await download.createReadStream();
-    const chunks: Buffer[] = [];
-    for await (const chunk of stream) chunks.push(chunk as Buffer);
-    const csv = Buffer.concat(chunks).toString('utf8');
-
-    const records = csvRecords(csv);
-    await test.info().attach('export.csv', { body: csv, contentType: 'text/csv' });
-    await test.info().attach('on-screen.json', {
-      body: JSON.stringify(onScreen, null, 2),
-      contentType: 'application/json',
-    });
-
-    expect(
-      records.length,
-      `a header plus one record per visible row; got ${records.length} records for ${onScreen.length} rows`,
-    ).toBe(onScreen.length + 1);
-
-    const exportedNames = records.slice(1).map((r) => r[0]?.trim() ?? '');
-    expect(new Set(exportedNames), 'the export names are exactly the names on screen').toEqual(
-      new Set(onScreen),
-    );
   });
 });

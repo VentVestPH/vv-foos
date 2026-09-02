@@ -1,7 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
-const APP = '/Users/klentz/Work/VV-FoOS/app/src';
+const APP = fileURLToPath(new URL('../../app/src', import.meta.url));
 
 const MODULE_MOUNTS: Record<string, string> = {
   recruit: '/recruit',
@@ -43,7 +44,7 @@ function declaredRoutes(): string[] {
 }
 
 function axeCoveredRoutes(): string[] {
-  const spec = readFileSync('/Users/klentz/Work/VV-FoOS/tests/e2e/accessibility.spec.ts', 'utf8');
+  const spec = readFileSync(new URL('./accessibility.spec.ts', import.meta.url), 'utf8');
   const block = spec.slice(spec.indexOf('const ROUTES'), spec.indexOf('] as const;'));
   return [...block.matchAll(/'(\/[^']*)'/g)].map((m) => (m[1] as string).split('?')[0] as string);
 }
