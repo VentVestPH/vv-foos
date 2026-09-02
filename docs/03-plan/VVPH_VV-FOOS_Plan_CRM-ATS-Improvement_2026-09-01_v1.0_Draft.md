@@ -295,11 +295,9 @@ Added 2026-09-02. Row-level security was out of scope for this audit, having bee
 | M6 | **PARTLY DONE 2026-09-02, and the earlier finding was wrong.** The audit reported this as needing a 6-to-7 major migration because `npm audit` said "fix available" while the caret range could not reach 7.x. Checking the registry directly showed **6.30.5 and 6.30.6 exist**, and the advisory that actually names our installed version, "Open redirect leading to XSS", is scoped `>=6.30.2 <=6.30.4`. Bumped to **6.30.6**, a patch, and that advisory is gone. Two advisories against `react-router` remain, both fixed only in 7.18.0: an open redirect via backslash in `<Link>` and `useNavigate`, which does apply; and arbitrary constructor injection in `deserializeErrors()` during **SSR hydration**, which does not, because this is a client-only SPA with no `renderToString`, no `StaticRouter` and no `hydrateRoot` anywhere. So the remaining exposure is one moderate open-redirect advisory, and the v7 migration can be scheduled rather than rushed | Two moderate advisories against the installed 6.30.4. `npm audit` reports a fix as available, which is misleading: the caret range cannot reach 7.x, so this is a major-version migration | 1 d |
 | M7 | **DONE 2026-09-02.** The only drift was `axe-core`, installed unsaved by the accessibility audit. Rather than remove it, it is now a proper dev dependency of `tests`, which makes `npm ci` reproducible and puts the tool in place for L12 | `npm ci --dry-run` reports it would remove packages, so the live tree has drifted from the lockfile and `npm ci` is not reproducible against what is checked out | 30 min |
 | M8 | **DONE 2026-09-02.** A 1200x630 `og-careers.png` generated from the logo, plus `og:image`, its width and height, `twitter:card` and `twitter:image`. Emitted **only** when `APP_PRIMARY_ORIGIN` is set to an absolute URL, on the same principle as the JobPosting fix: a relative or missing image URL is ignored by crawlers, so half a tag set is worse than none. A test covers both branches | Title, description, canonical, Open Graph, `lang`, sitemap and robots are all present and correct. `og:image` is the one gap | 1 h |
-| M9 | Guard against unintentionally building against the live project | `app/.env` points the production build at `mebfbbvrqdctamnzvbbs.supabase.co`. `app/.env.development` correctly points the dev server at the local stack, which is why local sign-in works. But `npm run build` followed by `vite preview` talks to production, which is how the performance audit was blocked | 1 h |
-
-| M10 | Test `Cross-Origin-Embedder-Policy: require-corp` before enabling it | OWASP recommends it. It would break any cross-origin subresource that does not send a CORP header, and the resume preview iframe and attachment images are served from Supabase | 2 h |
-
-**Status 2026-09-02.** Done: M1, M2, M3, and M6 reduced to one moderate advisory by a patch bump. Open: M4, M5, M7, M8, M9, M10, and the eventual v7 migration. Verified clean and needing no work: no `dangerouslySetInnerHTML`, `innerHTML`, `eval` or `new Function` anywhere in `app/src`; only the anon key reaches the browser bundle, confirmed by decoding the one JWT-shaped string in the built output; the careers apply endpoint already has rate limiting, a honeypot, an extension allowlist and magic-byte signature checks; and a nonexistent and a closed requisition return identical pages, so there is no enumeration.
+| M9 | **DONE 2026-09-02.** `scripts/check-env-target.mjs`, wired as `npm run check:env` and `check:env:production`. The hazard is Vite's own precedence: in production mode `app/.env.local` overrides `app/.env`, so a `.env.local` left behind from local measurement silently produces a deploy bundle pointing at `127.0.0.1`, and the reverse (building here without it) produces a bundle pointing at the live project. The guard reads both files, prints the effective host and which file it came from, and exits 1 when the effective target disagrees with the flag. Verified both ways: with `.env.local` present, `check:env` passes and `check:env:production` refuses; with it absent, the reverse | The two failure modes are silent and only visible after the bundle is served | done |
+| M10 | **DONE 2026-09-02, and the answer is no: `require-corp` cannot be enabled while the resume preview is an iframe on the Storage origin.** Measured rather than reasoned about. Supabase Storage sends no `Cross-Origin-Resource-Policy` and no `Cross-Origin-Embedder-Policy`, only `Access-Control-Allow-Origin: *`, and that is true of both the local container and the live project behind Cloudflare (checked read-only against a nonexistent object, no write). MDN's own wording settles what that costs: a `no-cors` cross-origin subresource needs CORP, while "requests made in `cors` mode won't be blocked by COEP", which an `<img crossorigin>` gets but an `<iframe>` cannot. `tests/e2e/coep.spec.ts` proves all three outcomes in Chromium against the real Storage endpoint: the no-cors image dies with `ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep`, the iframe document dies with `ERR_BLOCKED_BY_RESPONSE`, and the same URL in an `<img crossorigin>` still loads. A control run without the header loads all three, so the test cannot pass vacuously. Ten consecutive passes. The one path to enabling it later is to make the preview same-origin, for example a Vercel rewrite from `/attachment/*` onto the signed Storage URL, which is a proxy surface to design rather than a header to add | The app has exactly one cross-origin embed, and it is the one thing `require-corp` cannot be talked out of blocking | done |
+**Status 2026-09-02.** Done: M1, M2, M3, M9, M10, and M6 reduced to one moderate advisory by a patch bump. Open: M4, M5, M7, M8, and the eventual v7 migration. Verified clean and needing no work: no `dangerouslySetInnerHTML`, `innerHTML`, `eval` or `new Function` anywhere in `app/src`; only the anon key reaches the browser bundle, confirmed by decoding the one JWT-shaped string in the built output; the careers apply endpoint already has rate limiting, a honeypot, an extension allowlist and magic-byte signature checks; and a nonexistent and a closed requisition return identical pages, so there is no enumeration.
 
 ### Workstream N. Code and stylesheet architecture
 
@@ -380,7 +378,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**106½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**108½ of 138 numbered tasks are done.** The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -397,7 +395,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **J** Repository cleanup | 11 | 11 | Complete. J8 needed no change: its premise was wrong |
 | **K** Data access and performance | 12 | 10 | K1's correctness half and K11 done. Measurement reframed this workstream: performance is fine, truncation was the real bug |
 | **L** Accessibility and responsive | 13 | 13 | L1 to L6 done. L7, no keyboard path on the kanban board, is the most serious open one |
-| **M** Security and public surface | 10 | 7½ | M1 to M3 done. M6 reduced from a major migration to one remaining advisory by a patch bump |
+| **M** Security and public surface | 10 | 9½ | M1 to M3, M9 and M10 done. M6 reduced from a major migration to one remaining advisory by a patch bump. M10 answered no: `require-corp` blocks the resume preview iframe, measured |
 | **N** Code and stylesheet architecture | 10 | 4 | N2 done, which removes the only live crash in the workstream |
 | **O** Resilience and handover | 8 | 2 | O1 done. A render throw is now contained to one page or one widget |
 | **Q** Product capability | 8 | 0 | New, and the only workstream that is proposals rather than defects. Q1's plumbing already exists |
@@ -501,7 +499,7 @@ Two research angles returned no verified findings and remain genuinely open rath
 
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits. **106½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits. **108½ of 138 tasks done.** Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -509,7 +507,6 @@ State after the 2026-09-02 passes and the seven audits. **106½ of 138 tasks don
 
 ### 8.2 Under two hours each, no product risk
 
-- [ ] **M9** Guard against building against the live project unintentionally
 - [ ] **O6** Confirm backups and point-in-time recovery on the live project
 - [ ] **O7** Note `@dnd-kit/core` as a watch item: latest version, but unpublished for 21 months
 
@@ -545,7 +542,6 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 - [ ] **N6** Split the four largest components on responsibility, not on line count
 - [ ] **N8** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`, both now in TypeScript's own recommended template
 - [ ] **N10** Enforce with ESLint that modules never import each other
-- [ ] **M10** Test `Cross-Origin-Embedder-Policy: require-corp` before enabling it
 - [ ] **M6** The eventual react-router v7 migration, for the one remaining moderate advisory
 - [ ] **F4** Archive the other two frontends (decided, not yet executed)
 - [ ] **O3** Error tracking, so production failures are visible during the 30-day measurement window

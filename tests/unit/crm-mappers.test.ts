@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { companyTypes, mapCompany } from '../../migration/src/map-companies.mjs';
 import { mapContact, unrecognisedContactColumns } from '../../migration/src/map-contacts.mjs';
+import { newUnresolved, type Lookups } from '../../migration/src/lookups.mjs';
 
-const lookups = {
+const lookups: Lookups = {
   staffByName: new Map([['ada owner', 'staff-uuid']]),
   sourceByName: new Map(),
   statusByLabel: new Map(),
 };
 
-function unresolved() {
-  return { staff: new Map(), source: new Map(), status: new Map() };
+const unresolved = newUnresolved;
+
+function defined<T>(value: T | undefined, what: string): T {
+  if (value === undefined) throw new Error(`the mapper produced no ${what}`);
+  return value;
 }
 
 const ACCOUNT = {
@@ -33,26 +37,33 @@ describe('mapCompany', () => {
     const r = mapCompany(ACCOUNT, lookups, unresolved());
     expect(r.skip).toBeUndefined();
     expect(r.zohoId).toBe('zcrm_1');
-    expect(r.company.name).toBe('Northwind Freight');
-    expect(r.company.city).toBe('Manila');
-    expect(r.company.state).toBe('Metro Manila');
-    expect(r.company.country).toBe('Philippines');
-    expect(r.company.phone).toBe('+63 2 555 0100');
-    expect(r.company.owner_id).toBe('staff-uuid');
-    expect(r.company.is_test).toBe(false);
+    const company = defined(r.company, 'company');
+    expect(company.name).toBe('Northwind Freight');
+    expect(company.city).toBe('Manila');
+    expect(company.state).toBe('Metro Manila');
+    expect(company.country).toBe('Philippines');
+    expect(company.phone).toBe('+63 2 555 0100');
+    expect(company.owner_id).toBe('staff-uuid');
+    expect(company.is_test).toBe(false);
   });
 
   it('gives a bare domain a scheme so the link works', () => {
-    expect(mapCompany(ACCOUNT, lookups, unresolved()).company.website).toBe('https://northwind.example');
+    expect(defined(mapCompany(ACCOUNT, lookups, unresolved()).company, 'company').website).toBe(
+      'https://northwind.example',
+    );
     expect(
-      mapCompany({ ...ACCOUNT, Website: 'http://already.example' }, lookups, unresolved()).company.website,
+      defined(
+        mapCompany({ ...ACCOUNT, Website: 'http://already.example' }, lookups, unresolved()).company,
+        'company',
+      ).website,
     ).toBe('http://already.example');
   });
 
   it('parses the CRM timestamp shape, which differs from Recruit', () => {
     const r = mapCompany(ACCOUNT, lookups, unresolved());
-    expect(r.company.created_at).toBe('2026-09-02T14:31:07Z');
-    expect(r.company.updated_at).toBe('2026-09-02T15:00:00Z');
+    const company = defined(r.company, 'company');
+    expect(company.created_at).toBe('2026-09-02T14:31:07Z');
+    expect(company.updated_at).toBe('2026-09-02T15:00:00Z');
     expect(r.warnings.filter((w: string) => w.includes('Created Time'))).toHaveLength(0);
   });
 
@@ -73,8 +84,9 @@ describe('mapCompany', () => {
 
   it('reports source fields that have no column rather than dropping them silently', () => {
     const r = mapCompany(ACCOUNT, lookups, unresolved());
-    expect(r.carried.industry).toBe('Logistics');
-    expect(r.carried.annual_revenue).toBe('1000000');
+    const carried = defined(r.carried, 'carried fields');
+    expect(carried.industry).toBe('Logistics');
+    expect(carried.annual_revenue).toBe('1000000');
     expect(r.warnings.join(' ')).toContain('no column on companies');
   });
 
@@ -105,24 +117,27 @@ describe('mapContact', () => {
   it('builds the people row and the contact_profiles row together', () => {
     const r = mapContact(CONTACT, lookups, unresolved(), companies);
     expect(r.skip).toBeUndefined();
-    expect(r.person.first_name).toBe('Bo');
-    expect(r.person.city).toBe('Cebu');
-    expect(r.profile.title).toBe('Head of Ops');
-    expect(r.profile.company_id).toBe('company-uuid');
+    const person = defined(r.person, 'person');
+    const profile = defined(r.profile, 'contact profile');
+    expect(person.first_name).toBe('Bo');
+    expect(person.city).toBe('Cebu');
+    expect(profile.title).toBe('Head of Ops');
+    expect(profile.company_id).toBe('company-uuid');
   });
 
   it('types the emails and phones it collects and drops duplicates', () => {
     const r = mapContact({ ...CONTACT, 'Email 1': 'bo@northwind.example' }, lookups, unresolved(), companies);
-    expect(r.person.emails).toEqual([
+    const person = defined(r.person, 'person');
+    expect(person.emails).toEqual([
       { type: 'work', address: 'bo@northwind.example' },
       { type: 'personal', address: 'bo.personal@example.com' },
     ]);
-    expect(r.person.phones.map((p: { type: string }) => p.type)).toEqual(['main', 'mobile']);
+    expect((person.phones as { type: string }[]).map((p) => p.type)).toEqual(['main', 'mobile']);
   });
 
   it('warns when the account it points at is not imported yet', () => {
     const r = mapContact(CONTACT, lookups, unresolved(), new Map());
-    expect(r.profile.company_id).toBeNull();
+    expect(defined(r.profile, 'contact profile').company_id).toBeNull();
     expect(r.warnings.join(' ')).toContain('not imported yet');
   });
 

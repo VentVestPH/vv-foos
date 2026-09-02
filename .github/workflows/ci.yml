@@ -18,6 +18,7 @@ jobs:
       - run: npm ci
       - run: npm run lint --workspace=app
       - run: npm run typecheck --workspace=app
+      - run: npm run typecheck --workspace=tests
       - run: npm run build --workspace=app
       - run: node scripts/check-contrast.mjs
       - run: node scripts/check-motion.mjs

@@ -14,6 +14,8 @@
     "test": "npm run test --workspace=tests",
     "test:e2e": "npm run e2e --workspace=tests",
     "db:seed:personas": "node scripts/post-reset.mjs --personas-only",
-    "db:add-staff": "node scripts/add-local-staff.mjs"
+    "db:add-staff": "node scripts/add-local-staff.mjs",
+    "check:env": "node scripts/check-env-target.mjs",
+    "check:env:production": "node scripts/check-env-target.mjs --production"
   }
 }

@@ -6,7 +6,7 @@ import {
   parseZohoNumber,
   parseZohoTimestamp,
 } from '../../migration/src/zoho.mjs';
-import { STATUS_ALIASES, resolveStatus } from '../../migration/src/lookups.mjs';
+import { STATUS_ALIASES, newUnresolved, resolveStatus } from '../../migration/src/lookups.mjs';
 
 const CREATED = '06/20/2026 10:00 AM';
 
@@ -106,7 +106,7 @@ describe('status aliasing', () => {
       sourceByName: new Map(),
       statusByLabel: new Map([['placed', 'status-uuid']]),
     };
-    const unresolved = { staff: new Map(), source: new Map(), status: new Map() };
+    const unresolved = newUnresolved();
     expect(resolveStatus(lookups, 'Hired', unresolved)).toBe('status-uuid');
     expect(unresolved.status.size).toBe(0);
     expect(resolveStatus(lookups, 'Invented Label', unresolved)).toBeNull();

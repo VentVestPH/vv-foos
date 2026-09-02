@@ -2,17 +2,19 @@
   "name": "foos-qa",
   "version": "0.1.0",
   "private": true,
-  "description": "Agent 8 (QA) test suite — API/RLS/logic tests (Vitest) and browser flow tests (Playwright) against the live FOOS Supabase project. See README.md for the one-command run and required env vars.",
+  "description": "Agent 8 (QA) test suite \u2014 API/RLS/logic tests (Vitest) and browser flow tests (Playwright) against the live FOOS Supabase project. See README.md for the one-command run and required env vars.",
   "type": "module",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "e2e:install": "playwright install --with-deps chromium"
+    "e2e:install": "playwright install --with-deps chromium",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
     "@supabase/supabase-js": "^2.45.0",
+    "@types/node": "^22.20.1",
     "axe-core": "^4.13.0",
     "dotenv": "^16.4.5",
     "vitest": "^2.1.1"
