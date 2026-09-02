@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   ArrowLeftRight,
   CalendarDays,
@@ -60,7 +60,12 @@ function dayLabel(iso: string): string {
   });
 }
 
+const INITIAL_VISIBLE = 50;
+const MORE_STEP = 100;
+
 export function Timeline({ items }: { items: TimelineItem[] }) {
+  const [visible, setVisible] = useState(INITIAL_VISIBLE);
+
   if (items.length === 0) {
     return <div className="timeline-empty">No activity yet.</div>;
   }
@@ -69,9 +74,11 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
     (a, b) =>
       new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
   );
+  const shown = sorted.slice(0, visible);
+  const hidden = sorted.length - shown.length;
 
   const groups: { label: string; items: TimelineItem[] }[] = [];
-  for (const item of sorted) {
+  for (const item of shown) {
     const label = dayLabel(item.occurred_at);
     const last = groups[groups.length - 1];
     if (last && last.label === label) {
@@ -116,6 +123,16 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
           ))}
         </div>
       ))}
+      {hidden > 0 && (
+        <div className="timeline-more">
+          <button type="button" className="link-btn" onClick={() => setVisible((v) => v + MORE_STEP)}>
+            Show {Math.min(hidden, MORE_STEP)} earlier {hidden === 1 ? 'entry' : 'entries'}
+          </button>
+          <span className="text-secondary">
+            Showing {shown.length} of {sorted.length}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

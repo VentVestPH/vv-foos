@@ -202,3 +202,15 @@
   outline-offset: 1px;
   box-shadow: var(--shadow-raised);
 }
+
+.timeline-more {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0 0;
+  border-top: 1px solid var(--border);
+  margin-top: var(--sp-1);
+  font-size: var(--fs-meta);
+}
+

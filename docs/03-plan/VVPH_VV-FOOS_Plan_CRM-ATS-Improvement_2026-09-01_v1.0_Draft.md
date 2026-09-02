@@ -477,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**147½ of 157 numbered tasks are done.** T1 is done and added four follow-ups, T2 to T5. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**150½ of 157 numbered tasks are done.** T1 added four follow-ups; T2, T4 and T5 are done and T3 is a design decision rather than a patch. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -734,9 +734,20 @@ A **serious** contrast failure on the dashboard KPI labels, measured at 3.59:1. 
 **One number worth keeping:** 175 controls across the 27 screens are `aria-disabled` placeholders. That is the honest size of the looks-finished-but-is-not surface, and the screens with the fewest placeholders are not the ones that look most complete.
 
 
+## 7.12 T2, T4 and T5: three of the four discovery follow-ups
+
+**T2, the uncapped timeline, done.** `Timeline` renders 50 entries and offers "Show 100 earlier entries" with a "Showing 50 of 362" count beside it. Measured on the deal record that prompted it: **4,263 DOM nodes to 802**, an 81% reduction, timeline items 362 to 50, SVG path elements **1,456 to 218**. Two tests: a long history renders exactly 50 with a working control that expands to 150, and a short history shows no control at all. The cap is a product default rather than a discovered constant, so it is one named constant at the top of the component.
+
+**T4, `deals-list` having neither a table nor a record section, is not a defect.** Its view state defaults to `'kanban'`, so at load there is no `.table-wrap` to count; the Table toggle produces one, which `crm-deals.spec.ts` already asserts. The discovery metric captured the default view faithfully and I read more into it than was there. Closed with no change.
+
+**T5, keeping accessibility coverage in step with the router, done, and it found more gaps.** `tests/e2e/route-coverage.spec.ts` parses `path="..."` out of `App.tsx` and all five module route trees, compares that set against the route list in `accessibility.spec.ts`, and fails naming any route that is neither covered nor explicitly exempt. A second test fails if the exemption list names a route that no longer exists, so the exemptions cannot rot either.
+
+Running it immediately found what the manual list had missed: `/sales/contacts/new` had no axe coverage at all, and the account, contact and deal **record** pages had none either, since the record block only visited requisitions and candidates. All four are covered now, and the six parameterised routes are exempt with the reason attached. Proven by adding a throwaway route and watching the guard name it.
+
+
 ## 8. Tasklist
 
-State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **147½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
+State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
 ### 8.1 Highest consequence, nothing blocking it
 
@@ -758,10 +769,7 @@ Closed 2026-09-02, and the table chrome was corrected against sampled pixels rat
 
 ### 8.4 Product capability, your call on value rather than a technical decision
 
-- [ ] **T2** Cap the activity timeline. 362 items and 1,456 SVG paths on one deal record, unbounded by design
 - [ ] **T3** Whether one screen should hold 17 collapsible sections. The candidate record renders 2,836 nodes and 108 controls
-- [ ] **T4** `deals-list` has neither a table nor a record section, unlike every other list
-- [ ] **T5** Generate the axe route list from the router, so a new route cannot ship without coverage
 
 ### 8.5 Architecture, each needs a decision first
 

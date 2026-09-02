@@ -16,6 +16,7 @@ const ROUTES = [
   ['accounts', '/sales/companies'],
   ['account new', '/sales/companies/new'],
   ['contacts', '/sales/contacts'],
+  ['contact new', '/sales/contacts/new'],
   ['deals', '/sales/deals'],
   ['deal new', '/sales/deals/new'],
   ['tickets', '/sales/tickets'],
@@ -57,6 +58,22 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
       for (const v of await violations(page)) {
         if (v.impact === 'serious' || v.impact === 'critical') {
           found.push(`${name}: ${v.id} (${v.impact}, ${v.nodes.length} node(s)) e.g. ${v.nodes[0]?.target?.[0] ?? '?'}`);
+        }
+      }
+    }
+
+    for (const [name, recordPath] of [
+      ['account record', '/sales/companies/c0000000-0000-4000-8000-000000000001'],
+      ['contact record', '/sales/contacts/b0000000-0000-4000-8000-000000000006'],
+      ['deal record', '/sales/deals/e0000000-0000-4000-8000-000000000001'],
+    ] as const) {
+      await gotoAsSignedIn(page, recordPath);
+      await page.waitForTimeout(1200);
+      for (const v of await violations(page)) {
+        if (v.impact === 'serious' || v.impact === 'critical') {
+          found.push(
+            `${name}: ${v.id} (${v.impact}, ${v.nodes.length} node(s)) e.g. ${v.nodes[0]?.target?.[0] ?? '?'}`,
+          );
         }
       }
     }
