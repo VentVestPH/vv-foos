@@ -27,6 +27,17 @@ export async function gotoAsSignedIn(page: Page, path: string): Promise<void> {
   await expect(page).not.toHaveURL(/\/login/);
 }
 
+export async function waitForAnimations(page: Page, capMs = 3000): Promise<void> {
+  await page.evaluate(async (cap) => {
+    const running = document.getAnimations();
+    if (running.length === 0) return;
+    await Promise.race([
+      Promise.allSettled(running.map((a) => a.finished)),
+      new Promise((resolve) => setTimeout(resolve, cap)),
+    ]);
+  }, capMs);
+}
+
 export function recordSection(page: Page, title: string) {
   return page
     .locator('.record-section')

@@ -970,6 +970,7 @@ export interface Database {
           owner_ids: string[];
           owner_names: string[];
           application_count: number;
+          unviewed_count: number;
           search_text: string | null;
         };
         Relationships: [];

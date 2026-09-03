@@ -19,9 +19,32 @@ async function apiAs(email: string): Promise<SupabaseClient> {
 }
 
 async function dragTo(page: Page, card: Locator, target: Locator) {
+  // Scroll the target in first, then re-measure both. The application pipeline
+  // board carries 11 stage columns since migration 20260903000007 widened the
+  // stage set for the Zoho data, which makes it about 3,300px wide. At a 1,280px
+  // viewport the 'received' column's centre is at x=1,339 and 'screening' at
+  // x=1,615, so the previous version moved the mouse to coordinates outside the
+  // viewport and no drop ever landed. toBeVisible() does not catch this: it means
+  // the element has a box, not that the box is on screen.
+  await target.scrollIntoViewIfNeeded();
   const from = await card.boundingBox();
   const to = await target.boundingBox();
   if (!from || !to) throw new Error('could not measure the drag source or target');
+
+  const viewport = page.viewportSize();
+  if (viewport) {
+    const offscreen = [
+      ['source', from.x + from.width / 2],
+      ['target', to.x + to.width / 2],
+    ].filter(([, centre]) => (centre as number) < 0 || (centre as number) > viewport.width);
+    if (offscreen.length > 0) {
+      throw new Error(
+        `cannot drag: ${offscreen
+          .map(([what, centre]) => `${what} centre at x=${Math.round(centre as number)}`)
+          .join(', ')} is outside the ${viewport.width}px viewport, so the board needs scrolling between the two columns`,
+      );
+    }
+  }
 
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();

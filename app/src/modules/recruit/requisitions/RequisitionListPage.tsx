@@ -20,7 +20,7 @@ type RequisitionListRow = Omit<
   Database['public']['Views']['requisition_list']['Row'],
   'search_text'
 >;
-import { type Application, type SortState, errMsg, fmtDate } from '../lib';
+import { type SortState, errMsg, fmtDate } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 
@@ -45,10 +45,9 @@ const EMPTY_FILTERS: ReqFilters = {
 const REQ_PAGE_SIZE = 20;
 const REQ_EXPORT_PAGE_SIZE = 1000;
 const REQ_EXPORT_ROW_CAP = 10000;
-const ID_CHUNK = 200;
 
 const REQ_VIEW_COLUMNS =
-  'id, display_code, job_code, title, status, company_id, company_name, location, employment_type, num_openings, opened_date, filled_date, is_published, created_at, updated_at, owner_ids, owner_names, application_count';
+  'id, display_code, job_code, title, status, company_id, company_name, location, employment_type, num_openings, opened_date, filled_date, is_published, created_at, updated_at, owner_ids, owner_names, application_count, unviewed_count';
 
 const REQ_SORT_COLUMNS: Record<string, string> = {
   job_code: 'job_code',
@@ -106,7 +105,6 @@ const COLUMN_DEFS: { key: keyof ReqRow & string; header: string }[] = [
 
 const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
-type AppSlim = Pick<Application, 'id' | 'requisition_id' | 'stage_changed_at'>;
 
 export function RequisitionListPage() {
   const openRecord = useListLink();
@@ -131,10 +129,8 @@ export function RequisitionListPage() {
   const [visibleCols, setVisibleCols] = useState<string[]>(ALL_COLUMN_KEYS);
 
   const [reqs, setReqs] = useState<RequisitionListRow[]>([]);
-  const [apps, setApps] = useState<AppSlim[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
-  const [viewedAt, setViewedAt] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -175,44 +171,11 @@ export function RequisitionListPage() {
       setReqs(pageRows);
       setTotal(count ?? 0);
 
-      const reqIds = pageRows.map((r) => r.id);
-      if (reqIds.length === 0) {
-        setApps([]);
-        setViewedAt(new Map());
-        setError(null);
-        return;
-      }
-
-      const { data: appRows, error: appErr } = await supabase
-        .from('applications')
-        .select('id, requisition_id, stage_changed_at')
-        .in('requisition_id', reqIds);
-      if (appErr) throw new Error(appErr.message);
-      const pageApps = appRows ?? [];
-      setApps(pageApps);
-
-      if (!staff || pageApps.length === 0) {
-        setViewedAt(new Map());
-        setError(null);
-        return;
-      }
-      const seen = new Map<string, string>();
-      const appIds = pageApps.map((a) => a.id);
-      for (let i = 0; i < appIds.length; i += ID_CHUNK) {
-        const { data: views, error: viewErr } = await supabase
-          .from('application_views')
-          .select('application_id, last_viewed_at')
-          .eq('staff_id', staff.id)
-          .in('application_id', appIds.slice(i, i + ID_CHUNK));
-        if (viewErr) throw new Error(viewErr.message);
-        for (const v of views ?? []) seen.set(v.application_id, v.last_viewed_at);
-      }
-      setViewedAt(seen);
       setError(null);
     } catch (e) {
       setError(errMsg(e));
     }
-  }, [applyReqFilters, page, staff]);
+  }, [applyReqFilters, page]);
 
   useEffect(() => {
     setPage(0);
@@ -249,20 +212,9 @@ export function RequisitionListPage() {
   }, [loadPage, staff]);
 
 
-  const rows = useMemo<ReqRow[]>(() => {
-    const appsByReq = new Map<string, AppSlim[]>();
-    for (const a of apps) {
-      const list = appsByReq.get(a.requisition_id) ?? [];
-      list.push(a);
-      appsByReq.set(a.requisition_id, list);
-    }
-    return reqs.map((r) => {
-      const reqApps = appsByReq.get(r.id) ?? [];
-      const unviewed = reqApps.filter((a) => {
-        const seen = viewedAt.get(a.id);
-        return !seen || seen < a.stage_changed_at;
-      }).length;
-      return {
+  const rows = useMemo<ReqRow[]>(
+    () =>
+      reqs.map((r) => ({
         id: r.id,
         display_code: r.display_code,
         job_code: r.job_code ?? '',
@@ -275,10 +227,10 @@ export function RequisitionListPage() {
         opened_date: r.opened_date ?? '',
         updated_at: r.updated_at,
         applications: r.application_count,
-        unviewed,
-      };
-    });
-  }, [reqs, apps, viewedAt]);
+        unviewed: r.unviewed_count,
+      })),
+    [reqs],
+  );
 
   const pageCount = Math.max(1, Math.ceil(total / REQ_PAGE_SIZE));
   const pager = {

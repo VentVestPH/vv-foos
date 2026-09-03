@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { expect, test, type Page } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn, waitForAnimations } from './helpers';
 
 const require = createRequire(import.meta.url);
 const AXE_SOURCE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -67,6 +67,7 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
     for (const [name, path] of ROUTES) {
       await gotoAsSignedIn(page, path);
       await page.waitForTimeout(600);
+      await waitForAnimations(page);
       found.push(...report(name, await violations(page)));
     }
     fail(found);
@@ -83,6 +84,7 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
     ] as const) {
       await gotoAsSignedIn(page, recordPath);
       await page.waitForTimeout(1200);
+      await waitForAnimations(page);
       found.push(...report(name, await violations(page)));
     }
     fail(found);
@@ -99,6 +101,7 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
       await gotoAsSignedIn(page, listPath);
       await page.locator('.table-wrap tbody tr .link-btn').first().click();
       await page.waitForTimeout(1200);
+      await waitForAnimations(page);
       found.push(...report(name, await violations(page)));
     }
     fail(found);
