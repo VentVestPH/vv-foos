@@ -811,6 +811,66 @@ The sibling test in that file had the same shape: it captured a `boundingBox()` 
 
 One consequence worth recording: the `client_errors` leak check fired twice during this hunt, two rows each time. It was not a new leak. A browser test that dies mid-body skips its teardown, so the leak is a *symptom* of the browser failure rather than an independent fault, and the check correctly refused to call the run clean.
 
+## 7.16 The migration is an app-scale project, and the candidate list was the first proof
+
+The Zoho extraction turned out to be the easy half. Section 7.15's finding, that the Recruit org holds over 70,200 candidates against the 75 the importer was built on, matters most for what happens *after* the import: FOOS could not hold that data.
+
+Every list screen used `fetchAllRows`, which pages through **every matching row into the browser** and then filters and paginates in JavaScript. Six screens, 16 call sites: candidates, requisitions, deals, contacts, companies, tickets. Measured against a locally seeded 70,207 candidates, what the candidate list used to do:
+
+| | Requests | Payload | Wall clock |
+| :---- | :---- | :---- | :---- |
+| `candidate_profiles`, paged at 1,000 | 71 | 16.9 MB | 478 ms |
+| `people`, chunked at 200 | 352 | 18.3 MB | 2,237 ms |
+| plus `applications` and `requisitions`, unbounded | — | — | — |
+| **total before first paint** | **494** | **35.2 MB** | **2.7 s** |
+
+That 2.7 s is over loopback, with no network latency at all. 494 sequential requests at a realistic 50 ms round trip is roughly 25 seconds.
+
+**After the change, measured on the same 70,207 rows: 133 ms to the first row, 3 list requests, 41.8 KB of REST payload for the whole page, and 875 DOM nodes.** The node count is the same as with 7 candidates (894), which is the point: the cost is now constant in the size of the table.
+
+`public.candidate_list` (migration `20260903000001`) is a `security_invoker = on` view joining `candidate_profiles` to `people`, plus left joins to `candidate_statuses`, `sources` and `staff` for the label columns and an `exists` for the resume flag. One PostgREST request now filters, sorts, pages and returns an exact count.
+
+Four things about it are load-bearing rather than incidental:
+
+- **`security_invoker = on`.** Without it the view runs as its owner and every RLS policy on the base tables is bypassed. Proven per role rather than assumed: as a sourcer, base table 3 rows and view 3 rows; as an admin, 7 and 7. The two roles genuinely differ, so the test can distinguish, which a pair of zeroes could not. My first attempt at this test used the wrong `sub` and returned 0 and 0, which proved nothing.
+- **The lookup joins are LEFT, not INNER.** Under `security_invoker` the joined tables' own RLS applies to the caller, so an inner join to a lookup the caller cannot read would silently drop the candidate instead of blanking a label.
+- **The `people` join is INNER**, which means a `candidate_profiles` row with no `people` row disappears from the list while still existing in the table. During a 70,200-row import that is exactly the kind of silent loss nobody notices, so `validate.sql` check 25 fails if one ever exists, and also fails if the view stops being `security_invoker`. Both halves proven to bite.
+- **The select string must be a single literal.** Built by concatenation it loses its literal type and postgrest-js infers `GenericStringError[]` instead of the row shape.
+
+`search_text` is denormalised into the view because the filters straddle two tables: status, grade, source, sourcer and date live on `candidate_profiles`, while the free-text search covers names and email addresses on `people`. PostgREST can filter an embedded resource but cannot OR a condition across the parent and the embedded table, which is what the search box does. The client never selects `search_text`, so `CandidateListRow` omits it.
+
+Two behaviour changes worth stating plainly:
+
+- **Search is now `ilike` on the database rather than `String.includes` in the browser**, so `%` and `_` in the search box would have become wildcards. They are escaped, keeping the old literal semantics.
+- **Export CSV can no longer build the whole filtered set from memory**, because that is the pattern being removed. It now fetches the filtered set server-side in pages of 1,000, and refuses with a message above 10,000 rows rather than silently truncating. `ListPage` accepts an async row provider for this, which the other five screens will need too.
+
+`scripts/seed-scale-candidates.mjs` makes the measurement repeatable: `--count N` to seed, `--purge` to remove, refusing a non-local target without `--allow-remote` and refusing to seed on top of an existing probe set. Two things it taught me, both by failing first: `candidate_profiles.star_grade` is constrained to 1 to 3, and a seed using 1 to 5 fails *after* the `people` rows have committed, leaving orphans; and deleting 2,000 ids in one `.in()` returns `URI too long`, which is the PostgREST limit this repo already documents at 200 ids.
+
+`tests/e2e/server-side-list.spec.ts` fails if any read of `people` or `candidate_profiles` from the list is unbounded, if a view read carries no range, if the pager total does not come from the database, or if a filter fails to change that total. Proven to bite by reintroducing one unbounded `people` read.
+
+**Five screens still hold the old pattern**: requisitions, deals, contacts, companies and tickets. They are the remaining work, and the candidate list is the template.
+
+## 7.17 Four queries that return wrong answers rather than slow ones, and one test that was passing on residue
+
+`supabase/config.toml` sets `max_rows = 1000`. A PostgREST select with no range does not fail past that limit; it silently returns the first 1,000 rows. Anything counted, matched or searched from the result is then quietly wrong, and at today's volumes, 8 applications and 86 companies, it is invisible.
+
+An audit of every read of a large table found **four real cases, plus two false positives I checked individually rather than counting**:
+
+| Where | Table | What it would do after the import |
+| :---- | :---- | :---- |
+| `AddCandidateDialog.tsx` | `candidate_profiles` | `select('*')` with no bound, then a `people` fetch for every row. The "add candidate to requisition" picker would see 1,000 of 70,200, so most candidates simply cannot be found |
+| `RequisitionListPage.tsx` | `applications` | Unviewed-application badges counted from an arbitrary 1,000 rows. Wrong numbers, no error |
+| `recruit/hooks.ts` | `companies` | Company dropdown truncated at 1,000 |
+| `sales/hooks.ts` | `companies` | Same |
+
+The two false positives are worth naming because a count of six would have been wrong: `EngagementPanel` assigns the query and the caller narrows it with `.eq()`, and `ContactNewPage` narrows with `.filter('emails', 'cs', …)` for a duplicate check. My first heuristic also missed the `applications` case entirely, because a neighbouring query's `.eq()` fell inside its scan window. The count moved from 4 to 6 to 4 as the detection and then the reading were corrected.
+
+The picker is now a server-side typeahead: 200ms debounce, `ilike` on the view's `search_text`, `limit(12)`, and no `people` fetch at all. The other three now page with `fetchAllRows` rather than truncating, which fixes correctness; scoping the applications read to the visible page comes with the requisitions refactor.
+
+`scripts/check-unbounded-queries.mjs` fails the build on a new unbounded read of a large table, and is wired into `gate.sh` and `ci.yml`. It skips two structural patterns rather than carrying a line-number allowlist that would rot: a query returned from a helper, and one assigned to a variable the caller then narrows. Proven to bite by reintroducing the `companies` read.
+
+**And a correction to my own record.** `timeline-cap.spec.ts`, written earlier the same day for T2, asserted the seeded deal had more than 60 activities. A fresh `npm run db:reset` shows that deal has **2**. The test had been passing on activities accumulated by earlier runs, which is exactly the isolation rule this suite is supposed to hold to, and I reported it as verified over ten clean gate passes. It now inserts its own 120-entry history under a run-unique marker and deletes it in `afterAll` with the delete error and a residual count both checked. Verified by running it three times from a clean database and confirming the deal is back to 2 activities with no fixture rows left. A full suite run against the freshly reset database passes, so this was the only test leaning on residue.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.

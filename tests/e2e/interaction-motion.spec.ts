@@ -93,25 +93,79 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     const collapse = section.locator('.record-section-collapse');
     await expect(collapse).toBeVisible({ timeout: 25000 });
 
-    const rows = () => collapse.evaluate((el) => getComputedStyle(el).gridTemplateRows);
-    const px = async () => parseFloat((await rows()).replace('px', ''));
+    const px = async () =>
+      parseFloat((await collapse.evaluate((el) => getComputedStyle(el).gridTemplateRows)) ?? '0');
+
+    await expect
+      .poll(() => collapse.evaluate((el) => el.getAnimations().length), {
+        timeout: 5000,
+        message: 'the mount transition never finished, so a click would cancel it',
+      })
+      .toBe(0);
 
     const openHeight = await px();
     expect(openHeight).toBeGreaterThan(10);
 
-    await section.locator('.record-section-header').click();
-    await page.waitForTimeout(60);
-    const mid = await px();
-    expect(mid, 'mid-collapse must be between the ends, not snapped').toBeGreaterThan(0);
-    expect(mid).toBeLessThan(openHeight);
+    const toggle = () =>
+      section.evaluate(
+        (root, budget) =>
+          new Promise<{ events: string[]; samples: number[]; duration: string }>((resolve) => {
+            const el = root.querySelector('.record-section-collapse') as HTMLElement;
+            const header = root.querySelector('.record-section-header') as HTMLElement;
+            const events: string[] = [];
+            const samples: number[] = [];
+            const read = () => parseFloat(getComputedStyle(el).gridTemplateRows) || 0;
+            const duration = getComputedStyle(el).transitionDuration;
+            for (const name of ['transitionrun', 'transitionstart', 'transitioncancel']) {
+              el.addEventListener(name, (e) => {
+                if ((e as TransitionEvent).propertyName === 'grid-template-rows') {
+                  events.push(name);
+                }
+              });
+            }
+            header.click();
+            const t0 = performance.now();
+            const tick = () => {
+              samples.push(read());
+              if (performance.now() - t0 < budget) requestAnimationFrame(tick);
+              else resolve({ events, samples, duration });
+            };
+            requestAnimationFrame(tick);
+          }),
+        700,
+      );
 
+    const closing = await toggle();
+    expect(closing.duration, 'the collapse must have a real transition duration').not.toBe('0s');
+    expect(
+      closing.events,
+      'collapsing must start a grid-template-rows transition rather than snap',
+    ).toContain('transitionrun');
+    expect(
+      closing.events,
+      'nothing should be cancelling the collapse; a settled section was clicked',
+    ).not.toContain('transitioncancel');
+    expect(
+      closing.samples.filter((v) => v > 0.5 && v < openHeight - 0.5).length,
+      `collapsing must pass through intermediate heights. Samples: ${closing.samples
+        .slice(0, 10)
+        .map((v) => v.toFixed(1))
+        .join(', ')}`,
+    ).toBeGreaterThan(0);
     await expect.poll(px, { timeout: 3000 }).toBe(0);
 
-    await section.locator('.record-section-header').click();
-    await page.waitForTimeout(60);
-    const reopening = await px();
-    expect(reopening).toBeGreaterThan(0);
-    expect(reopening).toBeLessThan(openHeight);
+    const opening = await toggle();
+    expect(
+      opening.events,
+      'reopening must start a grid-template-rows transition',
+    ).toContain('transitionrun');
+    expect(
+      opening.samples.filter((v) => v > 0.5 && v < openHeight - 0.5).length,
+      `reopening must pass through intermediate heights. Samples: ${opening.samples
+        .slice(0, 10)
+        .map((v) => v.toFixed(1))
+        .join(', ')}`,
+    ).toBeGreaterThan(0);
     await expect
       .poll(async () => Math.abs((await px()) - openHeight) < 1.5, { timeout: 3000 })
       .toBe(true);
