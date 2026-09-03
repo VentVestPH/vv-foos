@@ -6,7 +6,11 @@ import type { Company, Staff } from './lib';
 import { EMPTY_CELL } from '../../lib/format';
 
 let staffCache: Staff[] | null = null;
-let companyCache: Company[] | null = null;
+const COMPANY_OPTION_COLUMNS = 'id, name';
+
+export type CompanyOption = Pick<Company, 'id' | 'name'>;
+
+let companyCache: CompanyOption[] | null = null;
 
 export function useStaffList() {
   const [staff, setStaff] = useState<Staff[]>(staffCache ?? []);
@@ -45,13 +49,13 @@ export function useStaffList() {
 }
 
 export function useCompanyOptions(refreshKey = 0) {
-  const [companies, setCompanies] = useState<Company[]>(companyCache ?? []);
+  const [companies, setCompanies] = useState<CompanyOption[]>(companyCache ?? []);
 
   useEffect(() => {
     if (companyCache && refreshKey === 0) return;
     let cancelled = false;
     void fetchAllRows((f, t) =>
-      supabase.from('companies').select('*').order('name').order('id').range(f, t),
+      supabase.from('companies').select(COMPANY_OPTION_COLUMNS).order('name').order('id').range(f, t),
     )
       .then((data) => {
         if (!cancelled && data) {

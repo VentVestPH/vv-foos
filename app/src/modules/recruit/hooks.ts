@@ -28,8 +28,12 @@ export async function fetchPeopleByIds(
   return out;
 }
 
+const COMPANY_OPTION_COLUMNS = 'id, name';
+
+export type CompanyOption = Pick<Company, 'id' | 'name'>;
+
 export interface Lookups {
-  companies: Company[];
+  companies: CompanyOption[];
   staff: StaffRow[];
   sources: Source[];
   statuses: CandidateStatus[];
@@ -38,7 +42,7 @@ export interface Lookups {
 }
 
 export function useLookups(): Lookups {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [staffList, setStaffList] = useState<StaffRow[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
   const [statuses, setStatuses] = useState<CandidateStatus[]>([]);
@@ -50,7 +54,7 @@ export function useLookups(): Lookups {
     void (async () => {
       const [companyRows, st, so, cs] = await Promise.all([
         fetchAllRows((f, t) =>
-          supabase.from('companies').select('*').order('name').order('id').range(f, t),
+          supabase.from('companies').select(COMPANY_OPTION_COLUMNS).order('name').order('id').range(f, t),
         ),
         supabase
           .from('staff')

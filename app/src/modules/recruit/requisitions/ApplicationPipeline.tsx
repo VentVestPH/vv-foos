@@ -18,12 +18,12 @@ import { Dialog } from '../components/Dialog';
 import { AddCandidateDialog } from './AddCandidateDialog';
 import { fetchAllRows } from '../../../lib/fetchAll';
 import { supabase } from '../../../lib/supabase';
-import { type Application, type Company, type Person, type Requisition, type Source, errMsg, fmtDate, personName } from '../lib';
-import { fetchPeopleByIds } from '../hooks';
+import { type Application, type Person, type Requisition, type Source, errMsg, fmtDate, personName } from '../lib';
+import { fetchPeopleByIds, type CompanyOption } from '../hooks';
 
 interface PipelineProps {
   requisition: Requisition;
-  companies: Company[];
+  companies: CompanyOption[];
   sources: Source[];
 
   canEdit: boolean;

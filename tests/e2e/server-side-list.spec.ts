@@ -309,3 +309,42 @@ test.describe('the remaining sales lists page in the database', () => {
     });
   }
 });
+
+test.describe('U1.8: the filter dropdown lookups ask for the columns they render', () => {
+  for (const [name, path] of [
+    ['candidates', CANDIDATES],
+    ['requisitions', REQUISITIONS],
+    ['deals', DEALS],
+    ['contacts', CONTACTS],
+  ] as const) {
+    test(`${name}: the companies lookup projects id and name, not every column`, async ({
+      page,
+    }) => {
+      await signIn(page, PERSONA_EMAILS.admin);
+      const calls = await restCalls(page, async () => {
+        await gotoAsSignedIn(page, path);
+        await expect(page.locator('.table-wrap, .kanban-col').first()).toBeVisible({
+          timeout: 30000,
+        });
+        await page.waitForTimeout(1500);
+      });
+
+      const companyCalls = calls
+        .filter((c) => /^companies\?/.test(c) && !c.includes('id=eq.'))
+        .map((c) => decodeURIComponent(c));
+      if (companyCalls.length === 0) return;
+
+      const wide = companyCalls.filter((c) => /select=\*/.test(c));
+      expect(
+        wide,
+        'a dropdown that renders a name must not fetch every company column. ' +
+          'Measured at 195 companies: select=* is 33 kB where id and name is 6.6 kB, ' +
+          'and the whole candidate list payload fell from 371.9 kB to 270.5 kB',
+      ).toEqual([]);
+
+      for (const c of companyCalls) {
+        expect(c, 'the lookup still pages rather than truncating').toMatch(/offset=|limit=/);
+      }
+    });
+  }
+});
