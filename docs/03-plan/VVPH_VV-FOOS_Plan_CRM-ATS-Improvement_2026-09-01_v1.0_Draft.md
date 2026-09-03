@@ -1135,6 +1135,34 @@ Candidate work history imports as an empty array, and that is correct. `Experien
 
 This matters because "the export looks empty" and "there is nothing to export" call for opposite responses, and only one of them justifies 72,910 record-level API calls to fetch subforms. Checked before spending the credits, not after.
 
+### 7.24.7 The field-level audit, which found nine losses that every count-based check had passed
+
+Every module reconciled by record count. Every module also passed the referential-integrity checks. The data was still wrong, because a record can be present and mapped and still be missing most of its fields, and nothing that counts rows can see that.
+
+The method was to take each FOOS column the mappers write, count how many rows have it, count how many rows the Zoho extract populates for the corresponding field, and compare the two numbers. Where they matched, the field was correct. Where they did not, the reason was always a name, never a parse.
+
+**Nine losses found this way.** In descending order of what they cost:
+
+| What was lost | Rows | Cause |
+| :---- | ----: | :---- |
+| `activities.created_by` on every Recruit note | 210,922 | The notes UI export has a `Note Owner Id` column and no `Note Owner` column, so the derived target was `Note_Owner_Id`, which the bulk JSON does not have. Its `Note_Owner` object was dropped before any mapper saw it |
+| `people.linkedin_public_url` | 70,208 | Bulk read calls it `LinkedIn__s`, the mapper reads `LinkedIn`, and `__s` is not an underscore-to-space derivation |
+| `applications.answers`, 20 application-level fields | 86,125 | Five were collected into `carried`, which is only printed; the other fifteen were never read. `Amir_Grade` alone is populated on 58,054 |
+| `candidate_profiles.initial_date` | 11,538 | Two real shapes the parser did not know: `MM/YYYY`, where the four-digit trailing number is a year, and multi-date lists like `3/24; 11/24` |
+| `requisitions.opened_date` | 674 | `parseZohoDate` handled `MM/DD/YYYY` and full ISO timestamps but not the bare `YYYY-MM-DD` that bulk read emits for a date-only field |
+| `requisitions.pay_notes` | 500 | `Salary` was collected into `carried` and discarded. It is free text, so it belongs in `pay_notes` rather than `pay_min` |
+| `contact_profiles.company_id` | 48 | The mapper read `Account Name.id`, which is how the UI export splits a lookup into label and id. Bulk read does not split it and emits no `.id` column |
+| `requisitions.num_openings` | 25 | The mapper read `No_of_Positions`; the export calls it `Number_of_Positions`. Every requisition claimed one opening; Zoho has 17 with two, 4 with three, 3 with four and one with ten |
+| `people.postal_code` | 1,122 | Bulk read calls it `Zip_Code`, the mapper reads `Postal Code` |
+
+**Three causes, not nine.** Five of the nine are the same mistake in different places: the mapper reads a UI export column name, bulk read emits a different API field name, and nothing fails when they disagree. That covers the note authors, the LinkedIn URLs, the postal codes, the contact companies and the openings count. Two more, `pay_notes` and the twenty application fields, were read correctly and then written nowhere, because `carried` is only ever printed in a report. The last two, `initial_date` and `opened_date`, are genuine parser gaps.
+
+What all nine share is that a missing field is indistinguishable from an empty field, so the importer reported success on every one of them. The `notes` case is the sharpest illustration: `resolveStaff` is called with an empty string, returns null without recording anything, and the report says zero unresolved staff while losing every author.
+
+**Equally important, what the audit cleared.** These were checked and are correct, so nobody needs to look again. Candidate `first_name` 72,890, `last_name` 72,910, `city` 69,118, `state` 69,285, `country` 72,623, `street` 3, `linkedin_recruiter_url` 57,260 and `education` 59,499 all match Zoho exactly. Note bodies are populated on 32,446 of 210,922 because Zoho populates 32,446, not because the import dropped them. `star_grade` is set on 327 of 334 rated candidates because seven carry a rating of 4, which the 1-to-3 CHECK constraint rejects by design rather than clamping. Candidate work history is empty because `Current_Employer`, `Experience_in_Years` and `Skill_Set` are blank on all 72,910 in Zoho. Attachments are complete at 42 of 42 with every column set, awaiting only their bytes, which is U3. Adding `Business Email`, `Work Phone` and `Business Phone` to the mapper recovered nothing, because every value in them duplicates a number already captured and `collect` dedupes: entry counts are identical before and after, 20,055 phones and 73,753 emails.
+
+The durable lesson is that reconciling counts proves a record arrived and says nothing about whether it arrived intact. Field-level reconciliation against the source is a different test and it is the one that found all of this.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -1221,6 +1249,12 @@ Covered before today: Recruit Candidates, Recruit Notes, CRM Accounts, CRM Conta
 - [x] **U4.13 `scripts/check-paged-order.mjs`**, in the gate and `ci.yml`: any `.range()` paging with no `.order()`, or ordered only on a non-unique column, fails the build. Verified against both real shapes. It found two more live cases, the application pipeline and both company dropdown lookups
 - [x] **U4.14 Two lookup tables were missing rows**, so 3,960 candidates imported with no source and 12,469 with no status. Migration `20260903000011` adds 16 sources and 12 candidate statuses; "LinkdIn" is aliased in the mapper rather than created as a misspelled row. The importer had printed both counts on every run. Section 7.24.5
 - [x] **U4.15 Candidate work history is empty in Zoho, not missing from the export.** `Current_Employer`, `Experience_in_Years` and `Skill_Set` are blank on all 72,910 candidates, which is why the subform export was header-only. Established before spending 72,910 record-level API calls on it. Section 7.24.6
+- [x] **U4.16 20 application-level fields were read and thrown away.** `Amir_Grade` on 58,054 rows, `Hiring_Pipeline` on 85,674, `Posting_Title` and `Origin` on all 86,125. They now go to `applications.answers` under a `zoho` key. `Amir_Grade` deserves a real column, which is a product decision. Section 7.24.7
+- [x] **U4.17 70,208 LinkedIn URLs and 1,122 postal codes** lost to two aliases that are not underscore-to-space derivations, `LinkedIn__s` and `Zip_Code`
+- [x] **U4.18 A date parser that rejected bulk read's own format.** `YYYY-MM-DD` did not parse, so `opened_date` was null on all 687 requisitions. Also `num_openings` read the wrong field name and was 1 on every row, and `Salary` was carried and discarded rather than written to `pay_notes`. `Initial_Date` went from 58,946 parsed to 70,382 once `MM/YYYY` and multi-date lists were handled
+- [x] **U4.19 No CRM contact had a company.** The mapper read `Account Name.id`, which only the UI export emits; bulk read puts the bare id in `Account Name`. 48 of 50 now link
+- [x] **U4.20 210,922 notes had no author.** `Note_Owner` had no target column, so it was dropped before any mapper saw it, and `resolveStaff` was called with an empty string, which records nothing as unresolved. Section 7.24.7
+- [x] **U4.21 The field-level audit itself.** Every mapped column counted against the extract's population for the corresponding Zoho field. This is what found U4.16 to U4.20; every one of them had already passed the record-count reconciliation and the referential-integrity checks. Section 7.24.7
 
 **U5. Prove the migration is accurate.** Nobody will spot a wrong field in 70,200 rows by eye, so this has to be a script that fails loudly rather than a review.
 
