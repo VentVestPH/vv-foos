@@ -875,6 +875,55 @@ The picker is now a server-side typeahead: 200ms debounce, `ilike` on the view's
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
 
+### 8.0 Workstream U: the Zoho migration, agreed 2026-09-03
+
+The goal is the whole of Zoho Recruit and Zoho CRM living in FOOS. Section 8's original list is a separate and mostly finished thing; this is larger than what remains of it, and the count in section 8 does not include any of it.
+
+Five phases, in order, because each one blocks the next.
+
+**U1. Make FOOS able to hold the data.** Not optional and not a performance nicety: six list screens paged every matching row into the browser, and four queries silently truncated at `max_rows = 1000` and returned wrong numbers. Sections 7.16 and 7.17 have the measurements.
+
+- [x] **U1.1** Candidate list server-side. 494 requests and 35.2 MB at 70,207 rows, down to 3 requests and 41.8 KB, 133ms to first row
+- [x] **U1.2** The four silently truncating reads, and `check-unbounded-queries.mjs` to stop the next one
+- [ ] **U1.3** Requisition list server-side. `requisition_list` view written, `validate.sql` check 26 added, in the gate as of 2026-09-03
+- [ ] **U1.4** Deal list. Different shape: the screen defaults to a kanban, which renders every card grouped by stage, so it needs a bounded number of cards per column plus an exact per-stage count and an honest "N not shown". A column holding a thousand cards was never usable
+- [ ] **U1.5** Contacts list
+- [ ] **U1.6** Companies list
+- [ ] **U1.7** Tickets list
+
+**U2. Extraction. 550 API credits, once four values arrive.** Bulk Read costs a flat 50 credits per job for up to 200,000 records, against 140,751 credits record by record. 6 Recruit modules plus 5 CRM modules is 11 jobs.
+
+- [ ] **U2.1** A bulk-read client: initiate, poll, download the zipped CSV, per module
+- [ ] **U2.2** Recruit: Candidates, Job_Openings, Applications, Clients, Contacts, Notes
+- [ ] **U2.3** CRM: Accounts, Contacts, Deals, Leads, Notes
+
+**U3. Attachments.** No bulk endpoint exists, so the API would cost one call per candidate, about 70,200 minimum. Not viable against 6,250 a day.
+
+- [ ] **U3.1** Klent requests the Recruit UI export/backup, which includes attachments and costs no API credits
+- [ ] **U3.2** Upload the delivered files into Supabase Storage, joined on the export's `Parent Id` with its `Zrecruit_` prefix stripped
+
+**U4. The importer at scale.** It has only ever run against 75 rows.
+
+- [ ] **U4.1** Batching and resumability, verified at 70,200 rather than 75
+- [ ] **U4.2** Idempotency through `zoho_id_map` proven by running the same import twice and asserting no duplicate rows
+- [ ] **U4.3** The field map rebuilt from the real bulk-read header set, not the 75-row sample
+
+**U5. Prove the migration is accurate.** Nobody will spot a wrong field in 70,200 rows by eye, so this has to be a script that fails loudly rather than a review.
+
+- [ ] **U5.1** Row-count reconciliation per module against Zoho's own counts
+- [ ] **U5.2** Field-level spot checks on a fresh random sample pulled from the API, not from the file that was imported
+- [ ] **U5.3** The known traps asserted rather than assumed: two date dialects, `Initial Date` with no year in three shapes, the `Zrecruit_` id prefix, and `Attachment URL` empty in every export row
+
+**U6. A data exporter in Settings, asked for on 2026-09-03.** So that getting data out of FOOS is never the problem getting it out of Zoho has been. This is a product feature, not migration scaffolding, and it outlives the migration.
+
+- [ ] **U6.1** A Settings screen listing the exportable modules with a live row count each
+- [ ] **U6.2** Per-module CSV export, paged server-side through the same views the lists use, so it is bounded and cannot silently truncate at `max_rows`
+- [ ] **U6.3** Admin only, and RLS-respecting rather than service-role, so an export can never return more than the caller may read
+- [ ] **U6.4** RFC 4180 escaping through `lib/csv.ts`, which already quotes fields containing a quote, comma, CR or LF
+- [ ] **U6.5** A guard test that the export of a module matches that module's row count, and that a field containing a newline survives a round trip
+
+**Assumption on U6, stated so it can be corrected cheaply.** "Exporter" is read as exporting FOOS data out to CSV, per module, from Settings. The other possible reading is a UI to drive the Zoho import itself. If the second was meant, U6 changes shape and U2 grows a screen.
+
 ### 8.1 Highest consequence, nothing blocking it
 
 

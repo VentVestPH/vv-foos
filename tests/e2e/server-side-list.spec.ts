@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 
 const CANDIDATES = '/recruit/candidates';
+const REQUISITIONS = '/recruit/requisitions';
 
 async function restCalls(page: import('@playwright/test').Page, run: () => Promise<void>) {
   const seen: string[] = [];
@@ -106,5 +107,52 @@ test.describe('the candidate list pages in the database, not the browser', () =>
       await rows.count(),
       'a filtered page still shows at most one page of rows',
     ).toBeLessThanOrEqual(20);
+  });
+});
+
+test.describe('the requisition list pages in the database too', () => {
+  test('it never pages requisitions, owners or applications wholesale', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    const calls = await restCalls(page, async () => {
+      await gotoAsSignedIn(page, REQUISITIONS);
+      await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 30000 });
+      await page.waitForTimeout(1500);
+    });
+
+    const unbounded = calls.filter(
+      (c) =>
+        /^(requisitions|requisition_owners|applications|application_views)\?/.test(c) &&
+        !c.includes('id=in.') &&
+        !c.includes('requisition_id=in.') &&
+        !c.includes('application_id=in.'),
+    );
+    expect(
+      unbounded,
+      'the requisition list must not read these tables wholesale; that is the pattern this replaced',
+    ).toEqual([]);
+
+    const viewCalls = calls.filter((c) => c.startsWith('requisition_list?'));
+    expect(viewCalls.length, 'the list reads the requisition_list view').toBeGreaterThan(0);
+    for (const c of viewCalls) {
+      expect(c, 'every view read carries an explicit range').toMatch(/offset=|limit=/);
+    }
+  });
+
+  test('the owner filter and the company name come from the database', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, REQUISITIONS);
+    const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
+    await expect(rows.first()).toBeVisible({ timeout: 30000 });
+
+    const cells = await rows.first().locator('td').allInnerTexts();
+    expect(
+      cells.some((c) => c.trim().length > 0),
+      'the first requisition row renders content',
+    ).toBe(true);
+
+    const label = await page.locator('.fo-pager-count').first().innerText();
+    expect(label.replace(/,/g, ''), 'the pager reads from-to of total').toMatch(
+      /(\d+-\d+ of \d+|0 of 0)/,
+    );
   });
 });

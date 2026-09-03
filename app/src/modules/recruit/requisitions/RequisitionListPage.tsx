@@ -10,15 +10,19 @@ import { StatusBadge } from '../../../components/ui/Badge';
 import { UnviewedBadge } from '../../../components/ui/UnviewedBadge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
-import { Pager, usePagination } from '../../../components/ui/Pager';
+import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
+import type { Database, RequisitionStatus } from '../../../lib/database.types';
 import { supabase } from '../../../lib/supabase';
-import { type Application, type OwnerRow, type Requisition, type SortState, errMsg, fmtDate, sortRows } from '../lib';
+
+type RequisitionListRow = Omit<
+  Database['public']['Views']['requisition_list']['Row'],
+  'search_text'
+>;
+import { type Application, type SortState, errMsg, fmtDate } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
-import { EMPTY_CELL } from '../../../lib/format';
-import { fetchAllRows } from '../../../lib/fetchAll';
 
 interface ReqFilters {
   status: string;
@@ -37,6 +41,37 @@ const EMPTY_FILTERS: ReqFilters = {
   dateFrom: '',
   dateTo: '',
 };
+
+const REQ_PAGE_SIZE = 20;
+const REQ_EXPORT_PAGE_SIZE = 1000;
+const REQ_EXPORT_ROW_CAP = 10000;
+const ID_CHUNK = 200;
+
+const REQ_VIEW_COLUMNS =
+  'id, display_code, job_code, title, status, company_id, company_name, location, employment_type, num_openings, opened_date, filled_date, is_published, created_at, updated_at, owner_ids, owner_names, application_count';
+
+const REQ_SORT_COLUMNS: Record<string, string> = {
+  job_code: 'job_code',
+  display_code: 'display_code',
+  title: 'title',
+  company: 'company_name',
+  location: 'location',
+  status: 'status',
+  num_openings: 'num_openings',
+  opened_date: 'opened_date',
+  updated_at: 'updated_at',
+  applications: 'application_count',
+};
+
+function reqLikeLiteral(value: string): string {
+  return value.replace(/([\\%_])/g, '\\$1');
+}
+
+function requisitionBaseQuery() {
+  return supabase.from('requisition_list').select(REQ_VIEW_COLUMNS, { count: 'exact' });
+}
+
+type RequisitionQuery = ReturnType<typeof requisitionBaseQuery>;
 
 interface ReqRow extends Record<string, unknown> {
   id: string;
@@ -95,69 +130,97 @@ export function RequisitionListPage() {
   const [sort, setSort] = useState<SortState | null>(null);
   const [visibleCols, setVisibleCols] = useState<string[]>(ALL_COLUMN_KEYS);
 
-  const [reqs, setReqs] = useState<Requisition[]>([]);
-  const [owners, setOwners] = useState<OwnerRow[]>([]);
+  const [reqs, setReqs] = useState<RequisitionListRow[]>([]);
   const [apps, setApps] = useState<AppSlim[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [viewedAt, setViewedAt] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const loadStatic = useCallback(async () => {
-    try {
-      const [reqRows, ownerRows] = await Promise.all([
-        fetchAllRows((f, t) =>
-          supabase
-            .from('requisitions')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .range(f, t),
-        ),
-        fetchAllRows((f, t) => supabase.from('requisition_owners').select('*').range(f, t)),
-      ]);
-      setReqs(reqRows);
-      setOwners(ownerRows);
-    } catch (e) {
-      setError(errMsg(e));
-    }
-  }, []);
+  const applyReqFilters = useCallback(
+    (q: RequisitionQuery): RequisitionQuery => {
+      let out = q;
+      if (filters.status) out = out.eq('status', filters.status as RequisitionStatus);
+      if (filters.companyId) out = out.eq('company_id', filters.companyId);
+      if (filters.ownerId) out = out.contains('owner_ids', [filters.ownerId]);
+      if (filters.location) {
+        out = out.ilike('location', `%${reqLikeLiteral(filters.location.trim())}%`);
+      }
+      if (filters.dateFrom) out = out.gte('opened_date', filters.dateFrom);
+      if (filters.dateTo) out = out.lte('opened_date', filters.dateTo);
+      const term = search.trim().toLowerCase();
+      if (term) out = out.ilike('search_text', `%${reqLikeLiteral(term)}%`);
 
-  const loadApps = useCallback(async () => {
+      const sortColumn = sort ? REQ_SORT_COLUMNS[sort.key] : undefined;
+      if (sortColumn) {
+        out = out.order(sortColumn, { ascending: sort?.dir === 'asc', nullsFirst: false });
+      } else {
+        out = out.order('created_at', { ascending: false });
+      }
+      return out.order('id', { ascending: true });
+    },
+    [filters, search, sort],
+  );
+
+  const loadPage = useCallback(async () => {
     try {
-      const [appRows, v] = await Promise.all([
-        fetchAllRows((f, t) =>
-          supabase
-            .from('applications')
-            .select('id, requisition_id, stage_changed_at')
-            .range(f, t),
-        ),
-        staff
-          ? supabase
-              .from('application_views')
-              .select('*')
-              .eq('staff_id', staff.id)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-      if (v.error) throw new Error(v.error.message);
-      setApps(appRows);
-      setViewedAt(
-        new Map(
-          (v.data ?? []).map(
-            (row) => [row.application_id, row.last_viewed_at] as [string, string],
-          ),
-        ),
+      const start = page * REQ_PAGE_SIZE;
+      const { data, count, error: listErr } = await applyReqFilters(requisitionBaseQuery()).range(
+        start,
+        start + REQ_PAGE_SIZE - 1,
       );
+      if (listErr) throw new Error(listErr.message);
+      const pageRows = data ?? [];
+      setReqs(pageRows);
+      setTotal(count ?? 0);
+
+      const reqIds = pageRows.map((r) => r.id);
+      if (reqIds.length === 0) {
+        setApps([]);
+        setViewedAt(new Map());
+        setError(null);
+        return;
+      }
+
+      const { data: appRows, error: appErr } = await supabase
+        .from('applications')
+        .select('id, requisition_id, stage_changed_at')
+        .in('requisition_id', reqIds);
+      if (appErr) throw new Error(appErr.message);
+      const pageApps = appRows ?? [];
+      setApps(pageApps);
+
+      if (!staff || pageApps.length === 0) {
+        setViewedAt(new Map());
+        setError(null);
+        return;
+      }
+      const seen = new Map<string, string>();
+      const appIds = pageApps.map((a) => a.id);
+      for (let i = 0; i < appIds.length; i += ID_CHUNK) {
+        const { data: views, error: viewErr } = await supabase
+          .from('application_views')
+          .select('application_id, last_viewed_at')
+          .eq('staff_id', staff.id)
+          .in('application_id', appIds.slice(i, i + ID_CHUNK));
+        if (viewErr) throw new Error(viewErr.message);
+        for (const v of views ?? []) seen.set(v.application_id, v.last_viewed_at);
+      }
+      setViewedAt(seen);
+      setError(null);
     } catch (e) {
       setError(errMsg(e));
     }
-  }, [staff]);
+  }, [applyReqFilters, page, staff]);
 
   useEffect(() => {
-    void loadStatic();
-  }, [loadStatic]);
+    setPage(0);
+  }, [filters, search, sort]);
 
   useEffect(() => {
-    void loadApps();
-  }, [loadApps]);
+    void loadPage();
+  }, [loadPage]);
 
   useEffect(() => {
     const channel = supabase
@@ -165,7 +228,7 @@ export function RequisitionListPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'applications' },
-        () => void loadApps(),
+        () => void loadPage(),
       )
       .on(
         'postgres_changes',
@@ -175,32 +238,18 @@ export function RequisitionListPage() {
           table: 'application_views',
           ...(staff ? { filter: `staff_id=eq.${staff.id}` } : {}),
         },
-        () => void loadApps(),
+        () => void loadPage(),
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') void loadApps();
+        if (status === 'SUBSCRIBED') void loadPage();
       });
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [loadApps, staff]);
+  }, [loadPage, staff]);
 
-  const companyName = useMemo(
-    () => new Map(lookups.companies.map((c) => [c.id, c.name])),
-    [lookups.companies],
-  );
-  const staffName = useMemo(
-    () => new Map(lookups.staff.map((s) => [s.id, s.full_name])),
-    [lookups.staff],
-  );
 
   const rows = useMemo<ReqRow[]>(() => {
-    const ownersByReq = new Map<string, string[]>();
-    for (const o of owners) {
-      const list = ownersByReq.get(o.requisition_id) ?? [];
-      list.push(staffName.get(o.staff_id) ?? EMPTY_CELL);
-      ownersByReq.set(o.requisition_id, list);
-    }
     const appsByReq = new Map<string, AppSlim[]>();
     for (const a of apps) {
       const list = appsByReq.get(a.requisition_id) ?? [];
@@ -218,58 +267,68 @@ export function RequisitionListPage() {
         display_code: r.display_code,
         job_code: r.job_code ?? '',
         title: r.title,
-        company: r.company_id ? (companyName.get(r.company_id) ?? '') : '',
+        company: r.company_name ?? '',
         location: r.location ?? '',
         status: r.status,
         num_openings: r.num_openings,
-        owners: (ownersByReq.get(r.id) ?? []).join(', '),
+        owners: r.owner_names.join(', '),
         opened_date: r.opened_date ?? '',
         updated_at: r.updated_at,
-        applications: reqApps.length,
+        applications: r.application_count,
         unviewed,
       };
     });
-  }, [reqs, owners, apps, viewedAt, companyName, staffName]);
+  }, [reqs, apps, viewedAt]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const ownedIds = filters.ownerId
-      ? new Set(
-          owners
-            .filter((o) => o.staff_id === filters.ownerId)
-            .map((o) => o.requisition_id),
-        )
-      : null;
-    const base = rows.filter((r) => {
-      if (filters.status && r.status !== filters.status) return false;
-      if (filters.companyId) {
-        const req = reqs.find((x) => x.id === r.id);
-        if (req?.company_id !== filters.companyId) return false;
-      }
-      if (ownedIds && !ownedIds.has(r.id)) return false;
-      if (
-        filters.location &&
-        !r.location.toLowerCase().includes(filters.location.toLowerCase())
-      ) {
-        return false;
-      }
-      if (filters.dateFrom && (!r.opened_date || r.opened_date < filters.dateFrom)) {
-        return false;
-      }
-      if (filters.dateTo && (!r.opened_date || r.opened_date > filters.dateTo)) {
-        return false;
-      }
-      if (q) {
-        const hay =
-          `${r.display_code} ${r.job_code} ${r.title} ${r.company} ${r.location}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-    return sortRows(base, sort);
-  }, [rows, reqs, owners, filters, search, sort]);
+  const pageCount = Math.max(1, Math.ceil(total / REQ_PAGE_SIZE));
+  const pager = {
+    page,
+    setPage,
+    pageCount,
+    total,
+    from: total === 0 ? 0 : page * REQ_PAGE_SIZE + 1,
+    to: Math.min(total, (page + 1) * REQ_PAGE_SIZE),
+    pageRows: rows,
+  };
 
-  const pager = usePagination(filtered);
+  const exportRequisitionRows = useCallback(async () => {
+    if (total > REQ_EXPORT_ROW_CAP) {
+      setError(
+        `That filter matches ${total.toLocaleString()} requisitions, more than the ${REQ_EXPORT_ROW_CAP.toLocaleString()} an in-browser export can build. Narrow the filter and try again.`,
+      );
+      return [];
+    }
+    const collected: RequisitionListRow[] = [];
+    for (let start = 0; start < REQ_EXPORT_ROW_CAP; start += REQ_EXPORT_PAGE_SIZE) {
+      const { data, error: pageErr } = await applyReqFilters(requisitionBaseQuery()).range(
+        start,
+        start + REQ_EXPORT_PAGE_SIZE - 1,
+      );
+      if (pageErr) {
+        setError(pageErr.message);
+        return [];
+      }
+      const batch = data ?? [];
+      collected.push(...batch);
+      if (batch.length < REQ_EXPORT_PAGE_SIZE) break;
+    }
+    setError(null);
+    return collected.map((r) => ({
+      id: r.id,
+      display_code: r.display_code,
+      job_code: r.job_code ?? '',
+      title: r.title,
+      company: r.company_name ?? '',
+      location: r.location ?? '',
+      status: r.status,
+      num_openings: r.num_openings,
+      owners: r.owner_names.join(', '),
+      opened_date: r.opened_date ?? '',
+      updated_at: r.updated_at,
+      applications: r.application_count,
+      unviewed: 0,
+    }));
+  }, [applyReqFilters, total]);
 
   const columns = useMemo<TableColumn<ReqRow>[]>(() => {
     const defs: TableColumn<ReqRow>[] = [
@@ -405,7 +464,8 @@ export function RequisitionListPage() {
           </Button>
         ) : undefined
       }
-      exportRows={filtered}
+      exportRows={exportRequisitionRows}
+      exportCount={total}
       exportColumns={exportColumns}
       exportFilename="requisitions.csv"
       filterRail={

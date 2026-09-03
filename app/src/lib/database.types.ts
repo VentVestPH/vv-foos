@@ -862,6 +862,30 @@ export interface Database {
       };
     };
     Views: {
+      requisition_list: {
+        Row: {
+          id: string;
+          display_code: string;
+          job_code: string | null;
+          title: string;
+          status: RequisitionStatus;
+          company_id: string | null;
+          company_name: string | null;
+          location: string | null;
+          employment_type: string | null;
+          num_openings: number;
+          opened_date: string | null;
+          filled_date: string | null;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+          owner_ids: string[];
+          owner_names: string[];
+          application_count: number;
+          search_text: string | null;
+        };
+        Relationships: [];
+      };
       candidate_list: {
         Row: {
           person_id: string;

@@ -93,18 +93,3 @@ export interface SortState {
   dir: 'asc' | 'desc';
 }
 
-export function sortRows<T extends Record<string, unknown>>(
-  rows: T[],
-  sort: SortState | null,
-): T[] {
-  if (!sort) return rows;
-  const dir = sort.dir === 'asc' ? 1 : -1;
-  return [...rows].sort((a, b) => {
-    const va = a[sort.key];
-    const vb = b[sort.key];
-    if (typeof va === 'number' && typeof vb === 'number') {
-      return (va - vb) * dir;
-    }
-    return String(va ?? '').localeCompare(String(vb ?? '')) * dir;
-  });
-}

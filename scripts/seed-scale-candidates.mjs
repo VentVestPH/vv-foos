@@ -10,6 +10,8 @@ const valueOf = (f, d) => {
 };
 
 const MARKER = 'ScaleProbe';
+const REQ_MARKER = 'ScaleReq';
+const ENTITY = valueOf('--entity', 'candidates');
 const COUNT = Number(valueOf('--count', '70200'));
 const BATCH = Number(valueOf('--batch', '2000'));
 
@@ -99,11 +101,135 @@ async function purge() {
   return removed;
 }
 
+async function countReqProbes() {
+  const { count, error } = await sb
+    .from('requisitions')
+    .select('id', { count: 'exact', head: true })
+    .like('title', `${REQ_MARKER}%`);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+async function purgeRequisitions() {
+  let removed = 0;
+  for (;;) {
+    const { data, error } = await sb
+      .from('requisitions')
+      .select('id')
+      .like('title', `${REQ_MARKER}%`)
+      .limit(BATCH);
+    if (error) throw new Error(error.message);
+    if (!data.length) break;
+    const ids = data.map((r) => r.id);
+    for (let i = 0; i < ids.length; i += ID_CHUNK) {
+      const slice = ids.slice(i, i + ID_CHUNK);
+      const apps = await sb.from('applications').delete().in('requisition_id', slice);
+      if (apps.error) throw new Error(`applications: ${apps.error.message}`);
+      const owners = await sb.from('requisition_owners').delete().in('requisition_id', slice);
+      if (owners.error) throw new Error(`requisition_owners: ${owners.error.message}`);
+      const reqs = await sb.from('requisitions').delete().in('id', slice);
+      if (reqs.error) throw new Error(`requisitions: ${reqs.error.message}`);
+      removed += slice.length;
+    }
+    process.stdout.write(`\r  purged ${removed} requisition(s)`);
+  }
+  process.stdout.write(`\r  purged ${removed} requisition(s)\n`);
+  const left = await countReqProbes();
+  if (left > 0) throw new Error(`${left} requisition probe(s) survived the purge`);
+  return removed;
+}
+
+async function seedRequisitions(count) {
+  const existing = await countReqProbes();
+  if (existing > 0) {
+    console.error(`${existing} ${REQ_MARKER} requisition(s) already exist. Run --purge first.`);
+    process.exit(1);
+  }
+
+  const { data: companies } = await sb.from('companies').select('id').limit(20);
+  const { data: owners } = await sb.from('staff').select('id').eq('is_active', true).limit(5);
+  const { data: people } = await sb.from('candidate_profiles').select('person_id').limit(7);
+  const companyIds = (companies ?? []).map((c) => c.id);
+  const ownerIds = (owners ?? []).map((o) => o.id);
+  const personIds = (people ?? []).map((p) => p.person_id);
+
+  console.log(
+    `Seeding ${count} probe requisitions, ${ownerIds.length ? 'one owner each' : 'no owners'}, ` +
+      `${personIds.length} application(s) each`,
+  );
+
+  let made = 0;
+  for (let i = 0; i < count; i += BATCH) {
+    const size = Math.min(BATCH, count - i);
+    const rows = Array.from({ length: size }, (_, k) => {
+      const n = i + k;
+      return {
+        title: `${REQ_MARKER} Opening ${n}`,
+        job_code: `SCALE-${n}`,
+        status: 'open',
+        company_id: companyIds.length ? companyIds[n % companyIds.length] : null,
+        location: ['Manila', 'Cebu', 'Remote'][n % 3],
+        num_openings: 1 + (n % 3),
+        opened_date: new Date(Date.now() - (n % 700) * 86400000).toISOString().slice(0, 10),
+        is_test: true,
+      };
+    });
+    const { data, error } = await sb.from('requisitions').insert(rows).select('id');
+    if (error) {
+      console.error(`\nrequisitions insert failed at ${made}: ${error.message}`);
+      process.exit(1);
+    }
+    const newIds = data.map((r) => r.id);
+
+    if (ownerIds.length) {
+      const ownerRows = newIds.map((id, k) => ({
+        requisition_id: id,
+        staff_id: ownerIds[(i + k) % ownerIds.length],
+      }));
+      const res = await sb.from('requisition_owners').insert(ownerRows);
+      if (res.error) {
+        console.error(`\nrequisition_owners insert failed: ${res.error.message}`);
+        process.exit(1);
+      }
+    }
+
+    if (personIds.length) {
+      const appRows = [];
+      for (const id of newIds) {
+        for (const pid of personIds) {
+          appRows.push({ requisition_id: id, person_id: pid, stage: 'screening' });
+        }
+      }
+      for (let j = 0; j < appRows.length; j += 1000) {
+        const res = await sb.from('applications').insert(appRows.slice(j, j + 1000));
+        if (res.error) {
+          console.error(`\napplications insert failed: ${res.error.message}`);
+          process.exit(1);
+        }
+      }
+    }
+
+    made += size;
+    process.stdout.write(`\r  ${made} of ${count}`);
+  }
+  console.log(`\r  ${made} of ${count} requisitions, with owners and applications`);
+}
+
 if (has('--purge')) {
-  console.log(`Purging ${MARKER} rows from ${target}`);
+  console.log(`Purging probe rows from ${target}`);
+  await purgeRequisitions();
   await purge();
   console.log('done. No probe rows remain.');
   process.exit(0);
+}
+
+if (ENTITY === 'requisitions') {
+  await seedRequisitions(COUNT);
+  process.exit(0);
+}
+if (ENTITY !== 'candidates') {
+  console.error(`--entity must be candidates or requisitions, got ${ENTITY}`);
+  process.exit(1);
 }
 
 const existing = await countProbes();

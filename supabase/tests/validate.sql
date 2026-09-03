@@ -866,4 +866,29 @@ begin
   raise notice 'PASS 25: candidate_list covers every candidate_profiles row, and is security_invoker so RLS still decides visibility';
 end $$;
 
+do $$
+declare
+  invoker boolean;
+begin
+  select reloptions::text like '%security_invoker=on%' into invoker
+  from pg_class where relname = 'requisition_list' and relkind = 'v';
+  if invoker is not true then
+    raise exception 'FAIL 26: requisition_list is not security_invoker = on, so it would run as its owner and bypass RLS on requisitions, companies, staff and applications';
+  end if;
+
+  if (select count(*) from public.requisition_list) <> (select count(*) from public.requisitions) then
+    raise exception 'FAIL 26: requisition_list and requisitions disagree on row count, so a join is dropping requisitions';
+  end if;
+
+  if exists (
+    select 1 from public.requisition_list rl
+    join public.requisitions r on r.id = rl.id
+    where rl.company_id is distinct from r.company_id
+  ) then
+    raise exception 'FAIL 26: requisition_list company_id does not match the base table';
+  end if;
+
+  raise notice 'PASS 26: requisition_list covers every requisition, is security_invoker, and its lateral aggregates drop nothing';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;
