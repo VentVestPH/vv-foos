@@ -965,6 +965,27 @@ The id derivation lives in `migration/src/deterministic-id.mjs` with a `.d.mts` 
 
 **What this does not cover.** The mapping write is still a second round trip, so an interruption still leaves a record whose mapping is missing until the next run heals it. That is now harmless rather than corrupting, which is the property that matters, but it is not the same as atomic.
 
+## 7.21 U5.3, and a correction to what I wrote this morning
+
+This morning, having found that the Recruit API rejects `Zrecruit_837085000004666040` with `INVALID_URL_PATTERN` and accepts the bare `837085000004666040`, I recorded that "anything joining export rows to API records has to strip it, or every attachment silently fails to find its candidate."
+
+The first half is right and the framing was misleading. Checked against the real files rather than inferred:
+
+| Export | Column | Prefixed |
+| :---- | :---- | :---- |
+| `Candidates_001.csv` | `Candidate Id` | 75 of 75 |
+| `Attachments_001.csv` | `Parent Id` | 50 of 50 |
+| `Notes_001.csv` | `Parent Id` | 154 of 154 |
+
+**Both sides of every CSV join carry the prefix**, so the CSV-to-CSV join matches 40 of 40 attachment parents verbatim and the importer needs no normalisation at all. The prefix matters in exactly one place: joining CSV ids to the **API**, which uses bare numeric ids. That is a U3 concern, when attachment bytes arrive, not an importer defect. Nothing was broken.
+
+`tests/unit/zoho-export-contract.test.ts` now asserts that contract against the files: the prefix on both sides, verbatim resolution, `Attachment URL` empty in every row (which is *why* U3 needs another source for the bytes), and the education and experience exports carrying no data rows. If Zoho ever changes any of those, the test says so instead of the importer quietly reporting every child as parentless.
+
+Two mistakes of mine in writing it, both the same mistake twice in one day:
+
+- I hand-rolled a CSV parser that split on newlines before handling quotes, so it misread quoted multi-line fields and reported 2 of 75 candidate ids as bare. The repo already has `parseCsvRecords`, which the importer itself uses; switching to it both fixed the reading and made the test assert against exactly what the importer sees. A `csv.d.mts` was added beside it, matching the convention already there.
+- I hardcoded `/Users/klentz/...` as the export directory, which is the identical portability defect I fixed in `route-coverage.spec.ts` earlier the same day. Now resolved from `import.meta.url`, and a repo-wide sweep of `app/src`, `tests`, `scripts`, `migration/src` and `supabase` confirms no absolute path remains.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -1009,7 +1030,7 @@ Five phases, in order, because each one blocks the next.
 
 - [ ] **U5.1** Row-count reconciliation per module against Zoho's own counts
 - [ ] **U5.2** Field-level spot checks on a fresh random sample pulled from the API, not from the file that was imported
-- [ ] **U5.3** The known traps asserted rather than assumed: two date dialects, `Initial Date` with no year in three shapes, the `Zrecruit_` id prefix, and `Attachment URL` empty in every export row
+- [x] **U5.3 done, and it corrected my own record.** `tests/unit/zoho-export-contract.test.ts` asserts the export data contract against the real files: every export uses the `Zrecruit_` prefix on **both** sides of the join, attachment parents resolve against candidate ids **verbatim**, `Attachment URL` is empty in every row, and the education and experience exports are header-only. The two date dialects and the three partial-date shapes were already covered by `zoho-parsers.test.ts`. Section 7.21
 
 **U6. A data exporter in Settings, asked for on 2026-09-03.** So that getting data out of FOOS is never the problem getting it out of Zoho has been. This is a product feature, not migration scaffolding, and it outlives the migration.
 
