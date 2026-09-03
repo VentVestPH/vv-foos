@@ -87,3 +87,29 @@ describe('the candidate aliases that are not mechanical derivations', () => {
     expect(out['LinkedIn Recruiter']).toBe('https://recruiter.example');
   });
 });
+
+describe('the note owner alias, which the UI header alone cannot supply', () => {
+  it('routes Note_Owner into Note Owner Id and keeps the id, not the name', () => {
+    const header = ['Note Id', 'Note Owner Id', 'Note Title', 'Parent Id'];
+    const out = bulkRowToExportRow(
+      {
+        Id: '837085000004992033',
+        Note_Owner: { name: 'A Recruiter', id: '837085000000554395' },
+        Note_Title: 'Call',
+      },
+      buildBulkColumnMap(header),
+      BULK_ALIASES['ZohoRecruit/Notes'],
+    );
+    expect(out['Note Id']).toBe('837085000004992033');
+    expect(out['Note Owner Id']).toBe('837085000000554395');
+  });
+
+  it('still accepts the plain Owner key the other modules use', () => {
+    const out = bulkRowToExportRow(
+      { Owner: { name: 'A Recruiter', id: '837085000000554395' } },
+      buildBulkColumnMap(['Note Owner Id']),
+      BULK_ALIASES['ZohoRecruit/Notes'],
+    );
+    expect(out['Note Owner Id']).toBe('837085000000554395');
+  });
+});

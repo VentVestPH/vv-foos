@@ -64,7 +64,11 @@ export function mapNote(row, lookups, unresolved, resolveParent) {
       person_id: personId,
       application_id: applicationId,
       requisition_id: requisitionId,
-      created_by: resolveStaff(lookups, row['Note Owner Id'], unresolved),
+      created_by: resolveStaff(
+        lookups,
+        row['Note Owner Id'] || row['Note Owner'],
+        unresolved,
+      ),
     },
     warnings,
   };

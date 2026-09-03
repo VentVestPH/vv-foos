@@ -21,7 +21,8 @@ export const BULK_ALIASES = {
   'ZohoRecruit/Contacts': { Id: 'Contact Id', Owner: 'Contact Owner' },
   'ZohoRecruit/Notes': {
     Id: 'Note Id',
-    Owner: 'Note Owner',
+    Owner: 'Note Owner Id',
+    Note_Owner: 'Note Owner Id',
     '$se_module': 'Module',
     Parent_Id: 'Parent Id',
   },
