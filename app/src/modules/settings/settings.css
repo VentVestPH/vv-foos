@@ -133,4 +133,24 @@
   gap: var(--sp-1);
 }
 
+
+.settings-export {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.settings-export-table {
+  max-width: 34rem;
+}
+
+.settings-export-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-export-done {
+  margin: 0;
+  color: var(--fo-tab-label);
+}
 }

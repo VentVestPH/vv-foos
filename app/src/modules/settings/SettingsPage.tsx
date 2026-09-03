@@ -4,6 +4,7 @@ import { PlaceholderAction } from '../../shell/Placeholder';
 import { Settings as GearIcon } from 'lucide-react';
 import { EmailTemplatesCard } from './EmailTemplatesCard';
 import { GoogleIntegrationCard } from './GoogleIntegrationCard';
+import { DataExportCard } from './DataExportCard';
 
 export function SettingsPage() {
   return (
@@ -11,6 +12,10 @@ export function SettingsPage() {
       <RecordSection title="Google Integration:">
         <GoogleIntegrationCard />
         <EmailTemplatesCard />
+      </RecordSection>
+
+      <RecordSection title="Data Export:">
+        <DataExportCard />
       </RecordSection>
 
       <RecordSection title="Other Administration Areas:" defaultOpen={false}>
