@@ -12,6 +12,7 @@ const EMAIL_COLUMNS = [
   ['Secondary Email', 'personal'],
   ['Email 3', 'personal'],
   ['Work Email', 'work'],
+  ['Business Email', 'work'],
   ['Probable Work Email', 'work'],
 ];
 
@@ -19,6 +20,8 @@ const PHONE_COLUMNS = [
   ['Phone', 'main'],
   ['Mobile', 'mobile'],
   ['Work Direct Phone', 'work'],
+  ['Work Phone', 'work'],
+  ['Business Phone', 'work'],
   ['Home Phone', 'home'],
   ['Home Phone 2', 'home'],
   ['Home Phone 3', 'home'],
@@ -30,6 +33,7 @@ const URL_COLUMNS = [
   'Other Website',
   'Skype ID',
   'X (formerly Twitter)',
+  'Twitter',
   'Facebook',
   'Instagram',
   'Tiktok',

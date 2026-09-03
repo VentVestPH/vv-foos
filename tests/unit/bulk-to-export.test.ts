@@ -56,3 +56,34 @@ describe('mapping bulk read columns onto the export names the mappers already re
     expect(mapped['Account Name']).toBe('');
   });
 });
+
+describe('the candidate aliases that are not mechanical derivations', () => {
+  const header = ['Candidate Id', 'Postal Code', 'LinkedIn', 'Facebook', 'LinkedIn Recruiter'];
+
+  it('maps Zip_Code, LinkedIn__s and Facebook__s onto the names the mapper reads', () => {
+    const columnMap = buildBulkColumnMap(header);
+    const out = bulkRowToExportRow(
+      {
+        Id: '837085000000540058',
+        Zip_Code: '1101',
+        LinkedIn__s: 'https://linkedin.com/in/example',
+        Facebook__s: 'https://facebook.com/example',
+        LinkedIn_Recruiter: 'https://recruiter.example',
+      },
+      columnMap,
+      BULK_ALIASES['ZohoRecruit/Candidates'],
+    );
+    expect(out['Postal Code']).toBe('1101');
+    expect(out.LinkedIn).toBe('https://linkedin.com/in/example');
+    expect(out.Facebook).toBe('https://facebook.com/example');
+  });
+
+  it('still derives LinkedIn Recruiter mechanically, so the alias table stays minimal', () => {
+    const out = bulkRowToExportRow(
+      { LinkedIn_Recruiter: 'https://recruiter.example' },
+      buildBulkColumnMap(header),
+      BULK_ALIASES['ZohoRecruit/Candidates'],
+    );
+    expect(out['LinkedIn Recruiter']).toBe('https://recruiter.example');
+  });
+});

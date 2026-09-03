@@ -9,6 +9,9 @@ export const BULK_ALIASES = {
     Id: 'Candidate Id',
     Owner: 'Candidate Owner',
     Updated_On: 'Modified Time',
+    Zip_Code: 'Postal Code',
+    LinkedIn__s: 'LinkedIn',
+    Facebook__s: 'Facebook',
   },
   'ZohoRecruit/Applications': {
     Id: 'Application Id',
