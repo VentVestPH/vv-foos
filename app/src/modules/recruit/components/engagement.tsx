@@ -19,12 +19,14 @@ import {
   PENDING_FILE_REASON,
 } from '../../../lib/attachments';
 
+export type EngagementParentType = 'person' | 'requisition' | 'application';
+
 interface EngagementParent {
-  type: 'person' | 'requisition';
+  type: EngagementParentType;
   id: string;
 }
 
-export function useEngagement(parentType: 'person' | 'requisition', parentId: string) {
+export function useEngagement(parentType: EngagementParentType, parentId: string) {
   const { staff } = useSession();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -34,7 +36,12 @@ export function useEngagement(parentType: 'person' | 'requisition', parentId: st
 
   const refresh = useCallback(async () => {
     try {
-      const activityCol = parentType === 'person' ? 'person_id' : 'requisition_id';
+      const activityCol =
+        parentType === 'person'
+          ? 'person_id'
+          : parentType === 'application'
+            ? 'application_id'
+            : 'requisition_id';
       const [a, t, r, f] = await Promise.all([
         supabase
           .from('activities')

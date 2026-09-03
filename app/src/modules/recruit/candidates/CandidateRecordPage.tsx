@@ -59,6 +59,8 @@ export function CandidateRecordPage() {
   const [error, setError] = useState<string | null>(null);
 
   const engagement = useEngagement('person', personId);
+  const viewedApplicationId = params.get('application');
+  const applicationEngagement = useEngagement('application', viewedApplicationId ?? '');
   const outreach = useCandidateOutreach(personId, person, engagement.refresh);
   const [merging, setMerging] = useState(false);
   const [erasing, setErasing] = useState(false);
@@ -737,6 +739,20 @@ export function CandidateRecordPage() {
           onChanged={engagement.refresh}
         />
       </RecordSection>
+
+      {viewedApplicationId && (
+        <RecordSection
+          title="Application Attachments"
+          defaultOpen={applicationEngagement.attachments.length > 0}
+        >
+          <AttachmentsPanel
+            items={applicationEngagement.attachments}
+            parent={{ type: 'application', id: viewedApplicationId }}
+            allowUpload={allowCreate}
+            onChanged={applicationEngagement.refresh}
+          />
+        </RecordSection>
+      )}
 
       <div className="record-action-bar fo-record-bottom-bar">{actionBarContent}</div>
 

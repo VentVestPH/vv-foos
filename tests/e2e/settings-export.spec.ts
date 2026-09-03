@@ -92,3 +92,65 @@ test.describe('U6: the Settings data exporter', () => {
     ).toBe(shown);
   });
 });
+
+test.describe('U3.4: application attachments have a surface', () => {
+  test('an application attachment is reachable from the candidate page', async ({ page }) => {
+    test.setTimeout(90000);
+    const { createClient } = await import('@supabase/supabase-js');
+    const api = createClient(
+      process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321',
+      process.env.FOOS_SUPABASE_ANON_KEY ?? '',
+    );
+    const { error: authErr } = await api.auth.signInWithPassword({
+      email: PERSONA_EMAILS.admin,
+      password: process.env.FOOS_QA_TEST_PASSWORD ?? '',
+    });
+    expect(authErr).toBeNull();
+
+    const { data: att, error } = await api
+      .from('attachments')
+      .select('id, parent_id')
+      .eq('parent_type', 'application')
+      .limit(1);
+    expect(error).toBeNull();
+    if (!att || att.length === 0) {
+      test.skip(true, 'no application attachment stored yet');
+      return;
+    }
+    const applicationId = att[0].parent_id as string;
+
+    const { data: app } = await api
+      .from('applications')
+      .select('person_id')
+      .eq('id', applicationId)
+      .single();
+    const personId = app!.person_id as string;
+
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, `/recruit/candidates/${personId}?application=${applicationId}`);
+
+    const section = await expandSection(page, 'Application Attachments');
+    await expect(
+      section,
+      'attachments on an application were stored and readable under RLS but rendered nowhere ' +
+        'before this section existed',
+    ).toBeVisible({ timeout: 30000 });
+
+    await expect
+      .poll(async () => section.locator('.panel-item').count(), {
+        timeout: 30000,
+        message: 'the application attachment list is still loading',
+      })
+      .toBeGreaterThan(0);
+
+    await expect(
+      section.getByText('No files yet.'),
+      'the panel must not report the application as having no files when it has one',
+    ).toHaveCount(0);
+
+    await expect(
+      section.locator('.panel-item .link-btn').first(),
+      'the file is openable, so its bytes are in Storage rather than a pending placeholder',
+    ).toBeVisible();
+  });
+});
