@@ -862,6 +862,29 @@ export interface Database {
       };
     };
     Views: {
+      deal_list: {
+        Row: {
+          id: string;
+          display_code: string;
+          name: string;
+          stage: DealStage;
+          company_id: string | null;
+          company_name: string | null;
+          primary_contact_id: string | null;
+          owner_id: string | null;
+          owner_name: string | null;
+          value: number | null;
+          currency: string;
+          probability: number | null;
+          expected_close: string | null;
+          lost_reason: string | null;
+          is_test: boolean;
+          created_at: string;
+          updated_at: string;
+          search_text: string | null;
+        };
+        Relationships: [];
+      };
       requisition_list: {
         Row: {
           id: string;

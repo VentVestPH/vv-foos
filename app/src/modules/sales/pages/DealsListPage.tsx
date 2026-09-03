@@ -1,21 +1,52 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
-import { DEAL_STAGES, type DealStage } from '../../../lib/database.types';
+import { DEAL_STAGES, type Database, type DealStage } from '../../../lib/database.types';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { Pager, usePagination } from '../../../components/ui/Pager';
+import { Pager } from '../../../components/ui/Pager';
 import { LostReasonDialog } from '../components/LostReasonDialog';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
 import { fmtDate, fmtMoney, stageLabel, type Deal } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
-import { fetchAllRows } from '../../../lib/fetchAll';
+
+const DEAL_PAGE_SIZE = 20;
+const KANBAN_CARDS_PER_STAGE = 25;
+const DEAL_EXPORT_PAGE_SIZE = 1000;
+const DEAL_EXPORT_ROW_CAP = 10000;
+
+const DEAL_VIEW_COLUMNS =
+  'id, display_code, name, stage, company_id, company_name, primary_contact_id, owner_id, owner_name, value, currency, probability, expected_close, lost_reason, is_test, created_at, updated_at';
+
+const DEAL_SORT_COLUMNS: Record<string, string> = {
+  display_code: 'display_code',
+  name: 'name',
+  company: 'company_name',
+  stage: 'stage',
+  value: 'value',
+  probability: 'probability',
+  expected_close: 'expected_close',
+  owner: 'owner_name',
+  updated_at: 'updated_at',
+};
+
+type DealListRow = Omit<Database['public']['Views']['deal_list']['Row'], 'search_text'>;
+
+function dealLikeLiteral(value: string): string {
+  return value.replace(/([\\%_])/g, '\\$1');
+}
+
+function dealBaseQuery() {
+  return supabase.from('deal_list').select(DEAL_VIEW_COLUMNS, { count: 'exact' });
+}
+
+type DealQuery = ReturnType<typeof dealBaseQuery>;
 
 type ViewMode = 'kanban' | 'table';
 
@@ -26,34 +57,86 @@ export function DealsListPage() {
   const { companyName } = useCompanyOptions();
   const [params] = useSearchParams();
 
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const [deals, setDeals] = useState<DealListRow[]>([]);
+  const [board, setBoard] = useState<Map<string, { cards: DealListRow[]; total: number }>>(
+    new Map(),
+  );
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
   const [view, setView] = useState<ViewMode>('kanban');
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState(() => params.get('stage') ?? '');
   const [ownerFilter, setOwnerFilter] = useState(() => params.get('owner_id') ?? '');
   const [companyFilter] = useState(() => params.get('company_id') ?? '');
-  const [pendingLost, setPendingLost] = useState<Deal | null>(null);
+  const [pendingLost, setPendingLost] = useState<DealListRow | null>(null);
   const [wonNotice, setWonNotice] = useState<string | null>(null);
   const [wonClosing, setWonClosing] = useState(false);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const applyDealFilters = useCallback(
+    (q: DealQuery): DealQuery => {
+      let out = q;
+      if (stageFilter) out = out.eq('stage', stageFilter as DealStage);
+      if (ownerFilter) out = out.eq('owner_id', ownerFilter);
+      if (companyFilter) out = out.eq('company_id', companyFilter);
+      const term = search.trim().toLowerCase();
+      if (term) out = out.ilike('search_text', `%${dealLikeLiteral(term)}%`);
+      return out;
+    },
+    [stageFilter, ownerFilter, companyFilter, search],
+  );
+
+  const load = useCallback(async () => {
     setLoading(true);
-    const rows = await fetchAllRows((f, t) =>
-      supabase
-        .from('deals')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .range(f, t),
-    );
-    setDeals(rows);
-    setLoading(false);
-  };
+    try {
+      if (view === 'kanban') {
+        const next = new Map<string, { cards: DealListRow[]; total: number }>();
+        for (const stage of DEAL_STAGES) {
+          if (stageFilter && stage !== stageFilter) {
+            next.set(stage, { cards: [], total: 0 });
+            continue;
+          }
+          const { data, count, error } = await applyDealFilters(dealBaseQuery())
+            .eq('stage', stage)
+            .order('updated_at', { ascending: false })
+            .order('id', { ascending: true })
+            .range(0, KANBAN_CARDS_PER_STAGE - 1);
+          if (error) throw new Error(error.message);
+          next.set(stage, { cards: data ?? [], total: count ?? 0 });
+        }
+        setBoard(next);
+        setTotal([...next.values()].reduce((n, c) => n + c.total, 0));
+      } else {
+        const sortColumn = sort ? DEAL_SORT_COLUMNS[sort.key] : undefined;
+        let q = applyDealFilters(dealBaseQuery());
+        q = sortColumn
+          ? q.order(sortColumn, { ascending: sort?.dir === 'asc', nullsFirst: false })
+          : q.order('updated_at', { ascending: false });
+        const start = page * DEAL_PAGE_SIZE;
+        const { data, count, error } = await q
+          .order('id', { ascending: true })
+          .range(start, start + DEAL_PAGE_SIZE - 1);
+        if (error) throw new Error(error.message);
+        setDeals(data ?? []);
+        setTotal(count ?? 0);
+      }
+      setMoveError(null);
+    } catch (e) {
+      setMoveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [view, applyDealFilters, stageFilter, sort, page]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [stageFilter, ownerFilter, companyFilter, search, sort, view]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     if (!wonNotice) return;
@@ -66,20 +149,7 @@ export function DealsListPage() {
     };
   }, [wonNotice]);
 
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return deals.filter((d) => {
-      if (q && !`${d.display_code} ${d.name}`.toLowerCase().includes(q)) {
-        return false;
-      }
-      if (stageFilter && d.stage !== stageFilter) return false;
-      if (ownerFilter && d.owner_id !== ownerFilter) return false;
-      if (companyFilter && d.company_id !== companyFilter) return false;
-      return true;
-    });
-  }, [deals, search, stageFilter, ownerFilter, companyFilter]);
-
-  const writeStage = async (deal: Deal, toStage: DealStage, lostReason?: string) => {
+  const writeStage = async (deal: DealListRow, toStage: DealStage, lostReason?: string) => {
     setMoveError(null);
     const patch =
       toStage === 'lost'
@@ -94,9 +164,26 @@ export function DealsListPage() {
       await load();
       return;
     }
-    setDeals((prev) =>
-      prev.map((d) => (d.id === deal.id ? { ...d, ...patch } : d)),
-    );
+    setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, ...patch } : d)));
+    setBoard((prev) => {
+      const next = new Map(prev);
+      const from = next.get(deal.stage);
+      if (from) {
+        next.set(deal.stage, {
+          cards: from.cards.filter((c) => c.id !== deal.id),
+          total: Math.max(0, from.total - 1),
+        });
+      }
+      const to = next.get(toStage);
+      if (to) {
+        const moved = { ...deal, ...patch } as DealListRow;
+        next.set(toStage, {
+          cards: [moved, ...to.cards].slice(0, KANBAN_CARDS_PER_STAGE),
+          total: to.total + 1,
+        });
+      }
+      return next;
+    });
     if (toStage === 'won') {
       setWonNotice(`${deal.display_code} · ${deal.name} — won.`);
     }
@@ -104,7 +191,8 @@ export function DealsListPage() {
 
   const onMove = (dealId: string, toStage: string) => {
     if (!canEdit) return;
-    const deal = deals.find((d) => d.id === dealId);
+    const onBoard = [...board.values()].flatMap((c) => c.cards);
+    const deal = deals.find((d) => d.id === dealId) ?? onBoard.find((d) => d.id === dealId);
     if (!deal || deal.stage === toStage) return;
     if (toStage === 'lost') {
       setPendingLost(deal);
@@ -113,35 +201,47 @@ export function DealsListPage() {
     void writeStage(deal, toStage as DealStage);
   };
 
-  const kanbanCards = visible.map((d) => ({
-    id: d.id,
-    stage: d.stage,
-    content: (
-      <div
-        className="sales-kanban-card"
-        onClick={() => navigate(`/sales/deals/${d.id}`)}
-      >
-        <span className="sales-kanban-card-code">
-          {d.display_code}
-          {d.is_test && (
-            <>
-              {' '}
-              <Badge tone="warning">TEST</Badge>
-            </>
-          )}
+  const kanbanCards = [...board.values()]
+    .flatMap((c) => c.cards)
+    .map((d) => ({
+      id: d.id,
+      stage: d.stage,
+      content: (
+        <div className="sales-kanban-card" onClick={() => navigate(`/sales/deals/${d.id}`)}>
+          <span className="sales-kanban-card-code">
+            {d.display_code}
+            {d.is_test && (
+              <>
+                {' '}
+                <Badge tone="warning">TEST</Badge>
+              </>
+            )}
+          </span>
+          <span className="sales-kanban-card-name">{d.name}</span>
+          <span>{d.company_name ?? ''}</span>
+          <span className="sales-kanban-card-value">
+            {fmtMoney(d.value, d.currency)}
+            {d.probability !== null && ` \u00b7 ${d.probability}%`}
+          </span>
+          <span>
+            {fmtDate(d.expected_close)} \u00b7 {d.owner_name ?? ''}
+          </span>
+        </div>
+      ),
+    }));
+
+  const columnExtras = useCallback(
+    (stageKey: string) => {
+      const col = board.get(stageKey);
+      if (!col || col.total <= col.cards.length) return null;
+      return (
+        <span className="text-secondary sales-kanban-more">
+          {`showing ${col.cards.length} of ${col.total.toLocaleString()}`}
         </span>
-        <span className="sales-kanban-card-name">{d.name}</span>
-        <span>{companyName(d.company_id)}</span>
-        <span className="sales-kanban-card-value">
-          {fmtMoney(d.value, d.currency)}
-          {d.probability !== null && ` · ${d.probability}%`}
-        </span>
-        <span>
-          {fmtDate(d.expected_close)} · {staffName(d.owner_id)}
-        </span>
-      </div>
-    ),
-  }));
+      );
+    },
+    [board],
+  );
 
   const columns: TableColumn<Deal>[] = [
     { key: 'display_code', header: 'Code', sortable: true },
@@ -198,21 +298,53 @@ export function DealsListPage() {
     },
   ];
 
-  const exportRows = visible
-    .filter((d) => !d.is_test)
-    .map((d) => ({
-      code: d.display_code,
-      name: d.name,
-      company: companyName(d.company_id),
-      stage: d.stage,
-      value: d.value,
-      currency: d.currency,
-      probability: d.probability,
-      expected_close: d.expected_close,
-      owner: staffName(d.owner_id),
-    }));
+  const exportDealRows = useCallback(async () => {
+    if (total > DEAL_EXPORT_ROW_CAP) {
+      setMoveError(
+        `That filter matches ${total.toLocaleString()} deals, more than the ${DEAL_EXPORT_ROW_CAP.toLocaleString()} an in-browser export can build. Narrow the filter and try again.`,
+      );
+      return [];
+    }
+    const collected: DealListRow[] = [];
+    for (let start = 0; start < DEAL_EXPORT_ROW_CAP; start += DEAL_EXPORT_PAGE_SIZE) {
+      const { data, error } = await applyDealFilters(dealBaseQuery())
+        .order('updated_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(start, start + DEAL_EXPORT_PAGE_SIZE - 1);
+      if (error) {
+        setMoveError(error.message);
+        return [];
+      }
+      const batch = data ?? [];
+      collected.push(...batch);
+      if (batch.length < DEAL_EXPORT_PAGE_SIZE) break;
+    }
+    setMoveError(null);
+    return collected
+      .filter((d) => !d.is_test)
+      .map((d) => ({
+        code: d.display_code,
+        name: d.name,
+        company: d.company_name ?? '',
+        stage: d.stage,
+        value: d.value,
+        currency: d.currency,
+        probability: d.probability,
+        expected_close: d.expected_close,
+        owner: d.owner_name ?? '',
+      }));
+  }, [applyDealFilters, total]);
 
-  const pager = usePagination(visible);
+  const pageCount = Math.max(1, Math.ceil(total / DEAL_PAGE_SIZE));
+  const pager = {
+    page,
+    setPage,
+    pageCount,
+    total,
+    from: total === 0 ? 0 : page * DEAL_PAGE_SIZE + 1,
+    to: Math.min(total, (page + 1) * DEAL_PAGE_SIZE),
+    pageRows: deals,
+  };
 
   return (
     <>
@@ -275,7 +407,8 @@ export function DealsListPage() {
             </div>
           </details>
         }
-        exportRows={exportRows}
+        exportRows={exportDealRows}
+        exportCount={total}
         exportFilename="deals.csv"
       >
         <div className="record-action-bar fo-list-action-bar">
@@ -303,6 +436,7 @@ export function DealsListPage() {
             stages={DEAL_STAGES.map((s) => ({ key: s, label: stageLabel(s) }))}
             cards={kanbanCards}
             onMove={onMove}
+            columnExtras={columnExtras}
           />
         ) : (
           <Table
@@ -310,6 +444,9 @@ export function DealsListPage() {
             columns={columns}
             rows={pager.pageRows}
             rowKey={(d) => d.id}
+            sortKey={sort?.key ?? null}
+            sortDir={sort?.dir ?? 'asc'}
+            onSortChange={(key, dir) => setSort({ key, dir })}
             onRowClick={(d) => navigate(`/sales/deals/${d.id}`)}
             emptyText={loading ? 'Loading…' : 'No deals match.'}
           />

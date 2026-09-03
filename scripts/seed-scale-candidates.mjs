@@ -11,6 +11,7 @@ const valueOf = (f, d) => {
 
 const MARKER = 'ScaleProbe';
 const REQ_MARKER = 'ScaleReq';
+const DEAL_MARKER = 'ScaleDeal';
 const ENTITY = valueOf('--entity', 'candidates');
 const COUNT = Number(valueOf('--count', '70200'));
 const BATCH = Number(valueOf('--batch', '2000'));
@@ -215,8 +216,86 @@ async function seedRequisitions(count) {
   console.log(`\r  ${made} of ${count} requisitions, with owners and applications`);
 }
 
+async function countDealProbes() {
+  const { count, error } = await sb
+    .from('deals')
+    .select('id', { count: 'exact', head: true })
+    .like('name', `${DEAL_MARKER}%`);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+async function purgeDeals() {
+  let removed = 0;
+  for (;;) {
+    const { data, error } = await sb
+      .from('deals')
+      .select('id')
+      .like('name', `${DEAL_MARKER}%`)
+      .limit(BATCH);
+    if (error) throw new Error(error.message);
+    if (!data.length) break;
+    const ids = data.map((r) => r.id);
+    for (let i = 0; i < ids.length; i += ID_CHUNK) {
+      const slice = ids.slice(i, i + ID_CHUNK);
+      const acts = await sb.from('activities').delete().in('deal_id', slice);
+      if (acts.error) throw new Error(`activities: ${acts.error.message}`);
+      const res = await sb.from('deals').delete().in('id', slice);
+      if (res.error) throw new Error(`deals: ${res.error.message}`);
+      removed += slice.length;
+    }
+    process.stdout.write(`\r  purged ${removed} deal(s)`);
+  }
+  process.stdout.write(`\r  purged ${removed} deal(s)\n`);
+  const left = await countDealProbes();
+  if (left > 0) throw new Error(`${left} deal probe(s) survived the purge`);
+  return removed;
+}
+
+async function seedDeals(count) {
+  const existing = await countDealProbes();
+  if (existing > 0) {
+    console.error(`${existing} ${DEAL_MARKER} deal(s) already exist. Run --purge first.`);
+    process.exit(1);
+  }
+  const { data: companies } = await sb.from('companies').select('id').limit(20);
+  const { data: owners } = await sb.from('staff').select('id').eq('is_active', true).limit(5);
+  const companyIds = (companies ?? []).map((c) => c.id);
+  const ownerIds = (owners ?? []).map((o) => o.id);
+  const stages = ['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'];
+
+  console.log(`Seeding ${count} probe deals across ${stages.length} stages`);
+  let made = 0;
+  for (let i = 0; i < count; i += BATCH) {
+    const size = Math.min(BATCH, count - i);
+    const rows = Array.from({ length: size }, (_, k) => {
+      const n = i + k;
+      return {
+        name: `${DEAL_MARKER} Opportunity ${n}`,
+        stage: stages[n % stages.length],
+        company_id: companyIds.length ? companyIds[n % companyIds.length] : null,
+        owner_id: ownerIds.length ? ownerIds[n % ownerIds.length] : null,
+        value: 1000 * (1 + (n % 90)),
+        currency: 'USD',
+        probability: (n % 10) * 10,
+        expected_close: new Date(Date.now() + (n % 200) * 86400000).toISOString().slice(0, 10),
+        is_test: true,
+      };
+    });
+    const { error } = await sb.from('deals').insert(rows);
+    if (error) {
+      console.error(`\ndeals insert failed at ${made}: ${error.message}`);
+      process.exit(1);
+    }
+    made += size;
+    process.stdout.write(`\r  ${made} of ${count}`);
+  }
+  console.log(`\r  ${made} of ${count} deals`);
+}
+
 if (has('--purge')) {
   console.log(`Purging probe rows from ${target}`);
+  await purgeDeals();
   await purgeRequisitions();
   await purge();
   console.log('done. No probe rows remain.');
@@ -227,8 +306,12 @@ if (ENTITY === 'requisitions') {
   await seedRequisitions(COUNT);
   process.exit(0);
 }
+if (ENTITY === 'deals') {
+  await seedDeals(COUNT);
+  process.exit(0);
+}
 if (ENTITY !== 'candidates') {
-  console.error(`--entity must be candidates or requisitions, got ${ENTITY}`);
+  console.error(`--entity must be candidates, requisitions or deals, got ${ENTITY}`);
   process.exit(1);
 }
 

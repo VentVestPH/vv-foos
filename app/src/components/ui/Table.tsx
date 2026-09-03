@@ -27,6 +27,10 @@ interface TableProps<T> {
   onRowClick?: (row: T) => void;
   emptyText?: string;
   busy?: boolean;
+
+  sortKey?: string | null;
+  sortDir?: SortDir;
+  onSortChange?: (key: string, dir: SortDir) => void;
 }
 
 type SortDir = 'asc' | 'desc';
@@ -59,9 +63,15 @@ export function Table<T>({
   onRowClick,
   emptyText = 'No records.',
   busy,
+  sortKey: controlledKey,
+  sortDir: controlledDir,
+  onSortChange,
 }: TableProps<T>) {
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const controlled = onSortChange !== undefined;
+  const [internalKey, setInternalKey] = useState<string | null>(null);
+  const [internalDir, setInternalDir] = useState<SortDir>('asc');
+  const sortKey = controlled ? (controlledKey ?? null) : internalKey;
+  const sortDir = controlled ? (controlledDir ?? 'asc') : internalDir;
   const [internalSelected, setInternalSelected] = useState<Set<string>>(
     new Set(),
   );
@@ -73,6 +83,7 @@ export function Table<T>({
   };
 
   const sorted = useMemo(() => {
+    if (controlled) return rows;
     if (!sortKey) return rows;
     const col = columns.find((c) => c.key === sortKey);
     if (!col) return rows;
@@ -89,15 +100,16 @@ export function Table<T>({
       }
       return String(va).localeCompare(String(vb)) * dir;
     });
-  }, [rows, columns, sortKey, sortDir]);
+  }, [rows, columns, sortKey, sortDir, controlled]);
 
   const toggleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortDir('asc');
+    const nextDir: SortDir = sortKey === key && sortDir === 'asc' ? 'desc' : 'asc';
+    if (controlled) {
+      onSortChange(key, nextDir);
+      return;
     }
+    setInternalKey(key);
+    setInternalDir(nextDir);
   };
 
   const allSelected = rows.length > 0 && rows.every((r) => sel.has(rowKey(r)));

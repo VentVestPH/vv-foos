@@ -891,4 +891,28 @@ begin
   raise notice 'PASS 26: requisition_list covers every requisition, is security_invoker, and its lateral aggregates drop nothing';
 end $$;
 
+do $$
+declare
+  invoker boolean;
+begin
+  select reloptions::text like '%security_invoker=on%' into invoker
+  from pg_class where relname = 'deal_list' and relkind = 'v';
+  if invoker is not true then
+    raise exception 'FAIL 27: deal_list is not security_invoker = on, so it would run as its owner and bypass RLS on deals, companies and staff';
+  end if;
+
+  if (select count(*) from public.deal_list) <> (select count(*) from public.deals) then
+    raise exception 'FAIL 27: deal_list and deals disagree on row count, so a join is dropping deals';
+  end if;
+
+  if exists (
+    select 1 from public.deal_list dl join public.deals d on d.id = dl.id
+    where dl.stage is distinct from d.stage or dl.value is distinct from d.value
+  ) then
+    raise exception 'FAIL 27: deal_list stage or value does not match the base table';
+  end if;
+
+  raise notice 'PASS 27: deal_list covers every deal, is security_invoker, and its left joins drop nothing';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;

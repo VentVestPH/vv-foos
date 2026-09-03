@@ -533,6 +533,9 @@ export function CandidateListPage() {
         columns={columns}
         rows={pager.pageRows}
         rowKey={(r) => r.id}
+        sortKey={sort?.key ?? null}
+        sortDir={sort?.dir ?? 'asc'}
+        onSortChange={(key, dir) => setSort({ key, dir })}
         selectable
         selected={selected}
         onSelectionChange={setSelected}

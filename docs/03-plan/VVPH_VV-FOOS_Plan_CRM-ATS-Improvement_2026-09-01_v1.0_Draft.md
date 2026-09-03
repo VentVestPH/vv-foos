@@ -871,6 +871,40 @@ The picker is now a server-side typeahead: 200ms debounce, `ilike` on the view's
 
 **And a correction to my own record.** `timeline-cap.spec.ts`, written earlier the same day for T2, asserted the seeded deal had more than 60 activities. A fresh `npm run db:reset` shows that deal has **2**. The test had been passing on activities accumulated by earlier runs, which is exactly the isolation rule this suite is supposed to hold to, and I reported it as verified over ten clean gate passes. It now inserts its own 120-entry history under a run-unique marker and deletes it in `afterAll` with the delete error and a residual count both checked. Verified by running it three times from a clean database and confirming the deal is back to 2 activities with no fixture rows left. A full suite run against the freshly reset database passes, so this was the only test leaning on residue.
 
+## 7.18 U1.3 and U1.4, and a defect I had already shipped twice
+
+**U1.3, requisitions. The speed was the smaller half.** At 2,003 requisitions the old screen cost 21 requests and 3.41 MB, unpleasant but survivable. The defect worth fixing was that the `applications` read carried no `.range()` at all, so PostgREST capped it at `max_rows = 1000` and every per-requisition application and unviewed count was computed from an arbitrary thousand rows.
+
+| | |
+| :---- | :---- |
+| applications in the database | 14,008 |
+| requisitions that actually have applications | 2,002 |
+| requisitions appearing in the first 1,000 rows returned | 143 |
+| **requisitions whose count read 0 while having applications** | **1,859** |
+
+93% of rows carried wrong numbers with no error. After: 139ms to the first row, 3 list requests, 108.8 KB, and the pager reads `1-20 of 2003` from a server-side count.
+
+`requisition_list` aggregates owners into `owner_ids` and `owner_names` arrays, because the owner filter is a many-to-many through `requisition_owners`; the filter is now `contains('owner_ids', [staffId])`. The aggregates are `LEFT JOIN LATERAL` rather than inner, proven by deleting every owner from one requisition inside a transaction and watching the row survive with empty arrays instead of vanishing.
+
+**U1.4, deals. This one was the DOM, not the network.** 13 requests and 5.29 MB was not the problem; **12,002 rendered kanban cards** was, roughly 84,000 DOM nodes.
+
+| | Old | New |
+| :---- | :---- | :---- |
+| Time to first card | | 204ms |
+| Kanban cards in the DOM | 12,002 | 150 |
+| DOM nodes in `main` | ~84,000 | 1,263 |
+| Payload | 5.29 MB | 165.5 KB |
+
+The board now fetches 25 cards per stage with an exact per-stage count, one request each for the six stages, and each column says `showing 25 of 2,000`. That is a visible behaviour change and the right one: a column holding two thousand cards was never usable, and the count makes the boundary honest rather than hidden.
+
+Two bugs I introduced in the deals refactor, both caught by the existing drag-and-drop spec rather than by reading the code: `onMove` looked the deal up in the table state, which is empty in kanban view now that cards live in the board, so dragging silently did nothing; and `writeStage` updated only the table state optimistically, so after a successful write the card stayed in its old column. The board now moves the card between columns and adjusts both per-stage totals, which also keeps the settle animation instead of forcing a refetch.
+
+**And the defect I had already shipped twice.** `Table` owns its own sort state and sorts `rows` internally. Once a list pages server-side, `rows` is only the visible twenty, so **clicking a column header sorted twenty rows and silently left the rest of the table out of the ordering**. That was live in U1.1 and U1.3, both already pushed, and no test caught it: the guards asserted paging, not that sorting reached the database.
+
+`Table` now takes an optional `sortKey`, `sortDir` and `onSortChange`. When `onSortChange` is supplied it stops sorting locally and hands header clicks to the page, which puts an `order` on the query. All three screens pass it. `server-side-list.spec.ts` now asserts that a header click issues a **new** view request carrying `order=`, proven to bite by forcing `Table` back to internal sorting and watching both cases fail.
+
+**A limitation of `check-unbounded-queries.mjs`, stated rather than papered over.** It treats `.in()` as a narrowing filter, which is usually right and is wrong in one important shape: the old contacts screen paged every `contact_profiles` row and then asked for the matching people in a single `.in()` carrying every id it had just collected. PostgREST puts that list in the query string, and roughly a thousand uuids is already a 37 KB URI rejected with `URI too long`. At scale that screen does not slow down, it fails outright, and the checker cannot see it because the shape depends on where the id list came from rather than on the call itself. U1.5 fixes the screen; the checker keeps the blind spot.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -885,8 +919,8 @@ Five phases, in order, because each one blocks the next.
 
 - [x] **U1.1** Candidate list server-side. 494 requests and 35.2 MB at 70,207 rows, down to 3 requests and 41.8 KB, 133ms to first row
 - [x] **U1.2** The four silently truncating reads, and `check-unbounded-queries.mjs` to stop the next one
-- [ ] **U1.3** Requisition list server-side. `requisition_list` view written, `validate.sql` check 26 added, in the gate as of 2026-09-03
-- [ ] **U1.4** Deal list. Different shape: the screen defaults to a kanban, which renders every card grouped by stage, so it needs a bounded number of cards per column plus an exact per-stage count and an honest "N not shown". A column holding a thousand cards was never usable
+- [x] **U1.3** Requisition list server-side. Its unviewed badges were wrong on 1,859 of 2,002 requisitions, computed from 1,000 of 14,008 applications. 139ms, 3 requests, `1-20 of 2003` from a database count. Section 7.18
+- [x] **U1.4** Deal list, bounded kanban. 12,002 cards and ~84,000 DOM nodes down to 150 cards and 1,263 nodes, 204ms, each column stating `showing 25 of 2,000`. Section 7.18
 - [ ] **U1.5** Contacts list
 - [ ] **U1.6** Companies list
 - [ ] **U1.7** Tickets list
