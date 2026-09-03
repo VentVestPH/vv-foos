@@ -51,7 +51,7 @@ export function useCompanyOptions(refreshKey = 0) {
     if (companyCache && refreshKey === 0) return;
     let cancelled = false;
     void fetchAllRows((f, t) =>
-      supabase.from('companies').select('*').order('name').range(f, t),
+      supabase.from('companies').select('*').order('name').order('id').range(f, t),
     )
       .then((data) => {
         if (!cancelled && data) {

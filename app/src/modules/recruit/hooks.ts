@@ -49,7 +49,9 @@ export function useLookups(): Lookups {
     let cancelled = false;
     void (async () => {
       const [companyRows, st, so, cs] = await Promise.all([
-        fetchAllRows((f, t) => supabase.from('companies').select('*').order('name').range(f, t)),
+        fetchAllRows((f, t) =>
+          supabase.from('companies').select('*').order('name').order('id').range(f, t),
+        ),
         supabase
           .from('staff')
           .select('*')

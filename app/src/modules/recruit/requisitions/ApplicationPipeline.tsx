@@ -97,6 +97,7 @@ export function ApplicationPipeline({
             .select('*')
             .eq('requisition_id', requisition.id)
             .order('applied_at', { ascending: false })
+            .order('id', { ascending: true })
             .range(f, t),
         ),
         staff
