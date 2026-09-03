@@ -147,21 +147,34 @@ console.log('\nPASS 2  Departments really is the same record set as Clients\n');
 }
 
 console.log('\nPASS 3  every FOOS row is either imported or seed, nothing unaccounted\n');
+const OWN_IS_TEST = 't.is_test';
+
+const PARENT_IS_TEST_APPLICATIONS = `(
+  exists (select 1 from requisitions r where r.id = t.requisition_id and r.is_test)
+  or exists (select 1 from people p where p.id = t.person_id and p.is_test)
+)`;
+
+const PARENT_IS_TEST_ACTIVITIES = `(
+  exists (select 1 from people p where p.id = t.person_id and p.is_test)
+  or exists (select 1 from companies c where c.id = t.company_id and c.is_test)
+  or exists (select 1 from requisitions r where r.id = t.requisition_id and r.is_test)
+  or exists (select 1 from applications a
+             join requisitions r on r.id = a.requisition_id
+             where a.id = t.application_id and r.is_test)
+  or exists (select 1 from deals d where d.id = t.deal_id and d.is_test)
+)`;
+
 const TABLES = [
-  ['people', "entity_type in ('candidate','contact','lead')"],
-  ['companies', "entity_type = 'company'"],
-  ['requisitions', "entity_type = 'requisition'"],
-  ['applications', "entity_type = 'application'"],
-  ['activities', "entity_type = 'note'"],
+  ['people', "entity_type in ('candidate','contact','lead')", OWN_IS_TEST],
+  ['companies', "entity_type = 'company'", OWN_IS_TEST],
+  ['requisitions', "entity_type = 'requisition'", OWN_IS_TEST],
+  ['applications', "entity_type = 'application'", PARENT_IS_TEST_APPLICATIONS],
+  ['activities', "entity_type = 'note'", PARENT_IS_TEST_ACTIVITIES],
 ];
 console.log(
   `  ${'table'.padEnd(16)}${'rows'.padStart(9)}${'imported'.padStart(10)}${'seed'.padStart(7)}${'other'.padStart(8)}`,
 );
-for (const [table, pred] of TABLES) {
-  const hasIsTest = psql(
-    `select count(*) from information_schema.columns where table_name='${table}' and column_name='is_test'`,
-  );
-  const seedExpr = hasIsTest === '1' ? 'is_test' : 'false';
+for (const [table, pred, seedExpr] of TABLES) {
   const row = psql(`
     select count(*),
            count(*) filter (where m.foos_id is not null),
