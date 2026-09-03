@@ -10,7 +10,6 @@ export type Person = Tables<'people'>;
 export type Company = Tables<'companies'>;
 export type ContactProfile = Tables<'contact_profiles'>;
 export type Deal = Tables<'deals'>;
-export type Ticket = Tables<'tickets'>;
 export type Activity = Tables<'activities'>;
 export type TaskRow = Tables<'tasks'>;
 export type Reminder = Tables<'reminders'>;

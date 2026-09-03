@@ -862,6 +862,44 @@ export interface Database {
       };
     };
     Views: {
+      ticket_list: {
+        Row: {
+          id: string;
+          display_code: string;
+          subject: string;
+          status: TicketStatus;
+          priority: string;
+          company_id: string | null;
+          company_name: string | null;
+          person_id: string | null;
+          assignee_id: string | null;
+          assignee_name: string | null;
+          sla_due_at: string | null;
+          resolved_at: string | null;
+          search_text: string | null;
+        };
+        Relationships: [];
+      };
+      company_list: {
+        Row: {
+          id: string;
+          name: string;
+          types: CompanyType[];
+          website: string | null;
+          city: string | null;
+          state: string | null;
+          country: string | null;
+          phone: string | null;
+          owner_id: string | null;
+          owner_name: string | null;
+          is_test: boolean;
+          created_at: string;
+          updated_at: string;
+          location_text: string | null;
+          search_text: string | null;
+        };
+        Relationships: [];
+      };
       contact_list: {
         Row: {
           person_id: string;

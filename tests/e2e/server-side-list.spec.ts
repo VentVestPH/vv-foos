@@ -5,6 +5,8 @@ const CANDIDATES = '/recruit/candidates';
 const REQUISITIONS = '/recruit/requisitions';
 const DEALS = '/sales/deals';
 const CONTACTS = '/sales/contacts';
+const COMPANIES = '/sales/companies';
+const TICKETS = '/sales/tickets';
 
 async function restCalls(page: import('@playwright/test').Page, run: () => Promise<void>) {
   const seen: string[] = [];
@@ -267,4 +269,43 @@ test.describe('the contact list no longer asks for every person by id', () => {
       expect(c, 'every view read carries an explicit range').toMatch(/offset=|limit=/);
     }
   });
+});
+
+test.describe('the remaining sales lists page in the database', () => {
+  for (const [name, path, view, base] of [
+    ['companies', COMPANIES, 'company_list', 'companies'],
+    ['tickets', TICKETS, 'ticket_list', 'tickets'],
+  ] as const) {
+    test(`${name}: reads ${view} with a range and never ${base} wholesale`, async ({ page }) => {
+      await signIn(page, PERSONA_EMAILS.admin);
+      const calls = await restCalls(page, async () => {
+        await gotoAsSignedIn(page, path);
+        await expect(page.locator('.table-wrap')).toBeVisible({ timeout: 30000 });
+        await page.waitForTimeout(1500);
+      });
+
+      const unbounded = calls.filter(
+        (c) =>
+          new RegExp(`^${base}\\?`).test(c) &&
+          !c.includes('id=eq.') &&
+          !/offset=|limit=/.test(c),
+      );
+      expect(
+        unbounded,
+        `the ${name} list must not read ${base} without a range. A bounded read is the ` +
+          'filter dropdown lookup, which is a separate concern and is paged rather than truncating',
+      ).toEqual([]);
+
+      const viewCalls = calls.filter((c) => c.startsWith(`${view}?`));
+      expect(viewCalls.length, `the ${name} list reads ${view}`).toBeGreaterThan(0);
+      for (const c of viewCalls) {
+        expect(c, 'every view read carries an explicit range').toMatch(/offset=|limit=/);
+      }
+
+      const label = await page.locator('.fo-pager-count').first().innerText();
+      expect(label.replace(/,/g, ''), 'the pager reads from-to of total').toMatch(
+        /(\d+-\d+ of \d+|0 of 0)/,
+      );
+    });
+  }
 });

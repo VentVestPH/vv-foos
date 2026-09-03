@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { Database } from '../../../lib/database.types';
 import { supabase } from '../../../lib/supabase';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
@@ -7,13 +8,41 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { Pager, usePagination } from '../../../components/ui/Pager';
+import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useCanEditCrm, useStaffList } from '../hooks';
-import { fmtDate, locationLabel, type Company } from '../lib';
+import { fmtDate } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
-import { fetchAllRows } from '../../../lib/fetchAll';
+
+const COMPANY_PAGE_SIZE = 20;
+const COMPANY_EXPORT_PAGE_SIZE = 1000;
+const COMPANY_EXPORT_ROW_CAP = 10000;
+
+const COMPANY_VIEW_COLUMNS =
+  'id, name, types, website, city, state, country, phone, owner_id, owner_name, is_test, created_at, updated_at, location_text';
+
+const COMPANY_SORT_COLUMNS: Record<string, string> = {
+  name: 'name',
+  website: 'website',
+  location: 'location_text',
+  phone: 'phone',
+  owner: 'owner_name',
+  updated_at: 'updated_at',
+  types: 'name',
+};
+
+type CompanyListRow = Omit<Database['public']['Views']['company_list']['Row'], 'search_text'>;
+
+function companyLikeLiteral(value: string): string {
+  return value.replace(/([\\%_])/g, '\\$1');
+}
+
+function companyBaseQuery() {
+  return supabase.from('company_list').select(COMPANY_VIEW_COLUMNS, { count: 'exact' });
+}
+
+type CompanyQuery = ReturnType<typeof companyBaseQuery>;
 
 const TYPE_OPTIONS = [
   { value: 'client', label: 'Client' },
@@ -27,45 +56,60 @@ export function CompaniesListPage() {
   const canEdit = useCanEditCrm();
   const { staffName, staffOptions } = useStaffList();
 
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<CompanyListRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [ownerFilter, setOwnerFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
 
+  const applyCompanyFilters = useCallback(
+    (q: CompanyQuery): CompanyQuery => {
+      let out = q;
+      if (typeFilter) out = out.contains('types', [typeFilter]);
+      if (ownerFilter) out = out.eq('owner_id', ownerFilter);
+      const loc = locationFilter.trim();
+      if (loc) out = out.ilike('location_text', `%${companyLikeLiteral(loc)}%`);
+      const term = search.trim().toLowerCase();
+      if (term) out = out.ilike('search_text', `%${companyLikeLiteral(term)}%`);
+      const sortColumn = sort ? COMPANY_SORT_COLUMNS[sort.key] : undefined;
+      if (sortColumn) {
+        out = out.order(sortColumn, { ascending: sort?.dir === 'asc', nullsFirst: false });
+      } else {
+        out = out.order('name', { ascending: true });
+      }
+      return out.order('id', { ascending: true });
+    },
+    [typeFilter, ownerFilter, locationFilter, search, sort],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const start = page * COMPANY_PAGE_SIZE;
+      const { data, count, error } = await applyCompanyFilters(companyBaseQuery()).range(
+        start,
+        start + COMPANY_PAGE_SIZE - 1,
+      );
+      if (error) throw new Error(error.message);
+      setCompanies(data ?? []);
+      setTotal(count ?? 0);
+    } finally {
+      setLoading(false);
+    }
+  }, [applyCompanyFilters, page]);
+
   useEffect(() => {
-    let cancelled = false;
-      setLoading(true);
-    void fetchAllRows((f, t) =>
-      supabase.from('companies').select('*').order('name').range(f, t),
-    ).then((rows) => {
-      if (!cancelled) {
-        setCompanies(rows);
-        setLoading(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    setPage(0);
+  }, [typeFilter, ownerFilter, locationFilter, search, sort]);
 
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const loc = locationFilter.trim().toLowerCase();
-    return companies.filter((c) => {
-      if (q && !`${c.name} ${c.website ?? ''}`.toLowerCase().includes(q)) {
-        return false;
-      }
-      if (typeFilter && !c.types.includes(typeFilter as Company['types'][number])) {
-        return false;
-      }
-      if (ownerFilter && c.owner_id !== ownerFilter) return false;
-      if (loc && !locationLabel(c).toLowerCase().includes(loc)) return false;
-      return true;
-    });
-  }, [companies, search, typeFilter, ownerFilter, locationFilter]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const columns: TableColumn<Company>[] = [
+  const columns: TableColumn<CompanyListRow>[] = [
     {
       key: 'id',
       header: 'ID',
@@ -119,7 +163,7 @@ export function CompaniesListPage() {
       header: 'Type',
       render: (c) => (
         <span className="sales-badges">
-          {c.types.map((t) => (
+          {c.types.map((t: string) => (
             <Badge key={t} tone={t === 'client' ? 'primary' : 'neutral'}>
               {t}
             </Badge>
@@ -146,20 +190,43 @@ export function CompaniesListPage() {
     },
   ];
 
-  const exportRows = visible
-    .filter((c) => !c.is_test)
-    .map((c) => ({
-      name: c.name,
-      types: c.types.join('|'),
-      website: c.website,
-      city: c.city,
-      state: c.state,
-      country: c.country,
-      phone: c.phone,
-      owner: staffName(c.owner_id),
-    }));
+  const exportCompanyRows = useCallback(async () => {
+    if (total > COMPANY_EXPORT_ROW_CAP) return [];
+    const collected: CompanyListRow[] = [];
+    for (let start = 0; start < COMPANY_EXPORT_ROW_CAP; start += COMPANY_EXPORT_PAGE_SIZE) {
+      const { data, error } = await applyCompanyFilters(companyBaseQuery()).range(
+        start,
+        start + COMPANY_EXPORT_PAGE_SIZE - 1,
+      );
+      if (error) return [];
+      const batch = data ?? [];
+      collected.push(...batch);
+      if (batch.length < COMPANY_EXPORT_PAGE_SIZE) break;
+    }
+    return collected
+      .filter((c) => !c.is_test)
+      .map((c) => ({
+        name: c.name,
+        types: c.types.join('|'),
+        website: c.website,
+        city: c.city,
+        state: c.state,
+        country: c.country,
+        phone: c.phone,
+        owner: c.owner_name ?? '',
+      }));
+  }, [applyCompanyFilters, total]);
 
-  const pager = usePagination(visible);
+  const pageCount = Math.max(1, Math.ceil(total / COMPANY_PAGE_SIZE));
+  const pager = {
+    page,
+    setPage,
+    pageCount,
+    total,
+    from: total === 0 ? 0 : page * COMPANY_PAGE_SIZE + 1,
+    to: Math.min(total, (page + 1) * COMPANY_PAGE_SIZE),
+    pageRows: companies,
+  };
 
   return (
     <ListPage
@@ -204,7 +271,8 @@ export function CompaniesListPage() {
           </div>
         </details>
       }
-      exportRows={exportRows}
+      exportRows={exportCompanyRows}
+      exportCount={total}
       exportFilename="companies.csv"
     >
       <div className="record-action-bar fo-list-action-bar">
@@ -229,6 +297,9 @@ export function CompaniesListPage() {
         columns={columns}
         rows={pager.pageRows}
         rowKey={(c) => c.id}
+        sortKey={sort?.key ?? null}
+        sortDir={sort?.dir ?? 'asc'}
+        onSortChange={(key, dir) => setSort({ key, dir })}
         onRowClick={(c) => navigate(`/sales/companies/${c.id}`)}
         emptyText={loading ? 'Loading…' : "No companies match."}
       />

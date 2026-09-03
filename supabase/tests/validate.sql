@@ -941,4 +941,56 @@ begin
   raise notice 'PASS 28: contact_list covers every contact profile, is security_invoker, and the company join drops nothing';
 end $$;
 
+do $$
+declare
+  invoker boolean;
+begin
+  select reloptions::text like '%security_invoker=on%' into invoker
+  from pg_class where relname = 'company_list' and relkind = 'v';
+  if invoker is not true then
+    raise exception 'FAIL 29: company_list is not security_invoker = on, so it would bypass RLS on companies and staff';
+  end if;
+
+  if (select count(*) from public.company_list) <> (select count(*) from public.companies) then
+    raise exception 'FAIL 29: company_list and companies disagree on row count, so the owner join is dropping companies';
+  end if;
+
+  if exists (
+    select 1 from public.company_list cl join public.companies c on c.id = cl.id
+    where cl.location_text is distinct from nullif(concat_ws(', ', nullif(c.city,''), nullif(c.state,''), nullif(c.country,'')), '')
+  ) then
+    raise exception 'FAIL 29: company_list.location_text does not match the city, state and country it is composed from';
+  end if;
+
+  raise notice 'PASS 29: company_list covers every company, is security_invoker, and its location label matches its parts';
+end $$;
+
+do $$
+declare
+  invoker boolean;
+  probe uuid;
+  seen int;
+begin
+  select reloptions::text like '%security_invoker=on%' into invoker
+  from pg_class where relname = 'ticket_list' and relkind = 'v';
+  if invoker is not true then
+    raise exception 'FAIL 30: ticket_list is not security_invoker = on, so it would bypass RLS on tickets, companies and staff';
+  end if;
+
+  if (select count(*) from public.ticket_list) <> (select count(*) from public.tickets) then
+    raise exception 'FAIL 30: ticket_list and tickets disagree on row count, so a name join is dropping tickets';
+  end if;
+
+  insert into public.tickets (subject, status, priority)
+  values ('validate-30 probe with no company or assignee', 'new', 'low')
+  returning id into probe;
+  select count(*) into seen from public.ticket_list where id = probe;
+  delete from public.tickets where id = probe;
+  if seen <> 1 then
+    raise exception 'FAIL 30: a ticket with no company and no assignee vanished from ticket_list; the name joins must be LEFT';
+  end if;
+
+  raise notice 'PASS 30: ticket_list covers every ticket, is security_invoker, and a ticket with no company or assignee still appears';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;

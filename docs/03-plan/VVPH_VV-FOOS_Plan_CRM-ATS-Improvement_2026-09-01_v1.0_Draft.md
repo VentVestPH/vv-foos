@@ -956,8 +956,9 @@ Five phases, in order, because each one blocks the next.
 - [x] **U1.3** Requisition list server-side. Its unviewed badges were wrong on 1,859 of 2,002 requisitions, computed from 1,000 of 14,008 applications. 139ms, 3 requests, `1-20 of 2003` from a database count. Section 7.18
 - [x] **U1.4** Deal list, bounded kanban. 12,002 cards and ~84,000 DOM nodes down to 150 cards and 1,263 nodes, 204ms, each column stating `showing 25 of 2,000`. Section 7.18
 - [x] **U1.5** Contacts list. The old screen did not slow down at scale, it **failed**: it collected every `contact_profiles` row then asked for the matching people in one `.in()`, a 542 KB query string rejected with `URI too long` in 10ms at 15,005 contacts, so the page rendered nothing. Now 108ms, `1-20 of 15005`, 324 DOM nodes, 28.2 KB. Section 7.19
-- [ ] **U1.6** Companies list
-- [ ] **U1.7** Tickets list
+- [x] **U1.6** Companies list. `company_list` exposes `types` for the array filter and a composed `location_text`, so both filters run in Postgres. `validate.sql` check 29 asserts `location_text` matches the city, state and country it is built from
+- [x] **U1.7** Tickets list. `ticket_list` carries the company and assignee names the old screen looked up through client-side maps built from full-table reads. `validate.sql` check 30 inserts a ticket with no company and no assignee, asserts it still appears, and deletes it again
+- [ ] **U1.8** The filter dropdowns still read whole lookup tables. Bounded now, so they cannot silently truncate, but a company select holding tens of thousands of options is its own problem. Found by a guard that was stricter than its own claim: it flagged the companies dropdown lookup while testing the companies *list*
 
 **U2. Extraction. 550 API credits, once four values arrive.** Bulk Read costs a flat 50 credits per job for up to 200,000 records, against 140,751 credits record by record. 6 Recruit modules plus 5 CRM modules is 11 jobs.
 
