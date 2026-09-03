@@ -168,3 +168,35 @@ Tried `people (last_name, first_name, id) include (middle_name, emails, city, st
 Dropped it. Twelve megabytes to fix page 2 alone would have looked like a fix in a changelog while leaving the 273x misestimate exactly where it was. `check-migrations` confirms no drift, and offset 0 and 20 are back to 2.7 ms and 732 ms.
 
 What is left for U1.15 is a decision with three costed options: keyset pagination (loses page jumps and the Last button, which are part of the Taleo pager), expressing the visibility rule in the policy as an estimable subquery (removes the cause, but the rule then lives in two places), or re-measuring on the develop Supabase project first, since 128 MB `effective_cache_size` is a stock local default and Supabase tunes it per compute size. The third is the one to do first: the other two both cost something real and neither should be paid until the flip is known to happen off this laptop.
+
+## U1.15 done, and the first attempt was worse than the problem
+
+The offset plan flip had two causes, not one, and fixing only the obvious one made the product slower.
+
+`people_select` was `can_read_person(id)`, opaque to the planner. Restating it inline as estimable EXISTS clauses made every page uniform at 116 to 160 ms, which reads like a win, and then the browser said otherwise: the first data row went 284 ms to **888 ms**. The reason is that the rows query and the count query both full-scan the view, and once neither can use the index path they contend with each other. Sequencing the count after the rows made no difference, because the rows request itself was now the slow part.
+
+The second cause was `candidate_profiles_select`, an OR of two comparisons against `(select get_my_role())`, which estimated **801** visible rows of 72,917 because the role is unknown at plan time. Restating both policies as a CASE over one hoisted role lookup fixed it properly:
+
+| Measurement | Before | After |
+| :---- | ----: | ----: |
+| `limit 20 offset 0`, SQL under RLS | 3 ms | 15.9 ms |
+| `limit 20 offset 20` | 751 ms | 16.3 ms |
+| `limit 20 offset 2000` | 736 ms | 20.9 ms |
+| exact count through the view | 2,026 ms | 306 ms |
+| browser first data row | 284 ms | 283 ms |
+| browser total shown | 1,571 ms | 360 ms |
+| browser page turn | 1,080 ms | 88 ms |
+
+Equivalence was proven, not assumed: over all 72,988 people rows and all 72,917 candidate profiles, for admin, recruiter, sourcer, bd and a caller with no staff row, the restated policies admit exactly the same rows, zero mismatches. One difference is real and harmless: with no active staff row the old OR form evaluated to null and the CASE returns false, and RLS denies either way, which is why the comparison is on rows admitted rather than on the raw boolean. My first equivalence script used `is distinct from` and reported 72,917 mismatches for that case, which looked alarming for about a minute and was the null-versus-false distinction.
+
+`validate.sql` gained checks 31 and 32. They read each policy's expression out of `pg_policies` rather than containing a copy, so the guard cannot drift from what is actually enforced. First version failed because `staff.role` is an enum and my `'none'` literal would not cast.
+
+## And I reintroduced U1.10's bug while optimising U1.15
+
+Chasing the 888 ms first paint from the people-only policy change, I tried sequencing the count after the rows: a `filterKey` string plus a `countedKey` ref, so the count fired once per filter signature after the rows landed. `list-persistence.spec.ts` "2.11 the CSV export matches the filtered set on screen" then failed 2 of 3 runs with "got 0 records for 3 rows".
+
+The probe named it exactly. With three rows on screen and the pager reading "1-3 of 3", the export logged `total=72920` and `counted` already set to the **filtered** key. Two in-flight invocations of the effect raced: the older one resolved after the newer, wrote `countedKey.current` for its own stale `filterKey`, and refreshed the count through its stale `applyWhere`, so the ref said "counted" for a filter whose count had never been fetched and `total` held the unfiltered 72,920. The export's 10,000-row cap then refused, correctly, on a wrong number.
+
+That is the same class of bug as U1.10, reintroduced by me, in a ref I added to avoid work. The fix was to delete it: the count effect keys on the filters and `useLatestOnly` already guards it. Measured after removing the sequencing entirely, three runs: first row 282 to 302 ms, total 361 to 380 ms, page turn 87 to 97 ms, which is identical to the sequenced version. The optimisation bought nothing and cost a correctness bug, because once both queries are cheap there is no contention left to avoid.
+
+Net result: U1.15 is a migration and two validate.sql checks. The application code is byte-identical to what U1.13 committed.

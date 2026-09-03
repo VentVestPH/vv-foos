@@ -1059,4 +1059,99 @@ begin
   raise notice 'PASS 30: ticket_list covers every ticket, is security_invoker, and a ticket with no company or assignee still appears';
 end $$;
 
+-- 31: people_select and can_read_person must agree, for every role, over every row.
+-- 20260904000001 restated the policy inline so the planner can estimate it, which
+-- left the same rule written twice: once in the policy and once in the function the
+-- parent_type dispatcher still calls. This reads the policy's own expression out of
+-- pg_policies, so it cannot drift from what is actually enforced, and compares the
+-- rows it admits against the function's for each persona.
+do $$
+declare
+  qual text;
+  persona record;
+  by_policy bigint;
+  by_function bigint;
+begin
+  select p.qual into qual
+  from pg_policies p
+  where p.schemaname = 'public' and p.tablename = 'people' and p.policyname = 'people_select';
+  if qual is null then
+    raise exception 'FAIL 31: people_select does not exist, so nothing is enforcing people readability';
+  end if;
+
+  for persona in
+    select id, role::text as role from public.staff
+    where is_active and role in ('admin', 'recruiter', 'sourcer', 'bd')
+    union all select '00000000-0000-4000-8000-00000000dead'::uuid, 'none'
+  loop
+    perform set_config(
+      'request.jwt.claims',
+      json_build_object('sub', persona.id, 'role', 'authenticated')::text,
+      true
+    );
+    execute format('select count(*) from public.people where coalesce((%s), false)', qual)
+      into by_policy;
+    select count(*) into by_function
+    from public.people where coalesce(public.can_read_person(id), false);
+    if by_policy <> by_function then
+      raise exception
+        'FAIL 31: people_select admits % rows for role % but can_read_person admits %; the policy and the function have drifted',
+        by_policy, persona.role, by_function;
+    end if;
+  end loop;
+  perform set_config('request.jwt.claims', '', true);
+
+  raise notice 'PASS 31: people_select and can_read_person admit the same rows for every role';
+end $$;
+
+-- 32: candidate_profiles_select still means what it meant before 20260904000001
+-- restated it as a CASE: admin and recruiter see every profile, a sourcer sees only
+-- the ones they source, and anyone else sees none. Asserted against the policy's
+-- own expression rather than a copy of it.
+do $$
+declare
+  qual text;
+  persona record;
+  admitted bigint;
+  expected bigint;
+begin
+  select p.qual into qual
+  from pg_policies p
+  where p.schemaname = 'public'
+    and p.tablename = 'candidate_profiles'
+    and p.policyname = 'candidate_profiles_select';
+  if qual is null then
+    raise exception 'FAIL 32: candidate_profiles_select does not exist';
+  end if;
+
+  for persona in
+    select id, role::text as role from public.staff
+    where is_active and role in ('admin', 'recruiter', 'sourcer', 'bd')
+    union all select '00000000-0000-4000-8000-00000000dead'::uuid, 'none'
+  loop
+    perform set_config(
+      'request.jwt.claims',
+      json_build_object('sub', persona.id, 'role', 'authenticated')::text,
+      true
+    );
+    execute format('select count(*) from public.candidate_profiles where coalesce((%s), false)', qual)
+      into admitted;
+    select case
+             when persona.role in ('admin', 'recruiter') then (select count(*) from public.candidate_profiles)
+             when persona.role = 'sourcer' then
+               (select count(*) from public.candidate_profiles where sourcer_id = persona.id)
+             else 0
+           end
+      into expected;
+    if admitted <> expected then
+      raise exception
+        'FAIL 32: candidate_profiles_select admits % rows for role % where % is correct',
+        admitted, persona.role, expected;
+    end if;
+  end loop;
+  perform set_config('request.jwt.claims', '', true);
+
+  raise notice 'PASS 32: candidate_profiles_select admits exactly the profiles each role should see';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;
