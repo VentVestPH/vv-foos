@@ -1,15 +1,22 @@
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 import { deterministicId, isDuplicateKey, normalizeZohoId } from './src/deterministic-id.mjs';
 import { parseCsvRecords } from './src/csv.mjs';
+import { BULK_ALIASES, buildBulkColumnMap, bulkRowToExportRow } from './src/bulk-to-export.mjs';
+import { mapRequisition } from './src/map-requisitions.mjs';
+import { mapApplication } from './src/map-applications.mjs';
 import { loadLookups, newUnresolved } from './src/lookups.mjs';
 import { mapCandidate } from './src/map-candidates.mjs';
 import { mapNote } from './src/map-notes.mjs';
 import { buildCategoryMap, mapAttachment } from './src/map-attachments.mjs';
 import { mapCompany } from './src/map-companies.mjs';
 import { mapContact, unrecognisedContactColumns } from './src/map-contacts.mjs';
+import { mapClient } from './src/map-clients.mjs';
+import { mapRecruitContact } from './src/map-recruit-contacts.mjs';
+import { mapLead } from './src/map-leads.mjs';
+import { mapCrmNote } from './src/map-crm-notes.mjs';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -67,6 +74,75 @@ const db = createClient(url, key, { auth: { persistSession: false } });
 const CRM_ACCOUNTS_FILE = 'crm/Accounts_2026_09_02.csv';
 const CRM_CONTACTS_FILE = 'crm/Contacts_2026_09_02.csv';
 
+const BULK_DIR = join(EXPORT_DIR, 'bulk');
+const REASON_MAX = 120;
+
+function readBulk(product, moduleName) {
+  const aliases = BULK_ALIASES[`${product}/${moduleName}`] ?? {};
+  const csvDir = join(BULK_DIR, `${product}_${moduleName}_p1`);
+  const pagedFile = join(BULK_DIR, `${product}_${moduleName}_paged`, `${moduleName}.json`);
+
+  let raw = null;
+  if (existsSync(csvDir)) {
+    const files = readdirSync(csvDir)
+      .filter((f) => f.endsWith('.csv'))
+      .sort();
+    const header = [];
+    const records = [];
+    const seen = new Set();
+    for (const file of files) {
+      const parsed = parseCsvRecords(readFileSync(join(csvDir, file), 'utf8'));
+      for (const column of parsed.header) if (!header.includes(column)) header.push(column);
+      for (const record of parsed.records) {
+        const id = String(record.Id ?? record.id ?? '').trim();
+        if (id) {
+          if (seen.has(id)) continue;
+          seen.add(id);
+        }
+        records.push(record);
+      }
+    }
+    if (files.length > 0) raw = { header, records };
+  }
+  if (!raw && existsSync(pagedFile)) {
+    const rows = JSON.parse(readFileSync(pagedFile, 'utf8'));
+    const header = rows.length ? Object.keys(rows[0]) : [];
+    raw = { header, records: rows };
+  }
+  if (!raw) return null;
+
+  const uiHeaderFile = BULK_UI_HEADERS[`${product}/${moduleName}`];
+  const ui = uiHeaderFile ? readExport(uiHeaderFile) : null;
+
+  const header = ui
+    ? ui.header
+    : [...new Set(raw.records.flatMap((r) => Object.keys(r)))]
+        .filter((k) => k !== '__row' && !k.startsWith('$'))
+        .map((k) => k.replace(/_/g, ' '));
+
+  const columnMap = buildBulkColumnMap(header);
+  return {
+    header,
+    records: raw.records.map((r) => ({
+      ...r,
+      ...bulkRowToExportRow(r, columnMap, aliases),
+    })),
+  };
+}
+
+const BULK_UI_HEADERS = {
+  'ZohoRecruit/Candidates': 'Candidates_001.csv',
+  'ZohoRecruit/Notes': 'Notes_001.csv',
+  'ZohoCRM/Accounts': 'crm/Accounts_2026_09_02.csv',
+};
+
+function readBulkOrExport(product, moduleName, fallbackName) {
+  const bulk = readBulk(product, moduleName);
+  if (bulk && bulk.records.length > 0) return { ...bulk, source: `bulk:${product}/${moduleName}` };
+  const fallback = readExport(fallbackName);
+  return fallback ? { ...fallback, source: `export:${fallbackName}` } : null;
+}
+
 function readExport(name) {
   const path = join(EXPORT_DIR, name);
   if (!existsSync(path)) return null;
@@ -75,19 +151,35 @@ function readExport(name) {
 
 async function loadIdMap(entityType) {
   const map = new Map();
-  let from = 0;
   const page = 1000;
+  let after = '';
   for (;;) {
     const { data, error } = await db
       .from('zoho_id_map')
       .select('zoho_id, foos_id')
       .eq('entity_type', entityType)
-      .range(from, from + page - 1);
+      .gt('zoho_id', after)
+      .order('zoho_id', { ascending: true })
+      .limit(page);
     if (error) throw new Error(`could not read zoho_id_map: ${error.message}`);
-    for (const row of data ?? []) map.set(normalizeZohoId(row.zoho_id), row.foos_id);
-    if (!data || data.length < page) break;
-    from += page;
+    const rows = data ?? [];
+    for (const row of rows) map.set(normalizeZohoId(row.zoho_id), row.foos_id);
+    if (rows.length < page) break;
+    after = rows[rows.length - 1].zoho_id;
   }
+
+  const { count, error: countErr } = await db
+    .from('zoho_id_map')
+    .select('*', { count: 'exact', head: true })
+    .eq('entity_type', entityType);
+  if (countErr) throw new Error(`could not count zoho_id_map: ${countErr.message}`);
+  if (count !== null && map.size !== count) {
+    throw new Error(
+      `zoho_id_map paging lost rows for ${entityType}: loaded ${map.size} of ${count}. ` +
+        'Every mapping must be in memory before a resume, or an imported record looks new.',
+    );
+  }
+
   return map;
 }
 
@@ -129,10 +221,13 @@ function tally(name) {
 
 function note(bucket, key) {
 
-  const grouped = key
+  const grouped = String(key ?? '')
     .replace(/Zrecruit_[0-9]+/g, '<id>')
-    .replace(/zcrm_[0-9]+/g, '<id>');
-  bucket[grouped] = (bucket[grouped] ?? 0) + 1;
+    .replace(/zcrm_[0-9]+/g, '<id>')
+    .replace(/\s+/g, ' ');
+  const capped =
+    grouped.length > REASON_MAX ? `${grouped.slice(0, REASON_MAX)}…` : grouped;
+  bucket[capped] = (bucket[capped] ?? 0) + 1;
 }
 
 function countFields(t, obj) {
@@ -144,13 +239,14 @@ function countFields(t, obj) {
 }
 
 async function importCandidates(lookups, unresolved, idMaps) {
-  const file = readExport('Candidates_001.csv');
+  const file = readBulkOrExport('ZohoRecruit', 'Candidates', 'Candidates_001.csv');
   const t = tally('candidates');
   if (!file) {
     t.skipReasons['file not present'] = 1;
     return;
   }
   t.rowsInFile = file.records.length;
+  if (file.source) t.source = file.source;
   const existing = idMaps.candidate;
 
   for (const row of file.records) {
@@ -204,8 +300,137 @@ async function importCandidates(lookups, unresolved, idMaps) {
   }
 }
 
+async function importRequisitions(lookups, unresolved, idMaps) {
+  const file = readBulk('ZohoRecruit', 'Job_Openings');
+  const t = tally('requisitions');
+  if (!file) {
+    t.skipReasons['bulk export not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.requisition;
+
+  for (const row of file.records) {
+    const mapped = mapRequisition(row, lookups, unresolved, idMaps.company);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, mapped.requisition);
+
+    const key = normalizeZohoId(mapped.zohoId);
+    const known = existing.get(key) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else {
+        t.created += 1;
+        existing.set(key, `dry-run:${mapped.zohoId}`);
+      }
+      continue;
+    }
+
+    try {
+      let reqId = known;
+      if (reqId) {
+        const { error } = await db.from('requisitions').update(mapped.requisition).eq('id', reqId);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const inserted = await insertWithDeterministicId(
+          'requisitions',
+          'requisition',
+          mapped.zohoId,
+          mapped.requisition,
+        );
+        reqId = inserted.id;
+        if (!inserted.alreadyPresent) t.created += 1;
+        else t.updated += 1;
+      }
+
+      if (mapped.ownerId) {
+        const { error: ownErr } = await db
+          .from('requisition_owners')
+          .upsert(
+            { requisition_id: reqId, staff_id: mapped.ownerId },
+            { onConflict: 'requisition_id,staff_id' },
+          );
+        if (ownErr) throw ownErr;
+      }
+
+      await recordMapping(mapped.zohoId, 'requisition', reqId);
+      existing.set(key, reqId);
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
+async function importApplications(lookups, unresolved, idMaps) {
+  const file = readBulk('ZohoRecruit', 'Applications');
+  const t = tally('applications');
+  if (!file) {
+    t.skipReasons['bulk export not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.application;
+  const resolve = {
+    person: (zohoId) => idMaps.candidate.get(normalizeZohoId(zohoId)) ?? null,
+    requisition: (zohoId) => idMaps.requisition.get(normalizeZohoId(zohoId)) ?? null,
+  };
+
+  for (const row of file.records) {
+    const mapped = mapApplication(row, lookups, unresolved, resolve);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, mapped.application);
+
+    const key = normalizeZohoId(mapped.zohoId);
+    const known = existing.get(key) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else {
+        t.created += 1;
+        existing.set(key, `dry-run:${mapped.zohoId}`);
+      }
+      continue;
+    }
+
+    try {
+      let appId = known;
+      if (appId) {
+        const { error } = await db.from('applications').update(mapped.application).eq('id', appId);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const inserted = await insertWithDeterministicId(
+          'applications',
+          'application',
+          mapped.zohoId,
+          mapped.application,
+        );
+        appId = inserted.id;
+        if (!inserted.alreadyPresent) t.created += 1;
+        else t.updated += 1;
+      }
+      await recordMapping(mapped.zohoId, 'application', appId);
+      existing.set(key, appId);
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
 async function importCompanies(lookups, unresolved, idMaps) {
-  const file = readExport(CRM_ACCOUNTS_FILE);
+  const file = readBulkOrExport('ZohoCRM', 'Accounts', CRM_ACCOUNTS_FILE);
   const t = tally('companies');
   if (!file) {
     t.skipReasons['file not present'] = 1;
@@ -259,7 +484,7 @@ async function importCompanies(lookups, unresolved, idMaps) {
 }
 
 async function importContacts(lookups, unresolved, idMaps) {
-  const file = readExport(CRM_CONTACTS_FILE);
+  const file = readBulkOrExport('ZohoCRM', 'Contacts', CRM_CONTACTS_FILE);
   const t = tally('contacts');
   if (!file) {
     t.skipReasons['file not present'] = 1;
@@ -322,8 +547,236 @@ async function importContacts(lookups, unresolved, idMaps) {
   }
 }
 
+async function importClients(lookups, unresolved, idMaps) {
+  const file = readBulk('ZohoRecruit', 'Clients');
+  const t = tally('clients');
+  if (!file) {
+    t.skipReasons['file not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.company;
+
+  for (const row of file.records) {
+    const mapped = mapClient(row, lookups, unresolved);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, mapped.company);
+
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (!APPLY) {
+      if (known) {
+        t.updated += 1;
+      } else {
+        t.created += 1;
+        existing.set(normalizeZohoId(mapped.zohoId), `dry-run:${mapped.zohoId}`);
+      }
+      continue;
+    }
+
+    try {
+      if (known) {
+        const { error } = await db.from('companies').update(mapped.company).eq('id', known);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const inserted = await insertWithDeterministicId(
+          'companies',
+          'company',
+          mapped.zohoId,
+          mapped.company,
+        );
+        await recordMapping(mapped.zohoId, 'company', inserted.id);
+        existing.set(normalizeZohoId(mapped.zohoId), inserted.id);
+        if (inserted.alreadyPresent) t.updated += 1;
+        else t.created += 1;
+      }
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
+async function importRecruitContacts(lookups, unresolved, idMaps) {
+  const file = readBulk('ZohoRecruit', 'Contacts');
+  const t = tally('recruitContacts');
+  if (!file) {
+    t.skipReasons['file not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.contact;
+  const companyByZohoId = idMaps.company;
+
+  for (const row of file.records) {
+    const mapped = mapRecruitContact(row, lookups, unresolved, companyByZohoId);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, { ...mapped.person, ...mapped.profile });
+
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else t.created += 1;
+      if (!known) existing.set(normalizeZohoId(mapped.zohoId), `dry-run:${mapped.zohoId}`);
+      continue;
+    }
+
+    try {
+      let personId = known;
+      if (personId) {
+        const { error } = await db.from('people').update(mapped.person).eq('id', personId);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const inserted = await insertWithDeterministicId(
+          'people',
+          'contact',
+          mapped.zohoId,
+          mapped.person,
+        );
+        personId = inserted.id;
+        if (inserted.alreadyPresent) t.updated += 1;
+        else t.created += 1;
+      }
+      const { error: profErr } = await db
+        .from('contact_profiles')
+        .upsert({ person_id: personId, ...mapped.profile }, { onConflict: 'person_id' });
+      if (profErr) throw profErr;
+      await recordMapping(mapped.zohoId, 'contact', personId);
+      existing.set(normalizeZohoId(mapped.zohoId), personId);
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
+async function importLeads(lookups, unresolved, idMaps) {
+  const file = readBulk('ZohoCRM', 'Leads');
+  const t = tally('leads');
+  if (!file) {
+    t.skipReasons['file not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.lead;
+
+  for (const row of file.records) {
+    const mapped = mapLead(row, lookups, unresolved);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, { ...mapped.person, ...mapped.profile });
+
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else t.created += 1;
+      if (!known) existing.set(normalizeZohoId(mapped.zohoId), `dry-run:${mapped.zohoId}`);
+      continue;
+    }
+
+    try {
+      let personId = known;
+      if (personId) {
+        const { error } = await db.from('people').update(mapped.person).eq('id', personId);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const inserted = await insertWithDeterministicId(
+          'people',
+          'lead',
+          mapped.zohoId,
+          mapped.person,
+        );
+        personId = inserted.id;
+        if (inserted.alreadyPresent) t.updated += 1;
+        else t.created += 1;
+      }
+      const { error: profErr } = await db
+        .from('contact_profiles')
+        .upsert({ person_id: personId, ...mapped.profile }, { onConflict: 'person_id' });
+      if (profErr) throw profErr;
+      await insertWithDeterministicId('activities', 'lead-note', mapped.zohoId, {
+        ...mapped.leadNote,
+        person_id: personId,
+      });
+      await recordMapping(mapped.zohoId, 'lead', personId);
+      existing.set(normalizeZohoId(mapped.zohoId), personId);
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
+async function importCrmNotes(lookups, unresolved, idMaps) {
+  const file = readBulk('ZohoCRM', 'Notes');
+  const t = tally('crmNotes');
+  if (!file) {
+    t.skipReasons['file not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.note;
+  const resolveParent = (type, zohoId) => idMaps[type]?.get(normalizeZohoId(zohoId)) ?? null;
+
+  for (const row of file.records) {
+    const mapped = mapCrmNote(row, lookups, unresolved, resolveParent);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, mapped.activity);
+
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else t.created += 1;
+      continue;
+    }
+
+    try {
+      if (known) {
+        const { error } = await db.from('activities').update(mapped.activity).eq('id', known);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const inserted = await insertWithDeterministicId(
+          'activities',
+          'note',
+          mapped.zohoId,
+          mapped.activity,
+        );
+        await recordMapping(mapped.zohoId, 'note', inserted.id);
+        existing.set(normalizeZohoId(mapped.zohoId), inserted.id);
+        if (inserted.alreadyPresent) t.updated += 1;
+        else t.created += 1;
+      }
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
 async function importNotes(lookups, unresolved, idMaps) {
-  const file = readExport('Notes_001.csv');
+  const file = readBulkOrExport('ZohoRecruit', 'Notes', 'Notes_001.csv');
   const t = tally('notes');
   if (!file) {
     t.skipReasons['file not present'] = 1;
@@ -331,7 +784,8 @@ async function importNotes(lookups, unresolved, idMaps) {
   }
   t.rowsInFile = file.records.length;
   const existing = idMaps.note;
-  const resolveParent = (type, zohoId) => idMaps[type]?.get(zohoId) ?? null;
+  const resolveParent = (type, zohoId) =>
+    idMaps[type]?.get(normalizeZohoId(zohoId)) ?? null;
 
   for (const row of file.records) {
     const mapped = mapNote(row, lookups, unresolved, resolveParent);
@@ -363,7 +817,7 @@ async function importNotes(lookups, unresolved, idMaps) {
           mapped.activity,
         );
         await recordMapping(mapped.zohoId, 'note', inserted.id);
-        existing.set(normalizeZohoId(mapped.zohoId), data.id);
+        existing.set(normalizeZohoId(mapped.zohoId), inserted.id);
         t.created += 1;
       }
     } catch (e) {
@@ -388,7 +842,8 @@ async function importAttachments(lookups, unresolved, idMaps) {
   t.rowsInFile = file.records.length;
   const categoryById = buildCategoryMap(categories.records);
   const existing = idMaps.attachment;
-  const resolveParent = (type, zohoId) => idMaps[type]?.get(zohoId) ?? null;
+  const resolveParent = (type, zohoId) =>
+    idMaps[type]?.get(normalizeZohoId(zohoId)) ?? null;
 
   for (const row of file.records) {
     const mapped = mapAttachment(row, lookups, unresolved, resolveParent, categoryById, {
@@ -424,7 +879,7 @@ async function importAttachments(lookups, unresolved, idMaps) {
           mapped.attachment,
         );
         await recordMapping(mapped.zohoId, 'attachment', inserted.id);
-        existing.set(normalizeZohoId(mapped.zohoId), data.id);
+        existing.set(normalizeZohoId(mapped.zohoId), inserted.id);
         t.created += 1;
       }
     } catch (e) {
@@ -470,8 +925,10 @@ async function main() {
     note: await loadIdMap('note'),
     attachment: await loadIdMap('attachment'),
     requisition: await loadIdMap('requisition'),
+    application: await loadIdMap('application'),
     company: await loadIdMap('company'),
     contact: await loadIdMap('contact'),
+    lead: await loadIdMap('lead'),
   };
 
   report.existingMappings = Object.fromEntries(
@@ -480,19 +937,47 @@ async function main() {
 
   const want = (name) => ENTITIES === 'all' || ENTITIES.split(',').includes(name);
 
-  const needCandidatesForParents = !APPLY && (want('notes') || want('attachments'));
+  const needCandidatesForParents =
+    !APPLY && (want('notes') || want('attachments') || want('applications'));
   if (want('candidates') || needCandidatesForParents) {
     await importCandidates(lookups, unresolved, idMaps);
     if (!want('candidates')) delete report.entities.candidates;
   }
+  const needClientsForRequisitions =
+    want('requisitions') || (!APPLY && (want('recruitContacts') || want('crmNotes')));
+  if (want('clients') || needClientsForRequisitions) {
+    await importClients(lookups, unresolved, idMaps);
+    if (!want('clients')) delete report.entities.clients;
+  }
+  const needRequisitionsForApps = !APPLY && (want('applications') || want('notes'));
+  if (want('requisitions') || needRequisitionsForApps) {
+    await importRequisitions(lookups, unresolved, idMaps);
+    if (!want('requisitions')) delete report.entities.requisitions;
+  }
+  const needApplicationsForNotes = !APPLY && want('notes');
+  if (want('applications') || needApplicationsForNotes) {
+    await importApplications(lookups, unresolved, idMaps);
+    if (!want('applications')) delete report.entities.applications;
+  }
   if (want('notes')) await importNotes(lookups, unresolved, idMaps);
   if (want('attachments')) await importAttachments(lookups, unresolved, idMaps);
-  const needCompaniesForContacts = !APPLY && want('contacts');
+  const needCompaniesForContacts = !APPLY && (want('contacts') || want('crmNotes'));
   if (want('companies') || needCompaniesForContacts) {
     await importCompanies(lookups, unresolved, idMaps);
     if (!want('companies')) delete report.entities.companies;
   }
-  if (want('contacts')) await importContacts(lookups, unresolved, idMaps);
+  const needContactsForCrmNotes = !APPLY && want('crmNotes');
+  if (want('contacts') || needContactsForCrmNotes) {
+    await importContacts(lookups, unresolved, idMaps);
+    if (!want('contacts')) delete report.entities.contacts;
+  }
+  if (want('recruitContacts')) await importRecruitContacts(lookups, unresolved, idMaps);
+  const needLeadsForCrmNotes = !APPLY && want('crmNotes');
+  if (want('leads') || needLeadsForCrmNotes) {
+    await importLeads(lookups, unresolved, idMaps);
+    if (!want('leads')) delete report.entities.leads;
+  }
+  if (want('crmNotes')) await importCrmNotes(lookups, unresolved, idMaps);
 
   reportMissingExports();
   const redact = (m) =>

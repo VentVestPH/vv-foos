@@ -7,9 +7,9 @@ export function mapNote(row, lookups, unresolved, resolveParent) {
   if (!zohoId) return { skip: 'no Note Id', warnings };
 
   const title = (row['Note Title'] ?? '').trim();
-  const kind = ACTIVITY_KIND_BY_NOTE_TITLE.get(title) ?? null;
+  const kind = ACTIVITY_KIND_BY_NOTE_TITLE.get(title) ?? (title ? 'note' : null);
   if (!kind) {
-    return { skip: `unmapped Note Title: ${title || '(blank)'}`, warnings };
+    return { skip: 'blank Note Title', warnings };
   }
 
   const occurredAt = parseZohoTimestamp(row['Created Time']);
@@ -40,6 +40,12 @@ export function mapNote(row, lookups, unresolved, resolveParent) {
     if (!personId) {
       unresolved.parent.set(`candidate:${parentZohoId}`, 1);
       return { skip: `parent candidate not imported: ${parentZohoId}`, warnings };
+    }
+  } else if (module === 'Job_Openings' || module === 'Job Openings') {
+    requisitionId = resolveParent('requisition', parentZohoId);
+    if (!requisitionId) {
+      unresolved.parent.set(`requisition:${parentZohoId}`, 1);
+      return { skip: `parent job opening not imported: ${parentZohoId}`, warnings };
     }
   } else {
     return { skip: `unmapped Module: ${module || '(blank)'}`, warnings };

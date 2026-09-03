@@ -34,7 +34,7 @@ function trimmed(row, key) {
   return String(v).trim();
 }
 
-export function mapRequisition(row, lookups, unresolved) {
+export function mapRequisition(row, lookups, unresolved, companyByZohoId) {
   const warnings = [];
   const zohoId = trimmed(row, 'Id') || trimmed(row, 'id') || trimmed(row, 'Job_Opening_Id');
   if (!zohoId) return { skip: 'no job opening id', warnings };
@@ -64,9 +64,16 @@ export function mapRequisition(row, lookups, unresolved) {
 
   const openings = parseZohoNumber(trimmed(row, 'No_of_Positions'));
 
+  const clientZohoId = trimmed(row, 'Client_Name');
+  const companyId = clientZohoId ? (companyByZohoId?.get(clientZohoId) ?? null) : null;
+  if (clientZohoId && !companyId) {
+    warnings.push('job opening references a client that is not imported yet');
+  }
+
   const requisition = {
     title,
     job_code: trimmed(row, 'Job_Opening_ID') || null,
+    company_id: companyId,
     status: status ?? 'open',
     location:
       [trimmed(row, 'City'), trimmed(row, 'State'), trimmed(row, 'Country')]
@@ -86,7 +93,6 @@ export function mapRequisition(row, lookups, unresolved) {
     const v = trimmed(row, key);
     if (v) carried[target ?? key] = v;
   };
-  carry('Client_Name');
   carry('Target_Date');
   carry('Salary');
   carry('Remote_Job');
@@ -96,8 +102,14 @@ export function mapRequisition(row, lookups, unresolved) {
   carry('Taleo_Job_Code');
   carry('Is_Hot_Job_Opening');
 
-  const createdAt = parseZohoTimestamp(trimmed(row, 'Creation_Date'));
-  if (createdAt) carried.created_time = createdAt;
+  const createdAt = parseZohoTimestamp(trimmed(row, 'Created_Time'));
+  const updatedAt = parseZohoTimestamp(trimmed(row, 'Modified_Time'));
+  if (createdAt) requisition.created_at = createdAt;
+  else warnings.push('no usable Created_Time, so created_at falls back to the import time');
+  if (updatedAt) requisition.updated_at = updatedAt;
+
+  const taleoCreation = parseZohoTimestamp(trimmed(row, 'Creation_Date'));
+  if (taleoCreation) carried.Creation_Date = taleoCreation;
 
   const unmapped = Object.keys(carried);
   if (unmapped.length) {

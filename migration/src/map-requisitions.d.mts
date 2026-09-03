@@ -2,6 +2,7 @@ export declare function mapRequisition(
   row: Record<string, unknown>,
   lookups: unknown,
   unresolved: unknown,
+  companyByZohoId?: Map<string, string>,
 ): {
   zohoId?: string;
   skip?: string;
