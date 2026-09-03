@@ -477,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**191 of 209 numbered tasks are done**, which is the sum of the table above and nothing else. T1 added four follow-ups; T2, T4 and T5 are done, and T3 turned out to be measurable rather than a design decision: its premise was a node count my own R3 and T2 work had already invalidated, so it is answered in section 7.13 and split, leaving T3a, a single default, as the only part that is yours. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**193 of 210 numbered tasks are done**, which is the sum of the table above and nothing else. T1 added four follow-ups; T2, T4 and T5 are done, and T3 turned out to be measurable rather than a design decision: its premise was a node count my own R3 and T2 work had already invalidated, so it is answered in section 7.13 and split, leaving T3a, a single default, as the only part that is yours. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -501,7 +501,7 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **S** Dead code | 8 | 8 | Complete. S1 to S7: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed as `scripts/gate.sh`. Committing the gate exposed that `npm run db:validate` could never fail. S8 done too: four of its five categories came back empty once checked properly |
 | **R** Interaction polish | 8 | 8 | Complete, and verified in the browser rather than by reading the CSS. `tests/e2e/interaction-motion.spec.ts` asserts all eight: no tab moves when it goes bold, the chevron's transform matrix, the accordion interpolating height in both directions, a dialog still on screen mid-fade, a transition on every control a user touches, and the dropdown, toast and filter-rail animations. 11 tests, passing. The row said 0 of 6 while every R row below said DONE; the count was wrong, not the work, and R7 and R8 were never counted at all |
 | **T** Discovery follow-ups | 6 | 5 | T1 was the screen-by-screen discovery itself, 27 screens at two widths. T2, T4 and T5 done. T3's premise was a node count my own R3 and T2 work had already invalidated, so it was answered by measurement and split; T3a, one default, is yours |
-| **U** Zoho migration | 49 | 40 | New on 2026-09-03 and the largest workstream. Extraction, import and verification of all 11 Zoho modules, 371,016 mapped records. U1.9 open on the frontend, U3.1 to U3.3 are the 1,740 attachment files, U6.1 to U6.5 are the Settings exporter. Sections 7.16 to 7.24 carry the measurements, including nine field-level losses that record-count reconciliation had passed |
+| **U** Zoho migration | 50 | 42 | New on 2026-09-03 and the largest workstream. Extraction, import and verification of all 11 Zoho modules, 371,016 mapped records. U3.1 to U3.3 are the 1,740 attachment files, U6.1 to U6.5 are the Settings exporter. Sections 7.16 to 7.24 carry the measurements, including nine field-level losses that record-count reconciliation had passed |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -1067,7 +1067,8 @@ This is precisely the blind spot recorded in 7.18: an `.eq()` looks like a narro
 
 - [x] **U4.5 Wire `map-requisitions` and `map-applications` into `import.mjs`**, in dependency order: requisitions before applications, because an application resolves both a candidate and a job opening through `zoho_id_map` and skips if either is missing
 - [x] **U4.6 `knip.json` cannot see a dead mapper.** `migration/src/*.mjs` is declared as an *entry* pattern, so every file in that directory is an entry point by definition and is never reported unused. That is why two brand-new, unwired mappers pass the gate. It should be a project pattern reachable from `migration/*.mjs`, but tightening it before U4.5 would fail the gate on the very files being added, so the order is wire first, tighten after. Tightened once U4.7 landed: `migration/src/*.mjs` is now project-only, and the nine exports it exposed as unused are either de-exported or deleted. No unused *file* is reported, which is what proves every mapper is wired
-- [ ] **U1.9** Bound the application pipeline board per stage, as the deal board is. It no longer truncates, but a requisition with 1,300 applications now renders 1,300 cards. Correctness first, DOM cost second Two things measured since: the worst requisition holds **1,300** applications and **136** requisitions hold more than 200, so this is not hypothetical. And the board is now about **3,300px** wide, because the stage set went from 6 columns to 11 for the Zoho data. At a 1,280px viewport only the first three columns are on screen, which is why a drag between two adjacent middle stages was moving the mouse outside the viewport entirely. Bounding the cards per stage does not fix that; the column count does. Worth deciding whether 11 columns belongs on one board or whether the outreach stages collapse into one.
+- [x] **U1.9 done, and the column-count question answered separately.** Migration `20260903000013` adds `application_pipeline` and `application_stage_summary`. Measured on the busiest requisition, which holds 1,300 applications: payload **5,546.9 kB to 98.6 kB**, table DOM nodes **27,662 to 891**, cards **1,300 to 25**, first row **1,121 ms to 234 ms**, requests 46 to 32. The per-stage totals and unviewed counts come from the database, so bounding the board did not turn a slow screen into a wrong one, which is what U1.3 found on the requisition list. `fetchPeopleByIds` was deleted: the view carries the candidate name. Section 7.25.1. The 3,300px board width is a separate question and still open: it is the stage count, not the card count, and whether the five outreach stages collapse into one is yours
+- [x] **U1.10 A stale response could silently replace a filtered list.** None of the six list pages guarded against an out-of-order response, so typing a search at 72,917 candidates could leave a full unfiltered page on screen with the search term still in the box, and nothing would trigger another load. This looked like a flaky export test for a while. `lib/useLatestOnly.ts` drops any response that is no longer the newest, applied to all six lists and the pipeline. Proven both ways: 14 consecutive clean runs where it had failed 2 in 8, and a deterministic regression test that delays the first response by 2.5s and fails with 20 rows instead of 2 when the guard is removed. Section 7.25.2
 
 ## 7.24 U4.7: five modules had no mapper, and only three of them were real
 
@@ -1164,6 +1165,45 @@ What all nine share is that a missing field is indistinguishable from an empty f
 **Equally important, what the audit cleared.** These were checked and are correct, so nobody needs to look again. Candidate `first_name` 72,890, `last_name` 72,910, `city` 69,118, `state` 69,285, `country` 72,623, `street` 3, `linkedin_recruiter_url` 57,260 and `education` 59,499 all match Zoho exactly. Note bodies are populated on 32,446 of 210,922 because Zoho populates 32,446, not because the import dropped them. `star_grade` is set on 327 of 334 rated candidates because seven carry a rating of 4, which the 1-to-3 CHECK constraint rejects by design rather than clamping. Candidate work history is empty because `Current_Employer`, `Experience_in_Years` and `Skill_Set` are blank on all 72,910 in Zoho. Attachments are complete at 42 of 42 with every column set, awaiting only their bytes, which is U3. Adding `Business Email`, `Work Phone` and `Business Phone` to the mapper recovered nothing, because every value in them duplicates a number already captured and `collect` dedupes: entry counts are identical before and after, 20,055 phones and 73,753 emails.
 
 The durable lesson is that reconciling counts proves a record arrived and says nothing about whether it arrived intact. Field-level reconciliation against the source is a different test and it is the one that found all of this.
+
+## 7.25 U1.9, and a silent wrong-answer bug that only appears once the data is real
+
+U1.9 was written as a DOM-cost item and turned into two findings, one of them a correctness bug that has nothing to do with DOM cost.
+
+### 7.25.1 The pipeline board, measured before and after
+
+The busiest requisition holds **1,300 applications**, and **136 requisitions hold more than 200**, so this is an ordinary desk rather than an outlier. `ApplicationPipeline` paged every application for the requisition into the browser, then fetched every person by id in chunks of 200, then rendered one row or one card each.
+
+| | Before | After |
+| :---- | ----: | ----: |
+| Payload | 5,546.9 kB | **98.6 kB** |
+| REST requests | 46 | **32** |
+| Table DOM nodes | 27,662 | **891** |
+| Table rows rendered | 1,300 | **25** |
+| Kanban cards | 1,300 | **25** |
+| Table time to first row | 1,121 ms | **234 ms** |
+
+Two views do it, in migration `20260903000013`. `application_pipeline` is one row per application carrying the candidate's name and source label, with a `stage_rank` window column so the board takes the first 25 of every stage in **one** request rather than one request per column; supplying the name is what let `fetchPeopleByIds` be deleted outright. `application_stage_summary` is the per-stage total and the caller's unviewed count, aggregated over every application in the stage.
+
+That second view is the part that matters for correctness rather than cost. A count computed from the loaded page is precisely the defect U1.3 found on the requisition list, where unviewed badges were wrong on 1,859 of 2,002 requisitions because they came from 1,000 of 14,008 applications. Bounding a board without moving its counts into the database converts a slow screen into a wrong one. Verified on the busiest requisition: the board shows 25 cards, says `showing 25 of 1,300`, and the unviewed badge reads **1300**.
+
+One correctness consequence had to be chased rather than assumed. `AddCandidateDialog` checked for a duplicate application by scanning the in-memory list, which a bounded load makes unreliable: the candidate could already be on the requisition and simply not loaded. The check is gone. The unique constraint on `(requisition_id, person_id)` is the authority, the dialog already had a correct handler for the `23505` violation that queries the real row, and `validate.sql` check 5 already asserts the constraint rejects duplicates. Removing the shortcut made it correct, not weaker.
+
+### 7.25.2 A stale response could silently replace a filtered list, and the volume is what exposed it
+
+`list-persistence.spec.ts` "2.11 the CSV export matches the filtered set on screen" was failing intermittently. Measured rather than retried: **2 failures in 8 runs in isolation**, so not worker contention. The message was the useful part. After typing a search term the table still held **20 rows** and stayed there for the full 25-second timeout, with no error.
+
+None of the six list pages guarded against an out-of-order response. `load` is a `useCallback` that a `useEffect` invokes, so typing a search starts a second query while the first is still in flight, and whichever resolves last wins. At 75 candidates both returned too fast to interleave. At **72,917** the unfiltered query is materially slower than one filtered to three rows, so the stale unfiltered payload lands second, overwrites the filtered rows, and **nothing triggers another load**. The screen then shows a full unfiltered page with the search term still sitting in the box, silently, until the user types again.
+
+That is a wrong answer rather than a slow one, and it would have been dismissed as a flaky test. `lib/useLatestOnly.ts` issues a sequence number per load and the guard drops any response that is no longer the newest. Applied to all six list pages and the pipeline.
+
+Proven both directions rather than asserted. The previously flaky spec ran **14 consecutive times clean** where it had failed 2 in 8. And the regression test makes it deterministic instead of probabilistic: it delays the first `candidate_list` response by 2.5 seconds with `page.route`, types the search immediately, and asserts the filtered count survives. With the guard removed that test receives 20 rows instead of 2, which was confirmed by removing it.
+
+### 7.25.3 One failure recorded as unreproduced rather than explained
+
+`realtime-channels.spec.ts` "the intake queue shares the badge subscription" failed once in roughly ten full-suite runs with `page.waitForTimeout: Target page, context or browser has been closed`. It has not been reproduced: **10 consecutive isolated runs pass**, each taking a consistent 51.3 seconds against its own 120-second budget, so its timeout is not the constraint, and **four consecutive full-suite runs** since are clean at 147 passed.
+
+Sampling memory through a full run shows free memory dipping to **179 MB** with about 1.5 GB inactive, which makes a renderer being torn down plausible and does not make it proven. Recorded here as an observation with its evidence rather than as a diagnosis, the same way the Kong 502 was. `FOOS_PW_WORKERS=1` is the lever if it recurs.
 
 ## 8. Tasklist
 

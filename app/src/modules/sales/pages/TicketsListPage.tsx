@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Database } from '../../../lib/database.types';
 import { supabase } from '../../../lib/supabase';
+import { useLatestOnly } from '../../../lib/useLatestOnly';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
@@ -41,7 +42,10 @@ export function TicketsListPage() {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
   const [search, setSearch] = useState('');
 
+  const beginLoad = useLatestOnly();
+
   const load = useCallback(async () => {
+    const isCurrent = beginLoad();
     setLoading(true);
     try {
       let q = supabase.from('ticket_list').select(TICKET_VIEW_COLUMNS, { count: 'exact' });
@@ -56,12 +60,13 @@ export function TicketsListPage() {
         .order('id', { ascending: true })
         .range(start, start + TICKET_PAGE_SIZE - 1);
       if (error) throw new Error(error.message);
+      if (!isCurrent()) return;
       setTickets(data ?? []);
       setTotal(count ?? 0);
     } finally {
       setLoading(false);
     }
-  }, [search, sort, page]);
+  }, [search, sort, page, beginLoad]);
 
   useEffect(() => {
     setPage(0);

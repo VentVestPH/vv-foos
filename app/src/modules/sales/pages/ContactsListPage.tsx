@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Database } from '../../../lib/database.types';
 import { supabase } from '../../../lib/supabase';
+import { useLatestOnly } from '../../../lib/useLatestOnly';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
@@ -88,7 +89,10 @@ export function ContactsListPage() {
     [companyFilter, search, sort],
   );
 
+  const beginLoad = useLatestOnly();
+
   const load = useCallback(async () => {
+    const isCurrent = beginLoad();
     setLoading(true);
     try {
       const start = page * CONTACT_PAGE_SIZE;
@@ -97,12 +101,13 @@ export function ContactsListPage() {
         start + CONTACT_PAGE_SIZE - 1,
       );
       if (error) throw new Error(error.message);
+      if (!isCurrent()) return;
       setRows((data ?? []).map((row) => ({ profile: row, person: row })));
       setTotal(count ?? 0);
     } finally {
       setLoading(false);
     }
-  }, [applyContactFilters, page]);
+  }, [applyContactFilters, page, beginLoad]);
 
   useEffect(() => {
     setPage(0);

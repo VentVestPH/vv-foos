@@ -15,6 +15,7 @@ import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
 import type { Database, RequisitionStatus } from '../../../lib/database.types';
 import { supabase } from '../../../lib/supabase';
+import { useLatestOnly } from '../../../lib/useLatestOnly';
 
 type RequisitionListRow = Omit<
   Database['public']['Views']['requisition_list']['Row'],
@@ -159,7 +160,10 @@ export function RequisitionListPage() {
     [filters, search, sort],
   );
 
+  const beginLoad = useLatestOnly();
+
   const loadPage = useCallback(async () => {
+    const isCurrent = beginLoad();
     try {
       const start = page * REQ_PAGE_SIZE;
       const { data, count, error: listErr } = await applyReqFilters(requisitionBaseQuery()).range(
@@ -167,6 +171,7 @@ export function RequisitionListPage() {
         start + REQ_PAGE_SIZE - 1,
       );
       if (listErr) throw new Error(listErr.message);
+      if (!isCurrent()) return;
       const pageRows = data ?? [];
       setReqs(pageRows);
       setTotal(count ?? 0);
@@ -175,7 +180,7 @@ export function RequisitionListPage() {
     } catch (e) {
       setError(errMsg(e));
     }
-  }, [applyReqFilters, page]);
+  }, [applyReqFilters, page, beginLoad]);
 
   useEffect(() => {
     setPage(0);

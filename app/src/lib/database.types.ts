@@ -975,6 +975,38 @@ export interface Database {
         };
         Relationships: [];
       };
+      application_pipeline: {
+        Row: {
+          id: string;
+          display_code: string;
+          requisition_id: string;
+          person_id: string;
+          stage: ApplicationStage;
+          next_step: string | null;
+          rejection_reason: string | null;
+          is_shortlisted: boolean;
+          rank: number | null;
+          source_id: string | null;
+          applied_at: string;
+          stage_changed_at: string;
+          first_name: string | null;
+          last_name: string | null;
+          candidate_name: string | null;
+          source_name: string | null;
+          unviewed: boolean;
+          stage_rank: number;
+        };
+        Relationships: [];
+      };
+      application_stage_summary: {
+        Row: {
+          requisition_id: string;
+          stage: ApplicationStage;
+          application_count: number;
+          unviewed_count: number;
+        };
+        Relationships: [];
+      };
       candidate_list: {
         Row: {
           person_id: string;

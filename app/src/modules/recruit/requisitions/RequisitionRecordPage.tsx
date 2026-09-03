@@ -531,7 +531,6 @@ export function RequisitionRecordPage() {
           <ApplicationPipeline
             requisition={req}
             companies={lookups.companies}
-            sources={lookups.sources}
             canEdit={canEdit}
             mobile={mobile}
             addSignal={addSignal}

@@ -216,3 +216,61 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
     }
   });
 });
+
+test.describe('a slow first response must not overwrite a search', () => {
+  test('the list keeps the filtered rows when the unfiltered query lands late', async ({
+    page,
+  }) => {
+    test.setTimeout(90000);
+    const admin = await apiAs(PERSONA_EMAILS.admin);
+    const token = `Zstale${RUN.replace(/[^a-z0-9]/gi, '')}`;
+    const created: string[] = [];
+
+    try {
+      for (const suffix of ['One', 'Two']) {
+        const { data, error } = await admin
+          .from('people')
+          .insert({ first_name: token, last_name: suffix, is_test: true })
+          .select('id')
+          .single();
+        if (error) throw error;
+        created.push(data.id);
+        const profile = await admin.from('candidate_profiles').insert({ person_id: data.id });
+        if (profile.error) throw profile.error;
+      }
+
+      let seen = 0;
+      await page.route(/rest\/v1\/candidate_list/, async (route) => {
+        seen += 1;
+        if (seen === 1) await new Promise((resolve) => setTimeout(resolve, 2500));
+        await route.continue();
+      });
+
+      await signIn(page, PERSONA_EMAILS.recruiter);
+      await gotoAsSignedIn(page, '/recruit/candidates');
+      await page.getByRole('searchbox', { name: 'Search Candidates' }).fill(token);
+
+      const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
+      await expect(
+        rows,
+        'the search result must survive the slower unfiltered response landing after it. ' +
+          'Without a latest-response guard the stale payload overwrites the filtered rows ' +
+          'and nothing triggers another load, so the screen shows a full unfiltered page ' +
+          'with the search term still in the box',
+      ).toHaveCount(created.length, { timeout: 30000 });
+
+      await page.waitForTimeout(3000);
+      await expect(rows, 'and it must still hold after the delayed response arrives').toHaveCount(
+        created.length,
+      );
+    } finally {
+      await page.unrouteAll().catch(() => undefined);
+      for (const id of created) {
+        const prof = await admin.from('candidate_profiles').delete().eq('person_id', id);
+        if (prof.error) throw prof.error;
+        const person = await admin.from('people').delete().eq('id', id);
+        if (person.error) throw person.error;
+      }
+    }
+  });
+});

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Database } from '../../../lib/database.types';
 import { supabase } from '../../../lib/supabase';
+import { useLatestOnly } from '../../../lib/useLatestOnly';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -85,7 +86,10 @@ export function CompaniesListPage() {
     [typeFilter, ownerFilter, locationFilter, search, sort],
   );
 
+  const beginLoad = useLatestOnly();
+
   const load = useCallback(async () => {
+    const isCurrent = beginLoad();
     setLoading(true);
     try {
       const start = page * COMPANY_PAGE_SIZE;
@@ -94,12 +98,13 @@ export function CompaniesListPage() {
         start + COMPANY_PAGE_SIZE - 1,
       );
       if (error) throw new Error(error.message);
+      if (!isCurrent()) return;
       setCompanies(data ?? []);
       setTotal(count ?? 0);
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyFilters, page]);
+  }, [applyCompanyFilters, page, beginLoad]);
 
   useEffect(() => {
     setPage(0);

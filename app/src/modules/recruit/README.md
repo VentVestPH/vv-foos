@@ -21,7 +21,7 @@ nav. Both export from `src/modules/recruit/index.tsx`.
 |---|---|
 | `index.tsx` | The `<Routes>` tree and `recruitNavItems` |
 | `lib.ts` | Row type aliases, the `person*` jsonb readers, `fmtDate`/`fmtDateTime`/`todayIso`/`errMsg`, `REQ_TRANSITIONS`, `REQ_ACTION_LABELS`, `sortRows`. Pure, no client |
-| `hooks.ts` | `useLookups`, `useIsMobile`, `fetchPeopleByIds`. Everything that talks to Postgres or holds React state |
+| `hooks.ts` | `useLookups`, `useIsMobile`, `CompanyOption`. Everything that talks to Postgres or holds React state. `fetchPeopleByIds` was deleted with U1.9: the `application_pipeline` view carries the candidate name, so nothing chunks person ids any more |
 | `savedViews.tsx` | `useSavedViews` and `SavedViewsControl`, shared by both list pages |
 | `candidates/`, `requisitions/`, `components/` | Screens and module-private components |
 

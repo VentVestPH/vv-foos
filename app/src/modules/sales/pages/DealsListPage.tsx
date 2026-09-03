@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
+import { useLatestOnly } from '../../../lib/useLatestOnly';
 import { DEAL_STAGES, type Database, type DealStage } from '../../../lib/database.types';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
@@ -88,7 +89,10 @@ export function DealsListPage() {
     [stageFilter, ownerFilter, companyFilter, search],
   );
 
+  const beginLoad = useLatestOnly();
+
   const load = useCallback(async () => {
+    const isCurrent = beginLoad();
     setLoading(true);
     try {
       if (view === 'kanban') {
@@ -106,6 +110,7 @@ export function DealsListPage() {
           if (error) throw new Error(error.message);
           next.set(stage, { cards: data ?? [], total: count ?? 0 });
         }
+        if (!isCurrent()) return;
         setBoard(next);
         setTotal([...next.values()].reduce((n, c) => n + c.total, 0));
       } else {
@@ -119,6 +124,7 @@ export function DealsListPage() {
           .order('id', { ascending: true })
           .range(start, start + DEAL_PAGE_SIZE - 1);
         if (error) throw new Error(error.message);
+        if (!isCurrent()) return;
         setDeals(data ?? []);
         setTotal(count ?? 0);
       }
@@ -128,7 +134,7 @@ export function DealsListPage() {
     } finally {
       setLoading(false);
     }
-  }, [view, applyDealFilters, stageFilter, sort, page]);
+  }, [view, applyDealFilters, stageFilter, sort, page, beginLoad]);
 
   useEffect(() => {
     setPage(0);

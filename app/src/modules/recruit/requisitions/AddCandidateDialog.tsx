@@ -13,7 +13,6 @@ import type { CandidateListRow } from '../candidates/candidateRows';
 
 export interface AddCandidateDialogProps {
   requisition: Requisition;
-  existing: Application[];
   onClose: () => void;
   onAdded: () => Promise<void>;
   onDuplicate: (app: Application) => void;
@@ -28,7 +27,6 @@ type CandidateMatch = Pick<
 
 export function AddCandidateDialog({
   requisition,
-  existing,
   onClose,
   onAdded,
   onDuplicate,
@@ -70,11 +68,6 @@ export function AddCandidateDialog({
   const add = async (personId: string, sourceId: string | null) => {
     setBusy(true);
 
-    const dupe = existing.find((a) => a.person_id === personId);
-    if (dupe) {
-      onDuplicate(dupe);
-      return;
-    }
     const { error: err } = await supabase.from('applications').insert({
       requisition_id: requisition.id,
       person_id: personId,

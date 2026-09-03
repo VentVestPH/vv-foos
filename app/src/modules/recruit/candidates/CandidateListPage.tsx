@@ -18,6 +18,7 @@ import {
 import { Dialog } from '../components/Dialog';
 import { StarGrade } from '../../../components/ui/StarGrade';
 import { supabase } from '../../../lib/supabase';
+import { useLatestOnly } from '../../../lib/useLatestOnly';
 import {
   type Application,
   type Requisition,
@@ -124,7 +125,10 @@ export function CandidateListPage() {
     [filters, search, firstName, lastName, sort],
   );
 
+  const beginLoad = useLatestOnly();
+
   const load = useCallback(async () => {
+    const isCurrent = beginLoad();
     try {
       const start = page * CANDIDATE_PAGE_SIZE;
       const { data, count, error: listErr } = await applyFilters(candidateBaseQuery()).range(
@@ -133,6 +137,7 @@ export function CandidateListPage() {
       );
       if (listErr) throw new Error(listErr.message);
 
+      if (!isCurrent()) return;
       const pageRows = data ?? [];
       setProfiles(pageRows);
       setTotal(count ?? 0);
@@ -168,7 +173,7 @@ export function CandidateListPage() {
     } catch (e) {
       setError(errMsg(e));
     }
-  }, [applyFilters, page]);
+  }, [applyFilters, page, beginLoad]);
 
   useEffect(() => {
     setPage(0);

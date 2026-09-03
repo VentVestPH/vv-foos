@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, expandSection, gotoAsSignedIn, signIn } from './helpers';
 
 const CANDIDATES = '/recruit/candidates';
 const REQUISITIONS = '/recruit/requisitions';
@@ -347,4 +347,65 @@ test.describe('U1.8: the filter dropdown lookups ask for the columns they render
       }
     });
   }
+});
+
+test.describe('U1.9: the application pipeline is bounded per stage', () => {
+  const BUSIEST = '597c4a64-b872-5e5c-9dbf-1851ceb6025d';
+
+  test('the table pages, and never reads applications wholesale', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    const calls = await restCalls(page, async () => {
+      await gotoAsSignedIn(page, `/recruit/requisitions/${BUSIEST}`);
+      await expandSection(page, 'Application Pipeline');
+      await expect(
+        page.locator('#application-pipeline .table-wrap tbody tr').first(),
+      ).toBeVisible({ timeout: 60000 });
+      await page.waitForTimeout(1500);
+    });
+
+    const wholesale = calls.filter(
+      (c) => /^applications\?/.test(c) && !c.includes('id=eq.') && !/offset=|limit=/.test(c),
+    );
+    expect(wholesale, 'the pipeline must not page every application into the browser').toEqual([]);
+
+    const views = calls.filter((c) => c.startsWith('application_pipeline?'));
+    expect(views.length, 'it reads the application_pipeline view').toBeGreaterThan(0);
+
+    const rows = await page.locator('#application-pipeline .table-wrap tbody tr').count();
+    expect(rows, 'the table renders one page, not every application').toBeLessThanOrEqual(25);
+
+    const pager = await page.locator('#application-pipeline .fo-pager-count').first().innerText();
+    expect(pager.replace(/,/g, ''), 'the pager counts from the database').toMatch(/1-25 of \d{3,}/);
+  });
+
+  test('the board bounds its cards and still counts unviewed over every application', async ({
+    page,
+  }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, `/recruit/requisitions/${BUSIEST}`);
+    await expandSection(page, 'Application Pipeline');
+    await expect(
+      page.locator('#application-pipeline .table-wrap tbody tr').first(),
+    ).toBeVisible({ timeout: 60000 });
+    await page.getByRole('tab', { name: /^Kanban$/ }).first().click();
+    await expect(page.locator('.kanban-col').first()).toBeVisible({ timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    const cards = await page.locator('.kanban-card').count();
+    expect(cards, 'the board renders at most 25 cards per stage').toBeLessThanOrEqual(25 * 11);
+
+    const more = await page.locator('.sales-kanban-more').first().innerText();
+    expect(more.replace(/,/g, ''), 'a truncated column says how many it is showing').toMatch(
+      /showing \d+ of \d{3,}/,
+    );
+
+    const badge = await page.locator('.kanban-col .unviewed-badge').first().innerText();
+    const shown = Number(/(\d+)/.exec(badge.replace(/,/g, ''))?.[1] ?? '0');
+    expect(
+      shown,
+      'the unviewed count comes from the database over every application in the stage, ' +
+        'not from the cards the board loaded. Computing it from the loaded set is the ' +
+        'defect U1.3 found on the requisition list',
+    ).toBeGreaterThan(25);
+  });
 });

@@ -1,32 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchAllRows } from '../../lib/fetchAll';
 import { supabase } from '../../lib/supabase';
-import type {
-  CandidateStatus,
-  Company,
-  Person,
-  Source,
-  StaffRow,
-} from './lib';
-
-const PEOPLE_ID_CHUNK = 200;
-
-export async function fetchPeopleByIds(
-  ids: string[],
-  columns: string = '*',
-): Promise<Person[]> {
-  const out: Person[] = [];
-  for (let i = 0; i < ids.length; i += PEOPLE_ID_CHUNK) {
-    const chunk = ids.slice(i, i + PEOPLE_ID_CHUNK);
-    const { data, error } = await supabase
-      .from('people')
-      .select(columns)
-      .in('id', chunk);
-    if (error) throw new Error(error.message);
-    out.push(...((data ?? []) as unknown as Person[]));
-  }
-  return out;
-}
+import type { CandidateStatus, Company, Source, StaffRow } from './lib';
 
 const COMPANY_OPTION_COLUMNS = 'id, name';
 

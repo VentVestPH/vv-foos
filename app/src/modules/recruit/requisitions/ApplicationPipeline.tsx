@@ -16,15 +16,15 @@ import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { downloadCsv } from '../../../lib/csv';
 import { Dialog } from '../components/Dialog';
 import { AddCandidateDialog } from './AddCandidateDialog';
-import { fetchAllRows } from '../../../lib/fetchAll';
 import { supabase } from '../../../lib/supabase';
-import { type Application, type Person, type Requisition, type Source, errMsg, fmtDate, personName } from '../lib';
-import { fetchPeopleByIds, type CompanyOption } from '../hooks';
+import { useLatestOnly } from '../../../lib/useLatestOnly';
+import type { Database } from '../../../lib/database.types';
+import { type Requisition, errMsg, fmtDate } from '../lib';
+import { type CompanyOption } from '../hooks';
 
 interface PipelineProps {
   requisition: Requisition;
   companies: CompanyOption[];
-  sources: Source[];
 
   canEdit: boolean;
 
@@ -32,6 +32,43 @@ interface PipelineProps {
 
   addSignal?: number;
 }
+
+const CARDS_PER_STAGE = 25;
+const TABLE_PAGE_SIZE = 25;
+
+const PIPELINE_COLUMNS =
+  'id, display_code, requisition_id, person_id, stage, next_step, rejection_reason, is_shortlisted, rank, source_id, applied_at, stage_changed_at, candidate_name, source_name, unviewed, stage_rank';
+
+type PipelineViewRow = Pick<
+  Database['public']['Views']['application_pipeline']['Row'],
+  | 'id'
+  | 'display_code'
+  | 'requisition_id'
+  | 'person_id'
+  | 'stage'
+  | 'next_step'
+  | 'rejection_reason'
+  | 'is_shortlisted'
+  | 'rank'
+  | 'source_id'
+  | 'applied_at'
+  | 'stage_changed_at'
+  | 'candidate_name'
+  | 'source_name'
+  | 'unviewed'
+  | 'stage_rank'
+>;
+type StageSummaryRow = Database['public']['Views']['application_stage_summary']['Row'];
+
+const TABLE_SORT_COLUMNS: Record<string, string> = {
+  name: 'candidate_name',
+  stage: 'stage',
+  next_step: 'next_step',
+  rank: 'rank',
+  source: 'source_name',
+  applied_at: 'applied_at',
+  stage_changed_at: 'stage_changed_at',
+};
 
 interface AppRow extends Record<string, unknown> {
   id: string;
@@ -63,7 +100,6 @@ const EXPORT_COLUMNS = [
 export function ApplicationPipeline({
   requisition,
   companies,
-  sources,
   canEdit,
   mobile,
   addSignal,
@@ -72,14 +108,16 @@ export function ApplicationPipeline({
   const { staff } = useSession();
   const [view, setView] = useState<'table' | 'kanban'>('table');
 
-  const [apps, setApps] = useState<Application[]>([]);
-  const [people, setPeople] = useState<Map<string, Person>>(new Map());
-  const [viewedAt, setViewedAt] = useState<Map<string, string>>(new Map());
+  const [viewRows, setViewRows] = useState<PipelineViewRow[]>([]);
+  const [summary, setSummary] = useState<StageSummaryRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [rejectTarget, setRejectTarget] = useState<Application | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<PipelineViewRow | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [promoteTarget, setPromoteTarget] = useState<Application | null>(null);
+  const [promoteTarget, setPromoteTarget] = useState<PipelineViewRow | null>(null);
   const [promoteCompanyId, setPromoteCompanyId] = useState('');
   const [promoteMsg, setPromoteMsg] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -88,42 +126,57 @@ export function ApplicationPipeline({
     if (addSignal) setAdding(true);
   }, [addSignal]);
 
+  const beginLoad = useLatestOnly();
+
   const load = useCallback(async () => {
+    const isCurrent = beginLoad();
     try {
-      const [appRows, v] = await Promise.all([
-        fetchAllRows((f, t) =>
-          supabase
-            .from('applications')
-            .select('*')
-            .eq('requisition_id', requisition.id)
-            .order('applied_at', { ascending: false })
-            .order('id', { ascending: true })
-            .range(f, t),
-        ),
-        staff
-          ? supabase
-              .from('application_views')
-              .select('*')
-              .eq('staff_id', staff.id)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-      if (v.error) throw new Error(v.error.message);
-      setApps(appRows);
-      setViewedAt(
-        new Map(
-          (v.data ?? []).map(
-            (row) => [row.application_id, row.last_viewed_at] as [string, string],
-          ),
-        ),
-      );
-      const ids = [...new Set(appRows.map((x) => x.person_id))];
-      const persons = await fetchPeopleByIds(ids);
-      setPeople(new Map(persons.map((p) => [p.id, p] as [string, Person])));
+      const summaryQuery = supabase
+        .from('application_stage_summary')
+        .select('requisition_id, stage, application_count, unviewed_count')
+        .eq('requisition_id', requisition.id);
+
+      const cardQuery = supabase
+        .from('application_pipeline')
+        .select(PIPELINE_COLUMNS)
+        .eq('requisition_id', requisition.id)
+        .lte('stage_rank', CARDS_PER_STAGE)
+        .order('stage', { ascending: true })
+        .order('stage_rank', { ascending: true });
+
+      const sortColumn = sort ? TABLE_SORT_COLUMNS[sort.key] : undefined;
+      let tableQuery = supabase
+        .from('application_pipeline')
+        .select(PIPELINE_COLUMNS, { count: 'exact' })
+        .eq('requisition_id', requisition.id);
+      tableQuery = sortColumn
+        ? tableQuery.order(sortColumn, { ascending: sort?.dir === 'asc', nullsFirst: false })
+        : tableQuery.order('applied_at', { ascending: false, nullsFirst: false });
+      const start = page * TABLE_PAGE_SIZE;
+      tableQuery = tableQuery.order('id', { ascending: true }).range(start, start + TABLE_PAGE_SIZE - 1);
+
+      const wantCards = view === 'kanban' && !mobile;
+      const sum = await summaryQuery;
+      if (sum.error) throw new Error(sum.error.message);
+      if (!isCurrent()) return;
+      setSummary(sum.data ?? []);
+
+      if (wantCards) {
+        const cards = await cardQuery;
+        if (cards.error) throw new Error(cards.error.message);
+        setViewRows(cards.data ?? []);
+        setTotal((sum.data ?? []).reduce((n, r) => n + Number(r.application_count ?? 0), 0));
+      } else {
+        const paged = await tableQuery;
+        if (paged.error) throw new Error(paged.error.message);
+        setViewRows(paged.data ?? []);
+        setTotal(paged.count ?? 0);
+      }
       setError(null);
     } catch (e) {
       setError(errMsg(e));
     }
-  }, [requisition.id, staff]);
+  }, [requisition.id, view, mobile, page, sort, beginLoad]);
 
   useEffect(() => {
     void load();
@@ -148,42 +201,34 @@ export function ApplicationPipeline({
     };
   }, [requisition.id, load]);
 
-  const sourceName = useMemo(
-    () => new Map(sources.map((s) => [s.id, s.name])),
-    [sources],
-  );
-
-  const isUnviewed = useCallback(
-    (a: Application) => {
-      const seen = viewedAt.get(a.id);
-      return !seen || seen < a.stage_changed_at;
-    },
-    [viewedAt],
-  );
-
   const rows = useMemo<AppRow[]>(
     () =>
-      apps.map((a) => {
-        const p = people.get(a.person_id);
-        return {
-          id: a.id,
-          person_id: a.person_id,
-          name: p ? personName(p) : '…',
-          stage: a.stage,
-          next_step: a.next_step ?? '',
-          is_shortlisted: a.is_shortlisted,
-          rank: a.rank,
-          source: a.source_id ? (sourceName.get(a.source_id) ?? '') : '',
-          applied_at: a.applied_at,
-          stage_changed_at: a.stage_changed_at,
-          rejection_reason: a.rejection_reason ?? '',
-          unviewed: isUnviewed(a),
-        };
-      }),
-    [apps, people, sourceName, isUnviewed],
+      viewRows.map((a) => ({
+        id: a.id,
+        person_id: a.person_id,
+        name: a.candidate_name || '\u2026',
+        stage: a.stage,
+        next_step: a.next_step ?? '',
+        is_shortlisted: a.is_shortlisted,
+        rank: a.rank,
+        source: a.source_name ?? '',
+        applied_at: a.applied_at,
+        stage_changed_at: a.stage_changed_at,
+        rejection_reason: a.rejection_reason ?? '',
+        unviewed: a.unviewed,
+      })),
+    [viewRows],
   );
 
-  const totalUnviewed = rows.filter((r) => r.unviewed).length;
+  const stageTotals = useMemo(
+    () => new Map(summary.map((r) => [r.stage, Number(r.application_count ?? 0)])),
+    [summary],
+  );
+
+  const totalUnviewed = useMemo(
+    () => summary.reduce((n, r) => n + Number(r.unviewed_count ?? 0), 0),
+    [summary],
+  );
 
   const openCandidate = useCallback(
     async (row: AppRow) => {
@@ -204,7 +249,7 @@ export function ApplicationPipeline({
 
   const writeStage = useCallback(
     async (
-      app: Application,
+      app: PipelineViewRow,
       stage: ApplicationStage,
       extra: Partial<{ rejection_reason: string; hired_at: string }> = {},
     ) => {
@@ -229,7 +274,7 @@ export function ApplicationPipeline({
   const moveStage = useCallback(
     (appId: string, toStage: string) => {
       if (!canEdit) return;
-      const app = apps.find((a) => a.id === appId);
+      const app = viewRows.find((a) => a.id === appId);
       if (!app || app.stage === toStage) return;
       const stage = toStage as ApplicationStage;
       if (stage === 'rejected') {
@@ -255,7 +300,7 @@ export function ApplicationPipeline({
       }
       void writeStage(app, stage);
     },
-    [apps, canEdit, requisition.status, requisition.company_id, writeStage],
+    [viewRows, canEdit, requisition.status, requisition.company_id, writeStage],
   );
 
   const confirmReject = useCallback(() => {
@@ -470,16 +515,13 @@ export function ApplicationPipeline({
     [rows, openCandidate, toggleShortlist],
   );
 
-  const unviewedByStage = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of rows) {
-      if (r.unviewed) map.set(r.stage, (map.get(r.stage) ?? 0) + 1);
-    }
-    return map;
-  }, [rows]);
+  const unviewedByStage = useMemo(
+    () => new Map(summary.map((r) => [r.stage, Number(r.unviewed_count ?? 0)])),
+    [summary],
+  );
 
   const showKanban = view === 'kanban' && !mobile;
-  const promotePerson = promoteTarget ? people.get(promoteTarget.person_id) : null;
+  const promotePersonName = promoteTarget?.candidate_name || 'This person';
 
   return (
     <div>
@@ -538,18 +580,62 @@ export function ApplicationPipeline({
           }))}
           cards={kanbanCards}
           onMove={moveStage}
-          columnExtras={(stageKey) => (
-            <UnviewedBadge count={unviewedByStage.get(stageKey) ?? 0} />
-          )}
+          columnExtras={(stageKey) => {
+            const stage = stageKey as ApplicationStage;
+            const shown = rows.filter((r) => r.stage === stage).length;
+            const stageTotal = stageTotals.get(stage) ?? 0;
+            return (
+              <>
+                <UnviewedBadge count={unviewedByStage.get(stage) ?? 0} />
+                {stageTotal > shown && (
+                  <span className="text-secondary sales-kanban-more">
+                    {`showing ${shown} of ${stageTotal.toLocaleString()}`}
+                  </span>
+                )}
+              </>
+            );
+          }}
         />
       ) : (
-        <Table
-          columns={columns}
-          rows={rows}
-          rowKey={(r) => r.id}
-          onRowClick={(r) => void openCandidate(r)}
-          emptyText="No applications yet."
-        />
+        <>
+          <Table
+            columns={columns}
+            rows={rows}
+            rowKey={(r) => r.id}
+            onRowClick={(r) => void openCandidate(r)}
+            emptyText="No applications yet."
+            sortKey={sort?.key ?? null}
+            sortDir={sort?.dir ?? 'asc'}
+            onSortChange={(key, dir) => {
+              if (!TABLE_SORT_COLUMNS[key]) return;
+              setSort({ key, dir });
+              setPage(0);
+            }}
+          />
+          {total > TABLE_PAGE_SIZE && (
+            <div className="fo-pager">
+              <span className="fo-pager-count">
+                {`${page * TABLE_PAGE_SIZE + 1}-${Math.min(total, (page + 1) * TABLE_PAGE_SIZE)} of ${total.toLocaleString()}`}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={page === 0}
+                onClick={() => setPage((n) => Math.max(0, n - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={(page + 1) * TABLE_PAGE_SIZE >= total}
+                onClick={() => setPage((n) => n + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {rejectTarget && (
@@ -571,9 +657,7 @@ export function ApplicationPipeline({
         >
           <p>
             A rejection reason is required before{' '}
-            {people.get(rejectTarget.person_id)
-              ? personName(people.get(rejectTarget.person_id)!)
-              : 'this candidate'}{' '}
+            {rejectTarget.candidate_name || 'this candidate'}{' '}
             moves to rejected.
           </p>
           <textarea
@@ -603,7 +687,7 @@ export function ApplicationPipeline({
           )}
         >
           <p>
-            {promotePerson ? personName(promotePerson) : 'This person'} was hired on{' '}
+            {promotePersonName} was hired on{' '}
             {requisition.display_code}. Create a contact profile so they carry over
             to CRM — one person, one identity.
           </p>
@@ -621,7 +705,6 @@ export function ApplicationPipeline({
       {adding && (
         <AddCandidateDialog
           requisition={requisition}
-          existing={apps}
           onClose={() => setAdding(false)}
           onAdded={async () => {
             setAdding(false);
@@ -632,8 +715,7 @@ export function ApplicationPipeline({
             setError(
               'Already in this pipeline — showing the existing application.',
             );
-            const row = rows.find((r) => r.id === app.id);
-            if (row) void openCandidate(row);
+            void openCandidate({ id: app.id, person_id: app.person_id } as AppRow);
           }}
         />
       )}
