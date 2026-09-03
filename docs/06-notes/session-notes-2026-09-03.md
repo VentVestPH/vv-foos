@@ -160,3 +160,11 @@ Two lessons, both about my own tooling rather than the product: killing a test r
 ## Gate evidence for U1.13 and U1.16
 
 Thirteen gate runs. Browser suite clean at 153 passed in runs 2 to 6 and 9 to 13, ten runs. Runs 7 and 8 failed the pressed-button test, which is now fixed and has since passed four consecutive gate runs plus five in isolation. Runs 9 to 12's single failure was the orphan cleanup above. Run 13 is 20 of 20.
+
+## U1.15: the covering index that fixed exactly one page
+
+Tried `people (last_name, first_name, id) include (middle_name, emails, city, state, country, updated_at)`, 12 MB against a 94 MB table. It works, in the narrowest possible sense: offset 20 flips to an Index Only Scan touching exactly 40 rows, 751 ms to 3.5 ms. Then offsets 40, 60, 80, 100 and 140 measure 744, 737, 777, 744 and 752 ms, because the index path's estimated cost grows with the offset while the seq-scan-and-sort cost is flat, so the planner flips back at page 3.
+
+Dropped it. Twelve megabytes to fix page 2 alone would have looked like a fix in a changelog while leaving the 273x misestimate exactly where it was. `check-migrations` confirms no drift, and offset 0 and 20 are back to 2.7 ms and 732 ms.
+
+What is left for U1.15 is a decision with three costed options: keyset pagination (loses page jumps and the Last button, which are part of the Taleo pager), expressing the visibility rule in the policy as an estimable subquery (removes the cause, but the rule then lives in two places), or re-measuring on the develop Supabase project first, since 128 MB `effective_cache_size` is a stock local default and Supabase tunes it per compute size. The third is the one to do first: the other two both cost something real and neither should be paid until the flip is known to happen off this laptop.
