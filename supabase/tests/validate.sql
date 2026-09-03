@@ -196,34 +196,63 @@ end $$;
 do $$
 declare
   item uuid; person uuid := 'b0000000-0000-4000-8000-000000000004';
+  -- now(), not clock_timestamp(): events_outbox.created_at defaults to now(), which
+  -- is the transaction start, so a clock_timestamp() taken inside the same
+  -- transaction is always later and nothing would ever satisfy the comparison.
+  -- now() still excludes rows from earlier runs, which is the point of the check.
+  started timestamptz := now();
+  other_status uuid;
+  other_req_status requisition_status;
 begin
-  -- candidate.status_changed
-  update candidate_profiles
-     set status_id = (select id from candidate_statuses where label = 'Sent InMail I (Linkedin)')
-   where person_id = person;
-  if not exists (select 1 from events_outbox where event_name = 'candidate.status_changed' and aggregate_id = person) then
+  -- candidate.status_changed.
+  -- The status is set to a value it does not already hold, because the trigger
+  -- fires on a change and this file must give the same answer on a second run.
+  -- The event must also be newer than `started`: asserting only that some event
+  -- exists lets a stale row from an earlier run mask a trigger that has stopped
+  -- firing, which is exactly how this check passed while emitting nothing.
+  select id into other_status from candidate_statuses
+   where id is distinct from (select status_id from candidate_profiles where person_id = person)
+   order by sort_order limit 1;
+  update candidate_profiles set status_id = other_status where person_id = person;
+  if not exists (select 1 from events_outbox
+                 where event_name = 'candidate.status_changed'
+                   and aggregate_id = person and created_at >= started) then
     raise exception 'FAIL 7: candidate.status_changed not emitted';
   end if;
 
   -- requisition.status_changed (lifecycle)
-  update requisitions set status = 'waiting_approval' where display_code = 'REQ-0003';
+  select s into other_req_status
+    from unnest(enum_range(null::requisition_status)) s
+   where s is distinct from (select status from requisitions where display_code = 'REQ-0003')
+   limit 1;
+  update requisitions set status = other_req_status where display_code = 'REQ-0003';
   if not exists (select 1 from events_outbox eo join requisitions r on r.id = eo.aggregate_id
-                 where eo.event_name = 'requisition.status_changed' and r.display_code = 'REQ-0003') then
+                 where eo.event_name = 'requisition.status_changed'
+                   and r.display_code = 'REQ-0003' and eo.created_at >= started) then
     raise exception 'FAIL 7: requisition.status_changed not emitted';
   end if;
 
-  -- requisition.status_changed (approver decision)
+  -- requisition.status_changed (approver decision).
+  -- Cleared first, because the decision is already 'approved' after one run and an
+  -- UPDATE that changes nothing correctly fires nothing.
+  update requisition_approvers set decision = null, decided_at = null
+   where requisition_id = 'd0000000-0000-4000-8000-000000000003';
   update requisition_approvers set decision = 'approved', decided_at = now()
    where requisition_id = 'd0000000-0000-4000-8000-000000000003';
   if (select count(*) from events_outbox eo where eo.event_name = 'requisition.status_changed'
-        and eo.aggregate_id = 'd0000000-0000-4000-8000-000000000003') < 2 then
+        and eo.aggregate_id = 'd0000000-0000-4000-8000-000000000003'
+        and eo.created_at >= started) < 2 then
     raise exception 'FAIL 7: approver decision did not emit requisition.status_changed';
   end if;
 
   -- deal.stage_changed
-  update deals set stage = 'negotiation' where display_code = 'DEAL-0001';
+  update deals
+     set stage = (select s from unnest(enum_range(null::deal_stage)) s
+                   where s is distinct from deals.stage limit 1)
+   where display_code = 'DEAL-0001';
   if not exists (select 1 from events_outbox where event_name = 'deal.stage_changed'
-                 and aggregate_id = 'e0000000-0000-4000-8000-000000000001') then
+                 and aggregate_id = 'e0000000-0000-4000-8000-000000000001'
+                 and created_at >= started) then
     raise exception 'FAIL 7: deal.stage_changed not emitted';
   end if;
 
@@ -240,7 +269,9 @@ begin
   end if;
 
   -- activity.logged
-  if not exists (select 1 from events_outbox where event_name = 'activity.logged') then
+  insert into activities (kind, subject, person_id) values ('note', 'Validation activity', person);
+  if not exists (select 1 from events_outbox
+                 where event_name = 'activity.logged' and created_at >= started) then
     raise exception 'FAIL 7: activity.logged never emitted';
   end if;
   raise notice 'PASS 7: all trigger-fired domain events reach events_outbox';
@@ -271,10 +302,18 @@ end $$;
 do $$
 begin
   -- Counts updated 2026-09-01 for migration 20260725000006, which seeds the
-  -- Zoho lookup values: sources 7 -> 12, candidate_statuses 4 -> 18. Both
-  -- verified against the live project on 2026-09-01.
-  if (select count(*) from sources) <> 12 then raise exception 'FAIL 9: sources count'; end if;
-  if (select count(*) from candidate_statuses) <> 18 then raise exception 'FAIL 9: candidate_statuses count'; end if;
+  -- Zoho lookup values: sources 7 -> 12 -> 28, candidate_statuses 4 -> 18 -> 30.
+  -- The second step is migration 20260903000011, which added the 16 job boards and
+  -- 12 outreach statuses the Zoho data actually uses; without them 3,960 candidates
+  -- import with no source and 12,469 with no status.
+  --
+  -- Asserted as a floor rather than an exact count, for the same reason the label
+  -- check below is not an exact list: both tables are admin-editable by design
+  -- (architecture 2.2), so an exact count fails the moment an admin adds a row,
+  -- which is sanctioned behaviour. A floor still catches the failure that matters,
+  -- which is a migration or a reset dropping seeded lookup values.
+  if (select count(*) from sources) < 28 then raise exception 'FAIL 9: sources count'; end if;
+  if (select count(*) from candidate_statuses) < 30 then raise exception 'FAIL 9: candidate_statuses count'; end if;
   -- Assert the ORIGINAL four labels are intact and still first in sort order,
   -- rather than pinning the whole list. candidate_statuses is admin-editable by
   -- design (architecture section 2.2), so asserting an exact full list would
@@ -306,12 +345,17 @@ begin
   end if;
   if (select count(*) from companies where is_test) <> 5 then raise exception 'FAIL 9: companies count'; end if;
   if (select count(*) from people where is_test) <> 10 then raise exception 'FAIL 9: people count'; end if;
-  if (select count(*) from candidate_profiles) <> 7 then raise exception 'FAIL 9: candidate_profiles count'; end if;
-  if (select count(*) from contact_profiles) <> 5 then raise exception 'FAIL 9: contact_profiles count'; end if;
+  -- Scoped through people.is_test, like the companies and people counts above.
+  -- Unscoped these counted every imported row: after the Zoho migration they were
+  -- 72,917 and 55 rather than 7 and 5. Neither table has its own is_test column.
+  if (select count(*) from candidate_profiles cp join people p on p.id = cp.person_id
+       where p.is_test) <> 7 then raise exception 'FAIL 9: candidate_profiles count'; end if;
+  if (select count(*) from contact_profiles k join people p on p.id = k.person_id
+       where p.is_test) <> 5 then raise exception 'FAIL 9: contact_profiles count'; end if;
   if (select count(*) from requisitions where display_code <= 'REQ-0003') <> 3 then raise exception 'FAIL 9: requisitions count'; end if;
   if (select count(*) from applications where display_code <= 'APP-0008') <> 8 then raise exception 'FAIL 9: applications count'; end if;
   if (select count(*) from deals) <> 2 then raise exception 'FAIL 9: deals count'; end if;
-  raise notice 'PASS 9: seed rows all present (12 sources, 18 statuses, the 4 demo staff, 5 companies, 10 people, 3 reqs, 8 apps, 2 deals)';
+  raise notice 'PASS 9: seed rows all present (at least 28 sources and 30 statuses, the 4 demo staff, 5 companies, 10 people, 3 reqs, 8 apps, 2 deals)';
 end $$;
 
 -- 10-13. RLS behavior, simulated via role + request.jwt.claims -----------------
@@ -360,13 +404,24 @@ begin
 end $$;
 reset role;
 
+-- Captured as service_role, before the role switch, so the assertions below state
+-- the invariant rather than a seed-era constant. After the Zoho migration the true
+-- figures are 73 contact people and 72,988 people; hard-coding 5 and 10 made these
+-- checks fail on correct RLS behaviour.
+select set_config('validate.contact_people',
+  (select count(distinct person_id)::text from contact_profiles), false);
+select set_config('validate.total_people', (select count(*)::text from people), false);
+
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000004","role":"authenticated"}', false);
 set role authenticated;
 do $$
 declare n int;
 begin
   select count(*) into n from people;
-  if n <> 5 then raise exception 'FAIL 11: bd sees % people, expected 5 with contact_profiles', n; end if;
+  if n <> current_setting('validate.contact_people')::int then
+    raise exception 'FAIL 11: bd sees % people, expected the % with a contact_profile',
+      n, current_setting('validate.contact_people');
+  end if;
   -- candidate-only person invisible
   select count(*) into n from people where id = 'b0000000-0000-4000-8000-000000000001';
   if n <> 0 then raise exception 'FAIL 11: bd sees a candidate-only person'; end if;
@@ -391,7 +446,10 @@ do $$
 declare n int;
 begin
   select count(*) into n from people;
-  if n <> 10 then raise exception 'FAIL 12: recruiter sees % people, expected all 10', n; end if;
+  if n <> current_setting('validate.total_people')::int then
+    raise exception 'FAIL 12: recruiter sees % people, expected all %',
+      n, current_setting('validate.total_people');
+  end if;
   update deals set probability = 0.9 where display_code = 'DEAL-0001';
   if found then raise exception 'FAIL 12: recruiter updated a deal'; end if;
   select count(*) into n from deals;
@@ -421,7 +479,10 @@ begin
   select count(*) into n from events_outbox where processed_at is null;
   if n = 0 then raise exception 'FAIL 13: admin cannot read events_outbox'; end if;
   select count(*) into n from people;
-  if n <> 10 then raise exception 'FAIL 13: admin does not see all people'; end if;
+  if n <> current_setting('validate.total_people')::int then
+    raise exception 'FAIL 13: admin sees % people, expected all %',
+      n, current_setting('validate.total_people');
+  end if;
   raise notice 'PASS 13: admin reads audit_log, events_outbox, and all people';
 end $$;
 reset role;

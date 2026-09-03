@@ -41,7 +41,7 @@ export const STAGE_BY_ZOHO_STATUS = new Map([
   ['rejected', 'rejected'],
 ]);
 
-export const APPLICATION_LEVEL_FIELDS = [
+const APPLICATION_LEVEL_FIELDS = [
   'Application_ID',
   'Job_Opening_ID',
   'Job_Opening_Name',
