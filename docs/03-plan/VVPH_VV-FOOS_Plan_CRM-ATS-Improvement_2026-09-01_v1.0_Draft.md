@@ -1119,6 +1119,22 @@ Its consequences were entirely masked. Because the map was short, the importer b
 
 The general guard is `scripts/check-paged-order.mjs`, in the gate and in `ci.yml`. It flags any `.range()` paging that never calls `.order()`, and any that orders only on a non-unique column, because `.order('name')` with OFFSET has the same defect whenever two rows share a name. It resolves query-builder helpers so a list page that applies its order inside `applyFilters` is not a false positive, and it was verified against both real shapes before being trusted. It found two further live cases: the application pipeline paged on `applied_at` alone, and both company dropdown lookups paged on `name` alone.
 
+### 7.24.5 Two lookup tables were missing rows, and the report had been saying so all along
+
+After the staff fix the importer still reported "unresolved source: 17 distinct value(s) across 3,960 row(s)" and "unresolved status: 12 distinct value(s) across 12,469 row(s)". A distinct count of 17 reads as trivia. The row count is the number that matters: 3,960 candidates were importing with no source and 12,469 with no status, and both are columns a recruiter filters on.
+
+The missing sources are the job boards the sourcing team used: Monster, HotJobs, Dice, CareerBuilder, Indeed Resume, ZipRecruiter, Upwork, The Ladders, ZoomInfo, LinkSV, MEPJOBS, LinkedIn Job Board, Sourcing Center, Craig's List, Google import and Vendor. The missing statuses are the candidate-level outreach states, which are a different set from the application stages extended in migration 20260903000002: the sent-email and voicemail sequences, Sent InMail II, Sent Email & InMail, Candidate Emailing Resume, Reference Provider, Submitted & considered weak, and Flag.
+
+One value was deliberately not created. "LinkdIn" is a misspelling of LinkedIn in a single Zoho record, and it is aliased in the mapper rather than added as a row, because a misspelled source would then sit in every source dropdown permanently. The new statuses are appended after the existing 18 rather than interleaved, since renumbering rows the UI already sorts by would be a behaviour change and this migration exists only to stop dropping data.
+
+The pattern across 7.24.3 and 7.24.5 is the same and worth naming: the importer had been printing both problems on every single run, and both were read as noise because the distinct-value count was small. A report line whose only quantity is "how many kinds" hides how much. Both figures are now printed together, and the verifier checks the outcome in the database rather than trusting either.
+
+### 7.24.6 What Zoho does not have, established rather than assumed
+
+Candidate work history imports as an empty array, and that is correct. `Experience_Details` came back header-only from the UI export, which on its own could have meant a broken export. It does not: in the bulk extract `Current_Employer`, `Experience_in_Years`, `Skill_Set` and `Highest_Qualification_Held` are empty on all 72,910 candidates. The fields exist in the Zoho layout and nobody ever filled them. `Current_Job_Title` is populated on 3,560 and does import, on 3,567 profiles including seed rows, and education is populated on 59,499 people from the degree columns.
+
+This matters because "the export looks empty" and "there is nothing to export" call for opposite responses, and only one of them justifies 72,910 record-level API calls to fetch subforms. Checked before spending the credits, not after.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -1203,6 +1219,8 @@ Covered before today: Recruit Candidates, Recruit Notes, CRM Accounts, CRM Conta
 - [x] **U4.11 Staff attribution was empty for every CSV-extracted module.** Zoho's bulk read gives `Created_By: {name, id}` in JSON and the bare id in CSV, and `resolveStaff` indexes names, so candidates, job openings, clients, contacts and both CRM modules imported with no owner, creator or modifier. `migration/zoho-users.mjs` builds the id-to-name map from the extracts first and the `/users` endpoint second, and exits non-zero while any referenced id is unnamed. Section 7.24.3
 - [x] **U4.12 `loadIdMap` returned 47,453 of 72,910 candidate mappings**, because it paged with `.range()` and no `ORDER BY`. It now pages by keyset and asserts its own count. Deterministic ids are the only reason this corrupted nothing. Section 7.24.4
 - [x] **U4.13 `scripts/check-paged-order.mjs`**, in the gate and `ci.yml`: any `.range()` paging with no `.order()`, or ordered only on a non-unique column, fails the build. Verified against both real shapes. It found two more live cases, the application pipeline and both company dropdown lookups
+- [x] **U4.14 Two lookup tables were missing rows**, so 3,960 candidates imported with no source and 12,469 with no status. Migration `20260903000011` adds 16 sources and 12 candidate statuses; "LinkdIn" is aliased in the mapper rather than created as a misspelled row. The importer had printed both counts on every run. Section 7.24.5
+- [x] **U4.15 Candidate work history is empty in Zoho, not missing from the export.** `Current_Employer`, `Experience_in_Years` and `Skill_Set` are blank on all 72,910 candidates, which is why the subform export was header-only. Established before spending 72,910 record-level API calls on it. Section 7.24.6
 
 **U5. Prove the migration is accurate.** Nobody will spot a wrong field in 70,200 rows by eye, so this has to be a script that fails loudly rather than a review.
 

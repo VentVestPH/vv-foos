@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 const SOURCE_ALIASES = new Map([
   ['Digital Assistant - Facebook Messenger', 'Digital Assistant - FB Messenger'],
+  ['LinkdIn', 'LinkedIn'],
 ]);
 
 export const STATUS_ALIASES = new Map([['Hired', 'Placed']]);
