@@ -2,6 +2,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
+import { deterministicId, isDuplicateKey } from './src/deterministic-id.mjs';
 import { parseCsvRecords } from './src/csv.mjs';
 import { loadLookups, newUnresolved } from './src/lookups.mjs';
 import { mapCandidate } from './src/map-candidates.mjs';
@@ -90,6 +91,13 @@ async function loadIdMap(entityType) {
   return map;
 }
 
+async function insertWithDeterministicId(table, entityType, zohoId, payload) {
+  const id = deterministicId(entityType, zohoId);
+  const { error } = await db.from(table).insert({ id, ...payload });
+  if (error && !isDuplicateKey(error)) throw error;
+  return { id, alreadyPresent: Boolean(error) };
+}
+
 async function recordMapping(zohoId, entityType, foosId) {
   const { error } = await db
     .from('zoho_id_map')
@@ -168,10 +176,15 @@ async function importCandidates(lookups, unresolved, idMaps) {
         if (error) throw error;
         t.updated += 1;
       } else {
-        const { data, error } = await db.from('people').insert(mapped.person).select('id').single();
-        if (error) throw error;
-        personId = data.id;
-        t.created += 1;
+        const inserted = await insertWithDeterministicId(
+          'people',
+          'candidate',
+          mapped.zohoId,
+          mapped.person,
+        );
+        personId = inserted.id;
+        if (!inserted.alreadyPresent) t.created += 1;
+        else t.updated += 1;
       }
 
       const { error: profErr } = await db
@@ -224,9 +237,13 @@ async function importCompanies(lookups, unresolved, idMaps) {
         if (error) throw error;
         t.updated += 1;
       } else {
-        const { data, error } = await db.from('companies').insert(mapped.company).select('id').single();
-        if (error) throw error;
-        companyId = data.id;
+        const inserted = await insertWithDeterministicId(
+          'companies',
+          'company',
+          mapped.zohoId,
+          mapped.company,
+        );
+        companyId = inserted.id;
         t.created += 1;
       }
       await recordMapping(mapped.zohoId, 'company', companyId);
@@ -279,10 +296,15 @@ async function importContacts(lookups, unresolved, idMaps) {
         if (error) throw error;
         t.updated += 1;
       } else {
-        const { data, error } = await db.from('people').insert(mapped.person).select('id').single();
-        if (error) throw error;
-        personId = data.id;
-        t.created += 1;
+        const inserted = await insertWithDeterministicId(
+          'people',
+          'contact',
+          mapped.zohoId,
+          mapped.person,
+        );
+        personId = inserted.id;
+        if (!inserted.alreadyPresent) t.created += 1;
+        else t.updated += 1;
       }
       const { error: profErr } = await db
         .from('contact_profiles')
@@ -331,9 +353,13 @@ async function importNotes(lookups, unresolved, idMaps) {
         if (error) throw error;
         t.updated += 1;
       } else {
-        const { data, error } = await db.from('activities').insert(mapped.activity).select('id').single();
-        if (error) throw error;
-        await recordMapping(mapped.zohoId, 'note', data.id);
+        const inserted = await insertWithDeterministicId(
+          'activities',
+          'note',
+          mapped.zohoId,
+          mapped.activity,
+        );
+        await recordMapping(mapped.zohoId, 'note', inserted.id);
         existing.set(mapped.zohoId, data.id);
         t.created += 1;
       }
@@ -388,9 +414,13 @@ async function importAttachments(lookups, unresolved, idMaps) {
         if (error) throw error;
         t.updated += 1;
       } else {
-        const { data, error } = await db.from('attachments').insert(mapped.attachment).select('id').single();
-        if (error) throw error;
-        await recordMapping(mapped.zohoId, 'attachment', data.id);
+        const inserted = await insertWithDeterministicId(
+          'attachments',
+          'attachment',
+          mapped.zohoId,
+          mapped.attachment,
+        );
+        await recordMapping(mapped.zohoId, 'attachment', inserted.id);
         existing.set(mapped.zohoId, data.id);
         t.created += 1;
       }

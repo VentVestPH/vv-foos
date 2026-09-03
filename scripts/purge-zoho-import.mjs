@@ -32,11 +32,26 @@ if (!key) {
 
 const db = createClient(target, key, { auth: { persistSession: false } });
 
-const { data: map, error: mapErr } = await db.from('zoho_id_map').select('zoho_id, entity_type, foos_id');
-if (mapErr) {
-  console.error(`Could not read zoho_id_map: ${mapErr.message}`);
-  process.exit(1);
+const MAP_PAGE = 1000;
+
+async function readWholeIdMap() {
+  const all = [];
+  for (let from = 0; ; from += MAP_PAGE) {
+    const { data, error } = await db
+      .from('zoho_id_map')
+      .select('zoho_id, entity_type, foos_id')
+      .order('zoho_id', { ascending: true })
+      .range(from, from + MAP_PAGE - 1);
+    if (error) {
+      console.error(`Could not read zoho_id_map: ${error.message}`);
+      process.exit(1);
+    }
+    all.push(...(data ?? []));
+    if (!data || data.length < MAP_PAGE) return all;
+  }
 }
+
+const map = await readWholeIdMap();
 
 const byType = new Map();
 for (const row of map ?? []) {

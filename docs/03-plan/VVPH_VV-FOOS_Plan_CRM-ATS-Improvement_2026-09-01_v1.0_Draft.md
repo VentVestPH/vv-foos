@@ -939,6 +939,32 @@ Mid-run, every persona sign-in began failing with an empty error object, `{}`. A
 
 What is worth fixing regardless is the diagnosis path. `post-reset.mjs` checked REST and the careers function but never auth, so a 502 there passed silently and surfaced later as what looks like a credentials problem. It now checks `/auth/v1/health`, restarts Kong if auth is 5xx, rechecks, and if it still fails says explicitly that an empty sign-in error means a 5xx through Kong rather than bad credentials. Both branches are tested: the healthy path passes immediately, and the recovery path was exercised by pointing the check at a dead port and watching it restart Kong and warn after 70 seconds.
 
+## 7.20 U4: the importer was resumable in principle and corrupting in practice
+
+Phase U4 was supposed to be about speed. Measured, speed is the least of it.
+
+**Throughput, measured rather than guessed.** The 75-row export applies in 1.89s, so 25.2ms per candidate at three round trips each: one `people` insert, one `candidate_profiles` upsert, one `zoho_id_map` upsert. Extrapolated to 70,200 candidates that is **29.5 minutes for candidates alone**, plus roughly 132,000 notes and 39,000 attachments at a similar per-row cost. Call it one to two hours unattended for a one-off migration, which is tolerable and not worth the risk of batching.
+
+**Idempotency already worked, and that was worth confirming rather than assuming.** Applying the same export twice reports `0 new, 75 existing` and leaves the row count unchanged. `loadIdMap` pages properly and is read once per entity.
+
+**But resumability was broken, and it corrupted data silently.** The insert and the mapping are two separate round trips. Killing the importer mid-run at 5,000 synthetic rows left **1,452 mapped and 1,453 people**: one record inserted with no mapping. Resuming produced **5,011 people where 5,010 were expected, with one duplicate candidate**. The duplicate was named `S1452`, exactly the record after the last one mapped, which pins the mechanism precisely.
+
+Worse, the duplicate is **unreachable by the tool that exists to undo imports**: `purge-zoho-import.mjs` works from `zoho_id_map`, and that record has no mapping. After a full purge the orphan remained, and had to be deleted by hand.
+
+And a third defect found while cleaning up: **the purge silently stopped at 1,000 rows**, because it read `zoho_id_map` with no range and hit `max_rows`. It reported `1000 person row(s)` as though finished. Reversing a 70,200-row import would have taken 71 runs with nothing saying so.
+
+### The fixes, and why this shape
+
+Every `people`, `companies`, `activities` and `attachments` insert now uses a **deterministic id derived from the entity type and the Zoho id**, a UUID v5 over a fixed namespace. A retry therefore attempts the *same* id, gets a duplicate-key error, and the importer treats that as "already present" and proceeds to write the mapping. The crash window becomes self-healing rather than duplicating, with no transaction, no `security definer` function and no batching.
+
+Proven by repeating the same test: killed at 1,445 mapped and 1,456 people, so eleven records sat in the window; after resuming, **exactly 5,010 people, 0 duplicates, 0 orphans**. The run reported `1446 existing`, one more than were mapped, which is the self-heal doing its job.
+
+The purge now pages the whole id map. The same 5,000 rows are removed in one pass, and the dry run reports 5,000 rather than 1,000.
+
+The id derivation lives in `migration/src/deterministic-id.mjs` with a `.d.mts` beside it, matching the existing convention there, and is covered by six unit tests: stability, v5 shape, separation by entity type, separation by Zoho id, refusal of empty inputs, and duplicate-key detection by both code and message.
+
+**What this does not cover.** The mapping write is still a second round trip, so an interruption still leaves a record whose mapping is missing until the next run heals it. That is now harmless rather than corrupting, which is the property that matters, but it is not the same as atomic.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -973,8 +999,10 @@ Five phases, in order, because each one blocks the next.
 
 **U4. The importer at scale.** It has only ever run against 75 rows.
 
-- [ ] **U4.1** Batching and resumability, verified at 70,200 rather than 75
-- [ ] **U4.2** Idempotency through `zoho_id_map` proven by running the same import twice and asserting no duplicate rows
+- [x] **U4.1 measured, and batching declined on the measurement.** 25.2ms per candidate, so about 29.5 minutes for 70,200 candidates and one to two hours for the whole import. Tolerable for a one-off, and batching would trade that for harder per-row error attribution. Section 7.20
+- [x] **U4.1b Resumability fixed, which is what actually mattered.** Killing the importer mid-run used to leave an unmapped insert and produce a **duplicate candidate on resume**, unreachable by the purge. Deterministic v5 ids make a retry collide with itself and self-heal: verified at 5,000 rows, 0 duplicates, 0 orphans
+- [x] **U4.1c The purge silently stopped at 1,000 rows** and reported that as done. It now pages the whole id map; 5,000 rows removed in one pass
+- [x] **U4.2 Idempotency confirmed rather than assumed.** A second apply of the same export reports `0 new, 75 existing` and leaves the row count unchanged
 - [ ] **U4.3** The field map rebuilt from the real bulk-read header set, not the 75-row sample
 
 **U5. Prove the migration is accurate.** Nobody will spot a wrong field in 70,200 rows by eye, so this has to be a script that fails loudly rather than a review.
