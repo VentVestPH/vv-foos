@@ -46,4 +46,3 @@ export function apiRecordToExportRow(record, fieldMap) {
   return row;
 }
 
-export { flatten, toExportTimestamp };

@@ -4,8 +4,7 @@
     ".": {
       "entry": [
         "scripts/*.mjs",
-        "migration/*.mjs",
-        "migration/src/*.mjs"
+        "migration/*.mjs"
       ],
       "project": [
         "scripts/**/*.mjs",

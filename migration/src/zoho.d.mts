@@ -9,4 +9,3 @@ export function parseZohoNumber(value?: string | null): number | null;
 export function parseStarGrade(
   value?: string | null,
 ): { grade: number | null; reason: string | null };
-export function splitName(full?: string | null): { first: string | null; last: string | null };

@@ -133,10 +133,3 @@ function gradeInRange(n) {
   if (n < 1 || n > 3) return { grade: null, reason: `outside the 1-3 range: ${n}` };
   return { grade: n, reason: null };
 }
-
-export function splitName(full) {
-  const parts = (full ?? '').trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return { first: null, last: null };
-  if (parts.length === 1) return { first: parts[0], last: null };
-  return { first: parts[0], last: parts[parts.length - 1] };
-}

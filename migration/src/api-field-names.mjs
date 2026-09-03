@@ -1,11 +1,11 @@
-export function deriveApiName(exportColumn) {
+function deriveApiName(exportColumn) {
   return exportColumn
     .replace(/\(([^)]*)\)/g, ' $1 ')
     .replace(/[^A-Za-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
 }
 
-export const API_NAME_OVERRIDES = new Map([
+const API_NAME_OVERRIDES = new Map([
   ['Candidate Id', 'id'],
   ['Candidate ID', 'Candidate_ID'],
   ['Province', 'State'],
@@ -29,7 +29,7 @@ export const API_NAME_OVERRIDES = new Map([
   ['Modified Time', 'Modified_Time'],
 ]);
 
-export const NO_API_EQUIVALENT = new Set(['Old Attachment Id', 'Documents']);
+const NO_API_EQUIVALENT = new Set(['Old Attachment Id', 'Documents']);
 
 export function apiNameFor(exportColumn) {
   return API_NAME_OVERRIDES.get(exportColumn) ?? deriveApiName(exportColumn);
