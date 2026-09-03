@@ -19,13 +19,6 @@ async function apiAs(email: string): Promise<SupabaseClient> {
 }
 
 async function dragTo(page: Page, card: Locator, target: Locator) {
-  // Scroll the target in first, then re-measure both. The application pipeline
-  // board carries 11 stage columns since migration 20260903000007 widened the
-  // stage set for the Zoho data, which makes it about 3,300px wide. At a 1,280px
-  // viewport the 'received' column's centre is at x=1,339 and 'screening' at
-  // x=1,615, so the previous version moved the mouse to coordinates outside the
-  // viewport and no drop ever landed. toBeVisible() does not catch this: it means
-  // the element has a box, not that the box is on screen.
   await target.scrollIntoViewIfNeeded();
   const from = await card.boundingBox();
   const to = await target.boundingBox();
