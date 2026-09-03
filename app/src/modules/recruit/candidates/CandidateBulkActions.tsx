@@ -7,16 +7,15 @@ import { applyTemplate } from '../../../lib/emailTemplates';
 import { supabase } from '../../../lib/supabase';
 import { sendEmail } from '../../../lib/googleActions';
 import { Dialog } from '../components/Dialog';
-import type { CandidateStatus, Person } from '../lib';
-import type { CandidateListProfile } from './candidateRows';
-import { personEmails, personName } from '../lib';
+import type { CandidateStatus } from '../lib';
+import type { CandidateListRow } from './candidateRows';
+import { personName } from '../lib';
 
 type Pending = 'status' | 'flag-on' | 'flag-off' | 'email' | null;
 
 export interface CandidateBulkActionsProps {
   selected: Set<string>;
-  profiles: CandidateListProfile[];
-  people: Map<string, Person>;
+  profiles: CandidateListRow[];
   statuses: CandidateStatus[];
   canEdit: boolean;
   onDone: () => Promise<void>;
@@ -35,7 +34,6 @@ interface Recipient {
 export function CandidateBulkActions({
   selected,
   profiles,
-  people,
   statuses,
   canEdit,
   onDone,
@@ -56,18 +54,20 @@ export function CandidateBulkActions({
   const recipients = useMemo<Recipient[]>(
     () =>
       ids.map((personId) => {
-        const person = people.get(personId);
         const profile = profiles.find((p) => p.person_id === personId);
+        const emails = Array.isArray(profile?.emails)
+          ? (profile.emails as unknown as { address: string }[])
+          : [];
         return {
           personId,
-          name: person ? personName(person) : personId,
-          email: person ? (personEmails(person)[0]?.address ?? null) : null,
+          name: profile ? personName({ ...profile, headline: null }) : personId,
+          email: emails[0]?.address ?? null,
           doNotContact: profile?.do_not_contact ?? false,
-          firstName: person?.first_name ?? '',
-          lastName: person?.last_name ?? '',
+          firstName: profile?.first_name ?? '',
+          lastName: profile?.last_name ?? '',
         };
       }),
-    [ids, people, profiles],
+    [ids, profiles],
   );
 
   const mailable = recipients.filter((r) => r.email && !r.doNotContact);

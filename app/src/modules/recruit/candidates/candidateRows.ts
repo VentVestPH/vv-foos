@@ -1,24 +1,31 @@
-import type {
-  Application,
-  CandidateProfile,
-  Person,
-  SortState,
-} from '../lib';
-import { personEmails, personName, sortRows } from '../lib';
+import type { Database, PersonEmail } from '../../../lib/database.types';
+import type { Application } from '../lib';
+import { personName } from '../lib';
 
-export type CandidateListProfile = Pick<
-  CandidateProfile,
-  | 'person_id'
-  | 'status_id'
-  | 'star_grade'
-  | 'grade_comment'
-  | 'current_title'
-  | 'current_employer'
-  | 'initial_date'
-  | 'source_id'
-  | 'sourcer_id'
-  | 'do_not_contact'
+export type CandidateListRow = Omit<
+  Database['public']['Views']['candidate_list']['Row'],
+  'search_text'
 >;
+
+export const SORT_COLUMNS: Record<string, string> = {
+  name: 'last_name',
+  updated_at: 'person_updated_at',
+  has_resume: 'has_resume',
+  location: 'city',
+  source: 'source_name',
+  initial_date: 'initial_date',
+  star_grade: 'star_grade',
+  grade_comment: 'grade_comment',
+  status: 'status_label',
+  current_title: 'current_title',
+  current_employer: 'current_employer',
+  sourcer: 'sourcer_name',
+  flags: 'do_not_contact',
+};
+
+function rowEmails(row: CandidateListRow): PersonEmail[] {
+  return Array.isArray(row.emails) ? (row.emails as unknown as PersonEmail[]) : [];
+}
 
 export interface CandFilters {
   statusId: string;
@@ -79,129 +86,45 @@ export const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
 export const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
 export interface CandidateRowInput {
-  profiles: CandidateListProfile[];
-  people: Map<string, Person>;
+  rows: CandidateListRow[];
   apps: Application[];
-  statusLabel: Map<string, string>;
-  sourceName: Map<string, string>;
-  staffName: Map<string, string>;
   reqCode: Map<string, string>;
-  resumePersonIds: Set<string>;
 }
 
-export function buildCandidateRows({
-  profiles,
-  people,
-  apps,
-  statusLabel,
-  sourceName,
-  staffName,
-  reqCode,
-  resumePersonIds,
-}: CandidateRowInput): CandRow[] {
+export function buildCandidateRows({ rows, apps, reqCode }: CandidateRowInput): CandRow[] {
   const appsByPerson = new Map<string, Application[]>();
   for (const a of apps) {
     const list = appsByPerson.get(a.person_id) ?? [];
     list.push(a);
     appsByPerson.set(a.person_id, list);
   }
-  return profiles.map((prof) => {
-    const p = people.get(prof.person_id);
+  return rows.map((row) => {
     const flags: string[] = [];
-    if (prof.do_not_contact) flags.push('Do not contact');
+    if (row.do_not_contact) flags.push('Do not contact');
     return {
-      id: prof.person_id,
-      name: p ? personName(p) : '…',
-      first_name: p?.first_name ?? '',
-      last_name: p?.last_name ?? '',
-      updated_at: p?.updated_at ?? '',
-      has_resume: resumePersonIds.has(prof.person_id),
-      location: p
-        ? [p.city, p.state, p.country].filter(Boolean).join(', ')
-        : '',
-      star_grade: prof.star_grade,
-      grade_comment: prof.grade_comment ?? '',
-      current_title: prof.current_title ?? '',
-      current_employer: prof.current_employer ?? '',
-
-      status: prof.status_id ? (statusLabel.get(prof.status_id) ?? '') : '',
-      source: prof.source_id ? (sourceName.get(prof.source_id) ?? '') : '',
-      initial_date: prof.initial_date ?? '',
-      sourcer: prof.sourcer_id ? (staffName.get(prof.sourcer_id) ?? '') : '',
-      requisitions: (appsByPerson.get(prof.person_id) ?? [])
+      id: row.person_id,
+      name: personName({ ...row, headline: null }),
+      first_name: row.first_name ?? '',
+      last_name: row.last_name ?? '',
+      updated_at: row.person_updated_at,
+      has_resume: row.has_resume,
+      location: [row.city, row.state, row.country].filter(Boolean).join(', '),
+      star_grade: row.star_grade,
+      grade_comment: row.grade_comment ?? '',
+      current_title: row.current_title ?? '',
+      current_employer: row.current_employer ?? '',
+      status: row.status_label ?? '',
+      source: row.source_name ?? '',
+      initial_date: row.initial_date ?? '',
+      sourcer: row.sourcer_name ?? '',
+      requisitions: (appsByPerson.get(row.person_id) ?? [])
         .map((a) => reqCode.get(a.requisition_id) ?? '')
         .filter(Boolean)
         .join(', '),
-      flags: flags.join(' · '),
-      emails: p
-        ? personEmails(p)
-            .map((e) => e.address)
-            .join(' ')
-        : '',
+      flags: flags.join(' \u00b7 '),
+      emails: rowEmails(row)
+        .map((e) => e.address)
+        .join(' '),
     };
   });
-}
-
-export interface CandidateFilterInput {
-  rows: CandRow[];
-  profiles: CandidateListProfile[];
-  filters: CandFilters;
-  search: string;
-  firstName: string;
-  lastName: string;
-  sort: SortState | null;
-}
-
-export function filterCandidateRows({
-  rows,
-  profiles,
-  filters,
-  search,
-  firstName,
-  lastName,
-  sort,
-}: CandidateFilterInput): CandRow[] {
-  const q = search.trim().toLowerCase();
-  const base = rows.filter((r) => {
-    const prof = profiles.find((p) => p.person_id === r.id);
-    if (!prof) return false;
-    if (filters.statusId && prof.status_id !== filters.statusId) return false;
-    if (filters.starGrade && String(prof.star_grade ?? '') !== filters.starGrade) {
-      return false;
-    }
-    if (filters.sourceId && prof.source_id !== filters.sourceId) return false;
-    if (filters.sourcerId && prof.sourcer_id !== filters.sourcerId) return false;
-    if (
-      filters.dateFrom &&
-      (!prof.initial_date || prof.initial_date < filters.dateFrom)
-    ) {
-      return false;
-    }
-    if (
-      filters.dateTo &&
-      (!prof.initial_date || prof.initial_date > filters.dateTo)
-    ) {
-      return false;
-    }
-    if (q) {
-      const hay =
-        `${r.name} ${r.emails} ${r.current_title} ${r.current_employer}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-
-    if (
-      firstName.trim() &&
-      !r.first_name.toLowerCase().includes(firstName.trim().toLowerCase())
-    ) {
-      return false;
-    }
-    if (
-      lastName.trim() &&
-      !r.last_name.toLowerCase().includes(lastName.trim().toLowerCase())
-    ) {
-      return false;
-    }
-    return true;
-  });
-  return sortRows(base, sort);
 }

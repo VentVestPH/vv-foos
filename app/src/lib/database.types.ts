@@ -861,7 +861,37 @@ export interface Database {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      candidate_list: {
+        Row: {
+          person_id: string;
+          first_name: string | null;
+          middle_name: string | null;
+          last_name: string | null;
+          full_name: string | null;
+          emails: Json;
+          city: string | null;
+          state: string | null;
+          country: string | null;
+          person_updated_at: string;
+          status_id: string | null;
+          star_grade: number | null;
+          grade_comment: string | null;
+          current_title: string | null;
+          current_employer: string | null;
+          initial_date: string | null;
+          source_id: string | null;
+          sourcer_id: string | null;
+          do_not_contact: boolean;
+          search_text: string | null;
+          status_label: string | null;
+          source_name: string | null;
+          sourcer_name: string | null;
+          has_resume: boolean;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       next_display_code: {
         Args: { prefix: string };

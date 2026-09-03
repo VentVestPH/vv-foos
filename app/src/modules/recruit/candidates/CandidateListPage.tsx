@@ -7,7 +7,7 @@ import { Input } from '../../../components/ui/Input';
 import { Badge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
-import { Pager, usePagination } from '../../../components/ui/Pager';
+import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction, usePlaceholder } from '../../../shell/Placeholder';
 import {
   FileText as ResumeIcon,
@@ -20,7 +20,6 @@ import { StarGrade } from '../../../components/ui/StarGrade';
 import { supabase } from '../../../lib/supabase';
 import {
   type Application,
-  type Person,
   type Requisition,
   type SortState,
   errMsg,
@@ -31,22 +30,36 @@ import {
   COLUMN_DEFS,
   EMPTY_FILTERS,
   buildCandidateRows,
-  filterCandidateRows,
+  SORT_COLUMNS,
   type CandFilters,
   type CandRow,
-  type CandidateListProfile,
+  type CandidateListRow,
 } from './candidateRows';
 import {
-  CANDIDATE_LIST_COLUMNS,
-  PERSON_LIST_COLUMNS,
-  fetchPeopleByIds,
   useIsMobile,
   useLookups,
 } from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 import { CandidateBulkActions } from './CandidateBulkActions';
 import { CandidateFilterRail } from './CandidateFilterRail';
-import { fetchAllRows } from '../../../lib/fetchAll';
+
+const CANDIDATE_PAGE_SIZE = 20;
+const EXPORT_PAGE_SIZE = 1000;
+const EXPORT_ROW_CAP = 10000;
+const APP_LOOKUP_CHUNK = 200;
+
+const CANDIDATE_VIEW_COLUMNS =
+  'person_id, first_name, middle_name, last_name, full_name, emails, city, state, country, person_updated_at, status_id, star_grade, grade_comment, current_title, current_employer, initial_date, source_id, sourcer_id, do_not_contact, status_label, source_name, sourcer_name, has_resume';
+
+function candidateBaseQuery() {
+  return supabase.from('candidate_list').select(CANDIDATE_VIEW_COLUMNS, { count: 'exact' });
+}
+
+type CandidateQuery = ReturnType<typeof candidateBaseQuery>;
+
+function likeLiteral(value: string): string {
+  return value.replace(/([\\%_])/g, '\\$1');
+}
 
 export function CandidateListPage() {
   const openRecord = useListLink();
@@ -73,47 +86,93 @@ export function CandidateListPage() {
   const [sort, setSort] = useState<SortState | null>(null);
   const [visibleCols, setVisibleCols] = useState<string[]>(ALL_COLUMN_KEYS);
 
-  const [profiles, setProfiles] = useState<CandidateListProfile[]>([]);
-  const [people, setPeople] = useState<Map<string, Person>>(new Map());
+  const [profiles, setProfiles] = useState<CandidateListRow[]>([]);
   const [apps, setApps] = useState<Application[]>([]);
   const [reqs, setReqs] = useState<Requisition[]>([]);
-  const [resumePersonIds, setResumePersonIds] = useState<Set<string>>(new Set());
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [commentEdit, setCommentEdit] = useState<CandidateListProfile | null>(null);
+  const [commentEdit, setCommentEdit] = useState<CandidateListRow | null>(null);
   const [commentDraft, setCommentDraft] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const applyFilters = useCallback(
+    (q: CandidateQuery): CandidateQuery => {
+      let out = q;
+      if (filters.statusId) out = out.eq('status_id', filters.statusId);
+      if (filters.starGrade) out = out.eq('star_grade', Number(filters.starGrade));
+      if (filters.sourceId) out = out.eq('source_id', filters.sourceId);
+      if (filters.sourcerId) out = out.eq('sourcer_id', filters.sourcerId);
+      if (filters.dateFrom) out = out.gte('initial_date', filters.dateFrom);
+      if (filters.dateTo) out = out.lte('initial_date', filters.dateTo);
+      const term = search.trim().toLowerCase();
+      if (term) out = out.ilike('search_text', `%${likeLiteral(term)}%`);
+      if (firstName.trim()) {
+        out = out.ilike('first_name', `%${likeLiteral(firstName.trim())}%`);
+      }
+      if (lastName.trim()) {
+        out = out.ilike('last_name', `%${likeLiteral(lastName.trim())}%`);
+      }
+      const sortColumn = sort ? SORT_COLUMNS[sort.key] : undefined;
+      if (sortColumn) {
+        out = out.order(sortColumn, { ascending: sort?.dir === 'asc', nullsFirst: false });
+      } else {
+        out = out.order('last_name', { ascending: true }).order('first_name', { ascending: true });
+      }
+      return out.order('person_id', { ascending: true });
+    },
+    [filters, search, firstName, lastName, sort],
+  );
+
   const load = useCallback(async () => {
     try {
-      const [profRows, appRows, reqRows, attRows] = await Promise.all([
-        fetchAllRows((f, t) =>
-          supabase.from('candidate_profiles').select(CANDIDATE_LIST_COLUMNS).range(f, t),
-        ),
-        fetchAllRows((f, t) => supabase.from('applications').select('*').range(f, t)),
-        fetchAllRows((f, t) => supabase.from('requisitions').select('*').range(f, t)),
-        fetchAllRows((f, t) =>
-          supabase
-            .from('attachments')
-            .select('parent_id')
-            .eq('parent_type', 'person')
-            .eq('kind', 'resume')
-            .range(f, t),
-        ),
-      ]);
-      setProfiles(profRows);
-      setApps(appRows);
-      setReqs(reqRows);
-      setResumePersonIds(new Set(attRows.map((x) => x.parent_id)));
-      const persons = await fetchPeopleByIds(
-        profRows.map((p) => p.person_id),
-        PERSON_LIST_COLUMNS,
+      const start = page * CANDIDATE_PAGE_SIZE;
+      const { data, count, error: listErr } = await applyFilters(candidateBaseQuery()).range(
+        start,
+        start + CANDIDATE_PAGE_SIZE - 1,
       );
-      setPeople(new Map(persons.map((p) => [p.id, p] as [string, Person])));
+      if (listErr) throw new Error(listErr.message);
+
+      const pageRows = data ?? [];
+      setProfiles(pageRows);
+      setTotal(count ?? 0);
+
+      const personIds = pageRows.map((r) => r.person_id);
+      if (personIds.length === 0) {
+        setApps([]);
+        setReqs([]);
+        setError(null);
+        return;
+      }
+
+      const { data: appRows, error: appErr } = await supabase
+        .from('applications')
+        .select('*')
+        .in('person_id', personIds);
+      if (appErr) throw new Error(appErr.message);
+      setApps(appRows ?? []);
+
+      const reqIds = [...new Set((appRows ?? []).map((a) => a.requisition_id))];
+      if (reqIds.length === 0) {
+        setReqs([]);
+        setError(null);
+        return;
+      }
+      const { data: reqRows, error: reqErr } = await supabase
+        .from('requisitions')
+        .select('*')
+        .in('id', reqIds);
+      if (reqErr) throw new Error(reqErr.message);
+      setReqs(reqRows ?? []);
       setError(null);
     } catch (e) {
       setError(errMsg(e));
     }
-  }, []);
+  }, [applyFilters, page]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters, search, firstName, lastName, sort]);
 
   useEffect(() => {
     void load();
@@ -133,18 +192,6 @@ export function CandidateListPage() {
     };
   }, [load]);
 
-  const statusLabel = useMemo(
-    () => new Map(lookups.statuses.map((s) => [s.id, s.label])),
-    [lookups.statuses],
-  );
-  const sourceName = useMemo(
-    () => new Map(lookups.sources.map((s) => [s.id, s.name])),
-    [lookups.sources],
-  );
-  const staffName = useMemo(
-    () => new Map(lookups.staff.map((s) => [s.id, s.full_name])),
-    [lookups.staff],
-  );
   const reqCode = useMemo(
     () => new Map(reqs.map((r) => [r.id, r.display_code])),
     [reqs],
@@ -153,7 +200,7 @@ export function CandidateListPage() {
   const canBulkEdit = !mobile && (role === 'admin' || role === 'recruiter');
 
   const canGrade = useCallback(
-    (profile: CandidateListProfile) =>
+    (profile: CandidateListRow) =>
       !mobile &&
       (role === 'admin' ||
         role === 'recruiter' ||
@@ -161,24 +208,64 @@ export function CandidateListPage() {
     [role, staff, mobile],
   );
 
-  const rows = useMemo<CandRow[]>(
-    () =>
-      buildCandidateRows({
-        profiles,
-        people,
-        apps,
-        statusLabel,
-        sourceName,
-        staffName,
-        reqCode,
-        resumePersonIds,
-      }),
-    [profiles, people, apps, statusLabel, sourceName, staffName, reqCode, resumePersonIds],
-  );
+  const exportFilteredRows = useCallback(async () => {
+    if (total > EXPORT_ROW_CAP) {
+      setError(
+        `That filter matches ${total.toLocaleString()} candidates, more than the ${EXPORT_ROW_CAP.toLocaleString()} an in-browser export can build. Narrow the filter and try again.`,
+      );
+      return [];
+    }
 
-  const filtered = useMemo(
-    () => filterCandidateRows({ rows, profiles, filters, search, firstName, lastName, sort }),
-    [rows, profiles, filters, search, sort, firstName, lastName],
+    const collected: CandidateListRow[] = [];
+    for (let start = 0; start < EXPORT_ROW_CAP; start += EXPORT_PAGE_SIZE) {
+      const { data, error: pageErr } = await applyFilters(candidateBaseQuery()).range(
+        start,
+        start + EXPORT_PAGE_SIZE - 1,
+      );
+      if (pageErr) {
+        setError(pageErr.message);
+        return [];
+      }
+      const batch = data ?? [];
+      collected.push(...batch);
+      if (batch.length < EXPORT_PAGE_SIZE) break;
+    }
+
+    const ids = collected.map((r) => r.person_id);
+    const exportApps: Application[] = [];
+    for (let i = 0; i < ids.length; i += APP_LOOKUP_CHUNK) {
+      const { data, error: appErr } = await supabase
+        .from('applications')
+        .select('*')
+        .in('person_id', ids.slice(i, i + APP_LOOKUP_CHUNK));
+      if (appErr) {
+        setError(appErr.message);
+        return [];
+      }
+      exportApps.push(...(data ?? []));
+    }
+
+    const exportReqCode = new Map<string, string>();
+    const reqIds = [...new Set(exportApps.map((a) => a.requisition_id))];
+    for (let i = 0; i < reqIds.length; i += APP_LOOKUP_CHUNK) {
+      const { data, error: reqErr } = await supabase
+        .from('requisitions')
+        .select('id, display_code')
+        .in('id', reqIds.slice(i, i + APP_LOOKUP_CHUNK));
+      if (reqErr) {
+        setError(reqErr.message);
+        return [];
+      }
+      for (const r of data ?? []) exportReqCode.set(r.id, r.display_code);
+    }
+
+    setError(null);
+    return buildCandidateRows({ rows: collected, apps: exportApps, reqCode: exportReqCode });
+  }, [applyFilters, total]);
+
+  const rows = useMemo<CandRow[]>(
+    () => buildCandidateRows({ rows: profiles, apps, reqCode }),
+    [profiles, apps, reqCode],
   );
 
   const updateGrade = useCallback(
@@ -326,7 +413,16 @@ export function CandidateListPage() {
     return [flagCol, ...defs.filter((c) => visibleCols.includes(c.key))];
   }, [visibleCols, profiles, canGrade, updateGrade, navigate]);
 
-  const pager = usePagination(filtered);
+  const pageCount = Math.max(1, Math.ceil(total / CANDIDATE_PAGE_SIZE));
+  const pager = {
+    page,
+    setPage,
+    pageCount,
+    total,
+    from: total === 0 ? 0 : page * CANDIDATE_PAGE_SIZE + 1,
+    to: Math.min(total, (page + 1) * CANDIDATE_PAGE_SIZE),
+    pageRows: rows,
+  };
 
   const currentState = useCallback(
     (): ViewState => ({
@@ -383,7 +479,8 @@ export function CandidateListPage() {
           ownStaffId={staff?.id}
         />
       }
-      exportRows={filtered}
+      exportRows={exportFilteredRows}
+      exportCount={total}
       exportColumns={exportColumns}
       exportFilename="candidates.csv"
       filterRail={
@@ -407,7 +504,6 @@ export function CandidateListPage() {
         <CandidateBulkActions
           selected={selected}
           profiles={profiles}
-          people={people}
           statuses={lookups.statuses}
           canEdit={canBulkEdit}
           onDone={load}

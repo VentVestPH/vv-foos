@@ -26,7 +26,8 @@ interface ListPageProps {
 
   children: ReactNode;
 
-  exportRows?: Record<string, unknown>[];
+  exportRows?: Record<string, unknown>[] | (() => Promise<Record<string, unknown>[]>);
+  exportCount?: number;
   exportColumns?: { key: string; header: string }[];
   exportFilename?: string;
 }
@@ -44,9 +45,11 @@ export function ListPage({
   actions,
   children,
   exportRows,
+  exportCount,
   exportColumns,
   exportFilename,
 }: ListPageProps) {
+  const [exporting, setExporting] = useState(false);
   useDocumentTitle(title);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
@@ -111,17 +114,30 @@ export function ListPage({
         {exportRows && (
           <Button
             size="sm"
-            onClick={() =>
-              downloadCsv(
-                exportFilename ??
-                  title.toLowerCase().replace(/\s+/g, '-') + '.csv',
-                exportRows,
-                exportColumns,
-              )
+            onClick={() => {
+              void (async () => {
+                setExporting(true);
+                try {
+                  const rows =
+                    typeof exportRows === 'function' ? await exportRows() : exportRows;
+                  downloadCsv(
+                    exportFilename ?? title.toLowerCase().replace(/\s+/g, '-') + '.csv',
+                    rows,
+                    exportColumns,
+                  );
+                } finally {
+                  setExporting(false);
+                }
+              })();
+            }}
+            disabled={
+              exporting ||
+              (typeof exportRows === 'function'
+                ? exportCount === 0
+                : exportRows.length === 0)
             }
-            disabled={exportRows.length === 0}
           >
-            Export CSV
+            {exporting ? 'Exporting…' : 'Export CSV'}
           </Button>
         )}
       </div>

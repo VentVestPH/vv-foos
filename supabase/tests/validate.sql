@@ -840,4 +840,30 @@ begin
   raise notice 'PASS 24: every application has a unique status token, the projection is service-role only, and it speaks applicant language rather than stage names';
 end $$;
 
+do $$
+declare
+  n int;
+  invoker boolean;
+begin
+  select count(*) into n
+  from public.candidate_profiles cp
+  left join public.people p on p.id = cp.person_id
+  where p.id is null;
+  if n > 0 then
+    raise exception 'FAIL 25: % candidate_profiles row(s) have no people row. candidate_list inner-joins people, so those candidates are invisible in the list while still existing in the table', n;
+  end if;
+
+  select reloptions::text like '%security_invoker=on%' into invoker
+  from pg_class where relname = 'candidate_list' and relkind = 'v';
+  if invoker is not true then
+    raise exception 'FAIL 25: candidate_list is not security_invoker = on, so it would run as its owner and bypass RLS on candidate_profiles and people';
+  end if;
+
+  if (select count(*) from public.candidate_list) <> (select count(*) from public.candidate_profiles) then
+    raise exception 'FAIL 25: candidate_list and candidate_profiles disagree on row count';
+  end if;
+
+  raise notice 'PASS 25: candidate_list covers every candidate_profiles row, and is security_invoker so RLS still decides visibility';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;
