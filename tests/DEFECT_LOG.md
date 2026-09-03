@@ -115,3 +115,18 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 - **Fix owner:** Whoever next touches `validate.sql` — change the assertion to `>= 4` and specifically check the 4 known seed IDs are present, rather than an exact total count, so it stays robust as real staff accounts are added.
 - **Status:** open (cosmetic test fix, not urgent)
 - **Closed date:** —
+
+### QA-009 — the unviewed-badge live-update test failed at two workers, and is no longer reproducible
+
+- **Date found:** 2026-09-03, while chasing the `list-keyboard` intermittent. **Date it stopped reproducing:** 2026-09-04, cause not attributable to a single change.
+- **Module/agent:** `tests/e2e/realtime.spec.ts:21` "the unviewed badge on a requisition clears when a view is recorded elsewhere"
+- **Severity:** **Low.** The behaviour under test works and the suite now proves it at two workers. Kept in the log because the mechanism is worth knowing and it could return.
+- **Detail:** The local tenant `realtime-dev` is capped at `max_events_per_second = 100`. When a two-worker suite tripped that ceiling, the page's channel kept reporting `SUBSCRIBED` while receiving no `postgres_changes` for tens of seconds, so the test's `application_views` upserts never reached the browser and the badge never cleared. Instrumentation showed the channel subscribed at 593 ms, its subscribe callback firing one reload, then zero further requests for the full 30 s poll. The client cannot detect this, so no reconnection logic could have recovered from it.
+- **Evidence, all measured:**
+  - Failed **3 of 3** full-suite runs at two workers on unmodified `develop` with the day's app changes stashed, so it was never caused by them.
+  - Passed **153 of 153** with `FOOS_PW_WORKERS=1`, and 2 of 2 in isolation, 5 of 5 as a pair.
+  - Exactly **one** `MessagePerSecondRateLimitReached` per failing run. An earlier count of nine to fourteen was my own metric being wrong: `docker logs --since` was not filtering, so the figure was a cumulative total growing by one per run.
+  - The ceiling cannot be raised. Setting `max_events_per_second = 1000` in `_realtime.tenants` does not survive a restart: the container runs `SEED_SELF_HOST=true` and re-seeds the tenant to 100 on every boot. There is no environment variable for it and `supabase/config.toml` has no such setting.
+  - **Now clean: 5 consecutive full runs at two workers, 153 passed, rate-limit delta 0 each time.** Reverting U1.14 alone leaves it clean (153 passed, delta 0), and reverting U1.12's channel singleton alone leaves it clean too, so **no single change can be credited** and the honest reading is that the failure needed a burst that the current tree no longer produces. The one other difference is the regression spec itself, which now delays its own responses with `page.route` instead of racing the database, and so makes far fewer requests.
+- **Status:** closed as not reproducible, with the caveat that it was never attributed to one cause. If it returns, `FOOS_PW_WORKERS=1` is the documented lever and the rate-limit delta is the metric to read, measured before and after a run rather than with `--since`.
+- **Closed date:** 2026-09-04
