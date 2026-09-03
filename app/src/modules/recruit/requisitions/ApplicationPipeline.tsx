@@ -16,6 +16,7 @@ import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { downloadCsv } from '../../../lib/csv';
 import { Dialog } from '../components/Dialog';
 import { AddCandidateDialog } from './AddCandidateDialog';
+import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { supabase } from '../../../lib/supabase';
 import { useLatestOnly } from '../../../lib/useLatestOnly';
 import type { Database } from '../../../lib/database.types';
@@ -183,8 +184,7 @@ export function ApplicationPipeline({
   }, [load]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel(`recruit-pipeline-${requisition.id}`)
+    const channel = realtimeChannel(`recruit-pipeline-${requisition.id}`)
       .on(
         'postgres_changes',
         {

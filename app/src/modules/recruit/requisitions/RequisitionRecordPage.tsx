@@ -22,6 +22,7 @@ import {
   TasksPanel,
   useEngagement,
 } from '../components/engagement';
+import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { supabase } from '../../../lib/supabase';
 import { type ApproverRow, type OwnerRow, REQ_ACTION_LABELS, REQ_TRANSITIONS, type Requisition, errMsg, fmtDate, fmtDateTime, todayIso } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
@@ -97,8 +98,7 @@ export function RequisitionRecordPage() {
 
   useEffect(() => {
     if (!requisitionId) return;
-    const channel = supabase
-      .channel(`recruit-req-next-steps-${requisitionId}`)
+    const channel = realtimeChannel(`recruit-req-next-steps-${requisitionId}`)
       .on(
         'postgres_changes',
         {

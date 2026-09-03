@@ -14,7 +14,9 @@ import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
 import type { Database, RequisitionStatus } from '../../../lib/database.types';
+import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { supabase } from '../../../lib/supabase';
+import { useCoalescedReload } from '../../../lib/useCoalescedReload';
 import { useLatestOnly } from '../../../lib/useLatestOnly';
 
 type RequisitionListRow = Omit<
@@ -107,6 +109,15 @@ const COLUMN_DEFS: { key: keyof ReqRow & string; header: string }[] = [
 const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
 
+const REQ_LIST_EVENTS = [
+  'application.created',
+  'application.stage_changed',
+  'application.hired',
+  'requisition.status_changed',
+] as const;
+
+const REQ_LIST_EVENT_FILTER = `event_name=in.(${REQ_LIST_EVENTS.join(',')})`;
+
 export function RequisitionListPage() {
   const openRecord = useListLink();
   const navigate = useNavigate();
@@ -190,13 +201,24 @@ export function RequisitionListPage() {
     void loadPage();
   }, [loadPage]);
 
+  const reloadSoon = useCoalescedReload(loadPage);
+
   useEffect(() => {
-    const channel = supabase
-      .channel('recruit-req-list')
+    const channel = realtimeChannel('recruit-req-list')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'applications' },
-        () => void loadPage(),
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'events_outbox',
+          filter: REQ_LIST_EVENT_FILTER,
+        },
+        reloadSoon,
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'applications' },
+        reloadSoon,
       )
       .on(
         'postgres_changes',
@@ -206,15 +228,15 @@ export function RequisitionListPage() {
           table: 'application_views',
           ...(staff ? { filter: `staff_id=eq.${staff.id}` } : {}),
         },
-        () => void loadPage(),
+        reloadSoon,
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') void loadPage();
+        if (status === 'SUBSCRIBED') reloadSoon();
       });
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [loadPage, staff]);
+  }, [reloadSoon, staff]);
 
 
   const rows = useMemo<ReqRow[]>(

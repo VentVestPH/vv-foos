@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { realtimeChannel } from '../../lib/realtimeChannel';
 import { supabase } from '../../lib/supabase';
 import type { IntakeItem } from './lib';
 
@@ -18,8 +19,7 @@ function subscribeIntakeItems(listener: IntakeItemsListener): () => void {
 
   if (!intakeItemsChannel) {
     intakeItemsSubscribed = false;
-    intakeItemsChannel = supabase
-      .channel('intake-items')
+    intakeItemsChannel = realtimeChannel('intake-items')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'intake_items' },

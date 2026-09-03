@@ -17,7 +17,9 @@ import {
 } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import { StarGrade } from '../../../components/ui/StarGrade';
+import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { supabase } from '../../../lib/supabase';
+import { useCoalescedReload } from '../../../lib/useCoalescedReload';
 import { useLatestOnly } from '../../../lib/useLatestOnly';
 import {
   type Application,
@@ -155,6 +157,7 @@ export function CandidateListPage() {
         .select('*')
         .in('person_id', personIds);
       if (appErr) throw new Error(appErr.message);
+      if (!isCurrent()) return;
       setApps(appRows ?? []);
 
       const reqIds = [...new Set((appRows ?? []).map((a) => a.requisition_id))];
@@ -168,6 +171,7 @@ export function CandidateListPage() {
         .select('*')
         .in('id', reqIds);
       if (reqErr) throw new Error(reqErr.message);
+      if (!isCurrent()) return;
       setReqs(reqRows ?? []);
       setError(null);
     } catch (e) {
@@ -183,19 +187,20 @@ export function CandidateListPage() {
     void load();
   }, [load]);
 
+  const reloadSoon = useCoalescedReload(load);
+
   useEffect(() => {
-    const channel = supabase
-      .channel('recruit-candidate-list')
+    const channel = realtimeChannel('recruit-candidate-list')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'candidate_profiles' },
-        () => void load(),
+        reloadSoon,
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [load]);
+  }, [reloadSoon]);
 
   const reqCode = useMemo(
     () => new Map(reqs.map((r) => [r.id, r.display_code])),

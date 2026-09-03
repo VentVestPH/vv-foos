@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { realtimeChannel } from '../lib/realtimeChannel';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../auth/SessionProvider';
 import { Button } from '../components/ui/Button';
@@ -73,8 +74,7 @@ export function MyReminders() {
 
   useEffect(() => {
     if (!staff?.id) return;
-    const channel = supabase
-      .channel('my-reminders')
+    const channel = realtimeChannel('my-reminders')
       .on(
         'postgres_changes',
         {

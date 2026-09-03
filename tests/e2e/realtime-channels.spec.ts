@@ -63,7 +63,8 @@ test.describe('O4 realtime channel budget', () => {
     await signIn(page, PERSONA_EMAILS.admin);
 
     const { settled, rejoins } = await settleOn(page, watch, '/intake');
-    expect(settled).toEqual(['realtime:intake-items']);
+    expect(settled).toHaveLength(1);
+    expect(settled[0]).toMatch(/^realtime:intake-items(-\d+)?$/);
     expect(rejoins).toBe(0);
   });
 });

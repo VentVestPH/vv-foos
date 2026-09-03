@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { supabase } from '../../../lib/supabase';
 import { useRole } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
@@ -35,8 +36,7 @@ export function HiredPromotionListener() {
 
   useEffect(() => {
     if (!listening) return;
-    const channel = supabase
-      .channel('crm-hired-promotions')
+    const channel = realtimeChannel('crm-hired-promotions')
       .on(
         'postgres_changes',
         {

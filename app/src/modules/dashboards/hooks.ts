@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRole } from '../../auth/SessionProvider';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import { realtimeChannel } from '../../lib/realtimeChannel';
 import { supabase } from '../../lib/supabase';
 import { EMPTY_CELL } from '../../lib/format';
 
@@ -50,14 +52,21 @@ const WATCHED_EVENTS = new Set<string>(WATCHED_EVENT_NAMES);
 
 const WATCHED_EVENT_FILTER = `event_name=in.(${WATCHED_EVENT_NAMES.join(',')})`;
 
-export function useOutboxRefresh(onChange: () => void): void {
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+type OutboxListener = () => void;
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const channel = supabase
-      .channel('dash-outbox-refresh')
+const outboxListeners = new Set<OutboxListener>();
+let outboxChannel: RealtimeChannel | null = null;
+let outboxTimer: ReturnType<typeof setTimeout> | null = null;
+
+function notifyOutboxListeners() {
+  for (const listener of outboxListeners) listener();
+}
+
+function subscribeOutbox(listener: OutboxListener): () => void {
+  outboxListeners.add(listener);
+
+  if (!outboxChannel) {
+    outboxChannel = realtimeChannel('dash-outbox-refresh')
       .on(
         'postgres_changes',
         {
@@ -69,14 +78,32 @@ export function useOutboxRefresh(onChange: () => void): void {
         (message) => {
           const row = message.new as { event_name?: string };
           if (!row.event_name || !WATCHED_EVENTS.has(row.event_name)) return;
-          if (timer) clearTimeout(timer);
-          timer = setTimeout(() => onChangeRef.current(), 5000);
+          if (outboxTimer) clearTimeout(outboxTimer);
+          outboxTimer = setTimeout(notifyOutboxListeners, 5000);
         },
       )
       .subscribe();
-    return () => {
-      if (timer) clearTimeout(timer);
-      void supabase.removeChannel(channel);
-    };
-  }, []);
+  }
+
+  return () => {
+    outboxListeners.delete(listener);
+    if (outboxListeners.size > 0 || !outboxChannel) return;
+    const channel = outboxChannel;
+    outboxChannel = null;
+    if (outboxTimer) {
+      clearTimeout(outboxTimer);
+      outboxTimer = null;
+    }
+    void supabase.removeChannel(channel);
+  };
+}
+
+export function useOutboxRefresh(onChange: () => void): void {
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => subscribeOutbox(() => onChangeRef.current()), []);
 }
