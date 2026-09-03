@@ -2,7 +2,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
-import { deterministicId, isDuplicateKey } from './src/deterministic-id.mjs';
+import { deterministicId, isDuplicateKey, normalizeZohoId } from './src/deterministic-id.mjs';
 import { parseCsvRecords } from './src/csv.mjs';
 import { loadLookups, newUnresolved } from './src/lookups.mjs';
 import { mapCandidate } from './src/map-candidates.mjs';
@@ -84,7 +84,7 @@ async function loadIdMap(entityType) {
       .eq('entity_type', entityType)
       .range(from, from + page - 1);
     if (error) throw new Error(`could not read zoho_id_map: ${error.message}`);
-    for (const row of data ?? []) map.set(row.zoho_id, row.foos_id);
+    for (const row of data ?? []) map.set(normalizeZohoId(row.zoho_id), row.foos_id);
     if (!data || data.length < page) break;
     from += page;
   }
@@ -101,7 +101,10 @@ async function insertWithDeterministicId(table, entityType, zohoId, payload) {
 async function recordMapping(zohoId, entityType, foosId) {
   const { error } = await db
     .from('zoho_id_map')
-    .upsert({ zoho_id: zohoId, entity_type: entityType, foos_id: foosId }, { onConflict: 'zoho_id,entity_type' });
+    .upsert(
+      { zoho_id: normalizeZohoId(zohoId), entity_type: entityType, foos_id: foosId },
+      { onConflict: 'zoho_id,entity_type' },
+    );
   if (error) throw new Error(`could not record mapping for ${zohoId}: ${error.message}`);
 }
 
@@ -160,12 +163,12 @@ async function importCandidates(lookups, unresolved, idMaps) {
     for (const w of mapped.warnings) note(t.warnings, w);
     countFields(t, { ...mapped.person, ...mapped.profile });
 
-    const known = existing.get(mapped.zohoId) ?? null;
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
 
-      if (!known) existing.set(mapped.zohoId, `dry-run:${mapped.zohoId}`);
+      if (!known) existing.set(normalizeZohoId(mapped.zohoId), `dry-run:${mapped.zohoId}`);
       continue;
     }
 
@@ -193,7 +196,7 @@ async function importCandidates(lookups, unresolved, idMaps) {
       if (profErr) throw profErr;
 
       await recordMapping(mapped.zohoId, 'candidate', personId);
-      existing.set(mapped.zohoId, personId);
+      existing.set(normalizeZohoId(mapped.zohoId), personId);
     } catch (e) {
       t.failed += 1;
       note(t.skipReasons, `write failed: ${e.message ?? e}`);
@@ -222,11 +225,11 @@ async function importCompanies(lookups, unresolved, idMaps) {
     countFields(t, mapped.company);
     if (Object.keys(mapped.carried).length) t.metadataOnly += 1;
 
-    const known = existing.get(mapped.zohoId) ?? null;
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
-      if (!known) existing.set(mapped.zohoId, `dry-run:${mapped.zohoId}`);
+      if (!known) existing.set(normalizeZohoId(mapped.zohoId), `dry-run:${mapped.zohoId}`);
       continue;
     }
 
@@ -247,7 +250,7 @@ async function importCompanies(lookups, unresolved, idMaps) {
         t.created += 1;
       }
       await recordMapping(mapped.zohoId, 'company', companyId);
-      existing.set(mapped.zohoId, companyId);
+      existing.set(normalizeZohoId(mapped.zohoId), companyId);
     } catch (e) {
       t.failed += 1;
       note(t.skipReasons, `write failed: ${e.message ?? e}`);
@@ -281,11 +284,11 @@ async function importContacts(lookups, unresolved, idMaps) {
     for (const w of mapped.warnings) note(t.warnings, w);
     countFields(t, { ...mapped.person, ...mapped.profile });
 
-    const known = existing.get(mapped.zohoId) ?? null;
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
-      if (!known) existing.set(mapped.zohoId, `dry-run:${mapped.zohoId}`);
+      if (!known) existing.set(normalizeZohoId(mapped.zohoId), `dry-run:${mapped.zohoId}`);
       continue;
     }
 
@@ -311,7 +314,7 @@ async function importContacts(lookups, unresolved, idMaps) {
         .upsert({ person_id: personId, ...mapped.profile }, { onConflict: 'person_id' });
       if (profErr) throw profErr;
       await recordMapping(mapped.zohoId, 'contact', personId);
-      existing.set(mapped.zohoId, personId);
+      existing.set(normalizeZohoId(mapped.zohoId), personId);
     } catch (e) {
       t.failed += 1;
       note(t.skipReasons, `write failed: ${e.message ?? e}`);
@@ -340,7 +343,7 @@ async function importNotes(lookups, unresolved, idMaps) {
     for (const w of mapped.warnings) note(t.warnings, w);
     countFields(t, mapped.activity);
 
-    const known = existing.get(mapped.zohoId) ?? null;
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -360,7 +363,7 @@ async function importNotes(lookups, unresolved, idMaps) {
           mapped.activity,
         );
         await recordMapping(mapped.zohoId, 'note', inserted.id);
-        existing.set(mapped.zohoId, data.id);
+        existing.set(normalizeZohoId(mapped.zohoId), data.id);
         t.created += 1;
       }
     } catch (e) {
@@ -401,7 +404,7 @@ async function importAttachments(lookups, unresolved, idMaps) {
     for (const w of mapped.warnings) note(t.warnings, w);
     countFields(t, mapped.attachment);
 
-    const known = existing.get(mapped.zohoId) ?? null;
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -421,7 +424,7 @@ async function importAttachments(lookups, unresolved, idMaps) {
           mapped.attachment,
         );
         await recordMapping(mapped.zohoId, 'attachment', inserted.id);
-        existing.set(mapped.zohoId, data.id);
+        existing.set(normalizeZohoId(mapped.zohoId), data.id);
         t.created += 1;
       }
     } catch (e) {

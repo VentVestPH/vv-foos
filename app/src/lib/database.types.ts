@@ -17,6 +17,9 @@ export type RequisitionStatus =
   | 'closed';
 
 export type ApplicationStage =
+  | 'talent_pool'
+  | 'outreach'
+  | 'associated'
   | 'received'
   | 'screening'
   | 'phone_screen'
@@ -490,6 +493,7 @@ export interface Database {
           hired_at: string | null;
           stage_changed_at: string;
           status_token: string;
+          source_status: string | null;
         };
         Insert: {
           id?: string;
@@ -1098,6 +1102,9 @@ export const REQUISITION_STATUSES: RequisitionStatus[] = [
 ];
 
 export const APPLICATION_STAGES: ApplicationStage[] = [
+  'talent_pool',
+  'outreach',
+  'associated',
   'received',
   'screening',
   'phone_screen',

@@ -16,6 +16,7 @@ import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { downloadCsv } from '../../../lib/csv';
 import { Dialog } from '../components/Dialog';
 import { AddCandidateDialog } from './AddCandidateDialog';
+import { fetchAllRows } from '../../../lib/fetchAll';
 import { supabase } from '../../../lib/supabase';
 import { type Application, type Company, type Person, type Requisition, type Source, errMsg, fmtDate, personName } from '../lib';
 import { fetchPeopleByIds } from '../hooks';
@@ -89,12 +90,15 @@ export function ApplicationPipeline({
 
   const load = useCallback(async () => {
     try {
-      const [a, v] = await Promise.all([
-        supabase
-          .from('applications')
-          .select('*')
-          .eq('requisition_id', requisition.id)
-          .order('applied_at', { ascending: false }),
+      const [appRows, v] = await Promise.all([
+        fetchAllRows((f, t) =>
+          supabase
+            .from('applications')
+            .select('*')
+            .eq('requisition_id', requisition.id)
+            .order('applied_at', { ascending: false })
+            .range(f, t),
+        ),
         staff
           ? supabase
               .from('application_views')
@@ -102,9 +106,7 @@ export function ApplicationPipeline({
               .eq('staff_id', staff.id)
           : Promise.resolve({ data: [], error: null }),
       ]);
-      if (a.error) throw new Error(a.error.message);
       if (v.error) throw new Error(v.error.message);
-      const appRows = a.data ?? [];
       setApps(appRows);
       setViewedAt(
         new Map(

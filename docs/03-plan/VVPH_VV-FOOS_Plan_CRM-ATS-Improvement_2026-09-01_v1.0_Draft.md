@@ -986,6 +986,87 @@ Two mistakes of mine in writing it, both the same mistake twice in one day:
 - I hand-rolled a CSV parser that split on newlines before handling quotes, so it misread quoted multi-line fields and reported 2 of 75 candidate ids as bare. The repo already has `parseCsvRecords`, which the importer itself uses; switching to it both fixed the reading and made the test assert against exactly what the importer sees. A `csv.d.mts` was added beside it, matching the convention already there.
 - I hardcoded `/Users/klentz/...` as the export directory, which is the identical portability defect I fixed in `route-coverage.spec.ts` earlier the same day. Now resolved from `import.meta.url`, and a repo-wide sweep of `app/src`, `tests`, `scripts`, `migration/src` and `supabase` confirms no absolute path remains.
 
+## 7.22 U2 extraction: what the API actually does, as opposed to what its documentation says
+
+Credentials arrived on 2026-09-03 and both products authenticate and read. `migration/zoho-bulk-read.mjs` implements the flow proven end to end: `POST .../bulk/v2/read` returns a job id, `GET .../read/{id}` polls to `COMPLETED` with a count and `more_records`, `GET .../read/{id}/result` returns a zip containing `{jobid}.csv`.
+
+**Eight of eleven modules extracted and reconciled exactly against their own count endpoint**, for 644 credits in 404 seconds: Candidates 72,910, Job_Openings 687, Clients 104, Recruit Contacts 5, CRM Accounts 86, CRM Contacts 50, Leads 13, CRM Notes 59.
+
+### Four things the documentation gets wrong or omits
+
+**The request body differs between products.** Recruit takes `{"query":{"module":"Contacts","page":1}}`. CRM rejects that with `REQUEST_BODY_NOT_SUPPORTED` and requires the module as an object: `{"query":{"module":{"api_name":"Contacts"},"page":1}}`. That cost one wasted job to discover.
+
+**Bulk read needs its own scope**, `ZohoRecruit.bulk.read`, which `modules.ALL` does not imply. The first attempt returned `OAUTH_SCOPE_MISMATCH`.
+
+**The documented exclusion list is wrong in one direction and right in the other.** Zoho's limitations page says bulk read "is supported for all modules except Notes, Attachments, Emails, and related and cross modules". Tested live: **Notes is accepted and completes** with 200,000 records and `more_records: true`, so the docs are stale there. **Attachments is refused** at initiate with `NO_PERMISSION`, so the docs are right there.
+
+**A job can complete and still refuse its own result.** The Notes job reported `COMPLETED` with a count of 200,000, and then `GET .../result` returned **403 `NO_PERMISSION`, `details.permissions: ["Crm_Implied_View_Notes"]`**. Trusting the job state would have read as success and produced nothing. This is the failure mode most likely to be mistaken for a working pipeline.
+
+### Three modules refuse bulk read, for three different reasons
+
+| Module | Records | Failure | Where |
+| :---- | ----: | :---- | :---- |
+| Applications | 86,125 | `MODULE_NOT_AVAILABLE` | at initiate; it is a cross-module |
+| Notes | 210,922 | `NO_PERMISSION`, `Crm_Implied_View_Notes` | at **download**, after the job completed |
+| Departments | 104 | persistent HTTP 500 | at initiate, five retries |
+
+**All three read normally through the paged record API**, tested individually. So the client now falls back to paging on a refusal at initiate, a refusal at download, or a persistent 5xx, and it discovers support rather than trusting either the docs or the job state.
+
+### The `Crm_Implied_*` permissions, and an open hypothesis
+
+Both refusals name permissions that appear nowhere in Zoho's documentation: `Crm_Implied_View_Notes` and `Crm_Implied_EXPORT_Attachments`. Recruit's profile-permission page lists an Export permission covering "Candidates, Clients, Contacts, Job Openings, Products, Campaigns, Notes, Forecasts and Custom Modules" and does not mention Attachments.
+
+**Hypothesis, untested:** these are permissions a client-credentials Self Client does not receive but a user-authorised token would. If that holds, `migration/zoho-refresh-token.mjs`, which I wrote and then described as moot, is what unlocks bulk read for Notes and Attachments. It is an optimisation rather than a blocker, because the paged fallback already retrieves the data, so it is recorded rather than pursued.
+
+### Attachments: resolved, and two orders of magnitude smaller than I claimed
+
+The count endpoint reports 1,740 attachments, but it is undocumented so that figure has no defined meaning. What is measurable: **`Is_Attachment_Present` is true on 526 of 72,910 candidates**, and it is reliable. Verified from both sides: a flagged candidate returns HTTP 200 with a PDF; an unflagged candidate whose `RESUME_ID` is populated returns **HTTP 204, zero attachments**, confirmed on 8 candidates sampled evenly across the file.
+
+So enumeration costs **526 calls, not 72,910**, which was the figure behind my earlier and wrong recommendation to use a manual UI export.
+
+**A data finding for Klent rather than for the code.** 71,005 candidates carry a populated `RESUME_ID`, have no attachment file, and have no usable `RESUME_TEXT`: only 164 candidates have more than 40 characters of it, median 178. I guessed the resume text was inline before measuring it, and the measurement disproved the guess. If resumes are expected for those candidates, they are not present in Zoho as files, and no migration can produce them.
+
+## 7.23 The application stage set was not final, and the data said so
+
+Klent's decision on 2026-09-03: migrate everything from Zoho, no exceptions, and update the stage set rather than discard data to fit it. That **deliberately overrides** the "stage sets are locked, do not reorder or extend" rule in `CLAUDE.md`, which was written when the eight stages were a design commitment rather than a constraint. The override is his to make and is recorded here so nobody later reads the rule as still binding.
+
+I had proposed importing only the 1,348 rows with pipeline meaning and treating the other 84,777 as pool membership and outreach. He rejected that, and on reflection he is right: dropping 96% of a table during a migration is a decision the data does not support, and "we are still building the webapp" means the schema should follow the data at this stage.
+
+### What the data contains
+
+86,125 application records across **21 distinct** `Application_Status` values against FOOS's **8** stages, with 96% in one status that had no equivalent at all:
+
+| Rows | Zoho status | Now maps to |
+| ----: | :---- | :---- |
+| 83,022 | Talent Pool | **`talent_pool`** (new) |
+| 1,742 | Sent InMail I (Linkedin) | **`outreach`** (new) |
+| 497 | Associated | **`associated`** (new) |
+| 191 + 9 | Submitted, Submitted to client | `submitted` |
+| 176 + 1 + 1 | Do Not Pursue, Unqualified, Archived | `rejected` |
+| 167 + 116 | Candidate To Review Info, Flag | `screening` |
+| 104 + 39 + 30 + 1 | Resume Provided by…, Reference Provider, Applied | `received` |
+| 14 + 1 | Interview in progress, Interview-Scheduled | `client_interview` |
+| 1 | Interview to be scheduled | `phone_screen` |
+| 10 + 1 + 1 + 1 | Candidate Emailing Resume, Sent InMail II, Sent InMail & Left VM, Sent Email I | `outreach` |
+
+Three stages were added **before** `received`, so the enum's own sort order remains the pipeline order the board reads: `talent_pool -> outreach -> associated -> received -> screening -> phone_screen -> submitted -> client_interview -> offer -> hired -> rejected`.
+
+`applications.source_status` keeps the original Zoho string on every row, because 21 into 11 is lossy and this is where the loss is recoverable from without going back to Zoho.
+
+### Two things that would have broken quietly
+
+**`fn_application_status` had no `ELSE`.** It translates a stage into applicant-facing language behind a public status token, and its two `CASE` expressions covered exactly the original eight stages. Adding three stages made an applicant on one of them see a **null headline and null detail**, and with 83,022 `talent_pool` rows that is the common case rather than the edge. Both arms now cover all eleven and have an `ELSE`, so the next stage added fails as an honest string instead of a null.
+
+The wording for the new stages is deliberately not "Application received". A `talent_pool` row means we hold someone's details, not that they applied to that opening, and telling an applicant otherwise on a public page would be a misrepresentation.
+
+**The application pipeline board truncates.** `ApplicationPipeline` is per-requisition, so it was not one of the six list screens in U1, and it read `applications` with `.eq('requisition_id', …)` and no range. Measured from the extracted data: one requisition has **1,300 applications**, seven have over 500, median 96. At `max_rows = 1000` that requisition would silently show 1,000 and lose 300, with the stage counts wrong to match.
+
+This is precisely the blind spot recorded in 7.18: an `.eq()` looks like a narrowing filter to `check-unbounded-queries.mjs`, and it is, but a narrowed query can still exceed `max_rows`. It now pages through `fetchAllRows`, so nothing is lost.
+
+- [ ] **U4.5 Wire `map-requisitions` and `map-applications` into `import.mjs`**, in dependency order: requisitions before applications, because an application resolves both a candidate and a job opening through `zoho_id_map` and skips if either is missing
+- [ ] **U4.6 `knip.json` cannot see a dead mapper.** `migration/src/*.mjs` is declared as an *entry* pattern, so every file in that directory is an entry point by definition and is never reported unused. That is why two brand-new, unwired mappers pass the gate. It should be a project pattern reachable from `migration/*.mjs`, but tightening it before U4.5 would fail the gate on the very files being added, so the order is wire first, tighten after
+- [ ] **U1.9** Bound the application pipeline board per stage, as the deal board is. It no longer truncates, but a requisition with 1,300 applications now renders 1,300 cards. Correctness first, DOM cost second
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -1007,16 +1088,39 @@ Five phases, in order, because each one blocks the next.
 - [x] **U1.7** Tickets list. `ticket_list` carries the company and assignee names the old screen looked up through client-side maps built from full-table reads. `validate.sql` check 30 inserts a ticket with no company and no assignee, asserts it still appears, and deletes it again
 - [ ] **U1.8** The filter dropdowns still read whole lookup tables. Bounded now, so they cannot silently truncate, but a company select holding tens of thousands of options is its own problem. Found by a guard that was stricter than its own claim: it flagged the companies dropdown lookup while testing the companies *list*
 
-**U2. Extraction. 550 API credits, once four values arrive.** Bulk Read costs a flat 50 credits per job for up to 200,000 records, against 140,751 credits record by record. 6 Recruit modules plus 5 CRM modules is 11 jobs.
+**U2. Extraction. Unblocked 2026-09-03: credentials supplied, both products authenticate and read.** Bulk Read costs a flat 50 credits per job for up to 200,000 records.
 
-- [ ] **U2.1** A bulk-read client: initiate, poll, download the zipped CSV, per module
-- [ ] **U2.2** Recruit: Candidates, Job_Openings, Applications, Clients, Contacts, Notes
-- [ ] **U2.3** CRM: Accounts, Contacts, Deals, Leads, Notes
+Authoritative counts from `actions/count`, which correct three of my earlier figures:
 
-**U3. Attachments.** No bulk endpoint exists, so the API would cost one call per candidate, about 70,200 minimum. Not viable against 6,250 a day.
+| Recruit | Count | | CRM | Count |
+| :---- | ----: | :---- | :---- | ----: |
+| Notes | **210,922** | | Accounts | 86 |
+| Applications | **86,125** | | Contacts | 50 |
+| Candidates | **72,910** | | Notes | 59 |
+| Attachments | 1,740 | | Leads | 13 |
+| Job_Openings | 687 | | **Deals** | **0** |
+| Clients | 104 | | | |
+| Departments | 104 | | | |
+| Contacts | 5 | | | |
+| Interviews | 0 | | | |
 
-- [ ] **U3.1** Klent requests the Recruit UI export/backup, which includes attachments and costs no API credits
-- [ ] **U3.2** Upload the delivered files into Supabase Storage, joined on the export's `Parent Id` with its `Zrecruit_` prefix stripped
+Candidates is 72,910, not the "over 70,200" I recorded, which was a floor from a paging run I killed. Notes is 210,922, where I had extrapolated about 132,000 from the 75-row sample, so the sample under-represented it by 60%. Applications is 86,125 and was never exported at all; it is also the table whose read was silently capped at 1,000, so those requisition badges were computed from 1,000 of 86,125. **CRM Deals is empty**, and the whole of CRM is 208 records.
+
+Total cost, API only: 12 jobs at 50 credits is 600, plus 1,740 attachment downloads, is **2,340 credits, 37% of one day's allowance**.
+
+- [x] **U2.1** `migration/zoho-bulk-read.mjs`: initiate, poll, download, unzip, reconcile against the count endpoint per module, with a credit budget and a paged fallback for the three modules bulk read refuses. Section 7.22
+- [ ] **U2.2** Recruit: Candidates, Job_Openings, Applications, Clients, Contacts, Notes in two pages, Attachments
+- [ ] **U2.3** CRM: Accounts, Contacts, Leads, Notes. Deals is skipped because it is empty
+
+**U3. Attachments. Corrected 2026-09-03: no manual export is needed and the API does this comfortably.**
+
+I recorded that attachments had no bulk path and would cost one call per candidate, about 70,200, and recommended a UI export instead. That was wrong, and the error was in the input rather than the arithmetic: I assumed attachments had to be enumerated through `/Candidates/{id}/Attachments`, which is the endpoint I happened to use first, and never checked whether Attachments was addressable as a module. It is, and `/recruit/v2/Attachments/actions/count` returns **1,740**, not 72,910. A 42x error in the premise, so the recommendation built on it collapsed with it.
+
+Klent pushed back with exactly the right question, that using the API is pointless if a manual export is needed anyway, and he was right.
+
+- [ ] **U3.1** Enumerate attachments for the **526** candidates where `Is_Attachment_Present` is true, via `/Candidates/{id}/Attachments`. Bulk read refuses the Attachments module and the undocumented module-level list returns only 23 of 1,740
+- [ ] **U3.2** Download 1,740 files, one call each, and put them in Supabase Storage
+- [ ] **U3.3** Reconcile the bulk-read row count against the 1,740 the count endpoint reports. The list endpoint returned 1 row when asked for 2, which is unexplained and will be checked here rather than assumed away
 
 **U4. The importer at scale.** It has only ever run against 75 rows.
 
@@ -1024,7 +1128,20 @@ Five phases, in order, because each one blocks the next.
 - [x] **U4.1b Resumability fixed, which is what actually mattered.** Killing the importer mid-run used to leave an unmapped insert and produce a **duplicate candidate on resume**, unreachable by the purge. Deterministic v5 ids make a retry collide with itself and self-heal: verified at 5,000 rows, 0 duplicates, 0 orphans
 - [x] **U4.1c The purge silently stopped at 1,000 rows** and reported that as done. It now pages the whole id map; 5,000 rows removed in one pass
 - [x] **U4.2 Idempotency confirmed rather than assumed.** A second apply of the same export reports `0 new, 75 existing` and leaves the row count unchanged
-- [ ] **U4.3** The field map rebuilt from the real bulk-read header set, not the 75-row sample
+- [x] **U4.3 done for the columns.** Bulk read emits API field names (`Account_Name`, `Created_Time`) where the importer's mappers read UI display names (`Account Name`, `Created Time`), so nothing would have resolved. `migration/src/bulk-to-export.mjs` inverts the existing display-to-API map, with a per-module alias table for the cases that are not mechanical derivations (`Id` to `Record Id`, `Owner` to `Account Owner`). Six unit tests. Verified against the real bulk file: all five fields the CRM company mapper reads now resolve
+- [x] **U4.3b The two sources disagreed on id shape**, which would have double-imported every record. The UI export prefixes ids (`Zrecruit_837085...`), bulk read returns them bare. `normalizeZohoId` strips the prefix inside `deterministicId` and on both the read and write of `zoho_id_map`, and all five in-memory lookups were normalised too. Proven: the prefixed and bare forms now derive the same FOOS id
+- [ ] **U4.4 Five extracted modules have no mapper at all**, which is the next substantial piece of work. Extraction being finished does not mean the data can be loaded
+
+| Module | Records | FOOS target | State |
+| :---- | ----: | :---- | :---- |
+| Recruit Applications | 86,125 | `applications` | **no mapper.** This is the table that links candidates to requisitions; without it the import produces both with no relationships |
+| Recruit Job_Openings | 687 | `requisitions` | **no mapper** |
+| Recruit Clients | 104 | `companies` | **no mapper** |
+| Recruit Departments | 104 | none obvious | **no mapper**, and no clear FOOS target |
+| CRM Leads | 13 | none obvious | **no mapper**, and no clear FOOS target |
+| CRM Notes | 59 | `activities` | **no mapper** |
+
+Covered today: Recruit Candidates, Recruit Contacts, Recruit Notes, CRM Accounts.
 
 **U5. Prove the migration is accurate.** Nobody will spot a wrong field in 70,200 rows by eye, so this has to be a script that fails loudly rather than a review.
 

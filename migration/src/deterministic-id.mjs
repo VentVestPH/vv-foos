@@ -2,12 +2,18 @@ import { createHash } from 'node:crypto';
 
 const ID_NAMESPACE = 'f00c0000-0000-5000-8000-000000000001';
 
+export function normalizeZohoId(value) {
+  const raw = String(value ?? '').trim();
+  if (raw === '') return '';
+  return raw.replace(/^(Zrecruit|Zcrm|zrecruit|zcrm)_/, '');
+}
+
 export function deterministicId(entityType, zohoId) {
   if (!entityType || !zohoId) {
     throw new Error(`deterministicId needs both an entity type and a Zoho id, got ${entityType}/${zohoId}`);
   }
   const ns = Buffer.from(ID_NAMESPACE.replace(/-/g, ''), 'hex');
-  const name = Buffer.from(`${entityType}:${zohoId}`, 'utf8');
+  const name = Buffer.from(`${entityType}:${normalizeZohoId(zohoId)}`, 'utf8');
   const hash = createHash('sha1').update(Buffer.concat([ns, name])).digest();
   const b = Buffer.from(hash.subarray(0, 16));
   b[6] = (b[6] & 0x0f) | 0x50;

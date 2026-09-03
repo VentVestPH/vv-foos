@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { deterministicId, isDuplicateKey } from '../../migration/src/deterministic-id.mjs';
+import {
+  deterministicId,
+  isDuplicateKey,
+  normalizeZohoId,
+} from '../../migration/src/deterministic-id.mjs';
 
 describe('deterministic import ids', () => {
   it('is stable for the same entity type and Zoho id', () => {
@@ -31,5 +35,32 @@ describe('deterministic import ids', () => {
     expect(isDuplicateKey({ message: 'duplicate key value violates unique constraint' })).toBe(true);
     expect(isDuplicateKey({ code: '23503', message: 'foreign key violation' })).toBe(false);
     expect(isDuplicateKey(null)).toBe(false);
+  });
+});
+
+describe('normalizeZohoId, because the two Zoho sources disagree on id shape', () => {
+  it('strips the Zrecruit_ prefix the UI export adds', () => {
+    expect(normalizeZohoId('Zrecruit_837085000004666040')).toBe('837085000004666040');
+  });
+
+  it('leaves the bare form the bulk read API returns untouched', () => {
+    expect(normalizeZohoId('837085000004666040')).toBe('837085000004666040');
+  });
+
+  it('makes the UI export and the bulk read API derive the same FOOS id', () => {
+    expect(deterministicId('candidate', 'Zrecruit_837085000004666040')).toBe(
+      deterministicId('candidate', '837085000004666040'),
+    );
+  });
+
+  it('handles the CRM prefix and empty input', () => {
+    expect(normalizeZohoId('Zcrm_123')).toBe('123');
+    expect(normalizeZohoId('')).toBe('');
+    expect(normalizeZohoId(null)).toBe('');
+    expect(normalizeZohoId('  Zrecruit_9  ')).toBe('9');
+  });
+
+  it('does not strip a prefix that is merely a similar word', () => {
+    expect(normalizeZohoId('Zrecruiter_5')).toBe('Zrecruiter_5');
   });
 });
