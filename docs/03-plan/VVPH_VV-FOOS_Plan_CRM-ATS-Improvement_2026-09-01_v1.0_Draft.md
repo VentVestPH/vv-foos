@@ -1063,9 +1063,61 @@ The wording for the new stages is deliberately not "Application received". A `ta
 
 This is precisely the blind spot recorded in 7.18: an `.eq()` looks like a narrowing filter to `check-unbounded-queries.mjs`, and it is, but a narrowed query can still exceed `max_rows`. It now pages through `fetchAllRows`, so nothing is lost.
 
-- [ ] **U4.5 Wire `map-requisitions` and `map-applications` into `import.mjs`**, in dependency order: requisitions before applications, because an application resolves both a candidate and a job opening through `zoho_id_map` and skips if either is missing
-- [ ] **U4.6 `knip.json` cannot see a dead mapper.** `migration/src/*.mjs` is declared as an *entry* pattern, so every file in that directory is an entry point by definition and is never reported unused. That is why two brand-new, unwired mappers pass the gate. It should be a project pattern reachable from `migration/*.mjs`, but tightening it before U4.5 would fail the gate on the very files being added, so the order is wire first, tighten after
+- [x] **U4.5 Wire `map-requisitions` and `map-applications` into `import.mjs`**, in dependency order: requisitions before applications, because an application resolves both a candidate and a job opening through `zoho_id_map` and skips if either is missing
+- [x] **U4.6 `knip.json` cannot see a dead mapper.** `migration/src/*.mjs` is declared as an *entry* pattern, so every file in that directory is an entry point by definition and is never reported unused. That is why two brand-new, unwired mappers pass the gate. It should be a project pattern reachable from `migration/*.mjs`, but tightening it before U4.5 would fail the gate on the very files being added, so the order is wire first, tighten after. Tightened once U4.7 landed: `migration/src/*.mjs` is now project-only, and the nine exports it exposed as unused are either de-exported or deleted. No unused *file* is reported, which is what proves every mapper is wired
 - [ ] **U1.9** Bound the application pipeline board per stage, as the deal board is. It no longer truncates, but a requisition with 1,300 applications now renders 1,300 cards. Correctness first, DOM cost second
+
+## 7.24 U4.7: five modules had no mapper, and only three of them were real
+
+The instruction was that everything in Zoho Recruit and Zoho CRM must land in FOOS, with no exceptions and multiple passes. The first pass was a script rather than a reading of the code, `scripts/verify-zoho-migration.mjs`, which checks every extracted Zoho id against `zoho_id_map` one record at a time instead of comparing totals. Per-record checking is the point: two modules can have matching counts and disjoint contents.
+
+It found five modules with no importer code path, 285 records. Measuring each one before writing a mapper removed two of them and changed a third.
+
+**Recruit Departments is the Clients module under a second API name.** Both extracts hold exactly 104 records, which is the kind of coincidence worth testing rather than trusting: the id sets are identical, 104 in both, zero on either side alone, and the field sets match down to `Taleo_Client_ID`. Writing the obvious mapper would have created 104 duplicate companies and called it progress. Verification pass 2 now asserts the overlap on every run, so if Zoho ever makes Departments a genuinely separate module the assertion fails instead of the data silently duplicating.
+
+**Recruit Contacts had never been imported, and the plan said it had.** The U4.4 table recorded it as covered. It was not: `importContacts` reads `ZohoCRM/Contacts`, and the five Recruit client contacts are a different module with different ids. The claim came from matching a module name rather than reading the call site.
+
+**CRM Leads has no FOOS table, and the faithful mapping is not the obvious one.** A lead becomes a person with a `contact_profiles` row. What it does not become is a company: the 13 leads carry 11 distinct `Company` values, and several are job titles rather than employers, one of them "Sales & Marketing Coordinator Harcourts Takapuna". Minting a company per distinct string would have put eleven rows of that quality into the list every deal and requisition picks from. The lead-only fields are written to a note on the person instead, so nothing is lost and nothing junk is created. This is a judgement call and reversible: the strings are in the note bodies if they should become companies after all.
+
+**Three real gaps remain and are now wired**: Recruit Clients to `companies`, Recruit Contacts to `people` and `contact_profiles`, CRM Notes to `activities`. Against the real extracts all four new phases map with zero skips and zero failures: clients 104 of 104, contacts 5 of 5, leads 13 of 13, CRM notes 59 of 59.
+
+### 7.24.1 Three defects the same work exposed, none of them in the new code
+
+**The notes phase reported every insert as a failure.** `importNotes` and `importAttachments` both ended their success path with `existing.set(key, data.id)`, and `data` is bound nowhere in that scope: the only binding in the file is inside `loadIdMap`. Every note therefore threw a `ReferenceError` after its insert and its mapping had already committed, was caught by the surrounding handler, and was counted as failed. The rows and the mappings are correct; the report would have said 210,922 failed. Proven from the database rather than the log, which the importer buffers: 27,769 activities against 27,760 note mappings mid-run, a difference of exactly the nine seed activities.
+
+The general lesson is that the run's own report is not evidence. It is produced by the same code being tested, and here it would have been wrong in the most alarming possible direction. The database is the evidence, which is why the verifier reads the database and the extract and never the report.
+
+**Every imported requisition was stamped with the import date.** This is the same defect the contacts screen showed when it read "last updated Sept 3", and the answer is the same: the date is in the export. `mapRequisition` read `Creation_Date`, a mostly-null custom Taleo field, and carried it into the report as an unmapped value, while `Created_Time` and `Modified_Time` sat unread in the same row. All 687 requisitions had `created_at` of today. Both timestamps are now written, and the mapper warns when `Created_Time` is missing rather than silently accepting the default. `activities` and `applications` were checked at the same time and are fine: they carry `occurred_at` and `applied_at`, both already taken from Zoho, and neither table has a `created_at` column to get wrong.
+
+**No requisition had a company, and the mapper had said the column did not exist.** `mapRequisition` carried `Client_Name` with the warning that it has "no column on requisitions". `requisitions.company_id` exists. All 687 job openings reference a client id that resolves against the 104 Clients, covering 97 distinct companies, so the link was available the whole time and the warning was wrong. Ordering the clients phase before requisitions is what makes it resolvable, which is why `main()` now runs it there.
+
+### 7.24.2 One read-only bug found by proving an assumption instead of stating it
+
+Four module directories hold two CSV files each, and `readBulk` took `readdirSync(...).find(f => f.endsWith('.csv'))`, the first file only. The two files turned out to be byte-identical re-downloads, confirmed by checksum, so nothing was actually lost. That is luck, not correctness: a paged result would have been silently halved. `readBulk` now unions every CSV in the directory and dedupes by Zoho id, which handles both the identical case and the genuinely paged one.
+
+### 7.24.3 Staff attribution was empty for every module, because Zoho's two export formats disagree
+
+The importer's own report said it plainly and it was read as noise: "unresolved staff: 7 distinct value(s) across 145,962 row(s)". Seven values is small, so it looked like a handful of ex-employees. It was not. The seven values were **numeric Zoho user ids**, and `resolveStaff` looks a value up in an index of staff *names*, so it could never match one.
+
+The cause is that Zoho's two bulk-read output formats represent a lookup field differently. The paged **JSON** result gives `Created_By: { name, id }`. The **CSV** result gives `Created_By: 837085000000540058`, the id alone, with no name anywhere in the file. Every module extracted as CSV therefore lost its owner, its creator and its last modifier: candidates, job openings, clients, contacts, and both CRM object modules. `people.created_by` was set on 10 rows, all of them seed.
+
+`add-legacy-owners.mjs` could not see the problem either, because it skips values matching `/^\d{10,}$/` on the reasonable assumption that a bare id is not a person's name. It reported 4 missing owners when the true figure was 5, and the one it could not see accounted for 67,463 references on its own.
+
+Three changes, in the order they had to happen. `migration/zoho-users.mjs` builds an id-to-name map, first from the `{name, id}` objects already present in the JSON extracts and the saved CRM users export, which covered 6 of the 11 referenced ids at no API cost, then from `/users?type=AllUsers` on each product for the rest. It exits non-zero while any referenced id is still unnamed, so a partial map cannot pass quietly. `resolveStaff` now recognises an id-shaped value and translates it through that map before the name lookup, and records the id as unresolved when the map has no entry, rather than silently returning null. `add-legacy-owners.mjs` translates ids the same way, which is what let it find the fifth owner.
+
+The Recruit users call returned **401** on the first attempt, on a scope of `settings.ALL,modules.ALL`. The users endpoint needs `ZohoRecruit.users.ALL` specifically, which is a separate scope in the same way `ZohoRecruit.bulk.read` turned out to be. Two API calls in total. After the fix the importer reports no unresolved staff at all, and all 12 staff rows exist.
+
+### 7.24.4 The id map lost a third of itself to unordered paging, and deterministic ids hid it
+
+The dry run after the owner fix reported `candidates 72910 rows, 24047 new, 48863 existing`. Every candidate is mapped, so every one should have been existing. Measured directly, `loadIdMap` fetched 73 pages for 72,910 candidate rows, which is the right number of pages, and returned **47,453 distinct ids**. It was fetching the right volume and getting the wrong rows.
+
+`loadIdMap` paged with `.range(from, from + 999)` and **no `ORDER BY`**. Postgres does not guarantee row order without one, so successive OFFSET windows over the same query can return a row twice and never return another. This is not a slow query or a truncated one, both of which have already been found in this codebase; it is a query that returns the wrong rows, silently, and differently on each run.
+
+Its consequences were entirely masked. Because the map was short, the importer believed a third of the already-imported records were new and re-inserted them, and because U4.1b made every insert id deterministic, each re-insert collided with itself and was treated as already present. **The deterministic id fix, added for crash resumability, is the only reason this bug corrupted nothing.** Without it, a resumed run would have produced tens of thousands of duplicate candidates, notes and applications.
+
+`loadIdMap` now pages by keyset, ordering on `zoho_id` and filtering `.gt()` on the last id seen, and then asserts its own completeness against an exact count, throwing rather than proceeding if the two disagree. The dry run afterwards reports 0 new and 72,910 existing for candidates, and matching figures for every other module.
+
+The general guard is `scripts/check-paged-order.mjs`, in the gate and in `ci.yml`. It flags any `.range()` paging that never calls `.order()`, and any that orders only on a non-unique column, because `.order('name')` with OFFSET has the same defect whenever two rows share a name. It resolves query-builder helpers so a list page that applies its order inside `applyFilters` is not a false positive, and it was verified against both real shapes before being trusted. It found two further live cases: the application pipeline paged on `applied_at` alone, and both company dropdown lookups paged on `name` alone.
 
 ## 8. Tasklist
 
@@ -1130,18 +1182,27 @@ Klent pushed back with exactly the right question, that using the API is pointle
 - [x] **U4.2 Idempotency confirmed rather than assumed.** A second apply of the same export reports `0 new, 75 existing` and leaves the row count unchanged
 - [x] **U4.3 done for the columns.** Bulk read emits API field names (`Account_Name`, `Created_Time`) where the importer's mappers read UI display names (`Account Name`, `Created Time`), so nothing would have resolved. `migration/src/bulk-to-export.mjs` inverts the existing display-to-API map, with a per-module alias table for the cases that are not mechanical derivations (`Id` to `Record Id`, `Owner` to `Account Owner`). Six unit tests. Verified against the real bulk file: all five fields the CRM company mapper reads now resolve
 - [x] **U4.3b The two sources disagreed on id shape**, which would have double-imported every record. The UI export prefixes ids (`Zrecruit_837085...`), bulk read returns them bare. `normalizeZohoId` strips the prefix inside `deterministicId` and on both the read and write of `zoho_id_map`, and all five in-memory lookups were normalised too. Proven: the prefixed and bare forms now derive the same FOOS id
-- [ ] **U4.4 Five extracted modules have no mapper at all**, which is the next substantial piece of work. Extraction being finished does not mean the data can be loaded
+- [x] **U4.4 Five extracted modules had no mapper at all.** Measuring each one first removed two of them: Departments is the Clients module under a second API name (identical 104 ids), and the plan's claim that Recruit Contacts was covered was wrong, because `importContacts` reads the CRM module. Section 7.24
 
 | Module | Records | FOOS target | State |
 | :---- | ----: | :---- | :---- |
-| Recruit Applications | 86,125 | `applications` | **no mapper.** This is the table that links candidates to requisitions; without it the import produces both with no relationships |
-| Recruit Job_Openings | 687 | `requisitions` | **no mapper** |
-| Recruit Clients | 104 | `companies` | **no mapper** |
-| Recruit Departments | 104 | none obvious | **no mapper**, and no clear FOOS target |
-| CRM Leads | 13 | none obvious | **no mapper**, and no clear FOOS target |
-| CRM Notes | 59 | `activities` | **no mapper** |
+| Recruit Applications | 86,125 | `applications` | **done**, U4.5. 86,125 mapped |
+| Recruit Job_Openings | 687 | `requisitions` | **done**, U4.5, and now carrying `company_id` and the Zoho timestamps |
+| Recruit Clients | 104 | `companies` | **done**, U4.7. `map-clients.mjs`, 104 of 104, and the source of every requisition's company |
+| Recruit Departments | 104 | none needed | **not a module.** The same 104 records as Clients, asserted on every verification run rather than assumed |
+| Recruit Contacts | 5 | `people`, `contact_profiles` | **done**, U4.7. `map-recruit-contacts.mjs`. Was recorded as covered and was not |
+| CRM Leads | 13 | `people`, `contact_profiles` | **done**, U4.7. `map-leads.mjs`. No company row is minted, because the Zoho `Company` values include job titles |
+| CRM Notes | 59 | `activities` | **done**, U4.7. `map-crm-notes.mjs`, parented to companies and people. 20 of the 59 have a blank title, which the Recruit mapper skips outright |
 
-Covered today: Recruit Candidates, Recruit Contacts, Recruit Notes, CRM Accounts.
+Covered before today: Recruit Candidates, Recruit Notes, CRM Accounts, CRM Contacts.
+
+- [x] **U4.7 The three real gaps wired, with 20 unit tests.** All four new phases map with zero skips and zero failures against the real extracts. Ordering matters and is now enforced in `main()`: clients before requisitions, and the CRM maps before CRM notes
+- [x] **U4.8 `importNotes` and `importAttachments` counted every successful insert as a failure**, through an `existing.set(key, data.id)` where `data` is bound nowhere in scope. The rows and the mappings were correct; only the report was wrong, proven from the database rather than from the log the importer buffers. Section 7.24.1
+- [x] **U4.9 `readBulk` read the first CSV in a module directory and ignored the rest.** Four directories hold two files each. They are byte-identical re-downloads, so nothing was lost, but a paged result would have been silently halved. It now unions every file and dedupes by Zoho id
+- [x] **U4.10 `scripts/verify-zoho-migration.mjs`**, six passes: every extracted id against `zoho_id_map` per record, the Departments-equals-Clients assertion, every FOOS row accounted for as imported or seed, eight referential-integrity checks, timestamp fidelity against the extract on a 200-record sample, and a check that the bulk-load triggers are back on
+- [x] **U4.11 Staff attribution was empty for every CSV-extracted module.** Zoho's bulk read gives `Created_By: {name, id}` in JSON and the bare id in CSV, and `resolveStaff` indexes names, so candidates, job openings, clients, contacts and both CRM modules imported with no owner, creator or modifier. `migration/zoho-users.mjs` builds the id-to-name map from the extracts first and the `/users` endpoint second, and exits non-zero while any referenced id is unnamed. Section 7.24.3
+- [x] **U4.12 `loadIdMap` returned 47,453 of 72,910 candidate mappings**, because it paged with `.range()` and no `ORDER BY`. It now pages by keyset and asserts its own count. Deterministic ids are the only reason this corrupted nothing. Section 7.24.4
+- [x] **U4.13 `scripts/check-paged-order.mjs`**, in the gate and `ci.yml`: any `.range()` paging with no `.order()`, or ordered only on a non-unique column, fails the build. Verified against both real shapes. It found two more live cases, the application pipeline and both company dropdown lookups
 
 **U5. Prove the migration is accurate.** Nobody will spot a wrong field in 70,200 rows by eye, so this has to be a script that fails loudly rather than a review.
 
