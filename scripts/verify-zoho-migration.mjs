@@ -146,7 +146,7 @@ console.log('\nPASS 2  Departments really is the same record set as Clients\n');
   }
 }
 
-console.log('\nPASS 3  every FOOS row is either imported or seed, nothing unaccounted\n');
+console.log('\nPASS 3  every FOOS row is imported, seed or trigger-derived, nothing unaccounted\n');
 const OWN_IS_TEST = 't.is_test';
 
 const PARENT_IS_TEST_APPLICATIONS = `(
@@ -164,32 +164,36 @@ const PARENT_IS_TEST_ACTIVITIES = `(
   or exists (select 1 from deals d where d.id = t.deal_id and d.is_test)
 )`;
 
+const DERIVED_NONE = 'false';
+const DERIVED_ACTIVITIES = "t.kind = 'status_change'";
+
 const TABLES = [
-  ['people', "entity_type in ('candidate','contact','lead')", OWN_IS_TEST],
-  ['companies', "entity_type = 'company'", OWN_IS_TEST],
-  ['requisitions', "entity_type = 'requisition'", OWN_IS_TEST],
-  ['applications', "entity_type = 'application'", PARENT_IS_TEST_APPLICATIONS],
-  ['activities', "entity_type = 'note'", PARENT_IS_TEST_ACTIVITIES],
+  ['people', "entity_type in ('candidate','contact','lead')", OWN_IS_TEST, DERIVED_NONE],
+  ['companies', "entity_type = 'company'", OWN_IS_TEST, DERIVED_NONE],
+  ['requisitions', "entity_type = 'requisition'", OWN_IS_TEST, DERIVED_NONE],
+  ['applications', "entity_type = 'application'", PARENT_IS_TEST_APPLICATIONS, DERIVED_NONE],
+  ['activities', "entity_type = 'note'", PARENT_IS_TEST_ACTIVITIES, DERIVED_ACTIVITIES],
 ];
 console.log(
-  `  ${'table'.padEnd(16)}${'rows'.padStart(9)}${'imported'.padStart(10)}${'seed'.padStart(7)}${'other'.padStart(8)}`,
+  `  ${'table'.padEnd(16)}${'rows'.padStart(9)}${'imported'.padStart(10)}${'seed'.padStart(7)}${'derived'.padStart(9)}${'other'.padStart(8)}`,
 );
-for (const [table, pred, seedExpr] of TABLES) {
+for (const [table, pred, seedExpr, derivedExpr] of TABLES) {
   const row = psql(`
     select count(*),
            count(*) filter (where m.foos_id is not null),
            count(*) filter (where ${seedExpr}),
-           count(*) filter (where m.foos_id is null and not ${seedExpr})
+           count(*) filter (where m.foos_id is null and not ${seedExpr} and ${derivedExpr}),
+           count(*) filter (where m.foos_id is null and not ${seedExpr} and not ${derivedExpr})
     from public.${table} t
     left join (select distinct foos_id from zoho_id_map where ${pred}) m
       on m.foos_id = t.id;
   `);
-  const [total, imported, seed, other] = row.split('|');
+  const [total, imported, seed, derived, other] = row.split('|');
   console.log(
-    `  ${table.padEnd(16)}${total.padStart(9)}${imported.padStart(10)}${seed.padStart(7)}${other.padStart(8)}`,
+    `  ${table.padEnd(16)}${total.padStart(9)}${imported.padStart(10)}${seed.padStart(7)}${derived.padStart(9)}${other.padStart(8)}`,
   );
   if (Number(other) > 0) {
-    fail(`${table}: ${other} row(s) are neither imported nor seed`);
+    fail(`${table}: ${other} row(s) are neither imported, seed, nor trigger-derived`);
   }
 }
 

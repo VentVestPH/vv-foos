@@ -195,7 +195,7 @@ end $$;
 -- 7. Remaining outbox events -------------------------------------------------
 do $$
 declare
-  item uuid; person uuid := 'b0000000-0000-4000-8000-000000000004';
+  item uuid; act uuid; person uuid := 'b0000000-0000-4000-8000-000000000004';
   -- now(), not clock_timestamp(): events_outbox.created_at defaults to now(), which
   -- is the transaction start, so a clock_timestamp() taken inside the same
   -- transaction is always later and nothing would ever satisfy the comparison.
@@ -268,12 +268,17 @@ begin
     raise exception 'FAIL 7: intake_item.imported not emitted';
   end if;
 
-  -- activity.logged
-  insert into activities (kind, subject, person_id) values ('note', 'Validation activity', person);
+  -- activity.logged. Inserted, asserted, then removed: this file must not leave
+  -- rows behind, and an earlier version of this check accumulated one activity per
+  -- run until the migration verifier flagged them.
+  insert into activities (kind, subject, person_id)
+  values ('note', 'Validation activity', person)
+  returning id into act;
   if not exists (select 1 from events_outbox
                  where event_name = 'activity.logged' and created_at >= started) then
     raise exception 'FAIL 7: activity.logged never emitted';
   end if;
+  delete from activities where id = act;
   raise notice 'PASS 7: all trigger-fired domain events reach events_outbox';
 end $$;
 
