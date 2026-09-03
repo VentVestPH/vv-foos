@@ -98,7 +98,7 @@ What you give up: **there is no refresh token in this flow.** An access token la
 
 `invalid_soid` means the org id belongs to the other product or another portal. `INVALID_CLIENT` still means `ZOHO_DC` does not match the data centre.
 
-## Whether you can do this yourself## Whether you can do this yourself
+## Whether you can do this yourself
 
 You said John owns both Zoho accounts and gave you access. That is usually enough, with
 one condition: **your user profile in each Zoho org needs API access enabled.** In Zoho
