@@ -151,3 +151,44 @@ describe('mapContact', () => {
     expect(unrecognisedContactColumns(['Record Id', 'First Name', 'Custom Field 7'])).toEqual(['Custom Field 7']);
   });
 });
+
+describe('mapContact resolves the account when bulk read supplies only an id', () => {
+  const companies = new Map([['7079769000000598204', 'company-uuid']]);
+
+  it('reads a bare id out of Account Name, because there is no Account Name.id column', () => {
+    const r = mapContact(
+      { 'Record Id': 'zcrm_9', 'Last Name': 'Reyes', 'Account Name': '7079769000000598204' },
+      lookups,
+      unresolved(),
+      companies,
+    );
+    expect(defined(r.profile, 'profile').company_id).toBe('company-uuid');
+    expect(r.warnings.join(' ')).not.toContain('not imported');
+  });
+
+  it('still prefers Account Name.id when the UI export supplies both', () => {
+    const r = mapContact(
+      {
+        'Record Id': 'zcrm_10',
+        'Last Name': 'Reyes',
+        'Account Name': 'Northwind Freight',
+        'Account Name.id': '7079769000000598204',
+      },
+      lookups,
+      unresolved(),
+      companies,
+    );
+    expect(defined(r.profile, 'profile').company_id).toBe('company-uuid');
+  });
+
+  it('warns when the account is named but not imported', () => {
+    const r = mapContact(
+      { 'Record Id': 'zcrm_11', 'Last Name': 'Reyes', 'Account Name': '7079769000000000000' },
+      lookups,
+      unresolved(),
+      companies,
+    );
+    expect(defined(r.profile, 'profile').company_id).toBeNull();
+    expect(r.warnings.join(' ')).toContain('not imported');
+  });
+});

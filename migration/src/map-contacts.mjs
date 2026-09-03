@@ -135,10 +135,11 @@ export function mapContact(row, lookups, unresolved, companyByZohoId) {
   if (createdAt) person.created_at = createdAt;
   if (updatedAt) person.updated_at = updatedAt;
 
-  const accountZohoId = trimmed(row, 'Account Name.id');
-  const accountName = trimmed(row, 'Account Name');
+  const accountRef = trimmed(row, 'Account Name');
+  const accountZohoId =
+    trimmed(row, 'Account Name.id') || (/^\d{10,}$/.test(accountRef ?? '') ? accountRef : null);
   const companyId = accountZohoId ? (companyByZohoId.get(accountZohoId) ?? null) : null;
-  if (accountName && !companyId) {
+  if (accountRef && !companyId) {
     warnings.push('contact references an account that is not imported yet');
   }
 
