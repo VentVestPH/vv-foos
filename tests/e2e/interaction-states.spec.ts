@@ -46,27 +46,51 @@ test.describe('interaction states survive the cascade', () => {
   test('a pressed primary button darkens instead of turning grey', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await page.goto('/settings');
-    const primary = page.locator('.btn-primary').first();
-    await expect(primary).toBeVisible({ timeout: 20000 });
+    const first = page.locator('.btn-primary').first();
+    await expect(first).toBeVisible({ timeout: 20000 });
+
+    const identity = () =>
+      first.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return `${el.textContent?.trim()}@${Math.round(r.x)},${Math.round(r.y)}`;
+      });
+    let previous = '';
+    let settled = false;
+    for (let i = 0; i < 40 && !settled; i += 1) {
+      const now = await identity();
+      settled = now === previous;
+      previous = now;
+      if (!settled) await page.waitForTimeout(250);
+    }
+    expect(
+      settled,
+      'the settings cards load asynchronously and insert primary buttons above each other, ' +
+        'so the first one has to stop moving before it can be held',
+    ).toBe(true);
+
+    const button = await first.elementHandle();
+    expect(button, 'the settled primary button should still be attached').not.toBeNull();
+
     await page.mouse.move(0, 0);
     await expect
-      .poll(() => primary.evaluate((el) => getComputedStyle(el).backgroundColor), {
+      .poll(() => button!.evaluate((el) => getComputedStyle(el).backgroundColor), {
         timeout: 5000,
         message: 'the primary button never settled on its idle colour',
       })
       .toBe(PRIMARY_IDLE);
 
-    await primary.hover();
+    await button!.hover();
     await page.mouse.down();
     try {
       await expect
-        .poll(() => primary.evaluate((el) => getComputedStyle(el).backgroundColor), {
+        .poll(() => button!.evaluate((el) => getComputedStyle(el).backgroundColor), {
           timeout: 5000,
           message: 'the held primary button never took its pressed colour',
         })
         .toBe(PRIMARY_PRESSED);
     } finally {
       await page.mouse.up();
+      await button!.dispose();
     }
   });
 
