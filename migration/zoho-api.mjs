@@ -122,6 +122,7 @@ async function token(service) {
 }
 
 async function call(url) {
+  spend(1, url.replace(/\?.*$/, '').replace(/^https:\/\/[^/]+/, ''));
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const res = await fetch(url, {
       headers: { Authorization: `Zoho-oauthtoken ${await token(serviceFor(url))}` },
@@ -237,11 +238,46 @@ function saveAsExportCsv(exportFileName, records) {
 const RECRUIT_MODULES = ['Candidates', 'Job_Openings', 'Applications', 'Clients', 'Contacts', 'Notes'];
 const CRM_MODULES = ['Accounts', 'Contacts', 'Leads', 'Deals', 'Meetings', 'Users'];
 
+const budgetArg = valueOf('--budget', null);
+const parsedBudget = budgetArg === null ? 1500 : Number(budgetArg);
+if (!Number.isFinite(parsedBudget) || parsedBudget < 0) {
+  console.error(`--budget must be a number of credits, got ${budgetArg}`);
+  process.exit(1);
+}
+const CREDIT_BUDGET = parsedBudget;
+let creditsUsed = 0;
+
+class BudgetExhausted extends Error {}
+
+function spend(n, what) {
+  creditsUsed += n;
+  if (creditsUsed > CREDIT_BUDGET) {
+    throw new BudgetExhausted(
+      `Credit budget exhausted: ${creditsUsed} of ${CREDIT_BUDGET} after ${what}.\n` +
+        'Zoho meters API credits per day and the org limit is a few thousand, so an\n' +
+        'unbounded pull is not survivable. Narrow the run with --limit or --module, or\n' +
+        'raise the ceiling deliberately with --budget N once you know the cost.',
+    );
+  }
+}
+
 async function main() {
   const summary = {};
   const want = (m) => !ONLY || ONLY.split(',').includes(m);
 
   console.log(`Zoho API pull, data centre .${DC}`);
+  console.log(`Credit budget ${CREDIT_BUDGET}. Every request counts against it.`);
+
+  if (!LIMIT) {
+    console.log(`
+No --limit given, so this run is unbounded. That is measured, not hypothetical: the
+Recruit org held over 70,200 candidates on 2026-09-03, and one detail call plus one
+attachment call per candidate is about 140,000 credits, roughly 23 days of a 6,250
+daily allowance. The budget above will stop the run long before that.
+
+Pass --limit N for a sample, or --budget N to raise the ceiling on purpose.
+`);
+  }
 
   for (const m of RECRUIT_MODULES) {
     if (!want(m)) continue;
@@ -289,6 +325,7 @@ async function main() {
         }
       }
     } catch (e) {
+      if (e instanceof BudgetExhausted) throw e;
       console.error(`  ${m}: ${e.message}`);
       summary[`recruit_${m}`] = `error: ${e.message}`;
     }
@@ -301,11 +338,13 @@ async function main() {
       save(`crm_${m}`, m === 'Users' ? (rows.users ?? rows) : rows);
       summary[`crm_${m}`] = Array.isArray(rows) ? rows.length : 'see file';
     } catch (e) {
+      if (e instanceof BudgetExhausted) throw e;
       console.error(`  ${m}: ${e.message}`);
       summary[`crm_${m}`] = `error: ${e.message}`;
     }
   }
 
+  console.log(`\nAPI credits spent this run: ${creditsUsed} of the ${CREDIT_BUDGET} budget.`);
   console.log('\nSummary:');
   for (const [k, v] of Object.entries(summary)) {
     console.log(`  ${k.padEnd(34)} ${typeof v === 'object' ? JSON.stringify(v) : v}`);

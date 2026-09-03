@@ -32,6 +32,33 @@ The API reaches things the CSV exports cannot. Two of the three original reasons
 
 It also removes the need to ask anyone to run an export by hand each time.
 
+## Read this before running anything: credits and scale
+
+**Zoho meters API credits per day.** The org's allowance is **6,250**, and every request costs one, including the paging calls that merely enumerate records. The console shows consumption under API usage.
+
+**The Recruit org held over 70,200 candidates on 2026-09-03.** The CSV export the whole migration was built against holds **75**. That is not a sample, it is 0.1% of the data, and every count in the migration reports is a count of those 75.
+
+That changes what is feasible. One detail call plus one attachment call per candidate over 70,200 records is about **140,000 credits, roughly 23 days of full daily allowance**:
+
+| Work | Requests |
+| :---- | :---- |
+| Paging 70,200 candidates at 200 per page | 351 |
+| One detail call per candidate | 70,200 |
+| One attachment call per candidate | 70,200 |
+| **Total** | **140,751** |
+
+So `zoho-api.mjs` now carries a **credit budget, default 1,500**, counted per request and enforced before the request is sent. Exceeding it aborts the whole run rather than one module. An unbounded run prints the numbers above before it starts.
+
+```sh
+node migration/zoho-api.mjs --limit 200            # a bounded sample
+node migration/zoho-api.mjs --budget 3000 ...      # raise the ceiling deliberately
+```
+
+Two consequences worth deciding before spending anything else:
+
+- **The per-candidate detail call is the wrong shape at this scale.** The list endpoint accepts a `fields` parameter, so the fields currently fetched one record at a time can come back in the 351 paging calls instead. That is a 200x reduction and it is the only way a full pull is affordable.
+- **Attachments have no bulk endpoint**, so they genuinely cost one call per candidate. They have to be scoped to the candidates actually being imported, not the whole org.
+
 ## The short way: client credentials
 
 **Correction, 2026-09-02.** The authorization-code steps below are not the only route and not the easiest one. A Self Client also supports the **client credentials** flow, which needs no grant code, no 10-minute window and no OTP. Two values from the console plus one from the address bar.
