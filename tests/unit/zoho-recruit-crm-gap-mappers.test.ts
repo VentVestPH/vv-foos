@@ -4,6 +4,7 @@ import { mapRecruitContact } from '../../migration/src/map-recruit-contacts.mjs'
 import { mapLead } from '../../migration/src/map-leads.mjs';
 import { mapCrmNote } from '../../migration/src/map-crm-notes.mjs';
 import { mapRequisition } from '../../migration/src/map-requisitions.mjs';
+import { mapApplication } from '../../migration/src/map-applications.mjs';
 import { newUnresolved, type Lookups } from '../../migration/src/lookups.mjs';
 
 const lookups: Lookups = {
@@ -298,5 +299,68 @@ describe('mapCrmNote, for the CRM Notes module', () => {
       resolve,
     );
     expect(r.skip).toContain('unmapped $se_module: Quotes');
+  });
+});
+
+describe('mapApplication keeps the application-level Zoho fields', () => {
+  const row = {
+    Id: 'app-1',
+    $Candidate_Id: 'cand-1',
+    $Job_Opening_Id: 'req-1',
+    Application_Status: 'Submitted',
+    Created_Time: '2026-01-05T09:00:00+08:00',
+    Amir_Grade: 'B',
+    Sourcer_Grade: 'A',
+    Hiring_Pipeline: 'Default Pipeline',
+    Posting_Title: 'Senior Analyst',
+    Origin: 'Added by User',
+    Is_Blocked__s: 'false',
+    First_Name: 'Dana',
+  };
+  const resolve = {
+    person: (id: string) => (id === 'cand-1' ? 'person-uuid' : null),
+    requisition: (id: string) => (id === 'req-1' ? 'req-uuid' : null),
+  };
+
+  it('writes them into answers.zoho rather than only reporting them', () => {
+    const r = mapApplication(row, lookups, newUnresolved(), resolve);
+    expect(r.skip).toBeUndefined();
+    const answers = defined(r.application, 'application').answers as {
+      zoho?: Record<string, string>;
+    };
+    expect(answers.zoho?.Amir_Grade).toBe('B');
+    expect(answers.zoho?.Hiring_Pipeline).toBe('Default Pipeline');
+    expect(answers.zoho?.Posting_Title).toBe('Senior Analyst');
+  });
+
+  it('leaves out a false boolean, so answers does not fill with noise', () => {
+    const answers = defined(
+      mapApplication(row, lookups, newUnresolved(), resolve).application,
+      'application',
+    ).answers as { zoho?: Record<string, string> };
+    expect('Is_Blocked__s' in (answers.zoho ?? {})).toBe(false);
+  });
+
+  it('does not copy candidate fields that already live on people', () => {
+    const answers = defined(
+      mapApplication(row, lookups, newUnresolved(), resolve).application,
+      'application',
+    ).answers as { zoho?: Record<string, string> };
+    expect('First_Name' in (answers.zoho ?? {})).toBe(false);
+  });
+
+  it('leaves answers empty when Zoho supplied none of those fields', () => {
+    const bare = {
+      Id: 'app-2',
+      $Candidate_Id: 'cand-1',
+      $Job_Opening_Id: 'req-1',
+      Application_Status: 'Submitted',
+      Created_Time: '2026-01-05T09:00:00+08:00',
+    };
+    const answers = defined(
+      mapApplication(bare, lookups, newUnresolved(), resolve).application,
+      'application',
+    ).answers;
+    expect(answers).toEqual({});
   });
 });

@@ -1,4 +1,5 @@
 export declare const STAGE_BY_ZOHO_STATUS: Map<string, string>;
+export declare const APPLICATION_LEVEL_FIELDS: string[];
 export declare function mapApplication(
   row: Record<string, unknown>,
   lookups: unknown,

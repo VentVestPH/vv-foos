@@ -41,6 +41,29 @@ export const STAGE_BY_ZOHO_STATUS = new Map([
   ['rejected', 'rejected'],
 ]);
 
+export const APPLICATION_LEVEL_FIELDS = [
+  'Application_ID',
+  'Job_Opening_ID',
+  'Job_Opening_Name',
+  'Posting_Title',
+  'Client_Name',
+  'Origin',
+  'Hiring_Pipeline',
+  'Pipeline__s',
+  'Amir_Grade',
+  'Sourcer_Grade',
+  'Rating',
+  'Application_Owner',
+  'Account_Manager',
+  'Assigned_Recruiter',
+  'All_Requisitions',
+  'Application_Name__s',
+  'Last_Activity_Time',
+  'Is_Attachment_Present',
+  'Is_Unqualified',
+  'Is_Blocked__s',
+];
+
 function trimmed(row, key) {
   const v = row[key];
   if (v === null || v === undefined) return '';
@@ -87,6 +110,14 @@ export function mapApplication(row, lookups, unresolved, resolve) {
 
   const hiredAt = parseZohoTimestamp(trimmed(row, 'Date_Hired'));
 
+  const carried = {};
+  const carry = (key) => {
+    const v = trimmed(row, key);
+    if (v && v !== 'false') carried[key] = v;
+  };
+  for (const key of APPLICATION_LEVEL_FIELDS) carry(key);
+  if (initialDate) carried.Initial_Date = initialDate;
+
   const application = {
     requisition_id: requisitionId,
     person_id: personId,
@@ -96,20 +127,8 @@ export function mapApplication(row, lookups, unresolved, resolve) {
     applied_at: appliedAt,
     hired_at: hiredAt,
     is_shortlisted: false,
-    answers: {},
+    answers: Object.keys(carried).length > 0 ? { zoho: carried } : {},
   };
-
-  const carried = {};
-  const carry = (key) => {
-    const v = trimmed(row, key);
-    if (v) carried[key] = v;
-  };
-  carry('Application_ID');
-  carry('Job_Opening_ID');
-  carry('Job_Opening_Name');
-  carry('Sourcer_Grade');
-  carry('Application_Owner');
-  if (initialDate) carried.Initial_Date = initialDate;
 
   return { zohoId, application, carried, warnings };
 }
