@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { createClient } from '@supabase/supabase-js';
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseCsvRecords } from '../migration/src/csv.mjs';
+import { loadZohoUserNames } from '../migration/src/lookups.mjs';
 
 const APPLY = process.argv.includes('--apply');
 const SHOW_NAMES = process.argv.includes('--show-names');
@@ -16,6 +17,49 @@ const SOURCES = [
   ['crm/Accounts_2026_09_02.csv', ['Account Owner', 'Created By', 'Modified By'], 'bd'],
   ['crm/Contacts_2026_09_02.csv', ['Contact Owner', 'Created By', 'Modified By'], 'bd'],
 ];
+
+const OWNER_COLUMNS = ['Created_By', 'Modified_By'];
+
+const BULK_SOURCES = [
+  ['ZohoRecruit_Candidates_p1', ['Candidate_Owner', ...OWNER_COLUMNS], 'sourcer'],
+  ['ZohoRecruit_Job_Openings_p1', ['Assigned_Recruiter', 'Account_Manager', ...OWNER_COLUMNS], 'recruiter'],
+  ['ZohoRecruit_Applications_paged', ['Application_Owner', 'Assigned_Recruiter', 'Account_Manager', ...OWNER_COLUMNS], 'recruiter'],
+  ['ZohoRecruit_Notes_paged', ['Note_Owner', ...OWNER_COLUMNS], 'sourcer'],
+  ['ZohoRecruit_Clients_p1', ['Account_Manager', ...OWNER_COLUMNS], 'bd'],
+  ['ZohoRecruit_Contacts_p1', ['Contact_Owner', ...OWNER_COLUMNS], 'bd'],
+  ['ZohoCRM_Accounts_p1', ['Owner', ...OWNER_COLUMNS], 'bd'],
+  ['ZohoCRM_Contacts_p1', ['Owner', ...OWNER_COLUMNS], 'bd'],
+  ['ZohoCRM_Leads_p1', ['Owner', ...OWNER_COLUMNS], 'bd'],
+  ['ZohoCRM_Notes_p1', ['Owner', ...OWNER_COLUMNS], 'bd'],
+];
+
+const BULK_DIR = join(EXPORT_DIR, 'bulk');
+
+const zohoUserNames = loadZohoUserNames(EXPORT_DIR);
+
+function ownerName(value) {
+  if (value === null || value === undefined) return '';
+  const raw = typeof value === 'object' ? String(value.name ?? value.id ?? '').trim() : String(value).trim();
+  if (/^\d{10,}$/.test(raw)) return zohoUserNames.get(raw) ?? '';
+  return raw;
+}
+
+function readBulkRecords(dir) {
+  const path = join(BULK_DIR, dir);
+  if (!existsSync(path)) return [];
+  const out = [];
+  for (const entry of readdirSync(path).sort()) {
+    let records = null;
+    if (entry.endsWith('.csv')) {
+      records = parseCsvRecords(readFileSync(join(path, entry), 'utf8')).records;
+    } else if (entry.endsWith('.json')) {
+      records = JSON.parse(readFileSync(join(path, entry), 'utf8'));
+    }
+    if (!records) continue;
+    for (const record of records) out.push(record);
+  }
+  return out;
+}
 
 function url() {
   return process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
@@ -84,6 +128,24 @@ for (const [file, columns, role] of SOURCES) {
       entry.rows += 1;
       entry.files.add(file);
       if (entry.role === 'bd' && role === 'sourcer') entry.role = 'sourcer';
+      wanted.set(norm, entry);
+    }
+  }
+}
+
+for (const [dir, columns, role] of BULK_SOURCES) {
+  const records = readBulkRecords(dir);
+  for (const row of records) {
+    for (const column of columns) {
+      const raw = ownerName(row[column]);
+      if (!raw) continue;
+      if (/^(zrecruit|zcrm)_\d+$/i.test(raw)) continue;
+      const norm = raw.toLowerCase();
+      if (known.has(norm)) continue;
+      const entry = wanted.get(norm) ?? { name: raw, role, rows: 0, files: new Set() };
+      entry.rows += 1;
+      entry.files.add(dir);
+      if (entry.role === 'bd' && role !== 'bd') entry.role = role;
       wanted.set(norm, entry);
     }
   }

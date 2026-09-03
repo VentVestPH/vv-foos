@@ -1,4 +1,7 @@
-export const SOURCE_ALIASES = new Map([
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const SOURCE_ALIASES = new Map([
   ['Digital Assistant - Facebook Messenger', 'Digital Assistant - FB Messenger'],
 ]);
 
@@ -67,14 +70,35 @@ export async function loadLookups(db) {
     staffByName: new Map((staff.data ?? []).map((s) => [norm(s.full_name), s.id])),
     sourceByName: new Map((sources.data ?? []).map((s) => [norm(s.name), s.id])),
     statusByLabel: new Map((statuses.data ?? []).map((s) => [norm(s.label), s.id])),
+    nameByZohoUserId: loadZohoUserNames(),
   };
 }
 
-export function resolveStaff(lookups, zohoName, unresolved) {
-  const key = (zohoName ?? '').trim().toLowerCase();
-  if (!key) return null;
-  const id = lookups.staffByName.get(key) ?? null;
-  if (!id) unresolved.staff.set(zohoName, (unresolved.staff.get(zohoName) ?? 0) + 1);
+export function loadZohoUserNames(dir = 'migration/zoho-exports') {
+  const path = join(dir, 'zoho-users.json');
+  if (!existsSync(path)) return new Map();
+  const raw = JSON.parse(readFileSync(path, 'utf8'));
+  return new Map(Object.entries(raw).map(([id, name]) => [String(id), String(name)]));
+}
+
+const ZOHO_USER_ID = /^\d{10,}$/;
+
+export function resolveStaff(lookups, zohoValue, unresolved) {
+  const raw = String(zohoValue ?? '').trim();
+  if (!raw) return null;
+
+  let name = raw;
+  if (ZOHO_USER_ID.test(raw)) {
+    const resolved = lookups.nameByZohoUserId?.get(raw);
+    if (!resolved) {
+      unresolved.staff.set(raw, (unresolved.staff.get(raw) ?? 0) + 1);
+      return null;
+    }
+    name = resolved;
+  }
+
+  const id = lookups.staffByName.get(name.trim().toLowerCase()) ?? null;
+  if (!id) unresolved.staff.set(name, (unresolved.staff.get(name) ?? 0) + 1);
   return id;
 }
 
