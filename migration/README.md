@@ -197,6 +197,17 @@ Six passes, exiting non-zero on any gap:
    also fails when fewer rows join than the extract holds.
 6. The bulk-load triggers are enabled again.
 
+One thing this script cannot do is notice that the extracted file itself is wrong,
+because it reads that file. `scripts/verify-zoho-sample.mjs` closes that: it pulls a
+random sample straight from the Zoho API, runs each live record through the real
+mappers, and compares the result against the FOOS row. It needs credentials, so it is
+the one pass that cannot run offline.
+
+```sh
+ZOHO_CLIENT_ID=... ZOHO_CLIENT_SECRET=... ZOHO_RECRUIT_ORG_ID=org... \
+  node scripts/verify-zoho-sample.mjs --size 12
+```
+
 The importer's own report is not evidence for any of this. It is produced by the code
 under test, and it has been wrong in the alarming direction: a run that imported all
 210,922 notes correctly reported all 210,922 as failed, because the success path

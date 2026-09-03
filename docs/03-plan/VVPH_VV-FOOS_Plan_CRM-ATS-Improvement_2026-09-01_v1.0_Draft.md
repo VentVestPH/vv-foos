@@ -477,7 +477,7 @@ Three points change how items in this stream should be justified and built.
 
 ### Completion status, revised 2026-09-02
 
-**152 of 159 numbered tasks are done.** T1 added four follow-ups; T2, T4 and T5 are done, and T3 turned out to be measurable rather than a design decision: its premise was a node count my own R3 and T2 work had already invalidated, so it is answered in section 7.13 and split, leaving T3a, a single default, as the only part that is yours. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
+**189.5 of 209 numbered tasks are done**, which is the sum of the table above and nothing else. T1 added four follow-ups; T2, T4 and T5 are done, and T3 turned out to be measurable rather than a design decision: its premise was a node count my own R3 and T2 work had already invalidated, so it is answered in section 7.13 and split, leaving T3a, a single default, as the only part that is yours. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.
 
 Counting caveats, kept rather than tidied away. An early headline read "52 of 56" while this table summed to 46½. Workstream D was recorded as 4 done when the evidence supported 3, and D6 had never been built. Both corrected. Every workstream now carries a status line naming which ids are done, which is J11.
 
@@ -498,8 +498,10 @@ Counting caveats, kept rather than tidied away. An early headline read "52 of 56
 | **N** Code and stylesheet architecture | 10 | 10 | N2 done, which removes the only live crash in the workstream. N10 now stops the cross-module imports N4 removed from returning. N8 measured both stricter flags and adopted one |
 | **O** Resilience and handover | 8 | 7 | O1 done. A render throw is now contained to one page or one widget. O4 measured the channel budget at 3, not 10, and fixed a page that resubscribed forever. O8 found the attachments bucket had no size or type limit at all |
 | **Q** Product capability | 8 | 8 | Q1 to Q6 done except Q7 and Q8: real bulk actions, a candidate merge, one search across every entity, email templates, shareable views, and keyboard-first lists |
-| **S** Dead code | 8 | 8 | New on 2026-09-02. S1 to S7 done: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed. Committing the gate exposed that `npm run db:validate` could never fail. S8 open |
-| **R** Interaction polish | 6 | 0 | New on 2026-09-02, from looking at the running app. Exit transitions, accordion mechanics and a measured 2.8 px tab shift, none of which workstream G specified |
+| **S** Dead code | 8 | 8 | Complete. S1 to S7: knip in the gate, 2 dead files and 27 unused exports gone, 3 hoisted dependencies declared, 3 dead CSS groups removed, and the gate runner committed as `scripts/gate.sh`. Committing the gate exposed that `npm run db:validate` could never fail. S8 done too: four of its five categories came back empty once checked properly |
+| **R** Interaction polish | 8 | 8 | Complete, and verified in the browser rather than by reading the CSS. `tests/e2e/interaction-motion.spec.ts` asserts all eight: no tab moves when it goes bold, the chevron's transform matrix, the accordion interpolating height in both directions, a dialog still on screen mid-fade, a transition on every control a user touches, and the dropdown, toast and filter-rail animations. 11 tests, passing. The row said 0 of 6 while every R row below said DONE; the count was wrong, not the work, and R7 and R8 were never counted at all |
+| **T** Discovery follow-ups | 6 | 5 | T1 was the screen-by-screen discovery itself, 27 screens at two widths. T2, T4 and T5 done. T3's premise was a node count my own R3 and T2 work had already invalidated, so it was answered by measurement and split; T3a, one default, is yours |
+| **U** Zoho migration | 49 | 39 | New on 2026-09-03 and the largest workstream. Extraction, import and verification of all 11 Zoho modules, 371,016 mapped records. U1.8 and U1.9 open on the frontend, U3.1 to U3.3 are the 1,740 attachment files, U6.1 to U6.5 are the Settings exporter. Sections 7.16 to 7.24 carry the measurements, including nine field-level losses that record-count reconciliation had passed |
 
 E2 has moved out of the "decision" column: it was not one. `reminder.due` and tasks now have real dashboard panels.
 
@@ -1205,8 +1207,8 @@ Candidates is 72,910, not the "over 70,200" I recorded, which was a floor from a
 Total cost, API only: 12 jobs at 50 credits is 600, plus 1,740 attachment downloads, is **2,340 credits, 37% of one day's allowance**.
 
 - [x] **U2.1** `migration/zoho-bulk-read.mjs`: initiate, poll, download, unzip, reconcile against the count endpoint per module, with a credit budget and a paged fallback for the three modules bulk read refuses. Section 7.22
-- [ ] **U2.2** Recruit: Candidates, Job_Openings, Applications, Clients, Contacts, Notes in two pages, Attachments
-- [ ] **U2.3** CRM: Accounts, Contacts, Leads, Notes. Deals is skipped because it is empty
+- [x] **U2.2 done.** Recruit: Candidates 72,910, Job_Openings 687, Applications 86,125, Clients 104, Contacts 5, Notes 210,922, Departments 104, Attachments 50. All on disk under `migration/zoho-exports/bulk/` and all read back per record by the verifier
+- [x] **U2.3 done.** CRM: Accounts 86, Contacts 50, Leads 13, Notes 59. Deals skipped, confirmed empty rather than assumed
 
 **U3. Attachments. Corrected 2026-09-03: no manual export is needed and the API does this comfortably.**
 
@@ -1260,8 +1262,10 @@ Covered before today: Recruit Candidates, Recruit Notes, CRM Accounts, CRM Conta
 
 **U5. Prove the migration is accurate.** Nobody will spot a wrong field in 70,200 rows by eye, so this has to be a script that fails loudly rather than a review.
 
-- [ ] **U5.1** Row-count reconciliation per module against Zoho's own counts
-- [ ] **U5.2** Field-level spot checks on a fresh random sample pulled from the API, not from the file that was imported
+- [x] **U5.1 done, and stronger than the item asked for.** `scripts/verify-zoho-migration.mjs` pass 1 checks every extracted Zoho id against `zoho_id_map` individually rather than comparing totals, across all 11 modules. Totals are not the test: two modules can agree on a count and hold different records, which is exactly how Departments looked like 104 missing companies
+- [x] **U5.2 done, and it is the only check that can catch a bad extract.** `scripts/verify-zoho-sample.mjs` pulls a random sample straight from the Zoho API, runs each live record through the real mappers, and compares the result against the FOOS row: 24 records, 228 field comparisons, 0 mismatches. Everything else in U5 reads the extracted files, so it cannot tell a faithful import of a wrong file from a faithful import of a right one.
+
+  The first run reported 26 mismatches, every one exactly 8 hours. That uniformity was the tell: the database holds the correct UTC instant and my comparison was stripping the `+08:00` offset and stamping `Z` on it, so the instrument was wrong and the data was right. It compares instants now. Same class as the `datetime-local` defect in U5's own test notes, and a reminder that a measurement disagreeing with the data is a claim about the measurement too
 - [x] **U5.3 done, and it corrected my own record.** `tests/unit/zoho-export-contract.test.ts` asserts the export data contract against the real files: every export uses the `Zrecruit_` prefix on **both** sides of the join, attachment parents resolve against candidate ids **verbatim**, `Attachment URL` is empty in every row, and the education and experience exports are header-only. The two date dialects and the three partial-date shapes were already covered by `zoho-parsers.test.ts`. Section 7.21
 
 **U6. A data exporter in Settings, asked for on 2026-09-03.** So that getting data out of FOOS is never the problem getting it out of Zoho has been. This is a product feature, not migration scaffolding, and it outlives the migration.
