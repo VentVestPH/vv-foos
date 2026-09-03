@@ -43,9 +43,12 @@ if (orphans > 0 || pending > 0) {
 
 if (errors > 0) {
   console.error(
-    `${errors} client_errors row(s) left behind. A test that records a failure must delete it\n` +
-      'again, and the delete needs an admin client: without the admin DELETE policy every\n' +
-      'teardown is refused silently unless the caller checks the error.',
+    `${errors} client_errors row(s) present. Read them before assuming a test left them:\n` +
+      '  select occurred_at, origin, route, message from public.client_errors order by occurred_at desc;\n' +
+      'An origin of boundary: or window.error means the app really threw, and the suite can still\n' +
+      'report every test passed, which is how a dashboard crash hid here. If they are test residue\n' +
+      'instead, the delete needs an admin client: without the admin DELETE policy every teardown is\n' +
+      'refused silently unless the caller checks the error.',
   );
 }
 

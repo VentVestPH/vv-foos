@@ -32,16 +32,66 @@ const orgId = (v) => (v ?? '').trim().replace(/^org/i, '') || undefined;
 const RECRUIT_ORG = orgId(process.env.ZOHO_RECRUIT_ORG_ID);
 const ACCOUNTS = `https://accounts.zoho.${DC}`;
 const RECRUIT = `https://recruit.zoho.${DC}/recruit/v2`;
+const CRM = `https://www.zohoapis.${DC}/crm/v5`;
 
 const BUCKET = 'attachments';
 const STORAGE_PREFIX = 'zoho-import';
 
-const PARENT_MODULES = {
-  Candidates: { dir: 'ZohoRecruit_Candidates_p1', parentType: 'person', entity: 'candidate' },
-  Job_Openings: { dir: 'ZohoRecruit_Job_Openings_p1', parentType: 'requisition', entity: 'requisition' },
-  Applications: { dir: 'ZohoRecruit_Applications_paged', parentType: 'application', entity: 'application' },
-  Clients: { dir: 'ZohoRecruit_Clients_p1', parentType: 'company', entity: 'company' },
+const MIME_BY_EXTENSION = {
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  odt: 'application/vnd.oasis.opendocument.text',
+  rtf: 'application/rtf',
+  zip: 'application/zip',
+  txt: 'text/plain',
+  csv: 'text/csv',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  tif: 'image/tiff',
+  tiff: 'image/tiff',
 };
+
+function contentTypeFor(fileName) {
+  const ext = String(fileName ?? '').toLowerCase().split('.').pop() ?? '';
+  return MIME_BY_EXTENSION[ext] ?? 'application/octet-stream';
+}
+
+const PARENT_MODULES = {
+  Candidates: { dir: 'ZohoRecruit_Candidates_p1', parentType: 'person', entity: 'candidate', product: 'recruit' },
+  Job_Openings: { dir: 'ZohoRecruit_Job_Openings_p1', parentType: 'requisition', entity: 'requisition', product: 'recruit' },
+  Applications: { dir: 'ZohoRecruit_Applications_paged', parentType: 'application', entity: 'application', product: 'recruit' },
+  Clients: { dir: 'ZohoRecruit_Clients_p1', parentType: 'company', entity: 'company', product: 'recruit' },
+  CRM_Accounts: { dir: 'ZohoCRM_Accounts_p1', parentType: 'company', entity: 'company', product: 'crm', apiModule: 'Accounts' },
+  CRM_Contacts: { dir: 'ZohoCRM_Contacts_p1', parentType: 'person', entity: 'contact', product: 'crm', apiModule: 'Contacts' },
+  CRM_Leads: { dir: 'ZohoCRM_Leads_p1', parentType: 'person', entity: 'lead', product: 'crm', apiModule: 'Leads' },
+};
+
+function baseFor(spec) {
+  return spec.product === 'crm' ? CRM : RECRUIT;
+}
+
+function apiModuleFor(name) {
+  return PARENT_MODULES[name]?.apiModule ?? name;
+}
+
+const CRM_ATTACHMENT_FIELDS = 'id,File_Name,Size,Created_Time,Parent_Id,Owner';
+
+function listUrl(spec, moduleName, recordId) {
+  const base = `${baseFor(spec)}/${apiModuleFor(moduleName)}/${recordId}/Attachments`;
+  return spec.product === 'crm' ? `${base}?fields=${CRM_ATTACHMENT_FIELDS}` : base;
+}
+
+const CRM_SCOPES = 'ZohoCRM.modules.ALL,ZohoCRM.modules.attachments.READ,ZohoCRM.settings.READ';
+const RECRUIT_SCOPES = 'ZohoRecruit.modules.ALL,ZohoRecruit.settings.ALL';
 
 const MODULE = valueOf('--module', 'Candidates');
 const FAILED_IDS = join(EXPORT_DIR, `attachments-failed-${MODULE}.json`);
@@ -78,14 +128,16 @@ if (!/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/)/.test(target) && !ALLOW
   process.exit(1);
 }
 
-async function token() {
+async function token(product = 'recruit') {
   spend(1, 'an access token');
+  const crm = product === 'crm';
+  const org = crm ? orgId(process.env.ZOHO_CRM_ORG_ID) : RECRUIT_ORG;
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
     client_id: CLIENT_ID ?? '',
     client_secret: CLIENT_SECRET ?? '',
-    scope: 'ZohoRecruit.modules.ALL,ZohoRecruit.settings.ALL',
-    soid: `ZohoRecruit.${RECRUIT_ORG}`,
+    scope: crm ? CRM_SCOPES : RECRUIT_SCOPES,
+    soid: `${crm ? 'ZohoCRM' : 'ZohoRecruit'}.${org}`,
   });
   const res = await fetch(`${ACCOUNTS}/oauth/v2/token`, { method: 'POST', body });
   const json = await res.json().catch(() => ({}));
@@ -108,27 +160,48 @@ function recordsWithAttachments(moduleName) {
     if (!jsonFile) return [];
     records = JSON.parse(readFileSync(join(dir, jsonFile), 'utf8'));
   }
-  return records
-    .filter((r) => String(r.Is_Attachment_Present ?? '').trim().toLowerCase() === 'true')
-    .map((r) => normalizeZohoId(r.Id ?? r.id))
-    .filter(Boolean);
+  const hasFlag = records.length > 0 && 'Is_Attachment_Present' in records[0];
+  const wanted = hasFlag
+    ? records.filter((r) => String(r.Is_Attachment_Present ?? '').trim().toLowerCase() === 'true')
+    : records;
+  return wanted.map((r) => normalizeZohoId(r.Id ?? r.id)).filter(Boolean);
 }
 
+const REQUEST_TIMEOUT_MS = 120000;
+const THROTTLE_WAITS_MS = [60000, 180000];
+
+let throttleTrips = 0;
+
 async function getWithBackoff(url, access, what) {
-  for (let attempt = 0; attempt < 6; attempt += 1) {
+  for (let attempt = 0; attempt <= THROTTLE_WAITS_MS.length; attempt += 1) {
     spend(1, what);
-    const res = await fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${access}` } });
+    let res;
+    try {
+      res = await fetch(url, {
+        headers: { Authorization: `Zoho-oauthtoken ${access}` },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch {
+      if (attempt === THROTTLE_WAITS_MS.length) return 'timeout';
+      console.log(`  no response within ${REQUEST_TIMEOUT_MS / 1000}s, retrying`);
+      continue;
+    }
     if (res.ok || res.status === 204 || res.status === 404) return res;
 
     let throttled = res.status === 429 || res.status >= 500;
     if (!throttled && res.status === 400) {
       const body = await res.clone().text().catch(() => '');
-      throttled = body.includes('URL_FIXED_THROTTLES_LIMIT_EXCEEDED');
+      throttled = body.includes('THROTTLES_LIMIT_EXCEEDED');
     }
     if (!throttled) return res;
-    await new Promise((resolve) => setTimeout(resolve, 700 * 2 ** attempt));
+
+    throttleTrips += 1;
+    const wait = THROTTLE_WAITS_MS[attempt];
+    if (wait === undefined) return 'throttled';
+    console.log(`  throttled, waiting ${wait / 1000}s before retrying (trip ${throttleTrips})`);
+    await new Promise((resolve) => setTimeout(resolve, wait));
   }
-  return null;
+  return 'throttled';
 }
 
 function categoryName(entry) {
@@ -171,7 +244,7 @@ async function runEnumerate() {
   console.log(`\nEnumerating ${MODULE} attachments for ${ids.length} record(s), one request each.`);
   console.log(`Budget ceiling ${BUDGET}; the daily org allowance is 6,250.\n`);
 
-  const access = await token();
+  const access = await token(spec.product);
   const manifest = [];
   let empty = 0;
   let failed = 0;
@@ -185,14 +258,17 @@ async function runEnumerate() {
   for (let i = 0; i < ids.length; i += 1) {
     const candidateId = ids[i];
     const res = await getWithBackoff(
-      `${RECRUIT}/${MODULE}/${candidateId}/Attachments`,
+      listUrl(spec, MODULE, candidateId),
       access,
       `attachments for ${MODULE} record ${i + 1}`,
     );
-    if (res === null) {
+    if (res === 'throttled' || res === 'timeout' || res === null) {
       failed += 1;
       failedIds.push(candidateId);
-      note('gave up after four attempts, all 429 or 5xx');
+      note('throttled and still throttled after two long waits');
+      console.log(`\n  Stopping: Zoho is throttling and two long waits did not clear it.`);
+      console.log(`  ${manifest.length} attachment(s) enumerated so far are saved. Re-run to continue.`);
+      break;
     } else if (res.status === 204) {
       empty += 1;
     } else if (!res.ok) {
@@ -267,33 +343,82 @@ async function runDownload() {
   if (!INCLUDE_IDENTITY) manifest = manifest.filter((m) => !m.identity);
   if (LIMIT > 0) manifest = manifest.slice(0, LIMIT);
 
+  const needed = new Map();
+  for (const m of manifest) {
+    const spec = PARENT_MODULES[m.module ?? 'Candidates'];
+    if (!spec) continue;
+    if (!needed.has(spec.entity)) needed.set(spec.entity, new Set());
+    needed.get(spec.entity).add(normalizeZohoId(m.candidateZohoId));
+  }
+
   const parentByZoho = new Map();
-  for (const entity of new Set(Object.values(PARENT_MODULES).map((p) => p.entity))) {
-    let after = '';
-    for (;;) {
+  const ID_CHUNK = 200;
+  for (const [entity, ids] of needed) {
+    const list = [...ids];
+    for (let i = 0; i < list.length; i += ID_CHUNK) {
       const { data, error } = await db
         .from('zoho_id_map')
         .select('zoho_id, foos_id')
         .eq('entity_type', entity)
-        .gt('zoho_id', after)
-        .order('zoho_id', { ascending: true })
-        .limit(1000);
+        .in('zoho_id', list.slice(i, i + ID_CHUNK));
       if (error) throw new Error(error.message);
-      const rows = data ?? [];
-      for (const r of rows) parentByZoho.set(`${entity}:${normalizeZohoId(r.zoho_id)}`, r.foos_id);
-      if (rows.length < 1000) break;
-      after = rows[rows.length - 1].zoho_id;
+      for (const r of data ?? []) {
+        parentByZoho.set(`${entity}:${normalizeZohoId(r.zoho_id)}`, r.foos_id);
+      }
+    }
+    console.log(`  resolved ${entity} parents: ${list.length} needed`);
+  }
+
+  const alreadyDone = new Set();
+  {
+    const wanted = manifest.map((m) => ({
+      zohoId: normalizeZohoId(m.attachmentZohoId),
+      foosId: deterministicId('attachment', m.attachmentZohoId),
+    }));
+    const byFoosId = new Map(wanted.map((w) => [w.foosId, w.zohoId]));
+    const ids = wanted.map((w) => w.foosId);
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data, error } = await db
+        .from('attachments')
+        .select('id, storage_path')
+        .in('id', ids.slice(i, i + 200));
+      if (error) throw new Error(error.message);
+      for (const r of data ?? []) {
+        if (!String(r.storage_path ?? '').startsWith(`${STORAGE_PREFIX}/pending/`)) {
+          const zohoId = byFoosId.get(r.id);
+          if (zohoId) alreadyDone.add(zohoId);
+        }
+      }
     }
   }
 
-  console.log(`\n${manifest.length} attachment(s) to fetch, ${heldBack} identity document(s) held back.`);
+  const limitRow = await db.storage.getBucket(BUCKET);
+  const sizeLimit =
+    Number(limitRow.data?.file_size_limit ?? limitRow.data?.fileSizeLimit ?? 0) || 0;
+
+  const notYet = manifest.filter((m) => !alreadyDone.has(normalizeZohoId(m.attachmentZohoId)));
+  const overLimit = sizeLimit > 0 ? notYet.filter((m) => (m.sizeBytes ?? 0) > sizeLimit) : [];
+  const remaining = notYet.filter((m) => !overLimit.includes(m));
+
+  if (overLimit.length > 0) {
+    console.log(
+      `\n  ${overLimit.length} file(s) exceed the bucket's ${(sizeLimit / 1048576).toFixed(0)} MB limit and are not attempted:`,
+    );
+    for (const m of overLimit) {
+      console.log(
+        `    ${(m.module ?? 'Candidates')} ${((m.sizeBytes ?? 0) / 1048576).toFixed(1)} MB, ${String(m.fileName).split('.').pop()}`,
+      );
+    }
+    console.log('  Raising storage.buckets.file_size_limit is a deliberate decision, not a migration step.');
+  }
+  console.log(`\n${manifest.length} in the manifest, ${alreadyDone.size} already stored, ${remaining.length} to fetch, ${heldBack} identity document(s) held back.`);
   if (!APPLY) {
     console.log('Dry run. Nothing is downloaded or written. Re-run with --apply.');
-    console.log(`It would cost ${manifest.length} credits against a ceiling of ${BUDGET}.`);
+    console.log(`It would cost about ${remaining.length} credits against a ceiling of ${BUDGET}.`);
     return;
   }
 
-  const access = await token();
+  const tokens = { recruit: null, crm: null };
   let uploaded = 0;
   let skipped = 0;
   let failed = 0;
@@ -303,7 +428,13 @@ async function runDownload() {
     reasons[key] = (reasons[key] ?? 0) + 1;
   };
 
-  for (const m of manifest) {
+  let done = 0;
+  for (const m of remaining) {
+    done += 1;
+    if (done % 50 === 0) {
+      console.log(`  ${done}/${remaining.length} processed, ${uploaded} uploaded, ${skipped} skipped, ${failed} failed, ${spent} credits`);
+      for (const [why, n] of Object.entries(reasons)) console.log(`    x${n}  ${why}`);
+    }
     const entryModule = m.module ?? 'Candidates';
     const spec = PARENT_MODULES[entryModule];
     const personId = spec ? parentByZoho.get(`${spec.entity}:${m.candidateZohoId}`) : null;
@@ -314,33 +445,34 @@ async function runDownload() {
     }
     const path = `${STORAGE_PREFIX}/${personId}/${m.attachmentZohoId}-${m.fileName.replace(/[^\w.\-]+/g, '_')}`;
 
-    const existing = await db.storage.from(BUCKET).list(`${STORAGE_PREFIX}/${personId}`, {
-      search: `${m.attachmentZohoId}-`,
-    });
-    if (!existing.error && (existing.data ?? []).length > 0) {
-      skipped += 1;
-      continue;
-    }
-
+    if (!tokens[spec.product]) tokens[spec.product] = await token(spec.product);
     const res = await getWithBackoff(
-      `${RECRUIT}/${entryModule}/${m.candidateZohoId}/Attachments/${m.attachmentZohoId}`,
-      access,
+      `${baseFor(spec)}/${apiModuleFor(entryModule)}/${m.candidateZohoId}/Attachments/${m.attachmentZohoId}`,
+      tokens[spec.product],
       `downloading ${m.attachmentZohoId}`,
     );
-    if (res === null) {
+    if (res === 'throttled' || res === 'timeout' || res === null) {
       failed += 1;
-      note('download gave up after four attempts');
-      continue;
+      note(res === 'timeout' ? 'no response within the timeout, repeatedly' : 'throttled and still throttled after two long waits');
+      console.log(`\n  Stopping: ${res === 'timeout' ? 'Zoho stopped responding' : 'Zoho is throttling and two long waits did not clear it'}.`);
+      console.log('  Everything already uploaded is kept, and a re-run skips it. Resume later.');
+      break;
     }
     if (!res.ok) {
       failed += 1;
       note(`download returned ${res.status}: ${(await res.text().catch(() => '')).slice(0, 90)}`);
       continue;
     }
-    const bytes = new Uint8Array(await res.arrayBuffer());
+    let bytes;
+    try {
+      bytes = new Uint8Array(await res.arrayBuffer());
+    } catch (e) {
+      failed += 1;
+      note(`body read aborted or failed: ${String(e).slice(0, 80)}`);
+      continue;
+    }
 
-    const rawType = res.headers.get('content-type') ?? 'application/octet-stream';
-    const contentType = rawType.split(';')[0].trim() || 'application/octet-stream';
+    const contentType = contentTypeFor(m.fileName);
     const up = await db.storage.from(BUCKET).upload(path, bytes, { contentType, upsert: true });
     if (up.error) {
       failed += 1;

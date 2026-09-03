@@ -81,16 +81,24 @@ one_pass() {
     printf 'ok    %-12s %s check(s) pass\n' "validate.sql" "$(printf '%s\n' "$v" | grep -c 'PASS')"
   fi
 
-  local imp
-  imp="$(node migration/import.mjs 2>&1)"
-  if printf '%s\n' "$imp" | grep -q '75 rows    75 new' \
-    && printf '%s\n' "$imp" | grep -q '141 new' \
-    && printf '%s\n' "$imp" | grep -q '42 new' \
-    && printf '%s\n' "$imp" | grep -q '86 rows    86 new'; then
-    printf 'ok    %-12s 75 candidates, 141 notes, 42 attachments, 86 companies\n' "importer"
+  local imp bad modules
+  imp="$(node --max-old-space-size=3500 migration/import.mjs 2>&1)"
+  modules="$(printf '%s\n' "$imp" | grep -cE '[0-9]+ rows +[0-9]+ new')"
+  bad="$(printf '%s\n' "$imp" | awk '
+    /[0-9]+ rows +[0-9]+ new/ {
+      for (i = 1; i <= NF; i++) {
+        if ($i == "new"    && $(i - 1) != "0") print "  " $1 ": " $(i - 1) " new, so a re-run would insert"
+        if ($i == "failed" && $(i - 1) != "0") print "  " $1 ": " $(i - 1) " failed"
+      }
+    }')"
+  if [ "$modules" -gt 0 ] && [ -z "$bad" ] \
+    && ! printf '%s\n' "$imp" | grep -q 'unresolved staff'; then
+    printf 'ok    %-12s %s module(s) idempotent, 0 new, 0 failed, no unresolved staff\n' "importer" "$modules"
   else
     printf 'FAIL  %-12s\n' "importer"
-    printf '%s\n' "$imp" | grep -E 'rows |unresolved' | head -6
+    [ "$modules" -eq 0 ] && printf '  the dry run reported no module lines at all\n'
+    printf '%s\n' "$bad" | head -6
+    printf '%s\n' "$imp" | grep -E 'unresolved' | head -3
     fail=1
   fi
 
@@ -101,15 +109,18 @@ one_pass() {
     printf 'ok    %-12s 0 unresolved staff, sources and statuses\n' "lookups"
   fi
 
-  local bf
-  bf="$(node scripts/backfill-zoho-candidate-fields.mjs 2>&1)"
-  if printf '%s\n' "$bf" | grep -q 'matched via zoho_id_map 0'; then
-    printf 'ok    %-12s nothing imported locally, so it correctly matches nothing\n' "backfill"
-  elif printf '%s\n' "$bf" | grep -qE 'star_grade   set 0  corrected 0'; then
-    printf 'ok    %-12s no drift against the export\n' "backfill"
+  local bf bfsrc bfmatched
+  bf="$(node --max-old-space-size=3500 scripts/backfill-zoho-candidate-fields.mjs 2>&1)"
+  bfsrc="$(printf '%s\n' "$bf" | awk '/source rows/ { print $NF }')"
+  bfmatched="$(printf '%s\n' "$bf" | awk '/matched via zoho_id_map/ { print $4 }')"
+  if [ -n "$bfsrc" ] && [ "$bfsrc" = "$bfmatched" ] \
+    && printf '%s\n' "$bf" | grep -q 'no profile 0' \
+    && printf '%s\n' "$bf" | grep -qE 'star_grade   set 0  corrected 0' \
+    && printf '%s\n' "$bf" | grep -qE 'initial_date set 0  corrected 0'; then
+    printf 'ok    %-12s all %s source row(s) matched, no drift to correct\n' "backfill" "$bfsrc"
   else
     printf 'FAIL  %-12s\n' "backfill"
-    printf '%s\n' "$bf" | tail -4
+    printf '%s\n' "$bf" | tail -5
     fail=1
   fi
 

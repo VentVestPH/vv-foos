@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseCsvRecords } from '../migration/src/csv.mjs';
 import { parsePartialDate, parseStarGrade } from '../migration/src/zoho.mjs';
+import { normalizeZohoId } from '../migration/src/deterministic-id.mjs';
 
 const APPLY = process.argv.includes('--apply');
 const ALLOW_REMOTE = process.argv.includes('--allow-remote');
@@ -42,24 +43,79 @@ if (!existsSync(CANDIDATES)) {
 
 const db = createClient(target, key, { auth: { persistSession: false } });
 
-const { data: mappings, error: mapErr } = await db
-  .from('zoho_id_map')
-  .select('zoho_id, foos_id')
-  .eq('entity_type', 'candidate');
-if (mapErr) {
-  console.error(`Could not read zoho_id_map: ${mapErr.message}`);
-  process.exit(1);
-}
-const personByZohoId = new Map((mappings ?? []).map((m) => [m.zoho_id, m.foos_id]));
+const personByZohoId = new Map();
+{
+  let after = '';
+  for (;;) {
+    const { data, error } = await db
+      .from('zoho_id_map')
+      .select('zoho_id, foos_id')
+      .eq('entity_type', 'candidate')
+      .gt('zoho_id', after)
+      .order('zoho_id', { ascending: true })
+      .limit(1000);
+    if (error) {
+      console.error(`Could not read zoho_id_map: ${error.message}`);
+      process.exit(1);
+    }
+    const rows = data ?? [];
+    for (const m of rows) personByZohoId.set(normalizeZohoId(m.zoho_id), m.foos_id);
+    if (rows.length < 1000) break;
+    after = rows[rows.length - 1].zoho_id;
+  }
 
-const { data: profiles, error: profErr } = await db
-  .from('candidate_profiles')
-  .select('person_id, star_grade, initial_date');
-if (profErr) {
-  console.error(`Could not read candidate_profiles: ${profErr.message}`);
-  process.exit(1);
+  const { count, error: countErr } = await db
+    .from('zoho_id_map')
+    .select('*', { count: 'exact', head: true })
+    .eq('entity_type', 'candidate');
+  if (countErr) {
+    console.error(`Could not count zoho_id_map: ${countErr.message}`);
+    process.exit(1);
+  }
+  if (count !== null && personByZohoId.size !== count) {
+    console.error(
+      `zoho_id_map paging lost rows: ${personByZohoId.size} of ${count}. ` +
+        'Backfilling from a partial map would silently skip candidates.',
+    );
+    process.exit(1);
+  }
 }
-const profileByPerson = new Map((profiles ?? []).map((p) => [p.person_id, p]));
+
+const profileByPerson = new Map();
+{
+  let after = '00000000-0000-0000-0000-000000000000';
+  for (;;) {
+    const { data, error } = await db
+      .from('candidate_profiles')
+      .select('person_id, star_grade, initial_date')
+      .gt('person_id', after)
+      .order('person_id', { ascending: true })
+      .limit(1000);
+    if (error) {
+      console.error(`Could not read candidate_profiles: ${error.message}`);
+      process.exit(1);
+    }
+    const rows = data ?? [];
+    for (const row of rows) profileByPerson.set(row.person_id, row);
+    if (rows.length < 1000) break;
+    after = rows[rows.length - 1].person_id;
+  }
+
+  const { count, error: countErr } = await db
+    .from('candidate_profiles')
+    .select('*', { count: 'exact', head: true });
+  if (countErr) {
+    console.error(`Could not count candidate_profiles: ${countErr.message}`);
+    process.exit(1);
+  }
+  if (count !== null && profileByPerson.size !== count) {
+    console.error(
+      `candidate_profiles paging lost rows: ${profileByPerson.size} of ${count}. ` +
+        'A partial read would report candidates as having no profile and skip them.',
+    );
+    process.exit(1);
+  }
+}
 
 const file = parseCsvRecords(readFileSync(CANDIDATES, 'utf8'));
 
@@ -81,7 +137,7 @@ const counts = {
 };
 
 for (const row of file.records) {
-  const zohoId = (row['Candidate Id'] ?? row['Record Id'] ?? '').trim();
+  const zohoId = normalizeZohoId(row['Candidate Id'] ?? row['Record Id'] ?? '');
   const personId = zohoId ? personByZohoId.get(zohoId) : null;
   if (!personId) {
     counts.unmapped += 1;

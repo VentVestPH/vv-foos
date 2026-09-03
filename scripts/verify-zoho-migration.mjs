@@ -289,7 +289,82 @@ select count(*),
   }
 }
 
-console.log('\nPASS 6  triggers are back on\n');
+console.log('\nPASS 6  attachment bytes are in Storage, not just metadata\n');
+{
+  const manifestPath = join('migration/zoho-exports', 'attachments-manifest.json');
+  if (!existsSync(manifestPath)) {
+    console.log('  no attachment manifest on disk, so nothing to check');
+  } else {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    const identity = manifest.filter((m) => m.identity).length;
+    const bucketLimit = Number(
+      psql("select coalesce(file_size_limit, 0) from storage.buckets where id = 'attachments'"),
+    );
+    const overLimit = manifest.filter(
+      (m) => !m.identity && bucketLimit > 0 && (m.sizeBytes ?? 0) > bucketLimit,
+    );
+    const wanted = manifest.filter(
+      (m) => !m.identity && !(bucketLimit > 0 && (m.sizeBytes ?? 0) > bucketLimit),
+    );
+
+    const rows = psql(`
+      select count(*) filter (where storage_path not like 'zoho-import/pending/%'),
+             count(*) filter (where storage_path like 'zoho-import/pending/%'),
+             (select count(*) from storage.objects
+               where bucket_id = 'attachments'
+                 and name like 'zoho-import/%'
+                 and name not like 'zoho-import/pending/%'),
+             count(*) filter (where storage_path not like 'zoho-import/pending/%' and file_size_bytes is null)
+      from public.attachments;
+    `);
+    const [withBytes, pendingRows, storageObjects, missingSize] = rows.split('|').map(Number);
+
+    console.log(`  enumerated in Zoho                                    ${manifest.length}`);
+    console.log(`  identity documents held back                          ${identity}`);
+    console.log(`  over the bucket's ${(bucketLimit / 1048576).toFixed(0)} MB limit                           ${overLimit.length}`);
+    console.log(`  therefore expected in Storage                         ${wanted.length}`);
+    console.log(`  attachment rows pointing at real bytes                ${withBytes}`);
+    console.log(`  objects actually in the bucket                        ${storageObjects}`);
+    console.log(`  metadata-only rows from the old CSV export            ${pendingRows}`);
+
+    if (withBytes !== storageObjects) {
+      fail(
+        `${withBytes} attachment row(s) claim real bytes but the bucket holds ${storageObjects} object(s); a row pointing at a missing file is worse than no row`,
+      );
+    }
+    if (missingSize > 0) {
+      fail(`${missingSize} attachment row(s) have bytes but no file_size_bytes`);
+    }
+    if (withBytes < wanted.length) {
+      fail(
+        `${wanted.length - withBytes} attachment(s) are enumerated in Zoho, within the bucket limit, and not in Storage`,
+      );
+    }
+
+    const duplicatePlaceholders = Number(
+      psql(`
+        select count(*)
+        from public.attachments p
+        where p.storage_path like 'zoho-import/pending/%'
+          and exists (
+            select 1 from public.attachments r
+            where r.storage_path not like 'zoho-import/pending/%'
+              and r.parent_id = p.parent_id
+              and r.parent_type = p.parent_type
+              and r.storage_path like '%' || split_part(split_part(p.storage_path, '/', 3), '_', 1) || '%'
+          );
+      `),
+    );
+    console.log(`  placeholders whose file has since arrived             ${duplicatePlaceholders}`);
+    if (duplicatePlaceholders > 0) {
+      fail(
+        `${duplicatePlaceholders} attachment row(s) still say "File not yet available" for a file that is in Storage on the same parent; the record screen shows the working file and a dead placeholder side by side`,
+      );
+    }
+  }
+}
+
+console.log('\nPASS 7  triggers are back on\n');
 {
   const out = psql(`
     select count(*) filter (where t.tgenabled = 'D')
