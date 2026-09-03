@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { fetchAllRows } from '../../lib/fetchAll';
 import { supabase } from '../../lib/supabase';
 import { useRole } from '../../auth/SessionProvider';
 import type { Company, Staff } from './lib';
@@ -49,11 +50,10 @@ export function useCompanyOptions(refreshKey = 0) {
   useEffect(() => {
     if (companyCache && refreshKey === 0) return;
     let cancelled = false;
-    supabase
-      .from('companies')
-      .select('*')
-      .order('name')
-      .then(({ data }) => {
+    void fetchAllRows((f, t) =>
+      supabase.from('companies').select('*').order('name').range(f, t),
+    )
+      .then((data) => {
         if (!cancelled && data) {
           companyCache = data;
           setCompanies(data);

@@ -3,15 +3,13 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { supabase } from '../../../lib/supabase';
 import { Dialog } from '../components/Dialog';
-import { fetchPeopleByIds } from '../hooks';
 import {
   type Application,
-  type CandidateProfile,
-  type Person,
   type Requisition,
   errMsg,
   personName,
 } from '../lib';
+import type { CandidateListRow } from '../candidates/candidateRows';
 
 export interface AddCandidateDialogProps {
   requisition: Requisition;
@@ -21,6 +19,13 @@ export interface AddCandidateDialogProps {
   onDuplicate: (app: Application) => void;
 }
 
+const CANDIDATE_MATCH_LIMIT = 12;
+
+type CandidateMatch = Pick<
+  CandidateListRow,
+  'person_id' | 'first_name' | 'middle_name' | 'last_name' | 'current_title' | 'current_employer' | 'source_id'
+>;
+
 export function AddCandidateDialog({
   requisition,
   existing,
@@ -29,47 +34,38 @@ export function AddCandidateDialog({
   onDuplicate,
 }: AddCandidateDialogProps) {
   const [query, setQuery] = useState('');
-  const [profiles, setProfiles] = useState<CandidateProfile[]>([]);
-  const [people, setPeople] = useState<Map<string, Person>>(new Map());
+  const [profiles, setProfiles] = useState<CandidateMatch[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('candidate_profiles')
-          .select('*');
-        if (err) throw new Error(err.message);
-        if (cancelled) return;
-        const rows = data ?? [];
-        setProfiles(rows);
-        const persons = await fetchPeopleByIds(rows.map((r) => r.person_id));
-        if (!cancelled) {
-          setPeople(new Map(persons.map((p) => [p.id, p] as [string, Person])));
+    const term = query.trim().toLowerCase();
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          let q = supabase
+            .from('candidate_list')
+            .select('person_id, first_name, middle_name, last_name, current_title, current_employer, source_id')
+            .order('last_name', { ascending: true })
+            .order('first_name', { ascending: true })
+            .limit(CANDIDATE_MATCH_LIMIT);
+          if (term) q = q.ilike('search_text', `%${term.replace(/([\\%_])/g, '\\$1')}%`);
+          const { data, error: err } = await q;
+          if (err) throw new Error(err.message);
+          if (!cancelled) setProfiles(data ?? []);
+        } catch (e) {
+          if (!cancelled) setError(errMsg(e));
         }
-      } catch (e) {
-        if (!cancelled) setError(errMsg(e));
-      }
-    })();
+      })();
+    }, term ? 200 : 0);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [query]);
 
-  const q = query.trim().toLowerCase();
-  const matches = profiles
-    .filter((prof) => {
-      const p = people.get(prof.person_id);
-      if (!p) return false;
-      if (!q) return true;
-      const hay = `${personName(p)} ${prof.current_title ?? ''} ${
-        prof.current_employer ?? ''
-      }`.toLowerCase();
-      return hay.includes(q);
-    })
-    .slice(0, 12);
+  const matches = profiles;
 
   const add = async (personId: string, sourceId: string | null) => {
     setBusy(true);
@@ -117,12 +113,10 @@ export function AddCandidateDialog({
       {error && <p className="rq-error">{error}</p>}
       <div className="panel-stack">
         {matches.map((prof) => {
-          const p = people.get(prof.person_id);
-          if (!p) return null;
           return (
             <div key={prof.person_id} className="panel-item">
               <div className="panel-item-head">
-                <span className="panel-item-title">{personName(p)}</span>
+                <span className="panel-item-title">{personName({ ...prof, headline: null })}</span>
                 <Button
                   size="sm"
                   variant="primary"

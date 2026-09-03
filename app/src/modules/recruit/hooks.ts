@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchAllRows } from '../../lib/fetchAll';
 import { supabase } from '../../lib/supabase';
 import type {
   CandidateStatus,
@@ -9,12 +10,6 @@ import type {
 } from './lib';
 
 const PEOPLE_ID_CHUNK = 200;
-
-export const CANDIDATE_LIST_COLUMNS =
-  'person_id, status_id, star_grade, grade_comment, current_title, current_employer, initial_date, source_id, sourcer_id, do_not_contact';
-
-export const PERSON_LIST_COLUMNS =
-  'id, first_name, middle_name, last_name, updated_at, city, state, country, emails';
 
 export async function fetchPeopleByIds(
   ids: string[],
@@ -53,8 +48,8 @@ export function useLookups(): Lookups {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [c, st, so, cs] = await Promise.all([
-        supabase.from('companies').select('*').order('name'),
+      const [companyRows, st, so, cs] = await Promise.all([
+        fetchAllRows((f, t) => supabase.from('companies').select('*').order('name').range(f, t)),
         supabase
           .from('staff')
           .select('*')
@@ -67,10 +62,9 @@ export function useLookups(): Lookups {
           .order('sort_order'),
       ]);
       if (cancelled) return;
-      const firstError =
-        c.error ?? st.error ?? so.error ?? cs.error ?? null;
+      const firstError = st.error ?? so.error ?? cs.error ?? null;
       if (firstError) setError(firstError.message);
-      setCompanies(c.data ?? []);
+      setCompanies(companyRows);
       setStaffList(st.data ?? []);
       setSources(so.data ?? []);
       setStatuses(cs.data ?? []);
