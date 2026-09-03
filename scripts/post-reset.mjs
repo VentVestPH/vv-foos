@@ -55,6 +55,60 @@ function restartEdgeRuntime() {
   console.log(`post-reset: ${name} restarted (clears stale storage connections).`);
 }
 
+function restartKong() {
+  let name;
+  try {
+    name = execSync("docker ps --format '{{.Names}}' | grep '^supabase_kong_' | head -1", {
+      encoding: 'utf8',
+      shell: '/bin/sh',
+    }).trim();
+  } catch {
+    name = '';
+  }
+  if (!name) {
+    console.warn('post-reset: no running supabase_kong_* container found; skipping restart.');
+    return false;
+  }
+  execFileSync('docker', ['restart', name], { stdio: 'ignore' });
+  console.log(`post-reset: ${name} restarted (clears the stale auth upstream).`);
+  return true;
+}
+
+async function authAnswers(apiUrl) {
+  try {
+    const res = await fetch(`${apiUrl}/auth/v1/health`, { signal: AbortSignal.timeout(4000) });
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForAuth() {
+  const apiUrl = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    if (await authAnswers(apiUrl)) {
+      console.log('post-reset: Auth is answering.');
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 750));
+  }
+
+  if (!restartKong()) return;
+  const second = Date.now() + 30000;
+  while (Date.now() < second) {
+    if (await authAnswers(apiUrl)) {
+      console.log('post-reset: Auth is answering after the Kong restart.');
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 750));
+  }
+  console.warn(
+    'post-reset: Auth still returns 5xx through Kong. Every persona sign-in will fail with an\n' +
+      'empty error object, which looks like bad credentials but is a stale Kong upstream.',
+  );
+}
+
 async function waitForStack() {
 
   const apiUrl = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
@@ -101,5 +155,6 @@ seedPersonas();
 if (!PERSONAS_ONLY) {
   restartEdgeRuntime();
   await waitForStack();
+  await waitForAuth();
   seedLegacyOwners();
 }

@@ -12,6 +12,7 @@ const valueOf = (f, d) => {
 const MARKER = 'ScaleProbe';
 const REQ_MARKER = 'ScaleReq';
 const DEAL_MARKER = 'ScaleDeal';
+const CONTACT_MARKER = 'ScaleContact';
 const ENTITY = valueOf('--entity', 'candidates');
 const COUNT = Number(valueOf('--count', '70200'));
 const BATCH = Number(valueOf('--batch', '2000'));
@@ -293,8 +294,94 @@ async function seedDeals(count) {
   console.log(`\r  ${made} of ${count} deals`);
 }
 
+async function countContactProbes() {
+  const { count, error } = await sb
+    .from('people')
+    .select('id', { count: 'exact', head: true })
+    .like('first_name', `${CONTACT_MARKER}%`);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+async function purgeContacts() {
+  let removed = 0;
+  for (;;) {
+    const { data, error } = await sb
+      .from('people')
+      .select('id')
+      .like('first_name', `${CONTACT_MARKER}%`)
+      .limit(BATCH);
+    if (error) throw new Error(error.message);
+    if (!data.length) break;
+    const ids = data.map((r) => r.id);
+    for (let i = 0; i < ids.length; i += ID_CHUNK) {
+      const slice = ids.slice(i, i + ID_CHUNK);
+      const prof = await sb.from('contact_profiles').delete().in('person_id', slice);
+      if (prof.error) throw new Error(`contact_profiles: ${prof.error.message}`);
+      const ppl = await sb.from('people').delete().in('id', slice);
+      if (ppl.error) throw new Error(`people: ${ppl.error.message}`);
+      removed += slice.length;
+    }
+    process.stdout.write(`\r  purged ${removed} contact(s)`);
+  }
+  process.stdout.write(`\r  purged ${removed} contact(s)\n`);
+  const left = await countContactProbes();
+  if (left > 0) throw new Error(`${left} contact probe(s) survived the purge`);
+  return removed;
+}
+
+async function seedContacts(count) {
+  const existing = await countContactProbes();
+  if (existing > 0) {
+    console.error(`${existing} ${CONTACT_MARKER} contact(s) already exist. Run --purge first.`);
+    process.exit(1);
+  }
+  const { data: companies } = await sb.from('companies').select('id').limit(20);
+  const companyIds = (companies ?? []).map((c) => c.id);
+  const titles = ['Head of Engineering', 'Operations Director', 'Procurement Lead', 'CTO'];
+
+  console.log(`Seeding ${count} probe contacts`);
+  let made = 0;
+  for (let i = 0; i < count; i += BATCH) {
+    const size = Math.min(BATCH, count - i);
+    const people = Array.from({ length: size }, (_, k) => {
+      const n = i + k;
+      return {
+        first_name: `${CONTACT_MARKER}${n}`,
+        last_name: `Person${n % 991}`,
+        emails: [{ type: 'work', address: `contact${n}@probe.invalid` }],
+        phones: [{ type: 'work', number: `+63917000${String(n % 10000).padStart(4, '0')}` }],
+        is_test: true,
+      };
+    });
+    const { data, error } = await sb.from('people').insert(people).select('id');
+    if (error) {
+      console.error(`\npeople insert failed at ${made}: ${error.message}`);
+      process.exit(1);
+    }
+    const profiles = data.map((row, k) => {
+      const n = i + k;
+      return {
+        person_id: row.id,
+        company_id: companyIds.length ? companyIds[n % companyIds.length] : null,
+        title: titles[n % titles.length],
+        is_primary: n % 7 === 0,
+      };
+    });
+    const prof = await sb.from('contact_profiles').insert(profiles);
+    if (prof.error) {
+      console.error(`\ncontact_profiles insert failed at ${made}: ${prof.error.message}`);
+      process.exit(1);
+    }
+    made += size;
+    process.stdout.write(`\r  ${made} of ${count}`);
+  }
+  console.log(`\r  ${made} of ${count} contacts`);
+}
+
 if (has('--purge')) {
   console.log(`Purging probe rows from ${target}`);
+  await purgeContacts();
   await purgeDeals();
   await purgeRequisitions();
   await purge();
@@ -310,8 +397,12 @@ if (ENTITY === 'deals') {
   await seedDeals(COUNT);
   process.exit(0);
 }
+if (ENTITY === 'contacts') {
+  await seedContacts(COUNT);
+  process.exit(0);
+}
 if (ENTITY !== 'candidates') {
-  console.error(`--entity must be candidates, requisitions or deals, got ${ENTITY}`);
+  console.error(`--entity must be candidates, requisitions, deals or contacts, got ${ENTITY}`);
   process.exit(1);
 }
 

@@ -862,6 +862,29 @@ export interface Database {
       };
     };
     Views: {
+      contact_list: {
+        Row: {
+          person_id: string;
+          first_name: string | null;
+          middle_name: string | null;
+          last_name: string | null;
+          full_name: string | null;
+          emails: Json;
+          phones: Json;
+          city: string | null;
+          state: string | null;
+          country: string | null;
+          is_test: boolean;
+          person_updated_at: string;
+          company_id: string | null;
+          company_name: string | null;
+          title: string | null;
+          is_primary: boolean;
+          since_date: string | null;
+          search_text: string | null;
+        };
+        Relationships: [];
+      };
       deal_list: {
         Row: {
           id: string;

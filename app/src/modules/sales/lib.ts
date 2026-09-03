@@ -45,11 +45,11 @@ export function phoneList(phones: Json): PersonPhone[] {
   );
 }
 
-export function primaryEmail(p: Person): string {
+export function primaryEmail(p: Pick<Person, 'emails'>): string {
   return emailList(p.emails)[0]?.address ?? '';
 }
 
-export function primaryPhone(p: Person): string {
+export function primaryPhone(p: Pick<Person, 'phones'>): string {
   return phoneList(p.phones)[0]?.number ?? '';
 }
 

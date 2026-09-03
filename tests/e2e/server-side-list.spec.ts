@@ -4,6 +4,7 @@ import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 const CANDIDATES = '/recruit/candidates';
 const REQUISITIONS = '/recruit/requisitions';
 const DEALS = '/sales/deals';
+const CONTACTS = '/sales/contacts';
 
 async function restCalls(page: import('@playwright/test').Page, run: () => Promise<void>) {
   const seen: string[] = [];
@@ -235,4 +236,35 @@ test.describe('column sorting reaches the database, not just the visible page', 
       ).toBe(true);
     });
   }
+});
+
+test.describe('the contact list no longer asks for every person by id', () => {
+  test('it reads the view with a range, and sends no id list', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    const calls = await restCalls(page, async () => {
+      await gotoAsSignedIn(page, CONTACTS);
+      await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 30000 });
+      await page.waitForTimeout(1500);
+    });
+
+    const wholesale = calls.filter(
+      (c) => /^(contact_profiles|people)\?/.test(c) && !c.includes('id=eq.'),
+    );
+    expect(
+      wholesale,
+      'the contact list must not read contact_profiles or people directly; that path ended in a URI too long',
+    ).toEqual([]);
+
+    const idList = calls.filter((c) => /id=in\.\([^)]{500,}/.test(c));
+    expect(
+      idList.map((c) => c.slice(0, 60)),
+      'no request may carry a long id list; PostgREST rejects roughly a thousand uuids as URI too long',
+    ).toEqual([]);
+
+    const viewCalls = calls.filter((c) => c.startsWith('contact_list?'));
+    expect(viewCalls.length, 'the list reads contact_list').toBeGreaterThan(0);
+    for (const c of viewCalls) {
+      expect(c, 'every view read carries an explicit range').toMatch(/offset=|limit=/);
+    }
+  });
 });

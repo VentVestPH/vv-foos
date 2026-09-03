@@ -905,6 +905,40 @@ Two bugs I introduced in the deals refactor, both caught by the existing drag-an
 
 **A limitation of `check-unbounded-queries.mjs`, stated rather than papered over.** It treats `.in()` as a narrowing filter, which is usually right and is wrong in one important shape: the old contacts screen paged every `contact_profiles` row and then asked for the matching people in a single `.in()` carrying every id it had just collected. PostgREST puts that list in the query string, and roughly a thousand uuids is already a 37 KB URI rejected with `URI too long`. At scale that screen does not slow down, it fails outright, and the checker cannot see it because the shape depends on where the id list came from rather than on the call itself. U1.5 fixes the screen; the checker keeps the blind spot.
 
+## 7.19 U1.5: the contact list did not get slow, it stopped working
+
+The other three screens degraded. This one broke outright, and the difference matters because a slow screen gets reported and a broken one gets blamed on the data.
+
+The old code paged every `contact_profiles` row, then asked for the matching people in a **single `.in()` carrying every id it had just collected**. Tested at 15,005 seeded contacts rather than reasoned about:
+
+```
+step 1: 16 requests, 15,005 contact profiles collected
+step 2: one .in() carrying all 15,005 ids, about a 542 KB query string
+result: FAILED after 10 ms, "URI too long"
+```
+
+The list would have shown nothing at all. At the 5 contacts the seed carries it is invisible.
+
+| | Old at 15,005 | New |
+| :---- | :---- | :---- |
+| Outcome | request rejected, no data | 20 rows |
+| Time to first row | never | 108ms |
+| Pager | none | `1-20 of 15005` |
+| DOM nodes | none | 324 |
+| Payload | none | 28.2 KB |
+
+`contact_list` is `security_invoker = on`, inner-joined to `people` because a contact profile without a person is not a contact, and left-joined to `companies` so a contact whose company the caller cannot read keeps its row. `validate.sql` check 28 covers the row count, the orphan case and the invoker flag. The guard test now fails if any request carries an `id=in.(…)` list longer than 500 characters, which is the shape that killed it.
+
+`primaryEmail` and `primaryPhone` took a whole `Person` and read one field each. Narrowed to `Pick<Person, 'emails'>` and `Pick<Person, 'phones'>`, so a view row satisfies them without fabricating a fake `Person`.
+
+### The environment fault I could not reproduce
+
+Mid-run, every persona sign-in began failing with an empty error object, `{}`. A direct curl showed **HTTP 502 from Kong**, "an invalid response was received from the upstream server". Restarting Kong fixed it at once.
+
+**The cause is unconfirmed.** Restarting the auth container alone did not reproduce it, and neither did a second full `npm run db:reset`. "Stale Kong upstream after a reset" fits the evidence but is not established, and it is recorded here as an open question rather than a finding.
+
+What is worth fixing regardless is the diagnosis path. `post-reset.mjs` checked REST and the careers function but never auth, so a 502 there passed silently and surfaced later as what looks like a credentials problem. It now checks `/auth/v1/health`, restarts Kong if auth is 5xx, rechecks, and if it still fails says explicitly that an empty sign-in error means a 5xx through Kong rather than bad credentials. Both branches are tested: the healthy path passes immediately, and the recovery path was exercised by pointing the check at a dead port and watching it restart Kong and warn after 70 seconds.
+
 ## 8. Tasklist
 
 State after the 2026-09-02 passes and the seven audits, and the 2026-09-03 discovery sweep. **150½ of 157 tasks done.** Workstreams R and S were added the same day, and P2 and P3 were dropped as not being FOOS work. Workstream Q is proposals, not defects, so it is counted but should not be read as outstanding work in the same sense. Ordered by what gates each item, then by consequence inside each group.
@@ -921,7 +955,7 @@ Five phases, in order, because each one blocks the next.
 - [x] **U1.2** The four silently truncating reads, and `check-unbounded-queries.mjs` to stop the next one
 - [x] **U1.3** Requisition list server-side. Its unviewed badges were wrong on 1,859 of 2,002 requisitions, computed from 1,000 of 14,008 applications. 139ms, 3 requests, `1-20 of 2003` from a database count. Section 7.18
 - [x] **U1.4** Deal list, bounded kanban. 12,002 cards and ~84,000 DOM nodes down to 150 cards and 1,263 nodes, 204ms, each column stating `showing 25 of 2,000`. Section 7.18
-- [ ] **U1.5** Contacts list
+- [x] **U1.5** Contacts list. The old screen did not slow down at scale, it **failed**: it collected every `contact_profiles` row then asked for the matching people in one `.in()`, a 542 KB query string rejected with `URI too long` in 10ms at 15,005 contacts, so the page rendered nothing. Now 108ms, `1-20 of 15005`, 324 DOM nodes, 28.2 KB. Section 7.19
 - [ ] **U1.6** Companies list
 - [ ] **U1.7** Tickets list
 

@@ -915,4 +915,30 @@ begin
   raise notice 'PASS 27: deal_list covers every deal, is security_invoker, and its left joins drop nothing';
 end $$;
 
+do $$
+declare
+  invoker boolean;
+  n int;
+begin
+  select reloptions::text like '%security_invoker=on%' into invoker
+  from pg_class where relname = 'contact_list' and relkind = 'v';
+  if invoker is not true then
+    raise exception 'FAIL 28: contact_list is not security_invoker = on, so it would bypass RLS on contact_profiles, people and companies';
+  end if;
+
+  select count(*) into n
+  from public.contact_profiles cp
+  left join public.people p on p.id = cp.person_id
+  where p.id is null;
+  if n > 0 then
+    raise exception 'FAIL 28: % contact_profiles row(s) have no people row, so contact_list hides them while they still exist', n;
+  end if;
+
+  if (select count(*) from public.contact_list) <> (select count(*) from public.contact_profiles) then
+    raise exception 'FAIL 28: contact_list and contact_profiles disagree on row count';
+  end if;
+
+  raise notice 'PASS 28: contact_list covers every contact profile, is security_invoker, and the company join drops nothing';
+end $$;
+
 do $$ begin raise notice 'VALIDATION COMPLETE'; end $$;
