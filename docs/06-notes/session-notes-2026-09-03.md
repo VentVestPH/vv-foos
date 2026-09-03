@@ -100,3 +100,63 @@ What is still being measured is whether today's changes made it more likely. The
 3. **The version that works does not race the database.** It delays every `candidate_list` response by 2 s with `page.route`, the idiom `list-persistence.spec.ts` already used for U1.10, and churns one change per second. Deterministic against any query speed and any suite load: 3 of 3 fail unfixed, 3 of 3 pass fixed.
 
 Also: the gate came back fully green at two workers, 153 browser tests including the badge test that QA-009 is about, so QA-009's rate needs re-measuring before it is published as an expected failure. Four measured runs are in flight.
+
+## U1.13, and two measurements that flattered the result
+
+Rows and count are now separate requests on the candidate list, and the count is keyed on the filters rather than the page. First data row: 1,893 to 1,912 ms becomes 190 to 200 ms over three runs each way.
+
+Both of my first measurements were wrong in the flattering direction, which is the direction to distrust:
+
+1. **"Page turn 1,839 ms to 24 ms"** was measuring the click, not the data. `from` and `to` come from `page` state and the known total, so the pager label repaints immediately. Waiting on the first data row's own text gives 1,930 to 1,944 ms before and 1,073 to 1,089 ms after.
+2. **"First row 126 ms on baseline"** was the empty-state row, which carries a `colspan` cell and matches `table tbody tr`. `.table-wrap tbody tr:not(:has(td[colspan]))` gives the honest 1,893 ms.
+
+The corrected page-turn number is what exposed U1.15: with the count gone, a page turn still costs about 1,080 ms, and that is a rows-only request that costs 42 ms at offset 0.
+
+## U1.15: offset flips the plan, and RLS is why
+
+Measured in psql under RLS as the recruiter: `limit 20 offset 0` is 3 ms, `offset 20` is 751 ms, `offset 200` is 736 ms, and `offset 20` with `enable_seqscan = off` is 2.9 ms.
+
+At offset 0 the plan is an Incremental Sort over `idx_people_last_first` that stops after 21 rows. At any other offset it is a Seq Scan on `candidate_profiles` feeding a top-N heapsort over all 72,917 rows. The reason is that `people_select` is `can_read_person(id)`, an opaque plpgsql function, so the planner gets a default selectivity and estimates the join at 267 rows against 72,917 actual. That is the same 273x error that `count: 'planned'` shows. It makes the index path look expensive (136,619) and the seq scan cheap (12,706), and the decision flips on 12,843 against 12,714.
+
+I checked the environment before blaming the product. `effective_cache_size` is 16,384 pages, 128 MB, and `random_page_cost` is 4: both stock Postgres defaults. Supabase's docs say it generates per-compute-size optimisations that a custom config overrides, and do not publish the values, so this may not reproduce on hosted and cannot be checked from here. Setting `effective_cache_size` to 8 GB with `random_page_cost` 1.05 flips the plan back to 2.97 ms. Left unfixed rather than shipping a config change that would override Supabase's own tuning, or disabling seq scans. The durable fix is keyset pagination, which costs arbitrary page jumps, so it is a product decision.
+
+## One invalid control run
+
+After committing the coalescer, I re-ran the starvation spec with U1.13 stashed and it passed three times, which looked like the regression test had gone vacuous. It had not: stashing uncommitted work no longer removes the fix, because the fix is in HEAD. Bypassing the coalescer directly gives 3 of 3 failures again.
+
+## Two more of mine, from the U1.13 work
+
+1. **I ran the gate loop twice concurrently.** `kill %1` does nothing in a non-interactive `bash -c`, so my first loop survived and a second joined it: two gates, two dev servers fighting over `strictPort: true` on 5175, four Playwright workers. That produced two failures I had never seen, in global search and in a pressed-button colour, neither related to anything I had changed. Both pass in isolation. Concurrency in my own tooling produced exactly the kind of phantom failure I have been telling myself not to accept. `setsid` also does not exist on macOS, which swallowed a relaunch silently.
+2. **Splitting the count opened a hole in the export cap.** The export refuses filters matching more than 10,000 rows, and it read the total that used to arrive with the rows. With the count now asynchronous, `total` is null for about 1.5 s after a filter change, so a click in that window skipped the cap. The export now fetches its own count when the total is unknown, which keeps the guard exact rather than approximately right.
+
+Also fixed while reading the diff: a realtime reload refreshed the rows but not the total, because the count effect keys on the filters alone. `reloadAll` now refreshes both, without blanking the total first, so the number never flickers to empty on a live update.
+
+
+## Verifier state at the end of U1.13
+
+`scripts/verify-zoho-migration.mjs`: all seven passes clean. PASS 5 compares Modified_Time on the full population: candidate 72,910 of 72,910, requisition 687 of 687, company 104 of 104, zero drifted. PASS 6 reads 1,747 enumerated, 8 identity documents held back, 1 over the 25 MB bucket limit, 1,738 expected, 1,738 rows with bytes, 1,738 objects in the bucket, 0 metadata-only rows and 0 placeholders whose file has since arrived.
+
+`scripts/verify-zoho-sample.mjs` did **not** run: it needs `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` and `ZOHO_RECRUIT_ORG_ID`, and this checkout has no root `.env` and no file holding them. They were in a previous shell's environment, and shell state does not persist between commands here. Recorded as not run rather than as green.
+
+Gate runs on the finished U1.13 code: runs 2 to 5 clean at 20 ok and 153 browser tests each. Run 1 failed on the browser step and its failing test name was lost, because my report snapshotter only started during run 3. Run 1 was also the first run after force-killing two concurrent gate loops, so contamination is the likely explanation rather than a defect, and runs 6 to 8 are measuring that rather than assuming it.
+
+## The pressed-button flake, chased to its cause
+
+`interaction-states.spec.ts` "a pressed primary button darkens instead of turning grey": 3 of 8 gate runs failed, 5 of 5 passed in isolation. Cause: `page.locator('.btn-primary').first()` re-resolves. On `/settings` the first primary button is "Add template" at 398,821 until the Google card's data lands, then "Connect Google account" at 398,410. The test hovered one and polled the other, which was never under the cursor. Fixed by settling on the first button's text and box, pinning it with `elementHandle()`, and using that handle for the hover and the polls. Assertion unchanged.
+
+Two wrong readings of mine while chasing it:
+
+1. I read the background immediately after `mouse.down()`, saw the idle colour with `:hover` and `:active` both matching, and nearly wrote up "hover and active never apply". The motion layer transitions `background-color`, so an immediate `getComputedStyle` returns the interpolated start value. The test's own 5 s poll was never affected by this.
+2. I went looking for a module-layer rule overriding the button, since a later layer beats a more specific shared rule. There is none: `.btn-primary` appears in three shared rules and one recruit print rule, and the settings stylesheet does not touch buttons.
+
+Also noted, not a defect I fixed: `:hover` and `:active` both resolve to `--fo-primary-hover`, so this test cannot tell pressed from hovered, only either from grey.
+
+## The gate failure I caused with pkill
+
+Gate runs 9 to 12 each reported 19 ok and 1 fail with the browser suite passing 153. The failing check was `attachments`: "2 orphaned storage object(s) and 2 queued file(s) still present". The two objects were `qa-older-*.pdf` and `qa-newer-*.pdf` on a demo person, so plainly a test fixture rather than migration data. Cause: I force-killed gate and Playwright processes with `pkill -9` while chasing the concurrency mess, so those tests' `afterEach` teardown never ran and the files outlived their rows. `node scripts/purge-orphan-attachments.mjs --apply` cleared them, 1,207 stale queue entries closed with them, and the next gate was 20 of 20 green.
+
+Two lessons, both about my own tooling rather than the product: killing a test run leaks exactly what the teardown was there to prevent, and a check that says "an attachment row was deleted without removing its file first" is describing my `pkill`, not the code.
+
+## Gate evidence for U1.13 and U1.16
+
+Thirteen gate runs. Browser suite clean at 153 passed in runs 2 to 6 and 9 to 13, ten runs. Runs 7 and 8 failed the pressed-button test, which is now fixed and has since passed four consecutive gate runs plus five in isolation. Runs 9 to 12's single failure was the orphan cleanup above. Run 13 is 20 of 20.
