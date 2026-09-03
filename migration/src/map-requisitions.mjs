@@ -62,7 +62,9 @@ export function mapRequisition(row, lookups, unresolved, companyByZohoId) {
   const recruiter = trimmed(row, 'Assigned_Recruiter');
   const ownerId = recruiter ? resolveStaff(lookups, recruiter, unresolved) : null;
 
-  const openings = parseZohoNumber(trimmed(row, 'No_of_Positions'));
+  const openings =
+    parseZohoNumber(trimmed(row, 'Number_of_Positions')) ??
+    parseZohoNumber(trimmed(row, 'No_of_Positions'));
 
   const clientZohoId = trimmed(row, 'Client_Name');
   const companyId = clientZohoId ? (companyByZohoId?.get(clientZohoId) ?? null) : null;
@@ -83,6 +85,7 @@ export function mapRequisition(row, lookups, unresolved, companyByZohoId) {
     num_openings: openings && openings > 0 ? openings : 1,
     opened_date: parseZohoDate(trimmed(row, 'Date_Opened')),
     filled_date: parseZohoDate(trimmed(row, 'Date_Closed')),
+    pay_notes: trimmed(row, 'Salary') || null,
     description: trimmed(row, 'Job_Description') || null,
     is_published: false,
     is_test: false,
@@ -94,13 +97,18 @@ export function mapRequisition(row, lookups, unresolved, companyByZohoId) {
     if (v) carried[target ?? key] = v;
   };
   carry('Target_Date');
-  carry('Salary');
-  carry('Remote_Job');
   carry('Candidate_Submission_Limit');
   carry('No_of_Candidates_Associated');
   carry('No_of_Candidates_Hired');
-  carry('Taleo_Job_Code');
-  carry('Is_Hot_Job_Opening');
+  carry('Revenue_per_Position');
+  carry('Expected_Revenue');
+  carry('Probability');
+  carry('Industry');
+  carry('Work_Experience');
+  carry('Contact_Name');
+  carry('Pipeline__s');
+  carry('Taleo_Req_ID');
+  carry('Last_Updated_In_Taleo');
 
   const createdAt = parseZohoTimestamp(trimmed(row, 'Created_Time'));
   const updatedAt = parseZohoTimestamp(trimmed(row, 'Modified_Time'));

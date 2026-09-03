@@ -113,3 +113,44 @@ describe('status aliasing', () => {
     expect(unresolved.status.get('Invented Label')).toBe(1);
   });
 });
+
+describe('the Initial Date shapes the real export actually contains', () => {
+  const created = '2024-05-01T00:00:00+08:00';
+
+  it('reads a four-digit trailing number as a year, not a day', () => {
+    expect(parsePartialDate('11/2025', created)).toBe('2025-11-01');
+  });
+
+  it('takes the first entry of a multi-date list, which is the initial contact', () => {
+    expect(parsePartialDate('3/24; 11/24', created)).toBe('2024-03-24');
+    expect(parsePartialDate('5/12, 6/13', created)).toBe('2024-05-12');
+  });
+
+  it('falls through a leading unparseable entry rather than giving up on the list', () => {
+    expect(parsePartialDate('rubbish; 6/13', created)).toBe('2024-06-13');
+  });
+
+  it('still reads a two-digit trailing number as a day and borrows the year', () => {
+    expect(parsePartialDate('11/25', created)).toBe('2024-11-25');
+  });
+
+  it('rejects a month outside 1-12 in the month-year form', () => {
+    expect(parsePartialDate('13/2025', created)).toBeNull();
+  });
+
+  it('returns null rather than guessing at a bare number or trailing prose', () => {
+    expect(parsePartialDate('2024', created)).toBeNull();
+    expect(parsePartialDate('3/2024 - LOOKING', created)).toBeNull();
+  });
+});
+
+describe('parseZohoTimestamp accepts the date-only form bulk read emits', () => {
+  it('reads YYYY-MM-DD as midnight UTC', () => {
+    expect(parseZohoTimestamp('2025-10-27')).toBe('2025-10-27T00:00:00Z');
+  });
+
+  it('still validates the date, so a non-leap 29 February is rejected', () => {
+    expect(parseZohoTimestamp('2024-02-29')).toBe('2024-02-29T00:00:00Z');
+    expect(parseZohoTimestamp('2023-02-29')).toBeNull();
+  });
+});

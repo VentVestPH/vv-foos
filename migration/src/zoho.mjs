@@ -31,6 +31,15 @@ export function parseZohoTimestamp(value) {
     return `${iso24[1]}-${iso24[2]}-${iso24[3]}T${iso24[4]}:${iso24[5]}:${String(ss).padStart(2, '0')}${offset}`;
   }
 
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (isoDate) {
+    const y = Number(isoDate[1]);
+    const mo = Number(isoDate[2]);
+    const d = Number(isoDate[3]);
+    if (!validDate(y, mo, d)) return null;
+    return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}T00:00:00Z`;
+  }
+
   const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})\s*(AM|PM))?$/i.exec(trimmed);
   if (!m) return null;
 
@@ -65,10 +74,28 @@ export function parseZohoDate(value) {
 
 export function parsePartialDate(value, yearSourceTimestamp) {
   if (!value) return null;
-  const trimmed = value.trim();
+  const raw = value.trim();
+
+  if (/[,;]/.test(raw)) {
+    for (const part of raw.split(/[,;]/)) {
+      const one = parsePartialDate(part, yearSourceTimestamp);
+      if (one) return one;
+    }
+    return null;
+  }
+
+  const trimmed = raw;
 
   const full = parseZohoDate(trimmed);
   if (full) return full;
+
+  const monthYear = /^(\d{1,2})\/(\d{4})$/.exec(trimmed);
+  if (monthYear) {
+    const mo = Number(monthYear[1]);
+    const yr = Number(monthYear[2]);
+    if (mo < 1 || mo > 12) return null;
+    return `${yr}-${String(mo).padStart(2, '0')}-01`;
+  }
 
   let month = null;
   let day = null;
