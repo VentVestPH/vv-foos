@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { parseCsvRecords } from '../migration/src/csv.mjs';
 import { normalizeZohoId } from '../migration/src/deterministic-id.mjs';
 
@@ -26,7 +26,19 @@ function psql(sql) {
   }).trim();
 }
 
+function psqlScript(sql) {
+  const file = join(SCRATCH, 'verify-step.sql');
+  writeFileSync(file, sql);
+  return execFileSync('psql', [DB_URL, '-v', 'ON_ERROR_STOP=1', '-At', '-F', '|', '-f', file], {
+    encoding: 'utf8',
+    env: { ...process.env, PGPASSWORD: process.env.PGPASSWORD ?? 'postgres' },
+    maxBuffer: 1024 * 1024 * 512,
+  }).trim();
+}
+
 const BULK = 'migration/zoho-exports/bulk';
+const SCRATCH = resolve(process.env.FOOS_VERIFY_TMP ?? '.verify');
+mkdirSync(SCRATCH, { recursive: true });
 
 const MODULES = [
   { label: 'Recruit/Candidates', dir: 'ZohoRecruit_Candidates_p1', entity: 'candidate' },
@@ -151,12 +163,13 @@ for (const [table, pred] of TABLES) {
   );
   const seedExpr = hasIsTest === '1' ? 'is_test' : 'false';
   const row = psql(`
-    with m as (select foos_id from zoho_id_map where ${pred})
     select count(*),
-           count(*) filter (where t.id in (select foos_id from m)),
+           count(*) filter (where m.foos_id is not null),
            count(*) filter (where ${seedExpr}),
-           count(*) filter (where t.id not in (select foos_id from m) and not ${seedExpr})
-    from public.${table} t;
+           count(*) filter (where m.foos_id is null and not ${seedExpr})
+    from public.${table} t
+    left join (select distinct foos_id from zoho_id_map where ${pred}) m
+      on m.foos_id = t.id;
   `);
   const [total, imported, seed, other] = row.split('|');
   console.log(
@@ -203,11 +216,6 @@ const CHECKS = [
     'applications whose stage fell back to talent_pool',
     `select count(*) from applications where stage = 'talent_pool' and coalesce(source_status,'') not ilike 'talent pool'`,
   ],
-  [
-    'imported candidates with a placeholder updated_at (today)',
-    `select count(*) from people p join zoho_id_map m on m.foos_id = p.id and m.entity_type='candidate'
-     where p.updated_at::date = current_date`,
-  ],
 ];
 for (const [label, sql] of CHECKS) {
   const n = psql(sql);
@@ -216,38 +224,51 @@ for (const [label, sql] of CHECKS) {
   if (!ok) fail(`${label}: ${n}`);
 }
 
-console.log('\nPASS 5  timestamp fidelity against the extract\n');
+console.log('\nPASS 5  timestamp fidelity, every extracted record and not a sample\n');
 {
-  const candidateFile = join(BULK, 'ZohoRecruit_Candidates_p1');
-  const csv = existsSync(candidateFile)
-    ? readdirSync(candidateFile).find((f) => f.endsWith('.csv'))
-    : null;
-  if (!csv) {
-    fail('candidate extract missing, cannot check timestamp fidelity');
-  } else {
-    const records = parseCsvRecords(readFileSync(join(candidateFile, csv), 'utf8')).records;
-    const sample = [];
-    const step = Math.max(1, Math.floor(records.length / 200));
-    for (let i = 0; i < records.length && sample.length < 200; i += step) {
-      const r = records[i];
+  const TIMESTAMPS = [
+    ['candidate', 'people', 'ZohoRecruit_Candidates_p1'],
+    ['requisition', 'requisitions', 'ZohoRecruit_Job_Openings_p1'],
+    ['company', 'companies', 'ZohoRecruit_Clients_p1'],
+  ];
+  for (const [entity, table, dir] of TIMESTAMPS) {
+    const path = join(BULK, dir);
+    const csv = existsSync(path) ? readdirSync(path).find((f) => f.endsWith('.csv')) : null;
+    if (!csv) {
+      fail(`${dir} extract missing, cannot check timestamp fidelity`);
+      continue;
+    }
+    const records = parseCsvRecords(readFileSync(join(path, csv), 'utf8')).records;
+    const rows = [];
+    for (const r of records) {
       const id = normalizeZohoId(r.Id ?? r.id);
       const mod = String(r.Modified_Time ?? r.Updated_On ?? '').trim();
-      if (id && mod) sample.push([id, mod]);
+      if (id && mod) rows.push(`${id}\t${mod}`);
     }
-    const values = sample.map(([id, mod]) => `('${id}', '${mod}'::timestamptz)`).join(',');
-    const row = psql(`
-      with s(zoho_id, modified) as (values ${values})
-      select count(*),
-             count(*) filter (where date_trunc('second', p.updated_at) = date_trunc('second', s.modified))
-      from s
-      join zoho_id_map m on m.zoho_id = s.zoho_id and m.entity_type = 'candidate'
-      join people p on p.id = m.foos_id;
+    const tsv = join(SCRATCH, `${entity}-timestamps.tsv`);
+    writeFileSync(tsv, `${rows.join('\n')}\n`);
+
+    const out = psqlScript(`
+create temporary table zoho_ts (zoho_id text, modified timestamptz);
+\\copy zoho_ts from '${tsv}' with (format text)
+select count(*),
+             count(*) filter (
+               where date_trunc('second', t.updated_at) = date_trunc('second', z.modified)
+             )
+      from zoho_ts z
+      join zoho_id_map m on m.zoho_id = z.zoho_id and m.entity_type = '${entity}'
+      join public.${table} t on t.id = m.foos_id;
     `);
-    const [checked, matching] = row.split('|');
-    console.log(`  candidates sampled ${checked}, updated_at matching Zoho Modified_Time ${matching}`);
-    if (checked !== matching) {
-      fail(`${Number(checked) - Number(matching)} of ${checked} sampled candidates have a drifted updated_at`);
+    const line = out.trim().split('\n').filter((l) => l.includes('|')).pop() ?? '0|0';
+    const [checked, matching] = line.split('|');
+    const drift = Number(checked) - Number(matching);
+    console.log(
+      `  ${entity.padEnd(12)}${String(checked).padStart(8)} compared, ${String(matching).padStart(8)} match Zoho Modified_Time, ${drift} drifted`,
+    );
+    if (Number(checked) !== rows.length) {
+      fail(`${entity}: only ${checked} of ${rows.length} extracted rows could be joined to a FOOS row`);
     }
+    if (drift > 0) fail(`${entity}: ${drift} row(s) have an updated_at that is not the Zoho value`);
   }
 }
 

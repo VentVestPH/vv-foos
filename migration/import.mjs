@@ -710,10 +710,13 @@ async function importLeads(lookups, unresolved, idMaps) {
         .from('contact_profiles')
         .upsert({ person_id: personId, ...mapped.profile }, { onConflict: 'person_id' });
       if (profErr) throw profErr;
-      await insertWithDeterministicId('activities', 'lead-note', mapped.zohoId, {
-        ...mapped.leadNote,
-        person_id: personId,
-      });
+      const leadNote = await insertWithDeterministicId(
+        'activities',
+        'lead-note',
+        mapped.zohoId,
+        { ...mapped.leadNote, person_id: personId },
+      );
+      await recordMapping(mapped.zohoId, 'note', leadNote.id);
       await recordMapping(mapped.zohoId, 'lead', personId);
       existing.set(normalizeZohoId(mapped.zohoId), personId);
     } catch (e) {
