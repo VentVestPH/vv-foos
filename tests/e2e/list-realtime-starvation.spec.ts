@@ -54,12 +54,11 @@ test.describe('a list still paints while its own table is being written to', () 
       await gotoAsSignedIn(page, '/recruit/candidates');
 
       await expect(
-        page.locator('.fo-pager-count').first(),
+        page.locator('.table-wrap tbody tr:not(:has(td[colspan]))').first(),
         'every candidate_list response is delayed past the gap between changes, so without ' +
           'coalescing each change restarts the load and no response is ever the newest when ' +
           'it lands: the table stays empty with no error and nothing triggers another load',
-      ).not.toHaveText('0 of 0', { timeout: PAINT_BUDGET_MS });
-      await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10000 });
+      ).toBeVisible({ timeout: PAINT_BUDGET_MS });
 
       expect(
         writes,

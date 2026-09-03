@@ -1,5 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { PERSONA_EMAILS, expandSection, gotoAsSignedIn, signIn } from './helpers';
+
+async function pagerText(page: Page, selector = '.fo-pager-count'): Promise<string> {
+  const el = page.locator(selector).first();
+  await expect(
+    el,
+    'the pager total is fetched separately from the rows, so it arrives after the first paint',
+  ).toHaveText(/of [\d,]+/, { timeout: 30000 });
+  return (await el.innerText()).replace(/,/g, '');
+}
+
 
 const CANDIDATES = '/recruit/candidates';
 const REQUISITIONS = '/recruit/requisitions';
@@ -53,8 +63,8 @@ test.describe('the candidate list pages in the database, not the browser', () =>
     const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
     await expect(rows.first()).toBeVisible({ timeout: 30000 });
 
-    const label = await page.locator('.fo-pager-count').first().innerText();
-    const m = /(\d+)-(\d+) of (\d+)/.exec(label.replace(/,/g, ''));
+    const label = await pagerText(page);
+    const m = /(\d+)-(\d+) of (\d+)/.exec(label);
     expect(m, `the pager should read "from-to of total", got "${label}"`).not.toBeNull();
     const total = Number(m![3]);
     const shown = await rows.count();
@@ -67,8 +77,8 @@ test.describe('the candidate list pages in the database, not the browser', () =>
         const firstAfter = (await rows.first().locator('.link-btn').innerText()).trim();
         expect(firstAfter).not.toBe(firstBefore);
       }).toPass({ timeout: 15000 });
-      const secondLabel = await page.locator('.fo-pager-count').first().innerText();
-      expect(secondLabel.replace(/,/g, '')).toMatch(new RegExp(`of ${total}$`));
+      const secondLabel = await pagerText(page);
+      expect(secondLabel).toMatch(new RegExp(`of ${total}$`));
     }
   });
 
@@ -79,8 +89,8 @@ test.describe('the candidate list pages in the database, not the browser', () =>
     await expect(rows.first()).toBeVisible({ timeout: 30000 });
 
     const totalOf = async () => {
-      const label = await page.locator('.fo-pager-count').first().innerText();
-      const m = /of (\d+)/.exec(label.replace(/,/g, ''));
+      const label = await pagerText(page);
+      const m = /of (\d+)/.exec(label);
       return m ? Number(m[1]) : -1;
     };
     const before = await totalOf();
@@ -154,7 +164,7 @@ test.describe('the requisition list pages in the database too', () => {
       'the first requisition row renders content',
     ).toBe(true);
 
-    const label = await page.locator('.fo-pager-count').first().innerText();
+    const label = await pagerText(page);
     expect(label.replace(/,/g, ''), 'the pager reads from-to of total').toMatch(
       /(\d+-\d+ of \d+|0 of 0)/,
     );
@@ -192,7 +202,7 @@ test.describe('the deal board is bounded per stage', () => {
     await page.getByRole('button', { name: /^Table$/ }).click();
     await expect(page.locator('.table-wrap')).toBeVisible({ timeout: 20000 });
 
-    const label = await page.locator('.fo-pager-count').first().innerText();
+    const label = await pagerText(page);
     expect(label.replace(/,/g, ''), 'the pager reads from-to of total').toMatch(
       /(\d+-\d+ of \d+|0 of 0)/,
     );
@@ -302,7 +312,7 @@ test.describe('the remaining sales lists page in the database', () => {
         expect(c, 'every view read carries an explicit range').toMatch(/offset=|limit=/);
       }
 
-      const label = await page.locator('.fo-pager-count').first().innerText();
+      const label = await pagerText(page);
       expect(label.replace(/,/g, ''), 'the pager reads from-to of total').toMatch(
         /(\d+-\d+ of \d+|0 of 0)/,
       );

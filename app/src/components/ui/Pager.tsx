@@ -30,15 +30,24 @@ export function usePagination<T>(rows: T[], pageSize = DEFAULT_PAGE_SIZE) {
 interface PagerProps {
   from: number;
   to: number;
-  total: number;
+  total: number | null;
   page: number;
   pageCount: number;
   onPage: (page: number) => void;
+  totalPending?: boolean;
 }
 
-export function Pager({ from, to, total, page, pageCount, onPage }: PagerProps) {
+export function Pager({ from, to, total, page, pageCount, onPage, totalPending }: PagerProps) {
   const atStart = page === 0;
   const atEnd = page >= pageCount - 1;
+  const countLabel =
+    total === null
+      ? to > 0
+        ? `${from}-${to}`
+        : ''
+      : total === 0
+        ? '0 of 0'
+        : `${from}-${to} of ${total}`;
 
   return (
     <div className="fo-pager">
@@ -57,9 +66,7 @@ export function Pager({ from, to, total, page, pageCount, onPage }: PagerProps) 
           </button>
         </span>
       )}
-      <span className="fo-pager-count">
-        {total === 0 ? '0 of 0' : `${from}-${to} of ${total}`}
-      </span>
+      <span className="fo-pager-count">{countLabel}</span>
       {pageCount > 1 && (
         <span className="fo-pager-controls">
           <button
@@ -73,13 +80,13 @@ export function Pager({ from, to, total, page, pageCount, onPage }: PagerProps) 
           <button
             type="button"
             onClick={() => onPage(pageCount - 1)}
-            disabled={atEnd}
+            disabled={atEnd || totalPending === true}
             aria-label="Last page"
           >
             &raquo;
           </button>
           <span className="fo-pager-pos" aria-live="polite">
-            {page + 1} / {pageCount}
+            {page + 1} / {totalPending === true ? '?' : pageCount}
           </span>
         </span>
       )}

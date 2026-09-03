@@ -55,7 +55,14 @@ const CANDIDATE_VIEW_COLUMNS =
   'person_id, first_name, middle_name, last_name, full_name, emails, city, state, country, person_updated_at, status_id, star_grade, grade_comment, current_title, current_employer, initial_date, source_id, sourcer_id, do_not_contact, status_label, source_name, sourcer_name, has_resume';
 
 function candidateBaseQuery() {
-  return supabase.from('candidate_list').select(CANDIDATE_VIEW_COLUMNS, { count: 'exact' });
+  return supabase.from('candidate_list').select(CANDIDATE_VIEW_COLUMNS);
+}
+
+function candidateCountQuery() {
+  return supabase
+    .from('candidate_list')
+    .select(CANDIDATE_VIEW_COLUMNS, { count: 'exact', head: true })
+    .range(0, 0);
 }
 
 type CandidateQuery = ReturnType<typeof candidateBaseQuery>;
@@ -92,14 +99,14 @@ export function CandidateListPage() {
   const [profiles, setProfiles] = useState<CandidateListRow[]>([]);
   const [apps, setApps] = useState<Application[]>([]);
   const [reqs, setReqs] = useState<Requisition[]>([]);
-  const [total, setTotal] = useState(0);
+  const [total, setTotal] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [commentEdit, setCommentEdit] = useState<CandidateListRow | null>(null);
   const [commentDraft, setCommentDraft] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const applyFilters = useCallback(
+  const applyWhere = useCallback(
     (q: CandidateQuery): CandidateQuery => {
       let out = q;
       if (filters.statusId) out = out.eq('status_id', filters.statusId);
@@ -116,7 +123,15 @@ export function CandidateListPage() {
       if (lastName.trim()) {
         out = out.ilike('last_name', `%${likeLiteral(lastName.trim())}%`);
       }
+      return out;
+    },
+    [filters, search, firstName, lastName],
+  );
+
+  const applyOrder = useCallback(
+    (q: CandidateQuery): CandidateQuery => {
       const sortColumn = sort ? SORT_COLUMNS[sort.key] : undefined;
+      let out = q;
       if (sortColumn) {
         out = out.order(sortColumn, { ascending: sort?.dir === 'asc', nullsFirst: false });
       } else {
@@ -124,7 +139,12 @@ export function CandidateListPage() {
       }
       return out.order('person_id', { ascending: true });
     },
-    [filters, search, firstName, lastName, sort],
+    [sort],
+  );
+
+  const applyFilters = useCallback(
+    (q: CandidateQuery): CandidateQuery => applyOrder(applyWhere(q)),
+    [applyOrder, applyWhere],
   );
 
   const beginLoad = useLatestOnly();
@@ -133,7 +153,7 @@ export function CandidateListPage() {
     const isCurrent = beginLoad();
     try {
       const start = page * CANDIDATE_PAGE_SIZE;
-      const { data, count, error: listErr } = await applyFilters(candidateBaseQuery()).range(
+      const { data, error: listErr } = await applyFilters(candidateBaseQuery()).range(
         start,
         start + CANDIDATE_PAGE_SIZE - 1,
       );
@@ -142,7 +162,6 @@ export function CandidateListPage() {
       if (!isCurrent()) return;
       const pageRows = data ?? [];
       setProfiles(pageRows);
-      setTotal(count ?? 0);
 
       const personIds = pageRows.map((r) => r.person_id);
       if (personIds.length === 0) {
@@ -183,11 +202,37 @@ export function CandidateListPage() {
     setPage(0);
   }, [filters, search, firstName, lastName, sort]);
 
+  const beginCount = useLatestOnly();
+
+  const refreshCount = useCallback(
+    async (blank: boolean) => {
+      const isCurrent = beginCount();
+      if (blank) setTotal(null);
+      const { count, error: countErr } = await applyWhere(candidateCountQuery());
+      if (!isCurrent()) return;
+      if (countErr) {
+        setError(countErr.message);
+        return;
+      }
+      setTotal(count ?? 0);
+    },
+    [applyWhere, beginCount],
+  );
+
+  useEffect(() => {
+    void refreshCount(true);
+  }, [refreshCount]);
+
   useEffect(() => {
     void load();
   }, [load]);
 
-  const reloadSoon = useCoalescedReload(load);
+  const reloadAll = useCallback(async () => {
+    await load();
+    await refreshCount(false);
+  }, [load, refreshCount]);
+
+  const reloadSoon = useCoalescedReload(reloadAll);
 
   useEffect(() => {
     const channel = realtimeChannel('recruit-candidate-list')
@@ -219,9 +264,18 @@ export function CandidateListPage() {
   );
 
   const exportFilteredRows = useCallback(async () => {
-    if (total > EXPORT_ROW_CAP) {
+    let matched = total;
+    if (matched === null) {
+      const { count, error: countErr } = await applyWhere(candidateCountQuery());
+      if (countErr) {
+        setError(countErr.message);
+        return [];
+      }
+      matched = count ?? 0;
+    }
+    if (matched > EXPORT_ROW_CAP) {
       setError(
-        `That filter matches ${total.toLocaleString()} candidates, more than the ${EXPORT_ROW_CAP.toLocaleString()} an in-browser export can build. Narrow the filter and try again.`,
+        `That filter matches ${matched.toLocaleString()} candidates, more than the ${EXPORT_ROW_CAP.toLocaleString()} an in-browser export can build. Narrow the filter and try again.`,
       );
       return [];
     }
@@ -271,7 +325,7 @@ export function CandidateListPage() {
 
     setError(null);
     return buildCandidateRows({ rows: collected, apps: exportApps, reqCode: exportReqCode });
-  }, [applyFilters, total]);
+  }, [applyFilters, applyWhere, total]);
 
   const rows = useMemo<CandRow[]>(
     () => buildCandidateRows({ rows: profiles, apps, reqCode }),
@@ -423,14 +477,21 @@ export function CandidateListPage() {
     return [flagCol, ...defs.filter((c) => visibleCols.includes(c.key))];
   }, [visibleCols, profiles, canGrade, updateGrade, navigate]);
 
-  const pageCount = Math.max(1, Math.ceil(total / CANDIDATE_PAGE_SIZE));
+  const pageCount =
+    total === null
+      ? page + (profiles.length === CANDIDATE_PAGE_SIZE ? 2 : 1)
+      : Math.max(1, Math.ceil(total / CANDIDATE_PAGE_SIZE));
   const pager = {
     page,
     setPage,
     pageCount,
     total,
-    from: total === 0 ? 0 : page * CANDIDATE_PAGE_SIZE + 1,
-    to: Math.min(total, (page + 1) * CANDIDATE_PAGE_SIZE),
+    totalPending: total === null,
+    from: profiles.length === 0 ? 0 : page * CANDIDATE_PAGE_SIZE + 1,
+    to:
+      total === null
+        ? page * CANDIDATE_PAGE_SIZE + profiles.length
+        : Math.min(total, (page + 1) * CANDIDATE_PAGE_SIZE),
     pageRows: rows,
   };
 
@@ -490,7 +551,7 @@ export function CandidateListPage() {
         />
       }
       exportRows={exportFilteredRows}
-      exportCount={total}
+      exportCount={total ?? profiles.length}
       exportColumns={exportColumns}
       exportFilename="candidates.csv"
       filterRail={
@@ -534,6 +595,7 @@ export function CandidateListPage() {
         from={pager.from}
         to={pager.to}
         total={pager.total}
+        totalPending={pager.totalPending}
         page={pager.page}
         pageCount={pager.pageCount}
         onPage={pager.setPage}
@@ -557,6 +619,7 @@ export function CandidateListPage() {
         from={pager.from}
         to={pager.to}
         total={pager.total}
+        totalPending={pager.totalPending}
         page={pager.page}
         pageCount={pager.pageCount}
         onPage={pager.setPage}
