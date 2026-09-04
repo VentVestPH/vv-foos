@@ -17,7 +17,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | V3 | `Audit_V3-Browser-Defaults` | done |
 | V4 | `Audit_V4-ARIA-Contracts` | done, read from w3.org |
 | V5 | `Audit_V5-Taleo-Comparison` | done, and it corrects two stale findings in the 2026-09-01 fidelity audit |
-| V6, V12 | `Audit_V6-Audit-Table` | **2.7**, 34 rows, every one verified in source or measured, none pending, plus the things checked and found correct |
+| V6, V12 | `Audit_V6-Audit-Table` | **2.8**, 34 rows, every one verified in source or measured, none pending, plus the things checked and found correct |
 | V7 | `Spec_V7-Select-Combobox`, `Spec_V7-Remaining-Replacements` | done |
 | V8 | `Audit_V8-Priority-Order` | **1.1**, one row rated Blocks at rank 1, plus a rank 0 cluster of Level A failures |
 | V9 | `Audit_V9-Control-Geometry` | **1.0**, measured: heights, computed styles, row heights and the 2.5.8 verdict final; ring contrast, cursor and side-by-side recomputing |
