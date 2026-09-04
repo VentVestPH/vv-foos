@@ -13,9 +13,9 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | V3 | `Audit_V3-Browser-Defaults` | done |
 | V4 | `Audit_V4-ARIA-Contracts` | done, read from w3.org |
 | V5 | `Audit_V5-Taleo-Comparison` | done, and it corrects two stale findings in the 2026-09-01 fidelity audit |
-| V6, V12 | `Audit_V6-Audit-Table` | **2.0**, 33 rows, every one verified in source or measured, none pending, plus the things checked and found correct |
+| V6, V12 | `Audit_V6-Audit-Table` | **2.1**, 33 rows, every one verified in source or measured, none pending, plus the things checked and found correct |
 | V7 | `Spec_V7-Select-Combobox`, `Spec_V7-Remaining-Replacements` | done |
-| V8 | `Audit_V8-Priority-Order` | **1.0**, with a rank 0 cluster of Level A failures that should ship before any component work |
+| V8 | `Audit_V8-Priority-Order` | **1.1**, one row rated Blocks at rank 1, plus a rank 0 cluster of Level A failures |
 | V9 | `Audit_V9-Control-Geometry` | 0.7, partial: four of seven areas, heights and the row-level controls done, computed values pending |
 | V10 | `Audit_V10-Visual-Review` | 0.6, the looking half done with two more observations corrected, the task costs pending pass 3 |
 | V11 | `Audit_V11-Design-References` | done, with the "not published" answers kept |
@@ -59,4 +59,4 @@ Three parts of it are defects whichever way that goes, and W8 should fix them re
 - **Chromium only.** No Firefox or Safari, which matters for a workstream about browser-decided controls.
 - **No error or validation evidence yet.** Row 14 of V6 is the only row still unverified, and pass 3 supplies it.
 - **The placeholder modal has never been captured**, because Playwright refuses to click an `aria-disabled` button. Fixed, and a targeted pass is queued.
-- **Nothing is rated Blocks**, and V8 says plainly that the closest candidate is kept out by the definition rather than by being harmless.
+- **One row is rated Blocks**, row 5, and it took until 2026-09-04 to get there because I had tested only the first half of V12's own definition. Blocks is "the user cannot complete the task, **or completes it wrongly without knowing**", and a bulk action silently applied to twenty records instead of three is the second clause exactly. It is now rank 1 in V8, ahead of the height scale, and it is among the cheapest items in the workstream.
