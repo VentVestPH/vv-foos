@@ -22,6 +22,8 @@ interface ControlMetric {
   resize: string;
   cursor: string;
   outlineColor: string;
+  ringBackdrop: string;
+  ringBackdropFrom: string;
   container: string;
   x: number;
   y: number;
@@ -67,6 +69,21 @@ test('measure: control geometry and density', async ({ page }) => {
           return r.width > 1 && r.height > 1 && cs.visibility !== 'hidden' && cs.display !== 'none';
         };
 
+        const paintedBehind = (el: HTMLElement) => {
+          let node: HTMLElement | null = el.parentElement;
+          while (node !== null) {
+            const bg = getComputedStyle(node).backgroundColor;
+            if (bg !== '' && bg !== 'transparent' && !/rgba\(0, 0, 0, 0\)/.test(bg)) {
+              return {
+                color: bg,
+                from: (node.className?.toString() ?? '').split(/\s+/)[0] || node.tagName.toLowerCase(),
+              };
+            }
+            node = node.parentElement;
+          }
+          return { color: 'rgb(255, 255, 255)', from: 'nothing painted, so the canvas' };
+        };
+
         const describe = (el: Element, kind: string) => {
           const e = el as HTMLElement;
           const r = e.getBoundingClientRect();
@@ -88,6 +105,7 @@ test('measure: control geometry and density', async ({ page }) => {
           else if (e.closest('.fo-utility-header, .fo-primary-nav-wrap')) container = 'shell-header';
           else if (e.closest('.fo-sidebar')) container = 'sidebar';
           else if (e.closest('[role="dialog"]')) container = 'dialog';
+          const backdrop = paintedBehind(e);
           return {
             kind,
             variant,
@@ -103,6 +121,8 @@ test('measure: control geometry and density', async ({ page }) => {
             resize: cs.resize,
             cursor: cs.cursor,
             outlineColor: cs.outlineColor,
+            ringBackdrop: backdrop.color,
+            ringBackdropFrom: backdrop.from,
             container,
             x: Math.round(r.x),
             y: Math.round(r.y),
