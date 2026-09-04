@@ -143,7 +143,78 @@ test('pass 3: walk the real tasks as their user', async ({ page }) => {
     if ((await submit.count()) > 0) {
       await click(page, submit, 'save with an empty form');
       await step(page, 'validation-error', 'after submitting an empty form', 'this is where the error presentation is judged against GOV.UK');
+      const invalid = await page.evaluate(() => {
+        const nodes = Array.from(document.querySelectorAll('input, select, textarea')) as HTMLInputElement[];
+        const bad = nodes.filter((n) => n.willValidate && !n.checkValidity());
+        return {
+          count: bad.length,
+          first: bad.length > 0 ? bad[0].getAttribute('aria-label') ?? bad[0].name ?? bad[0].id : '',
+          message: bad.length > 0 ? bad[0].validationMessage : '',
+          focused: document.activeElement === (bad[0] ?? null),
+          marked: nodes.filter((n) => n.getAttribute('aria-invalid') === 'true').length,
+          rendered: document.querySelectorAll('.field-error-text, .rq-error, .form-error').length,
+          announced: document.querySelectorAll('[role="alert"], [aria-live]').length,
+        };
+      });
+      await step(
+        page,
+        'validation-error',
+        'native constraint validation state after the empty submit',
+        `${invalid.count} field(s) fail checkValidity; the browser's own message for the first is "${invalid.message}"; aria-invalid set on ${invalid.marked}; app-rendered error nodes ${invalid.rendered}; live or alert regions on the page ${invalid.announced}`,
+      );
     }
+
+    await page.route('**/rest/v1/requisitions*', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'audit probe: the server refused this insert', code: '23514' }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+    const titleField = page.locator('input, textarea').first();
+    if ((await titleField.count()) > 0) {
+      await type(page, titleField, `Zaudit server error ${RUN}`);
+    }
+    const requiredNow = page.locator('input[required], select[required], textarea[required]');
+    const requiredCount = await requiredNow.count();
+    for (let i = 0; i < requiredCount; i += 1) {
+      const field = requiredNow.nth(i);
+      const kind = await field.evaluate((n) => `${n.tagName.toLowerCase()}:${(n as HTMLInputElement).type ?? ''}`);
+      try {
+        if (kind.startsWith('select')) await field.selectOption({ index: 1 });
+        else if (kind.includes('date')) await field.fill('2026-09-04');
+        else if (kind.includes('number')) await field.fill('1');
+        else await field.fill(`Zaudit ${i}`);
+      } catch {
+        void 0;
+      }
+    }
+    await settle(page, 300);
+    await step(page, 'validation-error', 'every required field filled, before submitting');
+    if ((await submit.count()) > 0) {
+      await click(page, submit, 'save with a server that refuses the insert');
+      await settle(page, 900);
+      const shown = await page.evaluate(() => ({
+        rendered: Array.from(document.querySelectorAll('.field-error-text, .rq-error, .form-error, .settings-error'))
+          .map((n) => (n as HTMLElement).innerText.trim().slice(0, 80))
+          .filter((t) => t !== ''),
+        inAlert: Array.from(document.querySelectorAll('[role="alert"], [aria-live]'))
+          .map((n) => (n as HTMLElement).innerText.trim().slice(0, 80))
+          .filter((t) => t !== ''),
+        stillOnForm: window.location.pathname.includes('/new'),
+      }));
+      await step(
+        page,
+        'validation-error',
+        'after a submit the server refused',
+        `app-rendered error text: ${shown.rendered.length > 0 ? JSON.stringify(shown.rendered) : 'none'}; text inside a live or alert region: ${shown.inAlert.length > 0 ? JSON.stringify(shown.inAlert) : 'none'}; still on the form: ${shown.stillOnForm}`,
+      );
+    }
+    await page.unroute('**/rest/v1/requisitions*');
 
     clicks = 0;
     keystrokes = 0;
