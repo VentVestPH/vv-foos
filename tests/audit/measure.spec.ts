@@ -206,12 +206,13 @@ test('measure: control geometry and density', async ({ page }) => {
         const blocks = Array.from(root.querySelectorAll('*')).filter((el) => {
           const cs = getComputedStyle(el);
           const r = el.getBoundingClientRect();
-          return (
-            r.height > 8 &&
-            r.width > 40 &&
-            cs.display !== 'inline' &&
-            (el.children.length === 0 || (el as HTMLElement).innerText?.trim().length > 0)
-          );
+          if (r.height < 4 || r.width < 8) return false;
+          if (cs.visibility === 'hidden' || cs.display === 'none') return false;
+          const tag = el.tagName.toLowerCase();
+          const atomic = tag === 'img' || tag === 'svg' || tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'hr';
+          if (atomic) return true;
+          if (el.children.length > 0) return false;
+          return (el as HTMLElement).innerText !== undefined && (el as HTMLElement).innerText.trim().length > 0;
         });
         const spans = blocks
           .map((el) => {
