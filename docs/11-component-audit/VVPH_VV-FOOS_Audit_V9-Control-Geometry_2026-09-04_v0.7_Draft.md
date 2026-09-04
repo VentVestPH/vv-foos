@@ -89,6 +89,23 @@ The finding is that **eight arbitrary values are not a scale**. Carbon publishes
 
 Two of those values are also accessibility failures rather than inconsistencies: the 16px and 19px controls are below the 24 by 24 that [WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) requires at AA, and they are recorded with their names in the V10 document.
 
+## The row-level controls, measured by name
+
+The sub-24px groups above are named by height. These five are the controls a recruiter touches on every row of every list, measured individually, and they do not behave as one group.
+
+| Control | Rendered | Where the size comes from | WCAG 2.5.8 |
+| :---- | :---- | :---- | :---- |
+| Star, `1 star` / `2 stars` / `3 stars` | **24 x 24** | `widgets.css:227`, `.star-grade .star { min-width: 24px; min-height: 24px }`, declared deliberately | **meets AA outright** |
+| `Edit` | 30 x 42 | `.btn-sm` padding | meets |
+| `Select row` checkbox | 18 x 18 | `widgets.css`, declared, centred in a 44px column | below; conforms by spacing, per the note below |
+| `Add to shortlist` | **17 x 14** | no rule; an icon button sized by its glyph | below, **and the smallest interactive target measured anywhere in the product** |
+
+Two things follow that I would not have guessed from the stylesheet.
+
+**The stars already pass.** Someone declared 24 by 24 on them on purpose, and 63 star captures across the corpus render at exactly that. So the target-size work in W4 is narrower than "size the small controls up": the star grade is done, and what it needs instead is the keyboard contract in V6 row 27.
+
+**`Add to shortlist` at 17 by 14 is the worst target in FOOS**, and there are 21 of them on the requisition record. It is 14px wide, which is under 60% of the AA minimum on that axis, and unlike the pager arrows and the table checkbox it has no declared size at all: it is an icon button whose box is whatever the glyph produced. Whether the spacing exception rescues it is being computed from the measured boxes rather than assumed, and it is the one control where I would expect the exception to fail, because the exception is about neighbours and this control's problem is its own size.
+
 ## Checkbox and radio size, which is more specific than "browser default"
 
 Two different treatments, one deliberate and one absent:
