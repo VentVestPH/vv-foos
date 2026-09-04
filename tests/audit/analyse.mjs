@@ -16,6 +16,7 @@ function load(name) {
 
 const controls = load('measure-controls.json');
 const density = load('measure-density.json');
+const structure = existsSync(join(CORPUS, 'measure-structure.json')) ? load('measure-structure.json') : [];
 
 const round = (n) => Math.round(n * 100) / 100;
 
@@ -178,6 +179,45 @@ if (resizable.length > 0) {
   say('| :---- | :---- | :---- |');
   for (const c of resizable) say(`| ${c.screen} | ${c.name} | **${c.resize}** |`);
   say('');
+}
+
+say('## Document structure: headings, landmarks and tab order');
+say('');
+if (structure.length === 0) {
+  say('Not measured: `measure-structure.json` is absent.');
+  say('');
+} else {
+  say('| Screen | Viewport | h1 | Headings | Skipped levels | Landmarks | Focusable | tabindex>0 | autofocus | Tab-order inversions |');
+  say('| :---- | :---- | ----: | ----: | :---- | ----: | ----: | ----: | ----: | ----: |');
+  for (const d of structure.filter((x) => x.viewport === 'desktop')) {
+    say(
+      `| ${d.screen} | ${d.viewport} | ${d.h1Count} | ${d.headings.length} | ${d.skippedLevels.length > 0 ? d.skippedLevels.join(', ') : 'none'} | ${d.landmarks.length} | ${d.focusableCount} | ${d.positiveTabindex} | ${d.autofocus} | ${d.tabOrderInversions.length} |`,
+    );
+  }
+  say('');
+  const noH1 = structure.filter((d) => d.h1Count === 0);
+  const manyH1 = structure.filter((d) => d.h1Count > 1);
+  const skipped = structure.filter((d) => d.skippedLevels.length > 0);
+  const noLandmark = structure.filter((d) => d.landmarks.length === 0);
+  const positive = structure.filter((d) => d.positiveTabindex > 0);
+  say(`Screens with no \`h1\`: **${noH1.length}** of ${structure.length}. With more than one: **${manyH1.length}**. With a skipped heading level: **${skipped.length}**. With no landmark region at all: **${noLandmark.length}**. Using a positive \`tabindex\`: **${positive.length}**.`);
+  say('');
+  const worst = [...structure].sort((a, b) => b.tabOrderInversions.length - a.tabOrderInversions.length).slice(0, 6);
+  if (worst.length > 0 && worst[0].tabOrderInversions.length > 0) {
+    say('The screens where tab order diverges most from reading order, with the first few controls involved:');
+    say('');
+    say('| Screen | Viewport | Inversions | Examples |');
+    say('| :---- | :---- | ----: | :---- |');
+    for (const d of worst) {
+      if (d.tabOrderInversions.length === 0) continue;
+      const eg = d.tabOrderInversions
+        .slice(0, 3)
+        .map((i) => `${i.name} (DOM ${i.domIndex}, visually ${i.visualIndex})`)
+        .join('; ');
+      say(`| ${d.screen} | ${d.viewport} | **${d.tabOrderInversions.length}** | ${eg} |`);
+    }
+    say('');
+  }
 }
 
 say('## Accessible names: missing, and duplicated within one screen');

@@ -29,6 +29,19 @@ interface ControlMetric {
   y: number;
 }
 
+interface StructureMetric {
+  screen: string;
+  viewport: string;
+  headings: { level: number; text: string }[];
+  skippedLevels: number[];
+  landmarks: string[];
+  h1Count: number;
+  tabOrderInversions: { name: string; domIndex: number; visualIndex: number }[];
+  focusableCount: number;
+  positiveTabindex: number;
+  autofocus: number;
+}
+
 interface DensityMetric {
   screen: string;
   viewport: string;
@@ -50,6 +63,7 @@ test('measure: control geometry and density', async ({ page }) => {
   const ids = await resolveIds();
   const controls: ControlMetric[] = [];
   const density: DensityMetric[] = [];
+  const structure: StructureMetric[] = [];
 
   await signIn(page, PERSONA_EMAILS.admin);
 
@@ -265,6 +279,63 @@ test('measure: control geometry and density', async ({ page }) => {
         controls.push({ screen: route.id, viewport: viewport.name, ...c });
       }
       const empty = Math.max(0, measured.scrollHeight - measured.coveredPx);
+      const struct = await page.evaluate(() => {
+        const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map((h) => ({
+          level: Number(h.tagName.slice(1)),
+          text: ((h as HTMLElement).innerText || '').trim().slice(0, 60),
+        }));
+        const skipped: number[] = [];
+        for (let i = 1; i < headings.length; i += 1) {
+          if (headings[i].level - headings[i - 1].level > 1) skipped.push(headings[i].level);
+        }
+        const landmarks = Array.from(
+          document.querySelectorAll('main, nav, aside, header, footer, [role="main"], [role="navigation"], [role="complementary"], [role="banner"], [role="contentinfo"], [role="search"]'),
+        ).map((n) => n.tagName.toLowerCase() + (n.getAttribute('role') !== null ? `[role=${n.getAttribute('role')}]` : ''));
+
+        const focusables = Array.from(
+          document.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]'),
+        ).filter((el) => {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return r.width > 1 && r.height > 1 && cs.visibility !== 'hidden' && cs.display !== 'none';
+        }) as HTMLElement[];
+
+        const withPos = focusables.map((el, domIndex) => {
+          const r = el.getBoundingClientRect();
+          return {
+            el,
+            domIndex,
+            top: Math.round(r.top / 8),
+            left: Math.round(r.left),
+            name: (
+              el.getAttribute('aria-label') ??
+              ((el as HTMLInputElement).labels && (el as HTMLInputElement).labels!.length > 0
+                ? ((el as HTMLInputElement).labels![0].innerText || '').trim()
+                : '') ??
+              ''
+            ).slice(0, 34) || ((el.innerText || '').trim().split('\n')[0] || el.tagName.toLowerCase()).slice(0, 34),
+          };
+        });
+        const visual = [...withPos].sort((a, b) => (a.top !== b.top ? a.top - b.top : a.left - b.left));
+        const visualIndexOf = new Map<HTMLElement, number>();
+        visual.forEach((v, i) => visualIndexOf.set(v.el, i));
+        const inversions = withPos
+          .filter((v) => Math.abs((visualIndexOf.get(v.el) ?? 0) - v.domIndex) > 2)
+          .map((v) => ({ name: v.name, domIndex: v.domIndex, visualIndex: visualIndexOf.get(v.el) ?? -1 }));
+
+        return {
+          headings,
+          skippedLevels: skipped,
+          landmarks,
+          h1Count: headings.filter((h) => h.level === 1).length,
+          tabOrderInversions: inversions,
+          focusableCount: focusables.length,
+          positiveTabindex: focusables.filter((el) => Number(el.getAttribute('tabindex') ?? '0') > 0).length,
+          autofocus: document.querySelectorAll('[autofocus]').length,
+        };
+      });
+      structure.push({ screen: route.id, viewport: viewport.name, ...struct });
+
       density.push({
         screen: route.id,
         viewport: viewport.name,
@@ -288,6 +359,7 @@ test('measure: control geometry and density', async ({ page }) => {
   mkdirSync(CORPUS, { recursive: true });
   writeFileSync(join(CORPUS, 'measure-controls.json'), JSON.stringify(controls, null, 2));
   writeFileSync(join(CORPUS, 'measure-density.json'), JSON.stringify(density, null, 2));
+  writeFileSync(join(CORPUS, 'measure-structure.json'), JSON.stringify(structure, null, 2));
 
   const heights = new Map<string, Set<number>>();
   for (const c of controls) {
