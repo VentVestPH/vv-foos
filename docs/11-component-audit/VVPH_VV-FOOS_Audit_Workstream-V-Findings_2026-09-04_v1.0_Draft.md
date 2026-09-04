@@ -21,7 +21,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | V7 | `Spec_V7-Select-Combobox`, `Spec_V7-Remaining-Replacements` | done |
 | V8 | `Audit_V8-Priority-Order` | **1.1**, one row rated Blocks at rank 1, plus a rank 0 cluster of Level A failures |
 | V9 | `Audit_V9-Control-Geometry` | **1.1**, all measured and final: heights, computed styles, row heights, 2.5.8, ring contrast, cursor, resize, side-by-side |
-| V10 | `Audit_V10-Visual-Review` | 0.6, the looking half done with two more observations corrected, the task costs pending pass 3 |
+| V10 | `Audit_V10-Visual-Review` | **1.0**, complete: 39 observations with four corrected, plus the six task costs measured |
 | V11 | `Audit_V11-Design-References` | done, with the "not published" answers kept |
 | V13 | `Audit_V13-Density` | **1.0**, measured: the lists are 9-11% empty and every other screen is 35-88% |
 | Pass 6 | `Audit_Pass6-Reconciliation` | 0.9, **23** of my own claims corrected, ten findings added, twenty acquittals, three harness gaps closed |
@@ -32,9 +32,9 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | :---- | :---- | :---- |
 | 1 Breadth | what exists and where | **reopened and redone**, 31 routes at two viewports plus `/login` in its own spec. It was 28 until diffing the route maps on 2026-09-04 found `/intake`, and the two not-found stubs, never visited |
 | 2 States | every control in every state | all 31 routes swept, but **three manifests were overwritten by harness defect 10 and are being re-swept**. Radios and one datetime-local still uncaptured: they live inside dialogs the sweep never descends into |
-| 3 Use | the real tasks walked as their user | harness written, queued |
+| 3 Use | the real tasks walked as their user | **done**, six tasks as the recruiter persona; finding one candidate costs 4 page loads, the validation task costs 31 keystrokes and returns two duplicated unannounced messages |
 | 4 References | judged against cited published sources | done, V4 and V11 |
-| 5 Measurement | heights, spacing, density in numbers | harness written, queued |
+| 5 Measurement | heights, spacing, density in numbers | **done**, 3,948 controls and 31 screens; recomputed once after three flaws in my own analysis |
 | 6 Reconciliation | what the first five missed | **0.9**, source half done: 24 wrong claims corrected, 11 verified rows re-checked and all 11 held, 10 findings added, 20 acquittals recorded, 3 harness gaps closed. The measured half waits on the chain |
 
 ## The three things Klent actually complained about, and what each turned out to be

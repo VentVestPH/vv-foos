@@ -163,3 +163,30 @@ The capture harness blocks every non-GET request to `/rest/v1/` and `/functions/
 ## Method note
 
 Reviewing captures in a viewer is not the same as using the app, and this document does not pretend otherwise. It is judgement on rendered evidence, which is why every quantitative claim here is marked as eyeballed and handed to V9, V13 or pass 3 to confirm. Where a claim survives measurement it will be restated with its number; where it does not, it will be struck out here and the correction recorded.
+
+## Pass 3: the six tasks walked as their user, and what each costs
+
+Run 2026-09-04 at 12:22 as the **recruiter** persona, on the real local stack with 72,917 candidates. Counters are wired to the page: a click is a real click, a keystroke is a character typed, a page load is a `framenavigated` on the main frame. The first run of this pass produced three broken walkthroughs because three of my locators looked for elements that do not exist; those are fixed and this run completed every step, with no `blocked` entry.
+
+| Task | Steps | Clicks | Keystrokes | Page loads |
+| :---- | ----: | ----: | ----: | ----: |
+| Find a candidate by name and open them | 5 | 2 | 16 | **4** |
+| Search for something that matches nothing | 1 | 0 | 26 | 2 |
+| Hit a validation error and read it | 5 | 2 | **31** | 2 |
+| Export a filtered list | 3 | 0 | 16 | 2 |
+| Open a requisition and reach its pipeline | 3 | 2 | 0 | 3 |
+| Work a day: open the dashboard and its tasks | 2 | 1 | 0 | 2 |
+
+Three readings, and the third is the one worth acting on.
+
+**Finding one candidate costs four page loads.** Dashboard, then the Candidates tab, then the list, then the record. On a product whose central object is a candidate, reaching one from a cold start reloads the shell four times. That is the cost `Back To List` is supposed to amortise, and row 28 shows it is wired on 2 of 11 paths, so a recruiter who then goes back pays for the list again with their filters gone.
+
+**The validation task is the most expensive in keystrokes, 31, and produces the least.** Those 31 characters fill every `required` field on the requisition form, and what comes back is the browser's own `"Please fill out this field."` on an empty submit and, on a submit the server refuses, `"At least one owner is required."` rendered **twice** with `aria-invalid` on **0** fields and **nothing inside a live or alert region**. The user pays the most attention on the task that tells them the least.
+
+**Two tasks cost almost nothing, and that is the good news.** Opening a requisition and reaching its pipeline is 2 clicks and 3 loads; the dashboard and its tasks is 1 click. The Kanban board that pipeline lands on is also the best-implemented interaction in the product. Where FOOS is direct it is genuinely direct.
+
+**One caveat, stated rather than buried.** The export walkthrough deliberately stops at `the export control, before clicking`, so no file is written in a headless run. Its real cost is therefore **one click more than the table says**: 3 steps, 16 keystrokes, 2 page loads **plus the click not exercised**.
+
+## What W11 should re-measure against this
+
+These six rows are the baseline. W11's rule is that a component which did not make its task cheaper has not earned its commit, so after each change the same six walkthroughs are re-run and the deltas reported against this table. Two of them should move if the workstream works: **find-a-candidate's four page loads** should fall once `useListLink` is wired at the nine bare paths, and **validation-error's 31 keystrokes for two duplicated, unannounced messages** should buy a summary the user can act on.
