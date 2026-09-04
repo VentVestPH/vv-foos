@@ -8,7 +8,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 
 | Item | Document | State |
 | :---- | :---- | :---- |
-| V1 | `Audit_V1-Component-Inventory` | 1.1, with the completed passes 1 and 2 coverage, 11,832 captures over 31 routes |
+| V1 | `Audit_V1-Component-Inventory` | 1.1, passes 1 and 2 coverage; four areas final at 7,104 captures, three being re-swept after harness defect 10 |
 | V2 | `Audit_V2-Capture-Harness` | 1.1, including the nine defects the harness had, six of which would have failed silently |
 | V3 | `Audit_V3-Browser-Defaults` | done |
 | V4 | `Audit_V4-ARIA-Contracts` | done, read from w3.org |
@@ -27,7 +27,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | Pass | Question | State |
 | :---- | :---- | :---- |
 | 1 Breadth | what exists and where | **reopened and redone**, 31 routes at two viewports plus `/login` in its own spec. It was 28 until diffing the route maps on 2026-09-04 found `/intake`, and the two not-found stubs, never visited |
-| 2 States | every control in every state | **complete**, 11,832 captures across all 7 areas, except every radio and one datetime-local, which live inside dialogs the sweep never descends into |
+| 2 States | every control in every state | all 31 routes swept, but **three manifests were overwritten by harness defect 10 and are being re-swept**. Radios and one datetime-local still uncaptured: they live inside dialogs the sweep never descends into |
 | 3 Use | the real tasks walked as their user | harness written, queued |
 | 4 References | judged against cited published sources | done, V4 and V11 |
 | 5 Measurement | heights, spacing, density in numbers | harness written, queued |

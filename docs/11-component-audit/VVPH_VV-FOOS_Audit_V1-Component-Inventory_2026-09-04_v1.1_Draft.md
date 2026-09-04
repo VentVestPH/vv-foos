@@ -87,16 +87,19 @@ Finished 10:53 on 2026-09-04, all seven areas, 31 routes at two viewports.
 
 | Area | Screens | Captures | Of which element captures |
 | :---- | ----: | ----: | ----: |
-| recruit | 6 | 4,358 | 3,510 |
 | sales | 11 | 4,294 | 3,366 |
 | pages | 6 | 1,604 | 1,236 |
 | intake | 3 | 871 | 676 |
 | settings | 1 | 335 | 264 |
-| shell | 1 | 230 | 182 |
-| dashboards | 3 | 140 | 136 |
-| **total** | **31** | **11,832** | **9,370** |
+| recruit | 6 | *being re-measured* | |
+| dashboards | 3 | *being re-measured* | |
+| shell | 1 | *being re-measured* | |
 
-**11,832 is the number to quote, not the 12,687 files on disk.** The manifests are the record of what was captured and are rewritten from scratch each time an area runs, so re-running an area, which recruit and dashboards both needed after a harness fix, leaves the earlier PNGs behind with no manifest entry. The 855 difference is those orphans. Counting files would overstate coverage by 7%.
+**The four intact areas total 7,104 captures across 21 screens.** The other three are being re-swept, and the reason is the tenth defect in the harness, recorded in V2: `flush()` writes `manifest.<area>.json` from scratch, and the supplementary focus-only pass ran with the same `FOOS_AUDIT_AREA` value, so it **overwrote** the full manifest of each area it touched with only its own focus captures. Recruit went from 4,358 entries to 163, dashboards to 206 and shell to 56 before it was stopped. The PNGs are all still on disk; the record of what they were is what was lost.
+
+An earlier version of this table quoted recruit at 4,358 and dashboards at 140. The 4,358 was correct and is no longer reproducible from the corpus; the 140 was a reading taken while the overwrite was in progress and was never a real total. Both are removed rather than kept, because a coverage table that cannot be recomputed from the corpus is not evidence.
+
+Two consequences worth stating. **The V9 height distribution was computed while those manifests were intact**, so its figures, 15 distinct chrome-button heights over 1,066 captures with 154 under 24px, were real when taken but cannot currently be re-derived; the re-sweep restores that. And **the file count on disk, now over 13,000, must not be quoted as coverage**: re-running an area leaves its earlier PNGs behind with no manifest entry, so files exceed recorded captures and always will.
 
 By state, across all 11,832:
 

@@ -33,7 +33,12 @@ function slug(value: string): string {
     .toLowerCase();
 }
 
-const AREA_TAG = process.env.FOOS_AUDIT_AREA ?? 'all';
+const AREA_TAG = (() => {
+  const area = process.env.FOOS_AUDIT_AREA ?? 'all';
+  if (process.env.FOOS_AUDIT_FOCUS_ONLY === '1') return `${area}-focus`;
+  if (process.env.FOOS_AUDIT_ARIA_ONLY === '1') return `${area}-aria`;
+  return area;
+})();
 
 export function manifestPath(): string {
   return join(CORPUS, `manifest.${AREA_TAG}.json`);
