@@ -4,9 +4,9 @@ Version 0.9. Pass 6 asks what the first five passes got wrong. It is not a summa
 
 The method was to take each claim, find the file or the measurement it rests on, and check it there rather than against my note of it. That is slower than re-reading the documents and it is the only thing that found any of what follows.
 
-## Thirteen claims of mine that failed re-checking
+## Fifteen claims of mine that failed re-checking
 
-Every one is corrected in place in the document that carried it, with the wrong version left visible. Nine of the thirteen were **corrected downward**: the finding survived but smaller.
+Every one is corrected in place in the document that carried it, with the wrong version left visible. Ten of the fifteen were **corrected downward**, meaning the finding survived but smaller, and two were withdrawn outright.
 
 | # | What I wrote | What is true | Where it was |
 | ----: | :---- | :---- | :---- |
@@ -23,6 +23,8 @@ Every one is corrected in place in the document that carried it, with the wrong 
 | 11 | "Three selects all named `Select…`" | The same artefact. They have labels | V6 |
 | 12 | "Eight rendered button heights, 28px spread" | **15** distinct chrome-button heights across four areas, 1,066 captures. The 28px spread was right; the count was low because it was two areas. And the raw spread of 96px is **not** a finding: everything from 47px up is a candidate name or requisition title wrapping onto two to four lines | V9, index |
 | 13 | Candidate record at "7,304px, 9.71 viewports" | Disputed against my own earlier T3 measurement of **5,979px in a 572px window**. They do not reconcile and neither window is the 900px this audit uses. Both recorded, neither quoted | V6 row 3, index |
+| 14 | "An unlabelled gear icon floats alone" | It carries `aria-label="Configure candidate list columns"` at `CandidateListPage.tsx:668`. It is *visually* unlabelled, with no adjacent text and no `title`, which is a real affordance gap and a different claim | V10 observation 4 |
+| 15 | "`Requisition Owner(s)` reads No owners on a filled requisition, while the list screen showed `Rita Demo (recruiter)`" | **Withdrawn.** Worth checking, because the two screens do read different sources: the list takes a denormalised `owner_names` from the `requisition_list` view, the record queries `requisition_owners`. Checked on the local stack and **zero of 690 requisitions disagree**. The explanation is the data: **9 owner rows exist across 690 requisitions**, so 681 have no owner at all, and I compared a record with none against a different requisition's row | V10 observation 38 |
 
 **What survived intact.** Eleven V6 rows I had marked "verified in source" were re-checked against the files: 4, 5, 7, 13, 15, 17, 18, 19, 20, 21 and 22. All eleven hold.
 
