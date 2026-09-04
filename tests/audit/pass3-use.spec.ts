@@ -104,7 +104,7 @@ test('pass 3: walk the real tasks as their user', async ({ page }) => {
     await gotoAsSignedIn(page, '/');
     await settle(page, 900);
     await step(page, 'find-a-candidate', 'start on the dashboard');
-    await click(page, page.locator('nav[aria-label="Primary"] button', { hasText: /^Recruit$/ }).first(), 'Recruit nav');
+    await click(page, page.locator('nav[aria-label="Primary"] button', { hasText: 'Candidates' }).first(), 'Candidates nav tab');
     await step(page, 'find-a-candidate', 'after clicking Recruit');
     await gotoAsSignedIn(page, '/recruit/candidates');
     await settle(page, 1200);
