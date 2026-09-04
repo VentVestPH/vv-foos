@@ -78,6 +78,47 @@ const dtl = byKind.get('input-datetime-local') ?? 0;
 say(`**Kinds still short of source:** \`input-radio\` ${radios} against 5 in source, \`input-datetime-local\` ${dtl} against 4. Both live inside dialogs; \`overlay-interior.spec.ts\` and \`selection-states.spec.ts\` close them.`);
 say('');
 
+say('## Source counts, read from app/src');
+say('');
+const SRC = join(ROOT, 'app', 'src');
+function tsxFiles(dir) {
+  const out = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) out.push(...tsxFiles(full));
+    else if (e.name.endsWith('.tsx') || e.name.endsWith('.ts')) out.push(full);
+  }
+  return out;
+}
+const srcText = existsSync(SRC) ? tsxFiles(SRC).map((f) => readFileSync(f, 'utf8')).join('\n') : '';
+const count = (re) => (srcText.match(re) ?? []).length;
+const rows = [
+  ['`<PlaceholderAction` renders', count(/<PlaceholderAction(?![A-Za-z0-9_])/g)],
+  ['  of which pass `ariaDisabled={false}`', count(/ariaDisabled=\{false\}/g)],
+  ['hand-rolled `show(...)` buttons (10 of these also carry `aria-disabled`)', count(/show\('/g)],
+  ['`aria-disabled` occurrences **in source** (not rendered controls: one is in `PlaceholderAction`, reaching 50)', count(/aria-disabled/g)],
+  ['`<Input` call sites', count(/<Input(?![A-Za-z0-9_])/g)],
+  ['`<Select` call sites', count(/<Select(?![A-Za-z0-9_])/g)],
+  ['`<Table` call sites', count(/<Table(?![A-Za-z0-9_])/g)],
+  ['`<RecordSection` call sites', count(/<RecordSection(?![A-Za-z0-9_])/g)],
+  ['`<Button` call sites', count(/<Button(?![A-Za-z0-9_])/g)],
+  ['error renderings (4 class names)', count(/className="(field-error-text|rq-error|form-error|settings-error)"/g)],
+  ['`role="alert"`', count(/role="alert"/g)],
+  ['`aria-live`', count(/aria-live/g)],
+  ['`aria-invalid`', count(/aria-invalid/g)],
+  ['`noValidate`', count(/noValidate/g)],
+  ['`<form` elements', count(/<form(?![A-Za-z0-9_])/g)],
+  ['`indeterminate`', count(/indeterminate/g)],
+  ['`type="radio"`', count(/type="radio"/g)],
+  ['`aria-modal`', count(/aria-modal/g)],
+  ['`useListLink` **references** (definition + imports + calls; only 2 are call sites)', count(/useListLink/g)],
+  ['`Back To List` controls', count(/Back To List/g)],
+];
+say('| Count | Value |');
+say('| :---- | ----: |');
+for (const [k, v] of rows) say(`| ${k} | ${v} |`);
+say('');
+
 say('## Findings');
 say('');
 const table = readdirSync(DOCS).find((f) => /V6-Audit-Table/.test(f));
