@@ -1,6 +1,6 @@
 # V8: the order workstream W should build in
 
-Version 0.9. The order follows V12's severity, then the number of screens a change reaches. It does **not** follow ease of implementation, which is why the cheapest item is not first.
+Version 0.91. Error presentation moved from rank 7 to rank 5 once it was verified from source rather than left to pass 3. The order follows V12's severity, then the number of screens a change reaches. It does **not** follow ease of implementation, which is why the cheapest item is not first.
 
 ## The order
 
@@ -11,9 +11,9 @@ Version 0.9. The order follows V12's severity, then the number of screens a chan
 | 2 | **Select → combobox** | Costs | 54 usages, 23 files | The case Klent named, and the only control whose open state no CSS can reach. One component, so 54 call sites inherit the fix | W2 |
 | 3 | **Density and wasted space** | Costs | every screen | 7,304px and 9.71 viewports on the candidate record, and the fidelity audit's F6 already called the empty home page the single most visible departure from Taleo. Ranked below the select only because the select is a component and this is a sweep whose targets V13 is still measuring | W10 |
 | 4 | **Date and datetime input** | Costs | 19 controls | Filters, forms and reminder dialogs. Above the checkbox because a wrong date is a wrong record, while a browser-drawn checkbox is only ugly | W3 |
-| 5 | **Empty state before first load** | Costs | every list | Lists show a "no results" row while the first query is still in flight, which NN/g names as "particularly harmful". Cheap to fix and it removes a lie from the screen | W8 |
-| 6 | **Bottom action bar and pager** | Costs | every long list and record | Fidelity audit F7. On a 9.7-viewport record, the actions are only at the top | W10 |
-| 7 | **Error and validation presentation** | pending pass 3 | every form | Judged against GOV.UK's published rule. The rank will move once pass 3 shows what the forms actually do | W8 |
+| 5 | **Error and validation presentation** | Costs | 46 renderings, 149 field call sites | **Moved up from rank 7 on 2026-09-04, and no longer pending.** It was answerable from source: `Input` and `Select` already accept an `error` prop and already render a styled, animated `.field-error-text` span, and no call site passes it, so the per-field half of this is wiring an existing mechanism rather than designing one. `aria-invalid` appears 0 times and 45 of 46 error messages carry no `role="alert"`, so the accessible half is also additive | W8 |
+| 6 | **Empty state before first load** | Costs | every list | Lists show a "no results" row while the first query is still in flight, which NN/g names as "particularly harmful". Cheap to fix and it removes a lie from the screen | W8 |
+| 7 | **Bottom action bar and pager** | Costs | every long list and record | Fidelity audit F7. On a 9.7-viewport record, the actions are only at the top | W10 |
 | 8 | **Disclosure, replacing `details`** | Degrades | 6 controls | The cheapest item in the workstream, and deliberately not first. `RecordSection` already does it correctly, so it is a copy rather than a design | W6 |
 | 9 | **Checkbox glyph, including `mixed`** | Degrades | 18 controls | Carries the 20px-versus-24px WCAG decision. The tri-state half of this moved to rank 2a below, because it is a wrong state rather than a glyph | W4 |
 | 10 | **Focus ring consistency** | pending V9/V13 | every control | One ring is defined; whether every control adopts it is what the corpus shows | W7 |
@@ -32,6 +32,6 @@ Version 0.9. The order follows V12's severity, then the number of screens a chan
 ## What would change this order
 
 - **V9 and V13's numbers.** If the measured height spread turns out to be one or two pixels, rank 1 drops and the select leads. If it is large and visible on every toolbar, rank 1 is confirmed. This document is 0.9 until that is known.
-- **Pass 3.** If a form's validation genuinely loses a user's work, row 7 becomes **Blocks** and jumps to the top.
+- **Pass 3.** If a form's validation genuinely loses a user's work, error presentation becomes **Blocks** and jumps to the top. What is already known is that it does not lose work: native constraint validation blocks the submit and focuses the first invalid field, so the browser is doing the job badly rather than not at all.
 
 **On "nothing is rated Blocks", which I wrote earlier and no longer fully believe.** Rank 2a comes close. A user with three rows selected sees an unchecked box, clicks it, and their selection becomes all rows on the page; if they then run a bulk action, they have acted on twenty records instead of three without being told. That is not "the user cannot complete the task", so it stays **Costs** by the definition in V12. It is worth naming as the closest thing in the audit to a Blocks defect, because the definition, not the harm, is what keeps it out.
