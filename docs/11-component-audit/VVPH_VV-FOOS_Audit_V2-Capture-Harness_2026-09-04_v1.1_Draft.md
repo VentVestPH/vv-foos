@@ -14,7 +14,7 @@ Per route, per viewport:
 
 **Every non-GET request to `/rest/v1/` and `/functions/v1/` is aborted**, so the harness can click every button in the product without writing anything. What each blocked click attempted is logged.
 
-## The six defects it had, and what each would have cost
+## The nine defects it had, and what each would have cost
 
 Recorded because the harness is the instrument, and an instrument's error rate belongs in the report.
 
@@ -26,10 +26,15 @@ Recorded because the harness is the instrument, and an instrument's error rate b
 | 4 | Overlay captured with `.last()` of a selector including always-present containers | **Every overlay element capture was of an unrelated node.** The one labelled `administration` showed the Recently Viewed panel |
 | 5 | Programmatic `.focus()` | No focus ring on anything, which would have been written up as a global defect instead of finding the two real contrast failures |
 | 6 | `aria-disabled` treated as disabled, and Playwright refusing to click it anyway | All **51** `PlaceholderAction` controls unclickable, so the placeholder pattern was never captured once |
+| 7 | A **read implemented as a POST** aborted by the write guard | PostgREST exposes every RPC as a POST, so `rpc/get_my_google_status` was blocked. The Settings screen would have been captured with its Google card in a failure state the harness itself caused. Fixed before Settings was swept |
+| 8 | **Accessible names computed in the wrong order**: `aria-label`, `title`, `placeholder`, `innerText`, never consulting `aria-labelledby` or `<label for>` | Produced two false findings, 61 apparently unlabelled controls and three selects apparently sharing a name, both of which are correctly labelled. Fixed in `measure.spec.ts`; left as-is in the sweep mid-run so the duplicate-name analysis stays comparable across areas |
+| 9 | **The analysis step's path resolved from the wrong directory**, twice | `analyse.mjs` computed the corpus from `process.cwd()` while the chain `cd`s into `tests/`; and the orchestration script then invoked it as `tests/audit/analyse.mjs` from inside `tests/`, which does not exist, with the failure swallowed by a `&& echo`. Either one produces no V9 and no V13 while the chain reports success |
 
-Four of the six would have left a **silent hole** rather than a visible failure, which is the kind that survives into a report. Two of them, 4 and 5, would have produced confident wrong findings.
+**Six of the nine would have left a silent hole** rather than a visible failure, which is the kind that survives into a report. Three of them, 4, 5 and 8, would have produced confident wrong findings, and 8 actually did before it was caught.
 
-The pattern in how each was caught is the transferable part: **the harness's own notes contained the answer every time.** "vanished before its state capture" was defect 3, "would not accept a value" was a number input being filled with prose, "could not be captured: clipped area is empty" was defect 2's cousin, and "button Delete would not click" was defect 6. Reading the notes was faster than reasoning about the corpus, and none of the six was found by staring at a screenshot.
+Defect 9 is the one worth dwelling on, because it is the only one the notes could never have caught. A capture defect shows up as a missing or wrong image. An **analysis** defect shows up as nothing at all: the script exits non-zero, the `&&` swallows it, the orchestrator prints `ALL PASSES DONE`, and V9 and V13 are simply never written. It was found by reading the chain end to end and asking what each step's working directory would be, which is the same way its predecessor was found. **Every step that transforms the corpus needs to fail loudly**, so the script now writes its output to a log and prints the line count of what it produced, or prints `ANALYSIS FAILED` and the last twenty lines.
+
+The pattern in how the capture defects were caught is the other transferable part: **the harness's own notes contained the answer every time.** "vanished before its state capture" was defect 3, "would not accept a value" was a number input being filled with prose, "could not be captured: clipped area is empty" was defect 2's cousin, and "button Delete would not click" was defect 6. Reading the notes was faster than reasoning about the corpus, and none of the six was found by staring at a screenshot.
 
 ## What it does not do
 
