@@ -148,10 +148,14 @@ test('sweep: every interactive element, every state', async ({ page }) => {
       let navigations = 0;
 
       for (const d of descriptors) {
-        const el = page.locator(`[data-audit="${d.index}"]`);
+        let el = page.locator(`[data-audit="${d.index}"]`);
         if ((await el.count()) === 0) {
-          note(`${route.id} ${viewport.name}: ${d.kind} "${d.name}" vanished before its state capture`);
-          continue;
+          await tagElements(page);
+          el = page.locator(`[data-audit="${d.index}"]`);
+          if ((await el.count()) === 0) {
+            note(`${route.id} ${viewport.name}: ${d.kind} "${d.name}" vanished and did not come back after a re-tag`);
+            continue;
+          }
         }
         try {
           await el.scrollIntoViewIfNeeded({ timeout: 2500 });
@@ -166,7 +170,7 @@ test('sweep: every interactive element, every state', async ({ page }) => {
         if (d.disabled) continue;
 
         try {
-          await el.hover({ timeout: 1500 });
+          await el.hover({ timeout: 1500, force: true });
           await page.waitForTimeout(130);
           await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, 'hover', d.name);
           stateShots += 1;
@@ -185,8 +189,9 @@ test('sweep: every interactive element, every state', async ({ page }) => {
         }
 
         if (d.typeable) {
+          const filler = d.kind === 'input-number' ? '1234567890' : 'Zz a deliberately long value to show how the field handles overflow';
           try {
-            await el.fill('Zz a deliberately long value to show how the field handles overflow');
+            await el.fill(filler);
             await page.waitForTimeout(180);
             await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, 'populated-long', d.name);
             stateShots += 1;

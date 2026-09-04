@@ -111,21 +111,23 @@ export async function shootElement(
   const file = `${screen}/${viewport}/${slug(kind)}.${slug(name || component)}.${slug(state)}.${counter}.png`;
   mkdirSync(join(CORPUS, screen, viewport), { recursive: true });
   try {
+    try {
+      await locator.scrollIntoViewIfNeeded({ timeout: 1500 });
+    } catch {
+      void 0;
+    }
     const box = await locator.boundingBox({ timeout: 2000 });
     if (box === null || box.width < 2 || box.height < 2) {
       note(`${screen} ${viewport}: ${kind} "${name}" has no box in state ${state}`);
       return false;
     }
+    const vp = page.viewportSize() ?? { width: 1440, height: 900 };
     const pad = 6;
-    await page.screenshot({
-      path: join(CORPUS, file),
-      clip: {
-        x: Math.max(0, box.x - pad),
-        y: Math.max(0, box.y - pad),
-        width: Math.min(box.width + pad * 2, page.viewportSize()?.width ?? 1440),
-        height: box.height + pad * 2,
-      },
-    });
+    const x = Math.max(0, Math.min(box.x - pad, vp.width - 4));
+    const y = Math.max(0, Math.min(box.y - pad, vp.height - 4));
+    const width = Math.max(4, Math.min(box.width + pad * 2, vp.width - x));
+    const height = Math.max(4, Math.min(box.height + pad * 2, vp.height - y));
+    await page.screenshot({ path: join(CORPUS, file), clip: { x, y, width, height } });
     shots.push({
       screen,
       viewport,
