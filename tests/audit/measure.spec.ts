@@ -69,6 +69,34 @@ test('measure: control geometry and density', async ({ page }) => {
           return r.width > 1 && r.height > 1 && cs.visibility !== 'hidden' && cs.display !== 'none';
         };
 
+        const accessibleName = (e: HTMLElement): string => {
+          const byIds = e.getAttribute('aria-labelledby');
+          if (byIds !== null) {
+            const text = byIds
+              .split(/\s+/)
+              .map((id) => document.getElementById(id))
+              .filter((n): n is HTMLElement => n !== null)
+              .map((n) => (n.innerText || '').trim())
+              .join(' ')
+              .trim();
+            if (text !== '') return text;
+          }
+          const label = e.getAttribute('aria-label');
+          if (label !== null && label.trim() !== '') return label.trim();
+          const input = e as HTMLInputElement;
+          if (input.labels !== undefined && input.labels !== null && input.labels.length > 0) {
+            const text = (input.labels[0].innerText || '').trim();
+            if (text !== '') return text;
+          }
+          const own = (e.innerText || '').trim().split('\n')[0];
+          if (own !== undefined && own !== '') return own;
+          const title = e.getAttribute('title');
+          if (title !== null && title.trim() !== '') return `${title.trim()} (from title only)`;
+          const placeholder = e.getAttribute('placeholder');
+          if (placeholder !== null && placeholder.trim() !== '') return `${placeholder.trim()} (from placeholder only)`;
+          return '';
+        };
+
         const paintedBehind = (el: HTMLElement) => {
           let node: HTMLElement | null = el.parentElement;
           while (node !== null) {
@@ -109,7 +137,7 @@ test('measure: control geometry and density', async ({ page }) => {
           return {
             kind,
             variant,
-            name: (e.getAttribute('aria-label') ?? (e.innerText || '').trim().split('\n')[0] ?? '').slice(0, 40),
+            name: accessibleName(e).slice(0, 40),
             height: Math.round(r.height * 100) / 100,
             width: Math.round(r.width),
             fontSize: cs.fontSize,

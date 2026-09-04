@@ -180,6 +180,67 @@ if (resizable.length > 0) {
   say('');
 }
 
+say('## Accessible names: missing, and duplicated within one screen');
+say('');
+say('Names follow the accessible-name order: `aria-labelledby`, then `aria-label`, then an associated `<label>`, then the element\'s own text. A name that could only be found in `title` or `placeholder` is flagged, because those are the two weakest sources.');
+say('');
+const nameless = controls.filter((c) => (c.name ?? '') === '');
+const weak = controls.filter((c) => /\(from (title|placeholder) only\)$/.test(c.name ?? ''));
+say(`Controls with no accessible name at all: **${nameless.length}**. Named only by \`title\` or \`placeholder\`: **${weak.length}**.`);
+say('');
+if (nameless.length > 0) {
+  say('| Screen | Viewport | Kind | Variant | Container |');
+  say('| :---- | :---- | :---- | :---- | :---- |');
+  for (const c of nameless.slice(0, 30)) say(`| ${c.screen} | ${c.viewport} | \`${c.kind}\` | ${c.variant} | ${c.container} |`);
+  say('');
+}
+if (weak.length > 0) {
+  say('| Screen | Kind | Name and its source | Count |');
+  say('| :---- | :---- | :---- | ----: |');
+  const weakGroups = new Map();
+  for (const c of weak) {
+    const key = `${c.screen}|${c.kind}|${c.name}`;
+    weakGroups.set(key, (weakGroups.get(key) ?? 0) + 1);
+  }
+  for (const [key, n] of [...weakGroups.entries()].sort((a, b) => b[1] - a[1]).slice(0, 25)) {
+    const [screen, kind, name] = key.split('|');
+    say(`| ${screen} | \`${kind}\` | ${name} | ${n} |`);
+  }
+  say('');
+}
+
+say('Controls sharing a name with another control on the same screen:');
+say('');
+say('| Screen | Viewport | Name | Times | Share of that screen\'s controls |');
+say('| :---- | :---- | :---- | ----: | ----: |');
+const perScreen = new Map();
+for (const c of controls) {
+  const key = `${c.screen}|${c.viewport}`;
+  if (!perScreen.has(key)) perScreen.set(key, []);
+  perScreen.get(key).push(c);
+}
+const dupRows = [];
+for (const [key, list] of perScreen.entries()) {
+  const counts = new Map();
+  for (const c of list) {
+    const n = c.name ?? '';
+    if (n === '') continue;
+    counts.set(n, (counts.get(n) ?? 0) + 1);
+  }
+  for (const [name, n] of counts.entries()) {
+    if (n < 3) continue;
+    const [screen, viewport] = key.split('|');
+    dupRows.push({ screen, viewport, name, n, share: n / list.length });
+  }
+}
+for (const r of dupRows.sort((a, b) => b.n - a.n).slice(0, 30)) {
+  say(`| ${r.screen} | ${r.viewport} | ${r.name} | **${r.n}** | ${(r.share * 100).toFixed(1)}% |`);
+}
+say('');
+const screensAffected = new Set(dupRows.map((r) => `${r.screen}|${r.viewport}`)).size;
+say(`Screen and viewport combinations carrying at least one name used three or more times: ${screensAffected}.`);
+say('');
+
 say('## WCAG 2.5.8 target size, including the spacing exception');
 say('');
 say('A target under 24 by 24 still conforms if a 24px-diameter circle centred on it intersects no other target\'s circle. Computed per screen and viewport from the measured boxes.');
