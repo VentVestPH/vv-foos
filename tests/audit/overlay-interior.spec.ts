@@ -109,9 +109,14 @@ async function tagWithinOverlay(page: Page, selector: string): Promise<Descripto
           typeable:
             tag === 'textarea' ||
             (tag === 'input' && ['text', 'search', 'email', 'tel', 'number', 'url'].includes(type)),
-          group: (e.closest('[role="dialog"], .fo-modal, .fo-drawer, .fo-panel') as HTMLElement | null)
-            ?.getAttribute('aria-label')
-            ?.slice(0, 32) ?? '',
+          group:
+            (
+              e.closest(
+                '[role="dialog"], [role="alertdialog"], .fo-placeholder-modal, .rq-dialog, .intake-drawer-overlay, .fo-sidebar-panel',
+              ) as HTMLElement | null
+            )
+              ?.getAttribute('aria-label')
+              ?.slice(0, 32) ?? '',
         });
         index += 1;
       }
