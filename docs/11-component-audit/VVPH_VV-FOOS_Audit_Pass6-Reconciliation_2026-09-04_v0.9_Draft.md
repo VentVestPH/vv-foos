@@ -127,13 +127,20 @@ That changes what workstream W is. **Five of the findings are wiring, not buildi
 
 **And the pattern has a boundary, which is the most actionable thing in this document.** Where the loading-feedback and progress patterns are used, they are used consistently, and where they are absent they are absent by module rather than at random:
 
-| Feedback | sales | intake | recruit |
+| Pattern | recruit | sales | intake |
 | :---- | :---- | :---- | :---- |
-| `emptyText` gated on `loading` | 4 of 4 lists | 1 of 1 | **0 of 3** |
-| `busy` passed to `Table` | 4 | 1 | **0** |
-| Button label changing to `Saving…` | 5 | 0 | **0** |
+| `emptyText` gated on `loading` | **0 of 3 lists** | 4 of 4 | 1 of 1 |
+| `busy` passed to `Table` | **0** | 4 | 1 |
+| Button label changing to `Saving…` | **0** | 5 | 0 |
+| `useListLink`, preserving the list URL | 2 | **0** | **0** |
+| A `Back To List` control | 2 | **0** | **0** |
+| `aria-label` occurrences | 22 | 4 | 4 |
 
-Recruit is the ATS core and the highest-traffic module in the product, and it has none of the three. The CRM beside it has all of them. That reframes rows 13 and 30 from "FOOS lacks loading feedback" to **"the pattern is in the repository, working, and was never applied to recruit"**, which is a copy rather than a design, and it explains why my own screenshot review concluded there was no loading state at all: most of the screens I looked at were recruit.
+**I nearly wrote "recruit is behind sales" and the matrix does not support it.** Recruit has no loading feedback of any kind and the CRM beside it has all three forms, which is what rows 13 and 30 are about. But recruit is the **only** module that preserves the list URL or offers a `Back To List` at all, which is row 28, and it carries 22 `aria-label` attributes against sales's 4. Neither module is ahead. **Each has patterns the other lacks, and every gap is a pattern invented in one module and never carried across.**
+
+That reframes rows 13, 28 and 30 together, from "FOOS lacks X" to **"X is in the repository, working, and was never propagated"**. It is a copy rather than a design in every case. It also explains why my own screenshot review concluded there was no loading state anywhere: most of the screens I looked at were recruit.
+
+**Two different causes, which matter because they need different fixes.** The loading-feedback pattern lives in sales *page* code, `emptyText={loading ? …}` written inline at each call site, and ESLint forbids a module importing another module, so recruit cannot use it without copying it or someone lifting it into `components/ui/Table.tsx` as a real loading state. The list-return pattern is the opposite: `lib/listReturn.ts` is already shared and available to every module, and sales simply never calls it. One gap is structural and one is an oversight, and the module-isolation rule that keeps the codebase clean is what turns the first kind into duplication rather than reuse.
 
 It also predicts where else to look, which is the useful part. The question to ask of any shared component in this codebase is not "does it support X" but **"how many call sites actually pass X"**, and that is a `grep` rather than an investigation. Two of pass 6's findings and two of its acquittals came from asking exactly that: counting `<Input` against `label=` acquitted 95 fields and convicted one, and counting `<PlaceholderAction` against `ariaDisabled={false}` established that all 51 carry the default.
 
