@@ -50,6 +50,21 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
     }
 
     await shootScreen(page, SCREEN, viewport.name, 'selection-none');
+    const barBefore = page.locator('.fo-list-action-bar').first();
+    if ((await barBefore.count()) > 0) {
+      await shootElement(page, barBefore, SCREEN, viewport.name, 'bulk-bar', 'bulk-bar', 'selection-none', 'bulk actions');
+      const states = await barBefore.evaluate((node) => {
+        const bs = Array.from(node.querySelectorAll('button'));
+        return {
+          total: bs.length,
+          nativelyDisabled: bs.filter((b) => (b as HTMLButtonElement).disabled).length,
+          ariaDisabled: bs.filter((b) => b.getAttribute('aria-disabled') === 'true').length,
+        };
+      });
+      note(
+        `${SCREEN} ${viewport.name}: with nothing selected the action bar is already present with ${states.total} buttons, ${states.nativelyDisabled} natively disabled and ${states.ariaDisabled} aria-disabled`,
+      );
+    }
     const header = await headerBox(page);
     await shootElement(page, header, SCREEN, viewport.name, 'select-all', 'input-checkbox', 'selection-none', 'select all rows');
 
@@ -84,12 +99,12 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
       );
     }
 
-    const bulkBar = page.locator('.fo-bulk-bar, [data-bulk-actions], [aria-label*="bulk" i]').first();
+    const bulkBar = page.locator('.fo-list-action-bar').first();
     if ((await bulkBar.count()) > 0) {
       await shootElement(page, bulkBar, SCREEN, viewport.name, 'bulk-bar', 'bulk-bar', 'selection-partial', 'bulk actions');
     }
 
-    const bulkButtons = page.locator('.fo-bulk-bar button, [data-bulk-actions] button');
+    const bulkButtons = page.locator('.fo-list-action-bar button');
     const bulkCount = await bulkButtons.count();
     for (let i = 0; i < bulkCount; i += 1) {
       const button = bulkButtons.nth(i);
