@@ -137,7 +137,23 @@ By kind, the two rows that matter are the ones still at zero or short:
 | `input-datetime-local` | **3** | **4** |
 | `input-radio` | **0** | **5** |
 
-**Every radio in the product, and one of the four `datetime-local` fields, remain uncaptured after 11,832 captures.** That is not a coverage accident, it is the harness being one level deep: all five radios live inside `CandidateMergeDialog`, `CandidateBulkActions` and the intake `ItemDrawer`, and the fourth datetime lives in `CandidateOutreachDialogs`. The sweep photographs an opened overlay whole and never tags the controls inside it. `overlay-interior.spec.ts` and `selection-states.spec.ts` close that, and until they have run this table is the honest statement of what pass 2 did and did not reach.
+**The overlay-interior pass closed every kind gap except the radios, and the radios turned out not to be a coverage problem.**
+
+After the supplementary passes, counted across every manifest:
+
+| Kind | Captures | Source count |
+| :---- | ----: | ----: |
+| `input-checkbox` | 539 | 18 |
+| `select` | 262 | 2 native, 54 via `Select` |
+| `input-date` | 73 | 15 |
+| `textarea` | 71 | 13 |
+| `input-file` | **20** | 1 |
+| `input-datetime-local` | **19** | 4 |
+| `input-radio` | **0** | 5 |
+
+`input-datetime-local` went from 3 to **19** and `input-file` from 6 to **20**, because `overlay-interior.spec.ts` descends into an opened overlay and tags what is inside it, which the sweep never did: the fourth datetime field lives in `CandidateOutreachDialogs`, reachable only by opening `Schedule meeting`.
+
+**The radios stay at zero and that is not a coverage failure.** The interior pass swept the candidate merge dialog by name and still captured none, which falsified my own explanation. Every radio in the product is conditional on data: `CandidateMergeDialog` renders one per duplicate match and the candidate opened had none, `CandidateBulkActions` renders two only once rows are selected, and `intake/ItemDrawer` renders two only for an open queue row while `intake_items` holds **0**. Pass 6 records the reasoning and the deliberate decision not to seed the intake pair.
 
 ## The states each control has to be captured in
 
