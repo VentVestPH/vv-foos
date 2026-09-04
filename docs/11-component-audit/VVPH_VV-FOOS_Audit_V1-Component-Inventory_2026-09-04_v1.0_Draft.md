@@ -58,6 +58,29 @@ Four components carry the app: `Button`, `Input`, `RecordSection` and `Select` a
 
 **107 native controls.** The two bolded rows were missing from the inventory in the workstream V plan, which listed only "31 input, 18 checkbox, 15 date, 13 textarea, 6 details, 5 radio, 2 select, 1 file". Both have browser-decided parts: the number spinner and the datetime segments and picker.
 
+## What the sweep actually found on each screen, recruit and dashboards
+
+Element counts per screen from the capture harness, which are the real denominators for anything the audit claims about coverage. Desktop first, then the same screen at 390px.
+
+| Screen | Elements | State shots | Openers clicked | Overlays opened | Navigations |
+| :---- | ----: | ----: | ----: | ----: | ----: |
+| Candidate list | **177** / 94 | 486 / 236 | 132 / 53 | 23 / 6 | 48 / 35 |
+| Requisition record | **171** / 90 | 513 / 241 | 113 / 84 | 8 / 3 | 56 / 39 |
+| Requisition list | 125 / 82 | 334 / 213 | 88 / 71 | 5 / 5 | 72 / 55 |
+| Candidate record | 123 / 85 | 353 / 202 | 78 / 51 | 17 / 11 | 32 / 17 |
+| New requisition | 85 / 61 | 239 / 168 | 50 / 28 | 3 / 3 | 34 / 16 |
+| Edit requisition | 85 / 61 | 239 / 168 | 50 / 28 | 3 / 3 | 34 / 16 |
+| Dashboard, My View | 50 / 47 | 120 / 110 | 29 / 30 | 3 / 3 | 16 / 15 |
+| Dashboard, Reports | 49 / 42 | 127 / 105 | 32 / 29 | 3 / 3 | 15 / 14 |
+| Dashboard, Pipeline | 42 / 35 | 120 / 98 | 32 / 29 | 3 / 3 | 16 / 15 |
+| Global search | 33 / 30 | 94 / 84 | 23 / 24 | 3 / 3 | 17 / 16 |
+
+Recruit alone produced **4,358 captures**. Three things worth reading off this table:
+
+- **The candidate list carries 177 interactive elements on one screen**, and 94 of them survive at 390px. That is the densest screen in the product and the one a recruiter spends the day in.
+- **Mobile is not a subset.** The requisition list clicks 71 openers at 390px against 88 at 1440px, but navigates 55 times against 72, so the ratio of controls that leave the screen changes with the viewport rather than simply shrinking.
+- **Overlay counts are low on the requisition screens**, 5 and 8 against the candidate list's 23. That is partly real, since the candidate list has bulk actions, star grades and column configuration, and partly the `aria-disabled` gap: 66 `PlaceholderAction` controls were skipped as disabled before that was fixed, and the requisition record carries several of them.
+
 ## The states each control has to be captured in
 
 From the capture harness, which records each of these where the control supports it: `default`, `hover`, `focus-visible`, `disabled`, `populated-long` (a value long enough to overflow), plus `opened-by-<name>` for anything that opens an overlay, `navigated-by-<name>` for anything that leaves the screen, and `clicked-<name>` for a click that changes state in place.
