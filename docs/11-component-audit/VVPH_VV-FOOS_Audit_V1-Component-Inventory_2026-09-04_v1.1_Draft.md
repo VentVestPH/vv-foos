@@ -81,6 +81,60 @@ Recruit alone produced **4,358 captures**. Three things worth reading off this t
 - **Mobile is not a subset.** The requisition list clicks 71 openers at 390px against 88 at 1440px, but navigates 55 times against 72, so the ratio of controls that leave the screen changes with the viewport rather than simply shrinking.
 - **Overlay counts are low on the requisition screens**, 5 and 8 against the candidate list's 23. That is partly real, since the candidate list has bulk actions, star grades and column configuration, and partly the `aria-disabled` gap: 51 `PlaceholderAction` controls were skipped as disabled before that was fixed, and the requisition record carries several of them.
 
+## Passes 1 and 2 complete: what the whole sweep captured
+
+Finished 10:53 on 2026-09-04, all seven areas, 31 routes at two viewports.
+
+| Area | Screens | Captures | Of which element captures |
+| :---- | ----: | ----: | ----: |
+| recruit | 6 | 4,358 | 3,510 |
+| sales | 11 | 4,294 | 3,366 |
+| pages | 6 | 1,604 | 1,236 |
+| intake | 3 | 871 | 676 |
+| settings | 1 | 335 | 264 |
+| shell | 1 | 230 | 182 |
+| dashboards | 3 | 140 | 136 |
+| **total** | **31** | **11,832** | **9,370** |
+
+**11,832 is the number to quote, not the 12,687 files on disk.** The manifests are the record of what was captured and are rewritten from scratch each time an area runs, so re-running an area, which recruit and dashboards both needed after a harness fix, leaves the earlier PNGs behind with no manifest entry. The 855 difference is those orphans. Counting files would overstate coverage by 7%.
+
+By state, across all 11,832:
+
+| State | Captures |
+| :---- | ----: |
+| `default` | 2,846 |
+| `focus-visible` | 2,802 |
+| `hover` | 2,729 |
+| `navigated-by-<name>` | 1,406 |
+| `clicked-<name>` | 603 |
+| `open`, an overlay's own box | 464 |
+| `disabled` | 383 |
+| `opened-by-<name>` | 370 |
+| `populated-long` | 206 |
+| `select-clicked` | 23 |
+
+By kind, the two rows that matter are the ones still at zero or short:
+
+| Kind | Captures | Source count |
+| :---- | ----: | ----: |
+| `button` | 7,219 | 138 `Button` usages plus native |
+| `input-text` | 568 | 31 |
+| `overlay` | 464 | - |
+| `input-checkbox` | 316 | 18 |
+| `tab` | 174 | - |
+| `link` | 170 | - |
+| `select` | 154 | 2 native, 54 via `Select` |
+| `input-number` | 154 | 12 |
+| `input-search` | 56 | - |
+| `textarea` | 41 | 13 |
+| `input-date` | 37 | 15 |
+| `input-email` | 8 | - |
+| `input-file` | 6 | 1 |
+| `input-datetime-local` | **3** | **4** |
+| `input-radio` | **0** | **5** |
+
+**Every radio in the product, and one of the four `datetime-local` fields, remain uncaptured after 11,832 captures.** That is not a coverage accident, it is the harness being one level deep: all five radios live inside `CandidateMergeDialog`, `CandidateBulkActions` and the intake `ItemDrawer`, and the fourth datetime lives in `CandidateOutreachDialogs`. The sweep photographs an opened overlay whole and never tags the controls inside it. `overlay-interior.spec.ts` and `selection-states.spec.ts` close that, and until they have run this table is the honest statement of what pass 2 did and did not reach.
+
 ## The states each control has to be captured in
 
 From the capture harness, which records each of these where the control supports it: `default`, `hover`, `focus-visible`, `disabled`, `populated-long` (a value long enough to overflow), plus `opened-by-<name>` for anything that opens an overlay, `navigated-by-<name>` for anything that leaves the screen, and `clicked-<name>` for a click that changes state in place.
