@@ -1,7 +1,9 @@
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const CORPUS = join(process.cwd(), 'audit', 'corpus');
+const HERE = dirname(fileURLToPath(import.meta.url));
+const CORPUS = join(HERE, '..', '..', 'audit', 'corpus');
 
 function load(name) {
   const path = join(CORPUS, name);
