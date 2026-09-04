@@ -31,9 +31,9 @@ Every one is corrected in place in the document that carried it, with the wrong 
 
 That split is the most useful thing pass 6 found. **The audit table, whose cells name the file and the declaration, survived re-checking without a single change. The summary prose, written from the table plus memory, is where all thirteen errors were.** A claim degrades when it is restated, not when it is written down.
 
-## Six findings pass 6 added
+## Ten findings pass 6 added
 
-Not one came from a screenshot. Five came from reading a component's contract, and one from counting duplicate names in the manifest.
+Not one came from a screenshot. Eight came from reading a component's contract, one from counting duplicate names in the manifest, and one from enumerating every `onClick` on a non-interactive tag and then discarding the ten that were legitimate.
 
 **Row-level controls carry no row identity** (V6 row 23, now W16). Found by counting duplicate accessible names per screen in the manifest. On the candidate list **100 of 163 interactive controls, 61%, share a name with nineteen others**: `1 star`, `2 stars`, `3 stars`, `Edit` and `Select row`, each twenty times. Verified in `Table.tsx:268`, `StarGrade.tsx:31` and `ApplicationPipeline.tsx:428`. It compounds row 5: with the header checkbox reporting the wrong state *and* no row distinguishable by name, the selection mechanism is unusable non-visually.
 
@@ -46,6 +46,14 @@ Not one came from a screenshot. Five came from reading a component's contract, a
 **`StarGrade` announces a radiogroup and behaves like three toggles** (V6 row 27, now W4). `role="radiogroup"` with three `role="radio"` buttons, `onClick` and nothing else. The group should be one tab stop and each star is its own; no arrow-key navigation exists; `role="radio"` on a `<button>` makes assistive technology announce a radio for an element that behaves as a button; and clicking the selected star clears the grade, which is checkbox behaviour a radio group cannot have.
 
 **Five dialogs assert an inertness none of them enforces** (V6 row 26, now W18). `IdleSignOut`, `Placeholder`, `recruit/Dialog`, `sales/Modal` and `intake/Drawer` all set `aria-modal="true"`. Grep for `activeElement`, `trapFocus` or `focusTrap` across `app/src` returns nothing, and three of the five lack `autoFocus`. The [APG](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) warns the attribute should be set only when application code prevents external interaction, because misuse "can prevent users of some assistive technologies from perceiving content outside the dialog". So this is worse than incomplete: the page behind is announced as inert while Tab still reaches it. It is row 16's contradiction one level more serious, and the three module dialogs at 43, 40 and 39 lines are the same component written three times because ESLint forbids cross-module imports and `components/ui/` holds no dialog.
+
+**`Back To List` loses the list on 9 of 11 paths** (V6 row 28, now W8). `lib/listReturn.ts` holds both halves of the pattern, `useListLink` to store the list URL and `useBackToList` to read it, and `useListLink` is used at exactly two call sites, both `onRowClick`. So on the recruit lists clicking the row background preserves the page, filters and sort while clicking the candidate's **name link** does not. On the sales lists neither works and no sales record page has the button. This is the fidelity audit's C13, recorded as absent; half-built is more precise.
+
+**One radio group is not a group, and none carries a group label** (V6 row 29, now W4). `ItemDrawer.tsx:192` and `:199` set no `name`, so those two radios are not a native group: Tab stops on each and the arrow keys do nothing. The other two groups set `name` correctly. Across all three, `fieldset` and `legend` appear nowhere in `app/src`, so no group has a programmatic name. With row 27 that makes **four radio groups, none satisfying the APG pattern, each failing differently**.
+
+**A long operation greys out its button and says nothing else** (V6 row 30, now W8). Five long actions all express `busy` as `disabled={busy}` and nothing more. `Button` has no loading prop, no spinner component exists in `app/src`, and there are no spinner keyframes among the fourteen layer files. The one exception, `DataExportCard`'s `Exporting… N of M`, is my own recent work and carries no `aria-live`, so its count climbs silently.
+
+**Three interactions are attached to non-interactive elements** (V6 row 31, now W4). The truncated-cell expander across five columns, every dashboard bar's drill-through, and the deal card's navigation, which gives the sharpest case: a keyboard user can move a deal between pipeline stages but cannot open it.
 
 ## Fifteen things checked and found correct
 
