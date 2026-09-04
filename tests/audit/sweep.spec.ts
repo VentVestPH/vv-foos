@@ -16,6 +16,7 @@ import {
 } from './capture';
 
 const AREA = process.env.FOOS_AUDIT_AREA ?? '';
+const FOCUS_ONLY = process.env.FOOS_AUDIT_FOCUS_ONLY === '1';
 const SESSION_ENDING = /^(logout|log out|sign out|signout)$/i;
 
 async function ensureSignedIn(page: Page, path: string): Promise<boolean> {
@@ -166,12 +167,16 @@ test('sweep: every interactive element, every state', async ({ page }) => {
           continue;
         }
 
-        if (await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, d.disabled ? 'disabled' : 'default', d.name)) {
+        if (
+          !FOCUS_ONLY &&
+          (await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, d.disabled ? 'disabled' : 'default', d.name))
+        ) {
           stateShots += 1;
         }
         if (d.disabled) continue;
 
         try {
+          if (FOCUS_ONLY) throw new Error('skip hover in focus-only mode');
           await el.hover({ timeout: 1500, force: true });
           await page.waitForTimeout(130);
           await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, 'hover', d.name);
@@ -207,7 +212,7 @@ test('sweep: every interactive element, every state', async ({ page }) => {
           note(`${route.id} ${viewport.name}: ${d.kind} "${d.name}" would not take focus`);
         }
 
-        if (d.typeable) {
+        if (d.typeable && !FOCUS_ONLY) {
           const filler = d.kind === 'input-number' ? '1234567890' : 'Zz a deliberately long value to show how the field handles overflow';
           try {
             await el.fill(filler);
@@ -221,7 +226,9 @@ test('sweep: every interactive element, every state', async ({ page }) => {
         }
       }
 
-      const toOpen = descriptors.filter((d) => d.opens && !d.disabled && !SESSION_ENDING.test(d.name.trim()));
+      const toOpen = FOCUS_ONLY
+        ? []
+        : descriptors.filter((d) => d.opens && !d.disabled && !SESSION_ENDING.test(d.name.trim()));
       const skippedSession = descriptors.filter((d) => d.opens && SESSION_ENDING.test(d.name.trim()));
       for (const d of skippedSession) {
         note(`${route.id} ${viewport.name}: "${d.name}" not clicked, it ends the session; captured in its default, hover and focus states only`);
@@ -272,7 +279,7 @@ test('sweep: every interactive element, every state', async ({ page }) => {
         }
       }
 
-      const selects = descriptors.filter((d) => d.kind === 'select');
+      const selects = FOCUS_ONLY ? [] : descriptors.filter((d) => d.kind === 'select');
       if (selects.length > 0) {
         await gotoAsSignedIn(page, path);
         await settle(page, 700);
