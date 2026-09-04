@@ -32,6 +32,7 @@ interface Descriptor {
   kind: string;
   name: string;
   disabled: boolean;
+  nativelyDisabled: boolean;
   typeable: boolean;
   opens: boolean;
   width: number;
@@ -102,6 +103,7 @@ async function tagElements(page: Page): Promise<Descriptor[]> {
           kind,
           name: name || kind,
           disabled: e.hasAttribute('disabled') || e.getAttribute('aria-disabled') === 'true',
+          nativelyDisabled: e.hasAttribute('disabled'),
           typeable:
             tag === 'textarea' ||
             (tag === 'input' && ['text', 'search', 'email', 'tel', 'number', 'url'].includes(type)),
@@ -228,7 +230,9 @@ test('sweep: every interactive element, every state', async ({ page }) => {
 
       const toOpen = FOCUS_ONLY
         ? []
-        : descriptors.filter((d) => d.opens && !d.disabled && !SESSION_ENDING.test(d.name.trim()));
+        : descriptors.filter(
+            (d) => d.opens && !d.nativelyDisabled && !SESSION_ENDING.test(d.name.trim()),
+          );
       const skippedSession = descriptors.filter((d) => d.opens && SESSION_ENDING.test(d.name.trim()));
       for (const d of skippedSession) {
         note(`${route.id} ${viewport.name}: "${d.name}" not clicked, it ends the session; captured in its default, hover and focus states only`);
