@@ -19,6 +19,9 @@ interface ControlMetric {
   paddingBottom: string;
   borderTop: string;
   boxSizing: string;
+  resize: string;
+  cursor: string;
+  outlineColor: string;
   container: string;
   x: number;
   y: number;
@@ -97,6 +100,9 @@ test('measure: control geometry and density', async ({ page }) => {
             paddingBottom: cs.paddingBottom,
             borderTop: cs.borderTopWidth,
             boxSizing: cs.boxSizing,
+            resize: cs.resize,
+            cursor: cs.cursor,
+            outlineColor: cs.outlineColor,
             container,
             x: Math.round(r.x),
             y: Math.round(r.y),
@@ -242,7 +248,17 @@ test('measure: control geometry and density', async ({ page }) => {
     if (!heights.has(key)) heights.set(key, new Set());
     heights.get(key)!.add(Math.round(c.height));
   }
+  const badResize = controls.filter((c) => c.kind === 'textarea' && c.resize !== 'vertical' && c.resize !== 'none');
+  const badCursor = controls.filter(
+    (c) => (c.kind === 'button' || c.kind === 'link-btn' || c.kind === 'btn-class') && c.cursor !== 'pointer' && c.cursor !== 'default',
+  );
   console.log(`MEASURE controls=${controls.length} screens=${density.length}`);
+  console.log(`MEASURE textareas resizable horizontally: ${badResize.length} of ${controls.filter((c) => c.kind === 'textarea').length}`);
+  for (const c of badResize.slice(0, 12)) console.log(`MEASURE RESIZE ${c.screen} ${c.viewport} "${c.name}" resize=${c.resize}`);
+  console.log(`MEASURE buttons without cursor pointer: ${badCursor.length}`);
+  for (const c of [...new Map(badCursor.map((c) => [c.screen + c.name + c.cursor, c])).values()].slice(0, 12)) {
+    console.log(`MEASURE CURSOR ${c.screen} ${c.viewport} "${c.name}" cursor=${c.cursor}`);
+  }
   for (const [kind, set] of [...heights.entries()].sort()) {
     console.log(`MEASURE HEIGHTS ${kind}: ${[...set].sort((a, b) => a - b).join(', ')}`);
   }

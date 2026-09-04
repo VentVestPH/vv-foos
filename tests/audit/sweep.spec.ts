@@ -183,9 +183,16 @@ test('sweep: every interactive element, every state', async ({ page }) => {
 
         try {
           await el.focus({ timeout: 1500 });
+          await page.keyboard.press('Tab');
+          await page.keyboard.press('Shift+Tab');
           await page.waitForTimeout(130);
-          await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, 'focus-visible', d.name);
-          stateShots += 1;
+          const onTarget = await el.evaluate((node) => node === document.activeElement);
+          if (!onTarget) {
+            note(`${route.id} ${viewport.name}: ${d.kind} "${d.name}" lost focus on the Tab round trip, so its focus-visible state is not captured`);
+          } else {
+            await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, 'focus-visible', d.name);
+            stateShots += 1;
+          }
         } catch {
           note(`${route.id} ${viewport.name}: ${d.kind} "${d.name}" would not take focus`);
         }
