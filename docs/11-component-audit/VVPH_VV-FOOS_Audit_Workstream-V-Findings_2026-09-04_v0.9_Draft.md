@@ -20,7 +20,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | V10 | `Audit_V10-Visual-Review` | 0.6, the looking half done with two more observations corrected, the task costs pending pass 3 |
 | V11 | `Audit_V11-Design-References` | done, with the "not published" answers kept |
 | V13 | `Audit_V13-Density` | 0.4, mechanism established and the three wrong approaches ruled out; numbers pending the measurement |
-| Pass 6 | `Audit_Pass6-Reconciliation` | 0.9, sixteen of my own claims corrected, six findings added, thirteen acquittals, three harness gaps closed |
+| Pass 6 | `Audit_Pass6-Reconciliation` | 0.9, sixteen of my own claims corrected, six findings added, fifteen acquittals, three harness gaps closed |
 
 ## The six passes
 
@@ -31,7 +31,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | 3 Use | the real tasks walked as their user | harness written, queued |
 | 4 References | judged against cited published sources | done, V4 and V11 |
 | 5 Measurement | heights, spacing, density in numbers | harness written, queued |
-| 6 Reconciliation | what the first five missed | **0.9**, source half done: 16 wrong claims corrected, 11 verified rows re-checked and all 11 held, 6 findings added, 13 acquittals recorded, 3 harness gaps closed. The measured half waits on the chain |
+| 6 Reconciliation | what the first five missed | **0.9**, source half done: 16 wrong claims corrected, 11 verified rows re-checked and all 11 held, 6 findings added, 15 acquittals recorded, 3 harness gaps closed. The measured half waits on the chain |
 
 ## The findings that would change what W builds first
 
