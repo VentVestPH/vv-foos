@@ -31,6 +31,15 @@ The screen a recruiter spends the day on, and the clearest single illustration o
 13. **Seven disabled bulk-action buttons occupy a permanent row.** `Mark as…`, `Change Main Status to…`, `Send Email`, `View Resume`, `Print Resume`, `Submit` and `More`, all greyed until a row is selected, plus an unlabelled gear. They take a full band of the screen to do nothing, and they are the same `disabled`-rather-than-explained pattern counted on the dashboard.
 14. **The migration's data quality is visible in the UI.** Names render as "Adam -", "Alan .", "Mayank ." and "Rishi ." because the Zoho last names are literally "-" and ".", and one Location reads "-1". Not a component defect, and worth recording here because it is what the user sees: the list looks broken even though the import was faithful. Whether the UI should suppress a single-punctuation surname is a product decision.
 
+## The candidate record, desktop: 9.7 viewports, and why
+
+15. **Two label idioms again, this time in the same panel.** The Candidate Information section opens with right-aligned labels beside read-only values, `First name  Harry`, `Email (personal)`, `State/Territory`, and then switches mid-panel to labels above editable fields, `Initial date`, `Sourcer Grade (grade comment)`, `Current title`. Three label arrangements now exist in the product: above, inline-left on the list filter row, and inline-right on this record panel.
+16. **The date field shows the browser's calendar glyph** at the right of `Initial date`, which is the unstyleable control W3 replaces, next to a plain bordered text field. The two sit in the same column at what look like different heights *(eyeballed)*.
+17. **Eleven controls in the action bar**, `Edit`, `Merge duplicate…`, `Erase…`, `Send Email`, `Schedule meeting`, `View Resume`, `Print Resume`, `Submit`, `More`, `Save profile`, at three visual weights: outlined, red destructive, and filled primary. `Erase…` sits fourth from the left, two positions from `Send Email`, which is the proximity NN/g warns about: "confirmatory and destructive actions should sit far apart with redundant visual signals" ([nngroup.com/articles/proximity-consequential-options](https://www.nngroup.com/articles/proximity-consequential-options/)). It does have a distinct red fill, which is the redundant signal, and it is still adjacent to routine actions.
+18. **A textarea with the resize grabber visible**, bottom-right of `Sourcer Grade (grade comment)`, which is W13: the default `resize: both` lets a drag break the two-column layout it sits in.
+19. **`Country` reads `-1`**, the same migration artefact the list shows, here rendered as a value in a record rather than a cell.
+20. **The Recently Viewed rail is now full**, eight candidates deep, which is the same rail that was an empty void on the dashboard. So the left rail's emptiness is a first-session state, not a permanent one, and finding 3 should be read that way.
+
 ## Measured from the corpus, not eyeballed
 
 These come from the capture manifest rather than from looking, so they are numbers rather than impressions.
