@@ -182,16 +182,26 @@ test('sweep: every interactive element, every state', async ({ page }) => {
         }
 
         try {
+          await page.keyboard.down('Shift');
+          await page.keyboard.up('Shift');
           await el.focus({ timeout: 1500 });
-          await page.keyboard.press('Tab');
-          await page.keyboard.press('Shift+Tab');
-          await page.waitForTimeout(130);
-          const onTarget = await el.evaluate((node) => node === document.activeElement);
-          if (!onTarget) {
-            note(`${route.id} ${viewport.name}: ${d.kind} "${d.name}" lost focus on the Tab round trip, so its focus-visible state is not captured`);
-          } else {
+          await page.waitForTimeout(120);
+          let matched = await el.evaluate((node) => node.matches(':focus-visible'));
+          if (!matched) {
+            await page.keyboard.press('Tab');
+            await page.keyboard.press('Shift+Tab');
+            await page.waitForTimeout(120);
+            matched = await el.evaluate(
+              (node) => node === document.activeElement && node.matches(':focus-visible'),
+            );
+          }
+          if (matched) {
             await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, 'focus-visible', d.name);
             stateShots += 1;
+          } else {
+            await shootElement(page, el, route.id, viewport.name, d.kind, d.kind, 'focused-not-focus-visible', d.name);
+            stateShots += 1;
+            note(`${route.id} ${viewport.name}: ${d.kind} "${d.name}" took focus but never matched :focus-visible, so this capture shows plain focus`);
           }
         } catch {
           note(`${route.id} ${viewport.name}: ${d.kind} "${d.name}" would not take focus`);
