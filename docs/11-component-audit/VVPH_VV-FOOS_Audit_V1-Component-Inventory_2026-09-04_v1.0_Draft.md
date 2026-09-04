@@ -39,7 +39,7 @@ Four components carry the app: `Button`, `Input`, `RecordSection` and `Select` a
 | `modules/settings` | 5 | 1 |
 | `auth` | 4 | 1 |
 
-28 routes in total, which is what the capture harness enumerates in `tests/audit/routes.ts`.
+**31 routes in total**, which is what the capture harness enumerates in `tests/audit/routes.ts`. It was 28 until 2026-09-04, when diffing every `path=` in `App.tsx` and the module index files against the harness's list found three that had never been visited: `/intake`, the index route rendering `QueueListPage`, and the `path="*"` not-found stubs in both `App.tsx` and `modules/intake/index.tsx`. A fourth, `/login`, cannot be reached by the sweep at all because it signs in first, so it has its own spec and is not counted in the 31.
 
 ## Native controls, counted
 

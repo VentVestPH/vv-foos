@@ -25,7 +25,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 
 | Pass | Question | State |
 | :---- | :---- | :---- |
-| 1 Breadth | what exists and where | done, 28 routes at two viewports |
+| 1 Breadth | what exists and where | **reopened and redone**, 31 routes at two viewports plus `/login` in its own spec. It was 28 until diffing the route maps on 2026-09-04 found `/intake`, and the two not-found stubs, never visited |
 | 2 States | every control in every state | running: dashboards, shell and recruit complete at 5,470 captures, sales in progress |
 | 3 Use | the real tasks walked as their user | harness written, queued |
 | 4 References | judged against cited published sources | done, V4 and V11 |
