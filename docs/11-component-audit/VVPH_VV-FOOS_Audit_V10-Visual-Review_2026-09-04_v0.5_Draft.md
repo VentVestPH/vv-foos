@@ -21,6 +21,16 @@ The first screen a recruiter sees every morning. What is actually on it:
 8. **The title wraps to two lines and "Switch to My Dashboard" then takes a third**, right-aligned and alone.
 9. **A window chip sits at the bottom**, "My View: John Buena (Admin at VentVest) ×", taking a row of the viewport on the smallest screen. It is Taleo-faithful, and it is also the least useful row on a phone.
 
+## The candidate list, desktop: the complaint in one frame
+
+The screen a recruiter spends the day on, and the clearest single illustration of the height problem.
+
+10. **One toolbar row contains five controls at three different heights.** Left to right: a `Search:` label, a wide search input, a `Go!` button, the native `Saved views…` select, then `Save view` and `Export CSV` buttons. The select is visibly the tallest thing in the row and the buttons the shortest *(eyeballed; V9's measurement gives select 36px against buttons at 28 to 32)*. This is what "multiple fields and buttons that have different heights" looks like, and it is the first row of the screen.
+11. **Two label idioms on one screen.** The second filter row uses inline left-aligned labels, `First Name:` and `Last Name:`, sitting beside their inputs. Every form elsewhere puts the label above the control via `.field-label`, which is what GOV.UK mandates and Carbon offers as its only arrangement. So the same product does both, eight pixels apart.
+12. **Rows are roughly 100px tall** *(eyeballed)*, driven by two columns wrapping: `Grade comment` wraps to two lines and `Main status` wraps to as many as four, "Resume Provided by Third Party" being the worst case. That is well above the 69px the fidelity audit measured on seeded data and far above Carbon's 64px maximum, which Carbon reserves for **two**-line content. The real migrated data made the rows taller than the design anticipated, which is the same lesson as the record page growing to 9.7 viewports.
+13. **Seven disabled bulk-action buttons occupy a permanent row.** `Mark as…`, `Change Main Status to…`, `Send Email`, `View Resume`, `Print Resume`, `Submit` and `More`, all greyed until a row is selected, plus an unlabelled gear. They take a full band of the screen to do nothing, and they are the same `disabled`-rather-than-explained pattern counted on the dashboard.
+14. **The migration's data quality is visible in the UI.** Names render as "Adam -", "Alan .", "Mayank ." and "Rishi ." because the Zoho last names are literally "-" and ".", and one Location reads "-1". Not a component defect, and worth recording here because it is what the user sees: the list looks broken even though the import was faithful. Whether the UI should suppress a single-punctuation surname is a product decision.
+
 ## Measured from the corpus, not eyeballed
 
 These come from the capture manifest rather than from looking, so they are numbers rather than impressions.
