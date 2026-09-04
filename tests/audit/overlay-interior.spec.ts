@@ -249,9 +249,10 @@ test('sweep: every control inside every overlay', async ({ page }) => {
       await gotoAsSignedIn(page, path);
       await settle(page, 900);
 
+      const esc = target.opener.replace(/"/g, '\\"');
       const opener = page
         .locator(
-          `button:has-text("${target.opener}"), [aria-label="${target.opener}"], [title="${target.opener}"], a:has-text("${target.opener}")`,
+          `button:has-text("${esc}"), [aria-label="${esc}"], [title="${esc}"], [aria-label^="${esc}"], [title^="${esc}"], a:has-text("${esc}")`,
         )
         .first();
       if ((await opener.count()) === 0) {
