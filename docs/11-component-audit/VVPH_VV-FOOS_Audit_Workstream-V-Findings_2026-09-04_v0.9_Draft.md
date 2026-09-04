@@ -48,6 +48,12 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 11. **Four interactions in the product are mouse-only, all Level A.** The sortable column header (`Table.tsx:212`), the truncated-cell expander across five columns (`CappedCell`), every dashboard bar's drill-through (`BarList.tsx:11`), and the deal card's navigation (`DealsListPage.tsx:216`), which gives the sharpest case: a keyboard user can move a deal between pipeline stages but cannot open it. Established by enumerating all 14 `onClick` handlers on non-interactive tags and discarding the 10 that are backdrop closes or `stopPropagation` guards.
 12. **`Table` has no loading state, and the pager announces the page position rather than the result count.** Corrected on 2026-09-04: I had written that no list announces anything, and `Pager` does have an `aria-live` region. It is on `.fo-pager-pos` ("1 / 3646"), not on `.fo-pager-count` ("1-20 of 72,920"), and it renders only when there is more than one page. So a filter narrowing 72,920 rows to 3 announces nothing, and a screen-reader user is told "No candidates match." while the query runs and never told it finished.
 
+## One decision the audit cannot make
+
+**Is the ATS meant to be read-only on a phone?** V6 row 32: `useIsMobile` gates eight capabilities on a 640px media query, so create, edit, bulk-edit and upload all vanish below that width, in recruit only, while sales allows them at any width. The policy is defensible and may well be intended; it is parked as **P4** in the parked-and-blocked register rather than decided here.
+
+Three parts of it are defects whichever way that goes, and W8 should fix them regardless: nothing tells the user why the controls are absent, the live listener means narrowing a desktop window removes them mid-session, and the module README names the hook without recording what it does.
+
 ## What this audit does not know
 
 - **Chromium only.** No Firefox or Safari, which matters for a workstream about browser-decided controls.
