@@ -19,7 +19,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | V9 | `Audit_V9-Control-Geometry` | 0.7, partial: four of seven areas, heights and the row-level controls done, computed values pending |
 | V10 | `Audit_V10-Visual-Review` | 0.6, the looking half done with two more observations corrected, the task costs pending pass 3 |
 | V11 | `Audit_V11-Design-References` | done, with the "not published" answers kept |
-| V13 | not yet written | pending the density measurement |
+| V13 | `Audit_V13-Density` | 0.4, mechanism established and the three wrong approaches ruled out; numbers pending the measurement |
 | Pass 6 | `Audit_Pass6-Reconciliation` | 0.9, sixteen of my own claims corrected, six findings added, thirteen acquittals, three harness gaps closed |
 
 ## The six passes
