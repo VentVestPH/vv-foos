@@ -77,7 +77,9 @@ The 154 sub-24px captures are not scattered noise. They cluster in five identifi
 | 20px | 8 | `Undo`, `Redo`, `Bold`, `Italic`, `Underline`, `Bullet list` and two more: a rich-text toolbar |
 | 22px | 4 | `First page`, `Previous page`, `Next page`, `Last page`: the pager arrows |
 
-The pager row is the one to note. Every list in the product uses `Pager`, and its four navigation arrows are **22px tall**, two pixels under the AA minimum, on all 14 call sites.
+The pager row is the one to note, and it is the one that turned out to conform. Every list in the product uses `Pager` and its four navigation arrows are **22px tall**, two pixels under the AA minimum, on all 14 call sites. But 2.5.8 carries a spacing exception, and computing it rather than asserting it settles the question: `.fo-pager-controls button` has `min-width: 26px` in a flex row with `gap: var(--sp-half)`, which is 4px, so adjacent centres are **30px** apart where two 24px circles need 24px. The pager is a single row, so nothing is vertically adjacent. **The pager arrows conform to 2.5.8 by the spacing exception.**
+
+That leaves the honest position: **154 controls are below the AA size and the number that actually fail 2.5.8 is not yet known.** It may be zero. `analyse.mjs` now centres a 24px circle on every measured sub-24px control and finds the nearest other target's centre on the same screen and viewport, so the answer will be computed per control rather than argued per group. W4 should still size them up, for the reason V9 already gives about the table checkbox: conforming by exception means re-making the argument every time a layout changes.
 
 ## The finding stated precisely
 

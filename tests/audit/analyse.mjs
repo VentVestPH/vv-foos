@@ -180,6 +180,64 @@ if (resizable.length > 0) {
   say('');
 }
 
+say('## WCAG 2.5.8 target size, including the spacing exception');
+say('');
+say('A target under 24 by 24 still conforms if a 24px-diameter circle centred on it intersects no other target\'s circle. Computed per screen and viewport from the measured boxes.');
+say('');
+const small = controls.filter((c) => Math.min(c.width, c.height) < 24 && c.kind !== 'screen');
+const byScreen = new Map();
+for (const c of controls) {
+  const key = `${c.screen}|${c.viewport}`;
+  if (!byScreen.has(key)) byScreen.set(key, []);
+  byScreen.get(key).push(c);
+}
+const verdicts = [];
+for (const c of small) {
+  const peers = byScreen.get(`${c.screen}|${c.viewport}`) ?? [];
+  const cx = c.x + c.width / 2;
+  const cy = c.y + c.height / 2;
+  let nearest = Infinity;
+  let nearestName = '';
+  for (const other of peers) {
+    if (other === c) continue;
+    const ox = other.x + other.width / 2;
+    const oy = other.y + other.height / 2;
+    const d = Math.hypot(cx - ox, cy - oy);
+    if (d > 0 && d < nearest) {
+      nearest = d;
+      nearestName = other.name || other.kind;
+    }
+  }
+  verdicts.push({
+    screen: c.screen,
+    viewport: c.viewport,
+    kind: c.kind,
+    name: c.name,
+    size: `${Math.round(c.width)}x${Math.round(c.height)}`,
+    nearest: Number.isFinite(nearest) ? Math.round(nearest) : null,
+    nearestName,
+    passes: Number.isFinite(nearest) ? nearest >= 24 : true,
+  });
+}
+const failed = verdicts.filter((v) => !v.passes);
+say(`Controls under 24px on a side: ${verdicts.length}. Rescued by the spacing exception: ${verdicts.length - failed.length}. **Failing 2.5.8 outright: ${failed.length}.**`);
+say('');
+if (failed.length > 0) {
+  say('| Screen | Viewport | Kind | Name | Size | Nearest target | Distance |');
+  say('| :---- | :---- | :---- | :---- | :---- | :---- | ----: |');
+  for (const v of failed.sort((a, b) => a.nearest - b.nearest).slice(0, 40)) {
+    say(`| ${v.screen} | ${v.viewport} | \`${v.kind}\` | ${v.name} | ${v.size} | ${v.nearestName} | **${v.nearest}px** |`);
+  }
+  say('');
+}
+const rescued = verdicts.filter((v) => v.passes);
+if (rescued.length > 0) {
+  const byKind = new Map();
+  for (const v of rescued) byKind.set(v.kind, (byKind.get(v.kind) ?? 0) + 1);
+  say('Rescued by spacing, by kind: ' + [...byKind.entries()].map(([k, n]) => `${k} ${n}`).join(', ') + '.');
+  say('');
+}
+
 say('## V13: page height and wasted vertical space, desktop');
 say('');
 say('| Screen | Content | Viewports | Empty px | Empty share | Largest single gap |');
