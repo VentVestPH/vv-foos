@@ -44,7 +44,7 @@ Not one came from a screenshot. Five came from reading a component's contract, a
 
 **Five dialogs assert an inertness none of them enforces** (V6 row 26, now W18). `IdleSignOut`, `Placeholder`, `recruit/Dialog`, `sales/Modal` and `intake/Drawer` all set `aria-modal="true"`. Grep for `activeElement`, `trapFocus` or `focusTrap` across `app/src` returns nothing, and three of the five lack `autoFocus`. The [APG](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) warns the attribute should be set only when application code prevents external interaction, because misuse "can prevent users of some assistive technologies from perceiving content outside the dialog". So this is worse than incomplete: the page behind is announced as inert while Tab still reaches it. It is row 16's contradiction one level more serious, and the three module dialogs at 43, 40 and 39 lines are the same component written three times because ESLint forbids cross-module imports and `components/ui/` holds no dialog.
 
-## Eleven things checked and found correct
+## Twelve things checked and found correct
 
 Recorded because two of them I had written up as findings first, and an audit that only lists defects is not an audit.
 
@@ -61,6 +61,17 @@ Recorded because two of them I had written up as findings first, and an audit th
 | A skip link, WCAG 2.4.1 Bypass Blocks, Level A | **Correct.** `AppShell.tsx:16` renders `Skip to main content` targeting `#main-content`, which is the `<main>` element carrying `tabIndex={-1}` so the target is programmatically focusable, and `widgets.css:209` moves it from `top: -100px` to `top: 4px` on `:focus`. Checked because a shell with 14 nav tabs and a sidebar is exactly where its absence would hurt |
 | `.visually-hidden` | Really defined, at `widgets.css:9`. The Kanban board's keyboard help and its live-region announcements depend on it, so an undefined class would have made them visible instead of available |
 | Star target size | **Meets 2.5.8 AA outright**, 24 x 24 across 63 captures, declared at `widgets.css:227`. What the star grade needs is the keyboard contract in row 27, not a size change |
+| The idle timeout, WCAG 2.2.1 Timing Adjustable, Level A | **Correct, and generously so.** See below |
+
+### The idle timeout, which is the second counter-example
+
+[WCAG 2.2.1 Timing Adjustable](https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html) is Level A and requires that a user be warned before a session times out and given at least 20 seconds to extend it with a simple action. `auth/IdleSignOut.tsx` gives **two minutes** against that 20 seconds, on a one-hour idle limit.
+
+It is also the only dialog in the product that uses `role="alertdialog"` rather than `role="dialog"`, which is the correct role for an interruption demanding a response, and it carries `aria-labelledby` and `aria-describedby` pointing at its own title and body. Focus lands on `Keep me signed in` via `autoFocus`. Idle time is tracked in `localStorage` under `foos.lastActivity` and re-read on every tick, so activity in one tab keeps the others alive, and `visibilitychange` marks the user active when a tab comes back to the front. The copy names the reason, "for the safety of candidate records", and reassures that saved work is unaffected.
+
+**One cosmetic defect, and it is the only thing wrong with it.** `TICK_MS` is 15 seconds while the body renders a countdown in whole seconds, so the number jumps 120, 105, 90 rather than counting down. That is a `setInterval` granularity choice, not a conformance issue, and it belongs in W8 as a one-line change.
+
+The point of recording this alongside the Kanban board is the pattern both share. Where someone sat down and thought about a component, the result is right, including the parts that are easy to skip: a two-minute grace period, `alertdialog` over `dialog`, cross-tab state, a focused default action. The gaps this audit found are not a team that does not know the contracts. They are the components nobody has been back to yet.
 
 ### The Kanban board, which is the counter-example
 
