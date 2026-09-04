@@ -14,7 +14,7 @@ Counted from source on 2026-09-04 with `grep` over `app/src`, then cross-checked
 | `input[type="radio"]` | 5 | the glyph and the checked dot | Same |
 | `input[type="file"]` | 1 | the button label text, which is locale-dependent, and the "no file chosen" text | No. The button cannot be styled or relabelled |
 | `<details>` / `<summary>` | 6 / 6 | **only the instant open and close.** Correction: the triangle is already replaced, `controls.css` hides it with `::-webkit-details-marker`, so it was never an outstanding browser decision | The instant toggle cannot be animated without JS |
-| `<textarea>` | 13 | the resize grabber, **on both axes**, because `resize` appears **nowhere** in `app/src/styles` | Yes, and it is one declaration. `resize: vertical` on the shared textarea rule fixes all 13 |
+| `<textarea>` | 13 | the resize grabber, and on both axes wherever no module rule reaches the element | Yes, and the fix is one shared declaration. `resize: vertical` exists already but only in five narrow module rules |
 | text-ish `<input>` | 31 | autofill styling, the search field's clear button in some browsers | Partly |
 
 **Two corrections to the workstream V plan.** It listed the inventory as "31 input, 18 checkbox, 15 date, 13 textarea, 6 details, 5 radio, 2 select, 1 file", which omitted **12 `input[type="number"]`** and **4 `input[type="datetime-local"]`**, both of which have browser-decided controls. The corrected total of native controls is **107**.
@@ -40,7 +40,17 @@ This is worth stating precisely, because it is the strongest single argument for
 
 Verified by grep on 2026-09-04, and both are W items Klent named directly.
 
-**`resize` does not appear anywhere in `app/src/styles`.** All 13 textareas therefore inherit the user agent's `resize: both`, so any of them can be dragged horizontally out of the column it sits in. Adding `resize: vertical` to the shared `.field textarea` rule fixes all 13 at once, which is why this belongs in W1 alongside the height scale rather than in a component replacement.
+**`resize` is declared five times, in four module stylesheets, under five narrow selectors.** Corrected within the hour: I first wrote that `resize` appears nowhere in `app/src/styles` and concluded that all 13 textareas inherit the user agent's `resize: both`. The grep was literally true and the conclusion was wrong, because these rules live in `modules/`, not `styles/`, and the W brief had already said so. The five are:
+
+| Rule | Selector |
+| :---- | :---- |
+| `modules/intake/intake.css:176` | `.intake-url-textarea` |
+| `modules/recruit/recruit.css:134` | `.rq-form textarea` |
+| `modules/recruit/recruit.css:253` | `.panel-form textarea` |
+| `modules/sales/sales.css:72` | `.sales-textarea` |
+| `modules/settings/settings.css:128` | `.template-form textarea` |
+
+All five say `vertical`, so there is no conflict to resolve, and because module layers come last in the layer order they win over anything shared regardless of specificity. What is unknown is **coverage**: a textarea is protected only if it carries one of those two classes or sits inside one of those three containers, and textareas appear in **13 files**. `analyse.mjs` reports every textarea whose computed `resize` is neither `vertical` nor `none`, so the gap is measured rather than assumed. The fix is still one declaration on the shared textarea rule, after which the five module rules are redundant and can go.
 
 **`cursor: pointer` is declared 22 times, selector by selector, rather than once.** `.btn` carries it, so every control built from the shared `Button` is correct, and `.btn:disabled` correctly reverts to `default`. The gap is every interactive element that is not a `.btn`: the name buttons in a table cell, the icon buttons, the tab strips and the section headers. Which of those actually lack it is a measurement rather than a grep, because the cascade may reach them through another selector, so `measure.spec.ts` records the computed `cursor` of every button, link, tab and summary and `analyse.mjs` lists the ones that are not `pointer`.
 
