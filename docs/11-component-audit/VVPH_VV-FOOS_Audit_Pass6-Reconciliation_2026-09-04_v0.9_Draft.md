@@ -28,9 +28,9 @@ Every one is corrected in place in the document that carried it, with the wrong 
 
 That split is the most useful thing pass 6 found. **The audit table, whose cells name the file and the declaration, survived re-checking without a single change. The summary prose, written from the table plus memory, is where all thirteen errors were.** A claim degrades when it is restated, not when it is written down.
 
-## Five findings pass 6 added
+## Six findings pass 6 added
 
-Not one came from a screenshot. Four came from reading a component's contract, and one from counting the manifest.
+Not one came from a screenshot. Five came from reading a component's contract, and one from counting duplicate names in the manifest.
 
 **Row-level controls carry no row identity** (V6 row 23, now W16). Found by counting duplicate accessible names per screen in the manifest. On the candidate list **100 of 163 interactive controls, 61%, share a name with nineteen others**: `1 star`, `2 stars`, `3 stars`, `Edit` and `Select row`, each twenty times. Verified in `Table.tsx:268`, `StarGrade.tsx:31` and `ApplicationPipeline.tsx:428`. It compounds row 5: with the header checkbox reporting the wrong state *and* no row distinguishable by name, the selection mechanism is unusable non-visually.
 
@@ -44,7 +44,7 @@ Not one came from a screenshot. Four came from reading a component's contract, a
 
 **Five dialogs assert an inertness none of them enforces** (V6 row 26, now W18). `IdleSignOut`, `Placeholder`, `recruit/Dialog`, `sales/Modal` and `intake/Drawer` all set `aria-modal="true"`. Grep for `activeElement`, `trapFocus` or `focusTrap` across `app/src` returns nothing, and three of the five lack `autoFocus`. The [APG](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) warns the attribute should be set only when application code prevents external interaction, because misuse "can prevent users of some assistive technologies from perceiving content outside the dialog". So this is worse than incomplete: the page behind is announced as inert while Tab still reaches it. It is row 16's contradiction one level more serious, and the three module dialogs at 43, 40 and 39 lines are the same component written three times because ESLint forbids cross-module imports and `components/ui/` holds no dialog.
 
-## Seven things checked and found correct
+## Eight things checked and found correct
 
 Recorded because two of them I had written up as findings first, and an audit that only lists defects is not an audit.
 
@@ -57,6 +57,15 @@ Recorded because two of them I had written up as findings first, and an audit th
 | `lang` attribute | Set, `lang="en"` in `index.html` |
 | `aria-sort` | Implemented correctly; the header's keyboard access is the defect, not the announcement |
 | `aria-modal` | Present on all five dialogs; the behaviour it asserts is what is missing |
+| **`KanbanBoard`'s drag interaction** | **Correct, and the best-implemented interaction in the product.** See below |
+
+### The Kanban board, which is the counter-example
+
+Worth its own paragraph because it inverts the pattern in the rest of this document.
+
+`KanbanBoard` is the most complex interaction in FOOS: drag and drop across pipeline stages. It registers only a `PointerSensor` with dnd-kit, so the keyboard path is hand-written, and it is complete. `onCardKeyDown` at line 151 implements Space or Enter to grab, Space or Enter again to drop, Escape to cancel, and Left and Right arrows to move between columns. Every one of those sets an `announcement` string rendered into a `role="status" aria-live="polite"` region, including the card's position and the column count. A visually-hidden `#kanban-keyboard-help` paragraph states the whole contract in words, and the implementation matches that text exactly.
+
+So the most complicated control in the product has the best keyboard support and the best announcements, while a `<th>` needing one `tabIndex` and one `onKeyDown` has neither, and `StarGrade` claims a radiogroup with no arrow keys at all. **Accessibility here tracks how much attention a component received, not how hard it was.** That is the single most useful thing to tell whoever picks up workstream W, because it means the remaining gaps are small pieces of work rather than a missing capability, and it is why W4 bundles the checkbox, the radio, the sort header and the row naming together instead of treating them as four projects.
 
 ## Three gaps in the harness itself, beyond V2's six
 
