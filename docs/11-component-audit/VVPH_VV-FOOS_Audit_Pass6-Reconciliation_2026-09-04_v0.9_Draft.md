@@ -44,7 +44,7 @@ Not one came from a screenshot. Five came from reading a component's contract, a
 
 **Five dialogs assert an inertness none of them enforces** (V6 row 26, now W18). `IdleSignOut`, `Placeholder`, `recruit/Dialog`, `sales/Modal` and `intake/Drawer` all set `aria-modal="true"`. Grep for `activeElement`, `trapFocus` or `focusTrap` across `app/src` returns nothing, and three of the five lack `autoFocus`. The [APG](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) warns the attribute should be set only when application code prevents external interaction, because misuse "can prevent users of some assistive technologies from perceiving content outside the dialog". So this is worse than incomplete: the page behind is announced as inert while Tab still reaches it. It is row 16's contradiction one level more serious, and the three module dialogs at 43, 40 and 39 lines are the same component written three times because ESLint forbids cross-module imports and `components/ui/` holds no dialog.
 
-## Eight things checked and found correct
+## Eleven things checked and found correct
 
 Recorded because two of them I had written up as findings first, and an audit that only lists defects is not an audit.
 
@@ -58,6 +58,9 @@ Recorded because two of them I had written up as findings first, and an audit th
 | `aria-sort` | Implemented correctly; the header's keyboard access is the defect, not the announcement |
 | `aria-modal` | Present on all five dialogs; the behaviour it asserts is what is missing |
 | **`KanbanBoard`'s drag interaction** | **Correct, and the best-implemented interaction in the product.** See below |
+| A skip link, WCAG 2.4.1 Bypass Blocks, Level A | **Correct.** `AppShell.tsx:16` renders `Skip to main content` targeting `#main-content`, which is the `<main>` element carrying `tabIndex={-1}` so the target is programmatically focusable, and `widgets.css:209` moves it from `top: -100px` to `top: 4px` on `:focus`. Checked because a shell with 14 nav tabs and a sidebar is exactly where its absence would hurt |
+| `.visually-hidden` | Really defined, at `widgets.css:9`. The Kanban board's keyboard help and its live-region announcements depend on it, so an undefined class would have made them visible instead of available |
+| Star target size | **Meets 2.5.8 AA outright**, 24 x 24 across 63 captures, declared at `widgets.css:227`. What the star grade needs is the keyboard contract in row 27, not a size change |
 
 ### The Kanban board, which is the counter-example
 
