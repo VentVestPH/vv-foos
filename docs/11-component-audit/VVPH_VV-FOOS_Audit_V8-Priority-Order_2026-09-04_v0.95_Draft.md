@@ -1,12 +1,12 @@
 # V8: the order workstream W should build in
 
-Version 0.91. Error presentation moved from rank 7 to rank 5 once it was verified from source rather than left to pass 3. The order follows V12's severity, then the number of screens a change reaches. It does **not** follow ease of implementation, which is why the cheapest item is not first.
+Version 0.95. Rank 1 confirmed by measurement and raised from Degrades to Costs. Error presentation moved from rank 7 to rank 5 once it was verified from source rather than left to pass 3. The order follows V12's severity, then the number of screens a change reaches. It does **not** follow ease of implementation, which is why the cheapest item is not first.
 
 ## The order
 
 | Rank | Item | Severity | Reach | Why here | W |
 | ----: | :---- | :---- | :---- | :---- | :---- |
-| 1 | **Control height scale** | Degrades | 363 usages, every screen | It touches every other item. Building the select, the checkbox or the date field before the height scale exists means building them to a height that then changes, and re-touching all of them. It is also the complaint Klent can see | W1 |
+| 1 | **Control height scale** | **Costs**, raised from Degrades | 363 usages, every screen | **Confirmed by measurement on 2026-09-04, and the severity raised.** 15 distinct chrome-button heights across 1,066 desktop captures, a 28px spread, **154 of them (14.4%) below the 24px WCAG 2.5.8 requires at AA**, and only 42.0% on the mandated 8px grid. That last group includes the pager's four arrows at 22px on all 14 `Pager` call sites, so it is a target-size failure on every list in the product rather than an inconsistency. It also still touches every other item: building the select, the checkbox or the date field first means building them to a height that then changes | W1 |
 | 2a | **The bulk-select header's missing `indeterminate`** | Costs | `Table`, 17 uses | Promoted after reading the source. A partial selection renders as unchecked, and clicking it replaces the selection with all rows. It is a handful of lines, it prevents a silent data-scope error on a 72,917-row list, and it needs no design decision, so it should ship first and alone | W4 |
 | 2 | **Select → combobox** | Costs | 54 usages, 23 files | The case Klent named, and the only control whose open state no CSS can reach. One component, so 54 call sites inherit the fix | W2 |
 | 3 | **Density and wasted space** | Costs | every screen | 7,304px and 9.71 viewports on the candidate record, and the fidelity audit's F6 already called the empty home page the single most visible departure from Taleo. Ranked below the select only because the select is a component and this is a sweep whose targets V13 is still measuring | W10 |
@@ -31,7 +31,7 @@ Version 0.91. Error presentation moved from rank 7 to rank 5 once it was verifie
 
 ## What would change this order
 
-- **V9 and V13's numbers.** If the measured height spread turns out to be one or two pixels, rank 1 drops and the select leads. If it is large and visible on every toolbar, rank 1 is confirmed. This document is 0.9 until that is known.
+- **V9's numbers, now in.** The test I set was that rank 1 drops if the measured spread is one or two pixels and is confirmed if it is large and on every toolbar. It is 28px across 15 values with 14.4% of buttons below the AA target size, so **rank 1 is confirmed and its severity rises from Degrades to Costs**. V13's density numbers are still outstanding, which is what keeps rank 3 provisional.
 - **Pass 3.** If a form's validation genuinely loses a user's work, error presentation becomes **Blocks** and jumps to the top. What is already known is that it does not lose work: native constraint validation blocks the submit and focuses the first invalid field, so the browser is doing the job badly rather than not at all.
 
 **On "nothing is rated Blocks", which I wrote earlier and no longer fully believe.** Rank 2a comes close. A user with three rows selected sees an unchecked box, clicks it, and their selection becomes all rows on the page; if they then run a bulk action, they have acted on twenty records instead of three without being told. That is not "the user cannot complete the task", so it stays **Costs** by the definition in V12. It is worth naming as the closest thing in the audit to a Blocks defect, because the definition, not the harm, is what keeps it out.

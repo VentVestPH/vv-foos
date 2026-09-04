@@ -14,7 +14,7 @@ Counted from source on 2026-09-04 with `grep` over `app/src`, then cross-checked
 | `input[type="radio"]` | 5 | the glyph and the checked dot | Same |
 | `input[type="file"]` | 1 | the button label text, which is locale-dependent, and the "no file chosen" text | No. The button cannot be styled or relabelled |
 | `<details>` / `<summary>` | 6 / 6 | **only the instant open and close.** Correction: the triangle is already replaced, `controls.css` hides it with `::-webkit-details-marker`, so it was never an outstanding browser decision | The instant toggle cannot be animated without JS |
-| `<textarea>` | 13 | the resize grabber | Partly, via `resize` |
+| `<textarea>` | 13 | the resize grabber, **on both axes**, because `resize` appears **nowhere** in `app/src/styles` | Yes, and it is one declaration. `resize: vertical` on the shared textarea rule fixes all 13 |
 | text-ish `<input>` | 31 | autofill styling, the search field's clear button in some browsers | Partly |
 
 **Two corrections to the workstream V plan.** It listed the inventory as "31 input, 18 checkbox, 15 date, 13 textarea, 6 details, 5 radio, 2 select, 1 file", which omitted **12 `input[type="number"]`** and **4 `input[type="datetime-local"]`**, both of which have browser-decided controls. The corrected total of native controls is **107**.
@@ -35,6 +35,14 @@ So Klent's complaint, "dropdown options are default browser. i dont like that", 
 The audit harness attempts to open the first `<select>` on every screen and capture the result. The native option list does not appear in any page screenshot, because it is drawn by the operating system rather than by the page. That is recorded in the corpus as a note on each `select-clicked` capture.
 
 This is worth stating precisely, because it is the strongest single argument for replacement: **a control whose open state cannot be captured by the page cannot be styled by the page, tested by the page, or made to match Taleo by the page.** It is not a matter of effort. There is no CSS that reaches it.
+
+## Two browser defaults that are one declaration each
+
+Verified by grep on 2026-09-04, and both are W items Klent named directly.
+
+**`resize` does not appear anywhere in `app/src/styles`.** All 13 textareas therefore inherit the user agent's `resize: both`, so any of them can be dragged horizontally out of the column it sits in. Adding `resize: vertical` to the shared `.field textarea` rule fixes all 13 at once, which is why this belongs in W1 alongside the height scale rather than in a component replacement.
+
+**`cursor: pointer` is declared 22 times, selector by selector, rather than once.** `.btn` carries it, so every control built from the shared `Button` is correct, and `.btn:disabled` correctly reverts to `default`. The gap is every interactive element that is not a `.btn`: the name buttons in a table cell, the icon buttons, the tab strips and the section headers. Which of those actually lack it is a measurement rather than a grep, because the cascade may reach them through another selector, so `measure.spec.ts` records the computed `cursor` of every button, link, tab and summary and `analyse.mjs` lists the ones that are not `pointer`.
 
 ## The `details` accordion
 

@@ -15,7 +15,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | V5 | `Audit_V5-Taleo-Comparison` | done, and it corrects two stale findings in the 2026-09-01 fidelity audit |
 | V6, V12 | `Audit_V6-Audit-Table` | 0.98, every row verified in source or measured, none pending |
 | V7 | `Spec_V7-Select-Combobox`, `Spec_V7-Remaining-Replacements` | done |
-| V8 | `Audit_V8-Priority-Order` | 0.91, pending the geometry numbers |
+| V8 | `Audit_V8-Priority-Order` | 0.95, rank 1 confirmed by measurement; pending only the density numbers |
 | V9 | `Audit_V9-Control-Geometry` | 0.6, partial: four of seven areas, heights done, computed values pending |
 | V10 | `Audit_V10-Visual-Review` | 0.5, the looking half done, the task costs pending pass 3 |
 | V11 | `Audit_V11-Design-References` | done, with the "not published" answers kept |
