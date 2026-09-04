@@ -1,6 +1,6 @@
 # V6 and V12: the audit table, one row per component, ranked by what it costs its user
 
-Version 0.9. Every row below is backed by a count from source or a measurement from the corpus. Cells that depend on the geometry and density measurements are marked **pending V9/V13** rather than guessed, and this document is not final until they are filled.
+Version 0.95. Rows 16 to 22 were added on 2026-09-04 from the corpus review, and row 15's severity moved from pending to Degrades once three label arrangements were confirmed. Every row below is backed by a count from source or a measurement from the corpus. Cells that depend on the geometry and density measurements are marked **pending V9/V13** rather than guessed, and this document is not final until they are filled.
 
 ## V12: the severity scale
 
@@ -33,7 +33,14 @@ The priority order in V8 follows this ranking. Where two rows share a severity, 
 | 12 | Scrollbars | every scroller | the appearance | **Cosmetic, and recommended not to change** | Restyling a user agent control removes the rationale for the WCAG 2.5.8 exemption it relies on | W7 |
 | 13 | Empty state before first load | every list | nothing; this is ours | **Costs** | List screens render a colspan "no results" row while the first query is still in flight, which is the exact anti-pattern NN/g names: "inaccurate system-status messages… particularly harmful" | W8 |
 | 14 | Error and validation presentation | every form | nothing; this is ours | **pending pass 3** | Judged against GOV.UK's published rule: summary at the top of `main` with "There is a problem", focus moved to it, and the inline message after label and hint but before the input | W8 |
-| 15 | Label and control alignment | every form | nothing; this is ours | **pending V9/V13** | GOV.UK and Carbon both mandate labels above the input, which FOOS already does; the open question is gap consistency | W1 |
+| 15 | Label and control alignment | every form | nothing; this is ours | **Degrades** | Three arrangements coexist: above for editable fields, inline-right for read-only record values, inline-left for list filter rows. Consistent within each context, inconsistent between them | W1 |
+| 16 | `aria-disabled` on 66 controls that respond | **66** usages against 11 natively disabled | nothing; this is ours | **Costs** | `PlaceholderAction` renders a clickable button carrying `aria-disabled="true"`, so a screen-reader user is told the control is unavailable while a sighted user clicks it and gets an explanation. The two audiences are given different products | W7 |
+| 17 | The green pill means two things | list and record | nothing; this is ours | **Degrades** | A filled green pill is a good state on the requisition status chip and an empty one on the list's candidate count of zero | W8 |
+| 18 | State changes styled as navigation | requisition record | nothing; this is ours | **Costs** | The Next Steps row renders `Filled`, `Place on hold` and `Close` as plain links identical to the two navigations beside them, and `Close` duplicates the `Close requisition` button eight pixels above it in a different style | W8 |
+| 19 | Placeholder used as a format hint | `Job code` and others | nothing; this is ours | **Costs** | `<Client>-<n>, e.g. Acme-3` disappears the moment the user types, which is when the format matters. NN/g: a placeholder is not a label. GOV.UK mandates hint text between label and input | W8 |
+| 20 | Required asterisk placed inconsistently | new requisition form | nothing; this is ours | **Cosmetic** | `* Requisition Owners` before the label, `Title *` and `Openings *` after it, in one form | W8 |
+| 21 | Table overflows horizontally at 1440px | requisition list | nothing; this is ours | **Costs** | `Company` is cut mid-word at the right edge, so the column set is wider than the standard desktop width | W10 |
+| 22 | `Reset` adjacent to `Cancel` | new requisition form | nothing; this is ours | **Costs** | Two near-identically styled controls with different destructive outcomes, without the redundant signal `Erase…` has. NN/g's proximity guidance | W8 |
 
 ## What is not in this table, and why
 
