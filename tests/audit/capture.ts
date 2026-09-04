@@ -44,6 +44,7 @@ export function flush(): void {
   writeFileSync(manifestPath(), JSON.stringify(shots, null, 2));
   writeFileSync(join(CORPUS, `notes.${AREA_TAG}.txt`), notes.join('\n'));
   writeFileSync(join(CORPUS, `blocked-writes.${AREA_TAG}.txt`), [...new Set(blockedWrites)].join('\n'));
+  writeFileSync(join(CORPUS, `allowed-read-rpcs.${AREA_TAG}.txt`), [...new Set(allowedReadRpcs)].join('\n'));
 }
 
 export function note(line: string): void {
@@ -51,6 +52,10 @@ export function note(line: string): void {
   mkdirSync(CORPUS, { recursive: true });
   appendFileSync(join(CORPUS, 'notes.live.txt'), line + '\n');
 }
+
+const READ_ONLY_RPCS = new Set(['get_my_google_status', 'get_my_role']);
+
+export const allowedReadRpcs: string[] = [];
 
 export async function guardWrites(page: Page, screen: string): Promise<void> {
   const handler = async (route: import('@playwright/test').Route) => {
@@ -63,6 +68,12 @@ export async function guardWrites(page: Page, screen: string): Promise<void> {
     const tail = url.includes('/rest/v1/')
       ? url.split('/rest/v1/')[1]?.split('?')[0]
       : url.split('/functions/v1/')[1]?.split('?')[0];
+    const rpc = tail !== undefined && tail.startsWith('rpc/') ? tail.slice(4) : '';
+    if (rpc !== '' && READ_ONLY_RPCS.has(rpc)) {
+      allowedReadRpcs.push(`${screen}: ${method} ${tail}`);
+      await route.continue();
+      return;
+    }
     blockedWrites.push(`${screen}: ${method} ${tail ?? url}`);
     await route.abort();
   };
