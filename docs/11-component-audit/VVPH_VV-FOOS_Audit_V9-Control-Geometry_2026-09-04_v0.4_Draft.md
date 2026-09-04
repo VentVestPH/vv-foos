@@ -35,6 +35,22 @@ The finding is that **eight arbitrary values are not a scale**. Carbon publishes
 
 Two of those values are also accessibility failures rather than inconsistencies: the 16px and 19px controls are below the 24 by 24 that [WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) requires at AA, and they are recorded with their names in the V10 document.
 
+## Checkbox and radio size, which is more specific than "browser default"
+
+Two different treatments, one deliberate and one absent:
+
+| Checkbox | Rendered | Where it comes from |
+| :---- | ----: | :---- |
+| In a table, `.table .checkbox-col input[type='checkbox']` | **18 x 18px** with a 3px margin in a 44px column | declared deliberately in `widgets.css` |
+| Everywhere else | **13 x 13px**, measured on the dashboard's "Include Onboarding/Offboarding Tasks" | no rule at all, so the browser's default |
+| Radios | unsized | no rule beyond an `accent-color` transition in `motion.css` |
+
+Both are below the 24 by 24 that WCAG 2.5.8 requires at AA, and the 18px table checkbox is below even Carbon's own in-table glyph of 20 by 20, which itself only passes through the spacing exception ([carbondesignsystem.com/components/data-table/style](https://carbondesignsystem.com/components/data-table/style/)).
+
+**The spacing exception probably does apply here, and that has to be demonstrated rather than assumed.** For the table case the geometry is favourable: rows are 55 to 69px apart so the 24px circles around vertically adjacent checkboxes cannot intersect, and an 18px checkbox centred in a 44px column keeps its circle inside that column, away from the name link's box. If that holds, FOOS passes 2.5.8 by exception rather than by size.
+
+W4 should size them to 24 regardless, because passing by exception means the compliance argument has to be re-made every time the table layout changes, and because a 13px glyph is small for a recruiter working a list all day whatever the specification permits.
+
 ## What the full measurement still has to establish
 
 - The same distribution across recruit, sales, intake, settings and the placeholder pages, which hold every form and every table in the product.
