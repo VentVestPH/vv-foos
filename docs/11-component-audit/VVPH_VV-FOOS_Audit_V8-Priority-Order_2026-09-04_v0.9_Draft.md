@@ -7,6 +7,7 @@ Version 0.9. The order follows V12's severity, then the number of screens a chan
 | Rank | Item | Severity | Reach | Why here | W |
 | ----: | :---- | :---- | :---- | :---- | :---- |
 | 1 | **Control height scale** | Degrades | 363 usages, every screen | It touches every other item. Building the select, the checkbox or the date field before the height scale exists means building them to a height that then changes, and re-touching all of them. It is also the complaint Klent can see | W1 |
+| 2a | **The bulk-select header's missing `indeterminate`** | Costs | `Table`, 17 uses | Promoted after reading the source. A partial selection renders as unchecked, and clicking it replaces the selection with all rows. It is a handful of lines, it prevents a silent data-scope error on a 72,917-row list, and it needs no design decision, so it should ship first and alone | W4 |
 | 2 | **Select → combobox** | Costs | 54 usages, 23 files | The case Klent named, and the only control whose open state no CSS can reach. One component, so 54 call sites inherit the fix | W2 |
 | 3 | **Density and wasted space** | Costs | every screen | 7,304px and 9.71 viewports on the candidate record, and the fidelity audit's F6 already called the empty home page the single most visible departure from Taleo. Ranked below the select only because the select is a component and this is a sweep whose targets V13 is still measuring | W10 |
 | 4 | **Date and datetime input** | Costs | 19 controls | Filters, forms and reminder dialogs. Above the checkbox because a wrong date is a wrong record, while a browser-drawn checkbox is only ugly | W3 |
@@ -14,7 +15,7 @@ Version 0.9. The order follows V12's severity, then the number of screens a chan
 | 6 | **Bottom action bar and pager** | Costs | every long list and record | Fidelity audit F7. On a 9.7-viewport record, the actions are only at the top | W10 |
 | 7 | **Error and validation presentation** | pending pass 3 | every form | Judged against GOV.UK's published rule. The rank will move once pass 3 shows what the forms actually do | W8 |
 | 8 | **Disclosure, replacing `details`** | Degrades | 6 controls | The cheapest item in the workstream, and deliberately not first. `RecordSection` already does it correctly, so it is a copy rather than a design | W6 |
-| 9 | **Checkbox glyph, including `mixed`** | Degrades | 18 controls | Every list's bulk-select header is the tri-state case. Carries the 20px-versus-24px WCAG decision | W4 |
+| 9 | **Checkbox glyph, including `mixed`** | Degrades | 18 controls | Carries the 20px-versus-24px WCAG decision. The tri-state half of this moved to rank 2a below, because it is a wrong state rather than a glyph | W4 |
 | 10 | **Focus ring consistency** | pending V9/V13 | every control | One ring is defined; whether every control adopts it is what the corpus shows | W7 |
 | 11 | **Label and control alignment** | pending V9/V13 | every form | Position is already correct per GOV.UK and Carbon; the open question is gap consistency | W1 |
 | 12 | **Radio glyph** | Cosmetic | 5 controls | Bundled with the checkbox work since the mechanics are shared, despite the different APG contract | W4 |
