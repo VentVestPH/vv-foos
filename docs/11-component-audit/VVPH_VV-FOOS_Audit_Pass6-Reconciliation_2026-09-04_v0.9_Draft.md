@@ -4,9 +4,9 @@ Version 0.9. Pass 6 asks what the first five passes got wrong. It is not a summa
 
 The method was to take each claim, find the file or the measurement it rests on, and check it there rather than against my note of it. That is slower than re-reading the documents and it is the only thing that found any of what follows.
 
-## Eighteen claims of mine that failed re-checking
+## Nineteen claims of mine that failed re-checking
 
-Every one is corrected in place in the document that carried it, with the wrong version left visible. Thirteen of the eighteen were **corrected downward**, meaning the finding survived but smaller, and two were withdrawn outright.
+Every one is corrected in place in the document that carried it, with the wrong version left visible. Thirteen of the nineteen were **corrected downward**, meaning the finding survived but smaller, two were withdrawn outright, and **one was corrected upward**: row 5 became the audit's only Blocks.
 
 | # | What I wrote | What is true | Where it was |
 | ----: | :---- | :---- | :---- |
@@ -28,8 +28,11 @@ Every one is corrected in place in the document that carried it, with the wrong 
 | 16 | "`Table` has no loading state at all" | It has `busy?: boolean`, rendering `aria-busy`, passed at **6 of 17** call sites. I had grepped `Table.tsx` for `loading`, `isLoading` and `pending` and the prop is called `busy`. The finding survives, smaller and more precise: `busy` does not gate the empty row, so all 17 tables still show "No records" during the first load, and neither recruit list passes it | V6 row 13 |
 | 17 | "All 17 tables show No records while loading" | **5 gate it correctly.** `emptyText={loading ? 'Loading…' : ...}` in `CompaniesListPage`, `ContactsListPage`, `DealsListPage`, `TicketsListPage` and `QueueListPage`. All five are sales or intake; recruit's three lists hard-code the empty text | V6 row 13 |
 | 18 | "A long operation's button label never changes, and no mechanism exists" | **Six change it.** `ListPage` renders `Exporting…`, and five sales pages render `Saving…`. Two more show separate text, `Exporting… N of M` and `Uploading…`. Five express `busy` as `disabled` and nothing more, and those five are in recruit, settings and intake. So it is the same shape as every other finding, not the exception I called it | V6 row 30 |
+| 19 | "Nothing in the audit is rated Blocks", and V8's reasoning that row 5 "is not the user cannot complete the task" | **Row 5 is Blocks.** V12 defines Blocks as "the user cannot complete the task, **or completes it wrongly without knowing**", and I tested only the first clause across several passes. A bulk action silently applied to twenty records instead of three is the second clause exactly. It is now rank 1 in V8, ahead of the height scale | V8, V6 row 5, the findings index |
 
 **What survived intact.** Eleven V6 rows I had marked "verified in source" were re-checked against the files: 4, 5, 7, 13, 15, 17, 18, 19, 20, 21 and 22. All eleven hold.
+
+Correction 19 is the one to learn from, because it is the only one that made a finding **worse** and the only one caused by misreading a definition rather than a file. The claim "nothing is rated Blocks" survived several passes because each pass quoted it from the previous document instead of re-deriving it from V12's two-clause definition sitting at the top of the same file. **A definition needs re-reading against each row, not once.**
 
 That split is the most useful thing pass 6 found. **The audit table, whose cells name the file and the declaration, survived re-checking without a single change. The summary prose, written from the table plus memory, is where all thirteen errors were.** A claim degrades when it is restated, not when it is written down.
 
