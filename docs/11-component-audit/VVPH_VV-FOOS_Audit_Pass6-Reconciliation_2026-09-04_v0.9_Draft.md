@@ -94,6 +94,25 @@ So the most complicated control in the product has the best keyboard support and
 
 And one guard defect: **`POST rpc/get_my_google_status` is a read**, because PostgREST exposes every RPC as a POST, so a method-based write guard aborts function reads too. Two named read-only RPCs now continue and are logged in `allowed-read-rpcs.<area>.txt`, so what is let through is as visible as what is stopped. Settings had not been swept when this was fixed.
 
+## The pattern under four of the findings
+
+This is the most transferable thing in the audit, and it took until pass 6 to see because each instance had been filed as its own row.
+
+**FOOS repeatedly builds the shared mechanism correctly and then does not wire it.** Four separate findings are the same shape:
+
+| The mechanism, which exists and works | Call sites using it |
+| :---- | :---- |
+| `Input` and `Select` accept `error?: string` and render `.field-error-text`, which `controls.css` styles and `motion.css` animates | **0 of 149** |
+| `lib/listReturn.ts` gives `useListLink` to store the list URL and `useBackToList` to read it | **2 of 11** list-to-record paths |
+| `hooks/useDocumentTitle.ts` sets and reverts `document.title` | 17 files via `ListPage` and `RecordPage`, **not** the 12 routes using neither |
+| `components/ui/Badge.tsx` with six tones | 32 uses, and `RequisitionListPage.tsx:341` bypasses it with a raw `badge badge-success` class |
+
+That changes what workstream W is. **Four of the findings are wiring, not building.** Nobody has to design an error presentation, a list-return contract, a title convention or a badge tone: those decisions were made and the code is in the repository. The work is passing a prop that already exists on 149 call sites, calling a hook that already exists on 12 routes, and replacing one raw class.
+
+It also predicts where else to look, which is the useful part. The question to ask of any shared component in this codebase is not "does it support X" but **"how many call sites actually pass X"**, and that is a `grep` rather than an investigation. Two of pass 6's findings and two of its acquittals came from asking exactly that: counting `<Input` against `label=` acquitted 95 fields and convicted one, and counting `<PlaceholderAction` against `ariaDisabled={false}` established that all 51 carry the default.
+
+The corollary is worth stating for the same reason. **Where a component got sustained attention it is right**, including the parts that are easy to skip: the Kanban board's keyboard drag with live-region announcements, the idle dialog's two-minute grace and `role="alertdialog"`, the skip link's `tabIndex={-1}` target, `aria-sort` on the active column. The gaps are not a team that does not know the contracts. They are the call sites nobody has been back to.
+
 ## Three things measured against the database rather than the documents
 
 Queried directly on the local stack at 10:49 on 2026-09-04, because two of them were numbers I had written down twice with different values.
