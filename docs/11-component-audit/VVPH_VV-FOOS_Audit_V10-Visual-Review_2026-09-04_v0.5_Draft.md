@@ -108,6 +108,16 @@ Two things made this findable rather than missable. Looking at a capture and not
 - The empty-state rewrite is worth more than its severity suggests, because it is the mechanism behind the most visible fidelity gap in the product.
 - Two input idioms in the shell rail means the height scale has to cover the underline variant too, or W1 will make the mismatch worse rather than better.
 
+## Method note: what the write guard changes about the corpus
+
+The capture harness blocks every non-GET request to `/rest/v1/` and `/functions/v1/` at the network layer, so nothing it clicks can write. That is what makes it safe to click every button in the product, and it distorts two things that a reader of the corpus has to know about.
+
+**State-changing controls appear to do nothing.** `Close requisition` and `Publish to careers page` are captured as "clicked, no overlay and no navigation", because their write was aborted. The blocked-write log is the record of what they attempted: `PATCH candidate_profiles` appears from both the candidate list and the candidate record, which is the star-grade control writing on click.
+
+**One read is implemented as a POST and is therefore blocked on every screen.** `POST rpc/get_my_google_status` is aborted on all 28 routes, so every capture shows the Google integration in its unavailable state. That is an artefact of the guard, not a finding about the product. It is worth one line in its own right though: a read shaped as a `POST` will break under any read-only mode, mine or a future one.
+
+**One coverage gap to close in pass 6.** The requisition record's `Send To` and `Forms` produced neither an overlay nor a navigation, and no `fo-placeholder-modal` was captured anywhere in the corpus despite that class being in the overlay selector and `TaleoPlaceholder` being used in 18 files. Either those two buttons are wired differently or the modal is not being detected. Pass 6 resolves which, because "no capture" is not the same as "nothing happened" and the difference matters for the disabled-versus-placeholder finding.
+
 ## Method note
 
 Reviewing captures in a viewer is not the same as using the app, and this document does not pretend otherwise. It is judgement on rendered evidence, which is why every quantitative claim here is marked as eyeballed and handed to V9, V13 or pass 3 to confirm. Where a claim survives measurement it will be restated with its number; where it does not, it will be struck out here and the correction recorded.
