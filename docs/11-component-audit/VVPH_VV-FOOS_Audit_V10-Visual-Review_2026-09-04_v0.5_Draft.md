@@ -122,6 +122,24 @@ Two things made this findable rather than missable. Looking at a capture and not
 - The empty-state rewrite is worth more than its severity suggests, because it is the mechanism behind the most visible fidelity gap in the product.
 - Two input idioms in the shell rail means the height scale has to cover the underline variant too, or W1 will make the mismatch worse rather than better.
 
+## What reading the source did to this document's own findings
+
+Nine of the observations above were written from a screenshot and then checked against the code. Four changed materially, and one was simply wrong. Recorded here because the pattern is the useful part.
+
+| Observation, as first written | After reading the source |
+| :---- | :---- |
+| "31 of 144 controls are disabled and do nothing" | **Wrong.** 66 `PlaceholderAction` usages carry `aria-disabled="true"` on real clickable buttons that open an explanatory dialog. The finding became the contradiction between `aria-disabled` and a control that responds |
+| "Every list's bulk-select header is a tri-state checkbox drawn by the browser" | **Understated.** `indeterminate` appears nowhere in the codebase. A partial selection renders unchecked, and clicking it replaces the selection with every row |
+| "The browser's disclosure triangle is a decision we have not made" | **Already made.** `::-webkit-details-marker` is hidden in `controls.css`. Only the instant toggle remains |
+| "The required asterisk is placed inconsistently in one form" | **Three implementations**, two of them hand-written bypasses of `Input` and `Select`, one on the wrong side |
+| "A placeholder is used as a format hint" | **65 placeholders and no hint-text pattern exists**, so there is nowhere else for a hint to go |
+| "Reset sits beside Cancel, near-identically styled" | **Byte-identical.** `Button` defaults to `secondary`, so both carry the same class list |
+| "The green pill means two things" | **One call site.** `badge-success` is used to render a count, so a requisition with nobody shows a green success pill reading `0` |
+| "Three label arrangements coexist" | **The third is module-scoped.** `.info-item dt` lives in `recruit.css` and is used by two pages; `sales.css` has no equivalent |
+| "State changes styled as navigation" | **Five identical `link-btn`s**, three calling `changeStatus`, two scrolling the viewport |
+
+The direction is consistent and worth noting: **every one of these was worse or more specific than the screenshot suggested, never better.** A capture shows what a thing looks like; only the source shows what it does. An audit built on captures alone would have produced nine softer findings and missed the one that can silently widen a bulk action from three records to twenty.
+
 ## Method note: what the write guard changes about the corpus
 
 The capture harness blocks every non-GET request to `/rest/v1/` and `/functions/v1/` at the network layer, so nothing it clicks can write. That is what makes it safe to click every button in the product, and it distorts two things that a reader of the corpus has to know about.
