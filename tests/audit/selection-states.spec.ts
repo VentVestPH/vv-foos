@@ -68,11 +68,28 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
     const header = await headerBox(page);
     await shootElement(page, header, SCREEN, viewport.name, 'select-all', 'input-checkbox', 'selection-none', 'select all rows');
 
-    for (let i = 0; i < 3; i += 1) {
-      await rows.nth(i).click({ timeout: 2000 });
-      await page.waitForTimeout(120);
+    let picked = 0;
+    for (let i = 0; i < Math.min(rowCount, 8) && picked < 3; i += 1) {
+      const box = rows.nth(i);
+      try {
+        await box.scrollIntoViewIfNeeded({ timeout: 2000 });
+        await box.click({ timeout: 2500, force: true });
+        await page.waitForTimeout(140);
+        if (await box.isChecked()) picked += 1;
+      } catch (e) {
+        note(`${SCREEN} ${viewport.name}: row checkbox ${i} would not tick: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`);
+      }
     }
     await settle(page, 350);
+    if (picked === 0) {
+      note(`${SCREEN} ${viewport.name}: no row checkbox could be ticked, so the partial-selection captures were skipped`);
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
+      flush();
+      continue;
+    }
+    if (picked !== 3) {
+      note(`${SCREEN} ${viewport.name}: ticked ${picked} rows rather than 3; the captures below reflect ${picked}`);
+    }
 
     const partial = await describeHeader(page);
     await shootScreen(
@@ -80,7 +97,7 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
       SCREEN,
       viewport.name,
       'selection-partial',
-      `3 of ${rowCount} rows selected; the header checkbox reports checked=${partial.checked} indeterminate=${partial.indeterminate}`,
+      `${picked} of ${rowCount} rows selected; the header checkbox reports checked=${partial.checked} indeterminate=${partial.indeterminate}`,
     );
     await shootElement(
       page,
@@ -91,11 +108,11 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
       'input-checkbox',
       'selection-partial',
       'select all rows',
-      `3 of ${rowCount} selected, checked=${partial.checked} indeterminate=${partial.indeterminate}`,
+      `${picked} of ${rowCount} selected, checked=${partial.checked} indeterminate=${partial.indeterminate}`,
     );
     if (!partial.indeterminate) {
       note(
-        `${SCREEN} ${viewport.name}: with 3 of ${rowCount} rows selected the header checkbox has indeterminate=false and checked=${partial.checked}, so a partial selection is drawn as ${partial.checked ? 'fully checked' : 'empty'}`,
+        `${SCREEN} ${viewport.name}: with ${picked} of ${rowCount} rows selected the header checkbox has indeterminate=false and checked=${partial.checked}, so a partial selection is drawn as ${partial.checked ? 'fully checked' : 'empty'}`,
       );
     }
 
@@ -155,8 +172,15 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
       await settle(page, 300);
     }
 
-    await header.click({ timeout: 2000 });
+    await page.keyboard.press('Escape');
     await settle(page, 400);
+    try {
+      await header.scrollIntoViewIfNeeded({ timeout: 2000 });
+      await header.click({ timeout: 2500, force: true });
+      await settle(page, 400);
+    } catch (e) {
+      note(`${SCREEN} ${viewport.name}: the header checkbox would not click after the bulk sweep: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`);
+    }
     const afterAll = await describeHeader(page);
     const selectedAfter = await page.locator('tbody input[type="checkbox"]:checked').count();
     await shootScreen(
@@ -164,11 +188,11 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
       SCREEN,
       viewport.name,
       'selection-after-clicking-partial-header',
-      `clicking the header while 3 of ${rowCount} were selected left ${selectedAfter} rows selected; header checked=${afterAll.checked}`,
+      `clicking the header while ${picked} of ${rowCount} were selected left ${selectedAfter} rows selected; header checked=${afterAll.checked}`,
     );
-    if (selectedAfter > 3) {
+    if (selectedAfter > picked) {
       note(
-        `${SCREEN} ${viewport.name}: clicking the header checkbox while 3 rows were selected widened the selection to ${selectedAfter} rows rather than clearing it`,
+        `${SCREEN} ${viewport.name}: clicking the header checkbox while ${picked} rows were selected widened the selection to ${selectedAfter} rows rather than clearing it`,
       );
     }
 
