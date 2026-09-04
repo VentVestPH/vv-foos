@@ -42,6 +42,23 @@ The priority order in V8 follows this ranking. Where two rows share a severity, 
 | 21 | Table overflows horizontally at 1440px | requisition list | nothing; this is ours | **Costs** | `Company` is cut mid-word at the right edge, so the column set is wider than the standard desktop width | W10 |
 | 22 | `Reset` adjacent to `Cancel` | new requisition form | nothing; this is ours | **Costs** | Two near-identically styled controls with different destructive outcomes, without the redundant signal `Erase…` has. NN/g's proximity guidance | W8 |
 
+## How each row is known
+
+An audit is worth what its weakest row is worth, so this states the evidence type rather than leaving every row looking equally solid.
+
+| Evidence | Rows |
+| :---- | :---- |
+| **Verified in source**, by reading the component or stylesheet | 4 (no transition on `.fo-advanced-search`), 7 (`ListPage` has no bottom slot), 13 (`Table` has no loading state), 16 (66 `PlaceholderAction` against 11 native `disabled`) |
+| **Measured**, from the corpus or a computation | 1 (four `select-clicked` captures, no overlay appeared), 2 (eight rendered button heights, 28px spread), 3 (7,304px, 9.71 viewports), 11 (focus ring at 1.01:1 against `--fo-nav`, computed from the tokens) |
+| **Counted** from source, with the browser behaviour seen in captures | 5, 6, 8, 9, 10 |
+| **Seen in a capture** and described | 15, 17, 18, 19, 20, 21, 22 |
+| **A recommendation, not a finding** | 12 (leave scrollbars alone) and the number-spinner half of 9 |
+| **Still pending** | 14, which needs pass 3 to drive a validation failure |
+
+Two rows deserve their caveats stated in the row itself rather than here, and do not yet have them. Row 5's count of 18 checkboxes is verified and the tri-state `mixed` behaviour has **not** been directly observed in the corpus, only inferred from every list having a bulk-select header. Row 6's 19 date controls are verified and the per-browser divergence is a published property of the control rather than something this audit measured across browsers, since the corpus is Chromium only.
+
+**The corpus is Chromium only.** Nothing here says anything about Firefox or Safari, and for a workstream whose central claim is that the browser decides too much, that is a real limitation rather than a footnote. Pass 6 should state whether it matters for the decisions W has to make; my expectation is that it changes the date and file controls' appearance and nothing about the geometry findings, but that is an expectation, not a measurement.
+
 ## What is not in this table, and why
 
 - **The four Taleo placeholder mounts** (`/employees`, `/onboard`, `/users`, `/courses`) render `TaleoModulePlaceholderPage` and have no real behaviour. They are in the corpus for completeness. Auditing their components would be auditing a stub, so they carry no rows. If they are meant to become real screens, that is a product decision, not an audit finding.
