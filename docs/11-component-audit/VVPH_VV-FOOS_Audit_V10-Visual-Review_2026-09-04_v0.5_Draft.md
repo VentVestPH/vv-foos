@@ -79,7 +79,21 @@ The clearest instance in the product, because a form grid puts the mismatched co
 
 These come from the capture manifest rather than from looking, so they are numbers rather than impressions.
 
-### A fifth of the controls on the landing screen do nothing
+### Correction: they are not "disabled", they are `aria-disabled` and they do respond
+
+**This supersedes the count below, which I had wrong.** The 31 controls I recorded as disabled are mostly not disabled at all. `shell/Placeholder.tsx`'s `PlaceholderAction` defaults to `ariaDisabled = true`, so it renders a real, clickable `<button>` carrying `aria-disabled="true"`. There are **66 `PlaceholderAction` usages** in the codebase against only **11 natively disabled buttons**, and the labels include `Send To`, `Forms`, `Print Resume`, `View Resume`, `Submit`, `Change Status to…`, `New Task`, `New Event`, `Schedule interview`, `Search`, `Compliance`, `Onboard` and `Delete`.
+
+So a click on most of them opens the placeholder dialog that explains itself, which is the good pattern, not a dead control.
+
+**Two things follow, one about my harness and one about the product.**
+
+My harness treated `aria-disabled="true"` as disabled and therefore never clicked any of the 66, which is why no `fo-placeholder-modal` appears anywhere in the corpus despite that class being in the overlay selector. That is the coverage gap named in the method note, now explained, and it is fixed by clicking `aria-disabled` controls rather than skipping them.
+
+The product finding is sharper than the one it replaces. **`aria-disabled="true"` on a control that responds to a click is a contradiction.** It tells assistive technology the control is unavailable, so a screen-reader user is told not to try, while a sighted user clicks it and gets a helpful explanation. The two audiences are given different products. If the control opens a dialog it is not disabled, and the honest markup is an enabled button whose dialog says the feature is not built yet, which is what the dialog already says.
+
+The severity therefore moves: not "a fifth of the screen is dead", which was wrong, but "the placeholder pattern is correct for sighted users and hides itself from assistive technology on 66 controls".
+
+### The original count, superseded above
 
 Across the three dashboard tabs, **31 of 144 controls are disabled**: 113 captured in a default state, 31 captured as disabled. On `/` alone there are **16**, including *31-day view*, *7-day view*, *Agenda view*, *Advanced Search*, *Announcements* and *Configure Recently Viewed*.
 
