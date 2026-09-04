@@ -38,7 +38,7 @@ The priority order in V8 follows this ranking. Where two rows share a severity, 
 | 17 | The green pill means two things | list and record | nothing; this is ours | **Degrades** | A filled green pill is a good state on the requisition status chip and an empty one on the list's candidate count of zero | W8 |
 | 18 | State changes styled as navigation | requisition record | nothing; this is ours | **Costs** | The Next Steps row renders `Filled`, `Place on hold` and `Close` as plain links identical to the two navigations beside them, and `Close` duplicates the `Close requisition` button eight pixels above it in a different style | W8 |
 | 19 | Placeholder used as a format hint or instruction | **65** `placeholder` attributes, and **no hint-text pattern exists at all** | nothing; this is ours | **Costs** | Verified in source. `<Client>-<n>, e.g. Acme-3` is a format the user needs while typing, and it vanishes on the first keystroke. Others carry instructions the same way: `Leave blank to import without a company link`, `John's grading style — a short read on fit and current situation`, `City, state, country`. Grep for `field-hint`, `hint-text` or `field-help` returns nothing, so there is nowhere for hint text to go. NN/g: a placeholder is not a label. GOV.UK mandates hint text between label and input | W8 |
-| 20 | Required asterisk placed inconsistently | new requisition form | nothing; this is ours | **Cosmetic** | `* Requisition Owners` before the label, `Title *` and `Openings *` after it, in one form | W8 |
+| 20 | Required asterisk placed inconsistently | 3 implementations | nothing; this is ours | **Cosmetic** | Verified in source, and it is three places rather than two. `Input.tsx` and `Select.tsx` both render `{required && <span className="field-required"> *</span>}` **after** the label, which is the shared and correct path. `RequisitionFormPage.tsx:306` hand-writes `<span className="field-required">*</span> Requisition Owners`, **before** it. `LinkedInIntakePage.tsx:172` hand-writes it after. So two call sites bypass the shared components and one of them puts the marker on the wrong side | W8 |
 | 21 | Table overflows horizontally at 1440px | requisition list | nothing; this is ours | **Costs** | `Company` is cut mid-word at the right edge, so the column set is wider than the standard desktop width | W10 |
 | 22 | `Reset` adjacent to `Cancel` | new requisition form | nothing; this is ours | **Costs** | Two near-identically styled controls with different destructive outcomes, without the redundant signal `Erase…` has. NN/g's proximity guidance | W8 |
 
@@ -48,10 +48,10 @@ An audit is worth what its weakest row is worth, so this states the evidence typ
 
 | Evidence | Rows |
 | :---- | :---- |
-| **Verified in source**, by reading the component or stylesheet | 4 (no transition on `.fo-advanced-search`), **5 (no `indeterminate` anywhere, and `toggleAll` replaces a partial selection)**, **19 (65 placeholders and no hint-text pattern)**, 7 (`ListPage` has no bottom slot), 13 (`Table` has no loading state), 16 (66 `PlaceholderAction` against 11 native `disabled`) |
+| **Verified in source**, by reading the component or stylesheet | 4 (no transition on `.fo-advanced-search`), **5 (no `indeterminate` anywhere, and `toggleAll` replaces a partial selection)**, **19 (65 placeholders and no hint-text pattern)**, **20 (three asterisk implementations, two bypassing the shared components)**, 7 (`ListPage` has no bottom slot), 13 (`Table` has no loading state), 16 (66 `PlaceholderAction` against 11 native `disabled`) |
 | **Measured**, from the corpus or a computation | 1 (four `select-clicked` captures, no overlay appeared), 2 (eight rendered button heights, 28px spread), 3 (7,304px, 9.71 viewports), 11 (focus ring at 1.01:1 against `--fo-nav`, computed from the tokens) |
 | **Counted** from source, with the browser behaviour seen in captures | 6, 8, 9, 10 |
-| **Seen in a capture** and described | 15, 17, 18, 20, 21, 22 |
+| **Seen in a capture** and described | 15, 17, 18, 21, 22 |
 | **A recommendation, not a finding** | 12 (leave scrollbars alone) and the number-spinner half of 9 |
 | **Still pending** | 14, which needs pass 3 to drive a validation failure |
 
