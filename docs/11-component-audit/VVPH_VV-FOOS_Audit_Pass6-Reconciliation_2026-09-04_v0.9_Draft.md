@@ -115,6 +115,26 @@ It also predicts where else to look, which is the useful part. The question to a
 
 The corollary is worth stating for the same reason. **Where a component got sustained attention it is right**, including the parts that are easy to skip: the Kanban board's keyboard drag with live-region announcements, the idle dialog's two-minute grace and `role="alertdialog"`, the skip link's `tabIndex={-1}` target, `aria-sort` on the active column. The gaps are not a team that does not know the contracts. They are the call sites nobody has been back to.
 
+### Every optional prop on every shared component, counted against its call sites
+
+The predictive question, applied exhaustively rather than to the four findings that suggested it. Counts exclude `components/ui/` itself, so they are call sites in the rest of the application.
+
+| Component | Optional prop | Passed at | Verdict |
+| :---- | :---- | :---- | :---- |
+| `Input` | `error` | **0 of 94** | The finding, row 14 |
+| `Select` | `error` | **0 of 54** | The finding, row 14 |
+| `Table` | `busy` | 6 of 17 | The finding, row 13, corrected |
+| `RecordSection` | `defaultOpen` | **26 of 76** | Not dead. Section defaults are explicit at 26 sites, which is directly relevant to the parked T3a decision about which sections open at load |
+| `Button` | `fullWidth` | 0 of 137 | Dead option, harmless. Defaults to `false`, so never passing it means never full-width |
+| `Table` | `zebra` | 0 of 17 | Dead option, and **correct**. Defaults to `true`, which is the wanted behaviour, so passing it would be redundant |
+| `Badge` | `title` | 0 of 31 | Dead option, mildly notable: a tooltip is available and unused on all 31 badges, while rows 23 and 27 found other controls relying on `title` as their only accessible name |
+| `SidePanelTabs` | `count`, `defaultTab` | 0 of 2 each | Dead options |
+| `ErrorBoundary` | `onReset` | 0 of 2 | Dead option. The boundary renders a reset affordance that no call site wires |
+
+**Stopping here rather than inflating it.** Beyond the three rows already filed as findings, this is dead API surface, which is a workstream S concern and S is complete. The two facts worth carrying forward are that `RecordSection`'s defaults are explicit at 26 sites, and that `Table zebra` is an example of a never-passed prop being the correct state, which is why "never passed" is not a finding on its own.
+
+**A methodological correction, because the first version of this table was wrong.** My first script keyed each props interface to its **filename**, which broke on `RecordPage.tsx`, a file exporting both `RecordPage` and `RecordSection`. It reported `defaultOpen` as never passed on 10 `RecordPage` call sites when it is passed at 26 of 76 `RecordSection` ones, and it silently skipped `Input` and `Select` entirely because their interfaces read `interface InputProps extends InputHTMLAttributes<...> {` and the pattern expected `{` immediately. Two runs of the same idea produced 0 of 10, then 29 of 76, then 26 of 76. **A counting script needs its own check before its output is quoted**, which is the third time today that a tool of mine has failed by dropping rows rather than erroring: the plan's arithmetic checker skipped the two half-point rows, the harness's focus pass overwrote a manifest, and this keyed props to the wrong component.
+
 ## Three things measured against the database rather than the documents
 
 Queried directly on the local stack at 10:49 on 2026-09-04, because two of them were numbers I had written down twice with different values.
