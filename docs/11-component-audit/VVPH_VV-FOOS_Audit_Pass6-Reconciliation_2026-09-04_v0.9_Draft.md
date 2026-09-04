@@ -44,7 +44,7 @@ Not one came from a screenshot. Five came from reading a component's contract, a
 
 **Five dialogs assert an inertness none of them enforces** (V6 row 26, now W18). `IdleSignOut`, `Placeholder`, `recruit/Dialog`, `sales/Modal` and `intake/Drawer` all set `aria-modal="true"`. Grep for `activeElement`, `trapFocus` or `focusTrap` across `app/src` returns nothing, and three of the five lack `autoFocus`. The [APG](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) warns the attribute should be set only when application code prevents external interaction, because misuse "can prevent users of some assistive technologies from perceiving content outside the dialog". So this is worse than incomplete: the page behind is announced as inert while Tab still reaches it. It is row 16's contradiction one level more serious, and the three module dialogs at 43, 40 and 39 lines are the same component written three times because ESLint forbids cross-module imports and `components/ui/` holds no dialog.
 
-## Twelve things checked and found correct
+## Thirteen things checked and found correct
 
 Recorded because two of them I had written up as findings first, and an audit that only lists defects is not an audit.
 
@@ -62,6 +62,7 @@ Recorded because two of them I had written up as findings first, and an audit th
 | `.visually-hidden` | Really defined, at `widgets.css:9`. The Kanban board's keyboard help and its live-region announcements depend on it, so an undefined class would have made them visible instead of available |
 | Star target size | **Meets 2.5.8 AA outright**, 24 x 24 across 63 captures, declared at `widgets.css:227`. What the star grade needs is the keyboard contract in row 27, not a size change |
 | The idle timeout, WCAG 2.2.1 Timing Adjustable, Level A | **Correct, and generously so.** See below |
+| Colour as the only means of conveying information, WCAG 1.4.1, Level A | **Correct.** `StatusBadge` renders the status as the badge's text content, `{status.replace(/_/g, ' ')}`, so all six tones carry a word as well as a colour. Row 17's finding is narrower and unaffected: one call site, `RequisitionListPage.tsx:341`, bypasses the component with a raw `badge badge-success` class and puts an application **count** inside a success tone, which is a misuse of the tone rather than a reliance on colour |
 
 ### The idle timeout, which is the second counter-example
 
