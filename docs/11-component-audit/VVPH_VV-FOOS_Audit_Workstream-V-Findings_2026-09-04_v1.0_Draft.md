@@ -1,6 +1,8 @@
 # Workstream V: the audit, and where each part of it lives
 
-Version 0.9. Audit and specification only: nothing here changes a component. Workstream W builds from it.
+Version 1.0. Audit and specification only: nothing here changes a component. Workstream W builds from it, and its brief is `docs/03-plan/VVPH_VV-FOOS_Goal_Workstream-W-Component-Implementation_2026-09-04_v1.0_Draft.md`.
+
+**Every figure in this document set is regenerable.** `node tests/audit/report-figures.mjs` reads the capture coverage, the source counts, the row and severity totals and the document versions from the corpus and from `app/src`, because 23 of the claims corrected during pass 6 were hand-typed numbers that had gone stale.
 
 The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens render real candidate names from the Zoho migration. Each area has its own `manifest.<area>.json` naming component, state and viewport.
 
@@ -20,7 +22,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | V10 | `Audit_V10-Visual-Review` | 0.6, the looking half done with two more observations corrected, the task costs pending pass 3 |
 | V11 | `Audit_V11-Design-References` | done, with the "not published" answers kept |
 | V13 | `Audit_V13-Density` | 0.4, mechanism established and the three wrong approaches ruled out; numbers pending the measurement |
-| Pass 6 | `Audit_Pass6-Reconciliation` | 0.9, eighteen of my own claims corrected, ten findings added, seventeen acquittals, three harness gaps closed |
+| Pass 6 | `Audit_Pass6-Reconciliation` | 0.9, **23** of my own claims corrected, ten findings added, seventeen acquittals, three harness gaps closed |
 
 ## The six passes
 
@@ -35,7 +37,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 
 ## The findings that would change what W builds first
 
-1. **The bulk-select header shows the wrong state and can silently widen a bulk action.** `indeterminate` appears nowhere in the codebase. With 3 of 20 rows selected the header renders unchecked, and clicking it replaces the selection with all 20. Verified in `Table.tsx`. Promoted to rank 2a in V8, because it is a handful of lines and needs no design decision.
+1. **The bulk-select header shows the wrong state and can silently widen a bulk action.** `indeterminate` appears nowhere in the codebase. With 3 of 20 rows selected the header renders unchecked, and clicking it replaces the selection with all 20, so a bulk action then applies to twenty records while the user believes it applies to three. Verified in `Table.tsx`. **The audit's only `Blocks` finding and rank 1 in V8**, ahead of the control height scale, because it is a handful of lines, needs no design decision, and meets the second clause of V12's definition: completes it wrongly without knowing.
 2. **The keyboard focus ring is invisible on the two dark shell surfaces, and the count of surfaces was wrong.** `outline: 2px solid var(--fo-primary)` at `#3679b5` scores **1.013:1** against the primary nav's `#427d98` and **1.003:1** against the sidebar panel header's `#577995`, where WCAG 1.4.11 requires 3:1, so a keyboard user has no visible position across all 14 nav tabs or the sidebar panel headers. **Corrected on 2026-09-04:** I had listed four surfaces, adding Logout and any hovered primary button. Both were wrong, because `outline-offset: 1px` places the ring outside the element's border box, so the surface it must contrast against is the nearest painted ancestor rather than the control. Logout's ring lands on the white utility header at 4.606:1 and a primary button's on the white page surface at 4.606:1, and both pass. `check-contrast.mjs` line 20 tests the ring against `--fo-surface` only, so the gate is green. The measurement pass now records the painted ancestor of every control and computes the ratio, so V9 will give the definitive list rather than my reading of the cascade.
 3. **The select is one component, not fifty-four.** Two `<select>` elements exist; `components/ui/Select.tsx` is used 54 times across 23 files. The complaint resolves to one replacement.
 4. **Nothing declares a control height, and 14.4% of buttons are below the AA target size.** Fifteen distinct chrome-button heights across 1,066 desktop captures in four areas, a 28px spread, of which **154 (14.4%) are shorter than the 24px WCAG 2.5.8 requires at AA** and only **42.0%** sit on the 8px grid the architecture mandates. The pager's four navigation arrows are 22px on all 14 call sites, and they **conform** by 2.5.8's spacing exception at 30px between centres, which I checked after briefly writing that they failed. How many of the 154 fail outright is being computed from the measured boxes; it may be zero. A `select` is 36px everywhere and an `input-text` is 21, 24, 25 or 34, so the two controls most likely to share a filter row never match. Corrected upward from eight heights on 2026-09-04, which was two areas rather than four; the 28px spread was right.
