@@ -64,13 +64,16 @@ Not one came from a screenshot. Eight came from reading a component's contract, 
 
 **Three interactions are attached to non-interactive elements** (V6 row 31, now W4). The truncated-cell expander across five columns, every dashboard bar's drill-through, and the deal card's navigation, which gives the sharpest case: a keyboard user can move a deal between pipeline stages but cannot open it.
 
-## Seventeen things checked and found correct
+## Twenty things checked and found correct
 
 Recorded because two of them I had written up as findings first, and an audit that only lists defects is not an audit.
 
 | Checked | Verdict |
 | :---- | :---- |
 | Field labelling | Correct. All 95 `<Input` and 53 of 54 `<Select` pass a label. One real case, `SheetImportPage.tsx:236` |
+| Accessible names, **measured** | **0 of 3,948 controls across all 31 routes have no accessible name**, computed in the specification's order. That closes correction 10 by measurement rather than by re-reading the components. 125 are named only by `title` or `placeholder`, and they are two controls repeated: 63 star buttons and the `Home` nav tab, 62 times |
+| One `h1` per screen, landmark regions, no positive `tabindex` | **All three correct across all 62 screen-and-viewport records**: 0 screens without an `h1`, 0 with more than one, 0 with fewer than four landmarks, 0 using a `tabindex` above zero. Row 33 is about the headings between the `h1` and the content |
+| Label-to-control spacing | Uniform. **4px, sixteen times, with no variation** on the candidate record. Closes V8 rank 11 as a non-finding |
 | `autocomplete` on 93 fields | **Correct by omission.** WCAG 1.3.5 covers fields about *the user*; every other field here holds candidate or company data, where autofill would offer the recruiter's own details for a candidate's record. The two that exist, `email` and `current-password` on `LoginPage`, are exactly the two that should |
 | WCAG 2.5.8 on the pager arrows | Conforms, by the spacing exception at 30px between centres |
 | `prefers-reduced-motion` | Handled at `motion.css:267`, guarded by `scripts/check-motion.mjs` |
@@ -113,6 +116,8 @@ So the most complicated control in the product has the best keyboard support and
 | **One level deep.** The sweep tags controls on the settled screen and photographs an opened overlay whole, without descending into it | No `input-radio` was captured anywhere, against 5 in source, and 3 `datetime-local` against 4. All five radios and the fourth datetime live inside dialogs | Fixed: `overlay-interior.spec.ts` reopens each of the 99 screen/viewport/opener triples the manifests prove produced an overlay and captures every control inside it |
 | **No selection state.** The bulk-action bar only exists once rows are selected, and a checkbox is not an "opener" | The bulk-action dialogs and their radios were unreachable, and the `indeterminate` finding stayed a source claim | Fixed: `selection-states.spec.ts` selects 3 rows, reads `checked` and `indeterminate` off the header, and records how many rows are selected after clicking it |
 | **Signs in first**, so `/login` is unreachable | The first screen every user sees was never captured, and it holds the only `role="alert"` on a form error in the product | Fixed: `unauthenticated.spec.ts`, which also submits the form empty and with wrong credentials and records what is rendered and announced |
+
+**The placeholder modal is captured, after surviving every previous run.** The targeted `FOOS_AUDIT_ARIA_ONLY=1` pass over recruit produced **1,333 shots including 218 overlay captures**, and the opener labels are exactly the controls that had never been clicked: `View Resume`, `Print Resume`, `Submit`, `Forms`, `Change status to…`, `Delete`, `More`. **58 desktop captures at 380x137 and 47 mobile at 358x153** are the `fo-placeholder-modal` itself, with the rest its full-screen backdrop. That is harness defect 6 closed with evidence rather than with a code change, and it is the photographic backing for V6 row 16.
 
 And one guard defect: **`POST rpc/get_my_google_status` is a read**, because PostgREST exposes every RPC as a POST, so a method-based write guard aborts function reads too. Two named read-only RPCs now continue and are logged in `allowed-read-rpcs.<area>.txt`, so what is let through is as visible as what is stopped. Settings had not been swept when this was fixed.
 
