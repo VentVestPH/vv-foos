@@ -5,7 +5,9 @@
 # which of the plan's V1-V13 items have a deliverable on disk.
 
 ROOT=/Users/klentz/Work/VV-FoOS
-LOG=/private/tmp/claude-502/-Users-klentz-Work-VV-FoOS/eb5b788f-8fb6-432b-ba40-74d001481dbd/scratchpad/sweep-all.log
+LOG=/private/tmp/claude-502/-Users-klentz-Work-VV-FoOS/eb5b788f-8fb6-432b-ba40-74d001481dbd/scratchpad/finish-v.log
+SWEEPLOG=/private/tmp/claude-502/-Users-klentz-Work-VV-FoOS/eb5b788f-8fb6-432b-ba40-74d001481dbd/scratchpad/sweep-all.log
+HIGH=/private/tmp/claude-502/-Users-klentz-Work-VV-FoOS/eb5b788f-8fb6-432b-ba40-74d001481dbd/scratchpad/checker.manifest-high
 STATE=/private/tmp/claude-502/-Users-klentz-Work-VV-FoOS/eb5b788f-8fb6-432b-ba40-74d001481dbd/scratchpad/checker.state
 DOCS=$ROOT/docs/11-component-audit
 
@@ -15,9 +17,26 @@ stall=0
 
 while true; do
   images=$(find "$ROOT/audit/corpus" -name '*.png' 2>/dev/null | wc -l | tr -d ' ')
-  area=$(grep -E '^=== AREA' "$LOG" 2>/dev/null | tail -1 | sed 's/=== AREA //;s/ starting.*/ (running)/;s/ done.*/ (done)/')
+  area=$(grep -hE '^=== AREA' "$SWEEPLOG" "$LOG" 2>/dev/null | tail -1 | sed 's/=== AREA //;s/ starting.*/ (running)/;s/ done.*/ (done)/')
+
+  # manifest integrity: a manifest must never shrink. Harness defect 10 was a
+  # supplementary pass overwriting the manifest of the area it supplemented,
+  # which cost recruit 4,358 entries and reported success while doing it.
+  shrunk=""
+  for mf in "$ROOT"/audit/corpus/manifest.*.json; do
+    [ -f "$mf" ] || continue
+    tag=$(basename "$mf" | sed 's/manifest\.//;s/\.json//')
+    n=$(node -e "try{console.log(require('$mf').length)}catch(e){console.log(0)}" 2>/dev/null)
+    hi=0
+    [ -f "$HIGH.$tag" ] && hi=$(cat "$HIGH.$tag")
+    if [ "$n" -lt "$hi" ]; then
+      shrunk="$shrunk $tag:$n<$hi"
+    else
+      echo "$n" > "$HIGH.$tag"
+    fi
+  done
   alive=$(pgrep -f 'playwright test' | wc -l | tr -d ' ')
-  finished=$(grep -c 'ALL AREAS DONE' "$LOG" 2>/dev/null)
+  finished=$(grep -c 'ALL PASSES DONE' "$LOG" 2>/dev/null)
 
   # alignment: one deliverable per plan item, checked on disk
   done_items=""
@@ -42,8 +61,10 @@ while true; do
   ndone=$(echo "$done_items" | wc -w | tr -d ' ')
 
   status="OK"
-  if [ "$finished" -gt 0 ]; then
-    status="CAPTURE-COMPLETE"
+  if [ -n "$shrunk" ]; then
+    status="MANIFEST-SHRANK:${shrunk}"
+  elif [ "$finished" -gt 0 ]; then
+    status="ALL-PASSES-COMPLETE"
   elif [ "$alive" -eq 0 ]; then
     status="DIED-capture-not-running"
   elif [ "$images" -eq "$prev" ]; then
