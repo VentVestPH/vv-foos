@@ -115,6 +115,36 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
         `${SCREEN} ${viewport.name}: with ${picked} of ${rowCount} rows selected the header checkbox has indeterminate=false and checked=${partial.checked}, so a partial selection is drawn as ${partial.checked ? 'fully checked' : 'empty'}`,
       );
     }
+    await page.keyboard.press('Escape');
+    await settle(page, 400);
+    try {
+      await header.scrollIntoViewIfNeeded({ timeout: 2000 });
+      await header.click({ timeout: 2500, force: true });
+      await settle(page, 400);
+    } catch (e) {
+      note(`${SCREEN} ${viewport.name}: the header checkbox would not click after the bulk sweep: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`);
+    }
+    const afterAll = await describeHeader(page);
+    const selectedAfter = await page.locator('tbody input[type="checkbox"]:checked').count();
+    await shootScreen(
+      page,
+      SCREEN,
+      viewport.name,
+      'selection-after-clicking-partial-header',
+      `clicking the header while ${picked} of ${rowCount} were selected left ${selectedAfter} rows selected; header checked=${afterAll.checked}`,
+    );
+    if (selectedAfter > picked) {
+      note(
+        `${SCREEN} ${viewport.name}: clicking the header checkbox while ${picked} rows were selected widened the selection to ${selectedAfter} rows rather than clearing it`,
+      );
+    }
+
+
+    for (let i = 0; i < Math.min(rowCount, 8) && (await page.locator('tbody input[type="checkbox"]:checked').count()) < picked; i += 1) {
+      await rows.nth(i).click({ timeout: 2500, force: true }).catch(() => undefined);
+      await page.waitForTimeout(120);
+    }
+    await settle(page, 300);
 
     const bulkBar = page.locator('.fo-list-action-bar').first();
     if ((await bulkBar.count()) > 0) {
@@ -170,30 +200,6 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
       }
       await page.keyboard.press('Escape');
       await settle(page, 300);
-    }
-
-    await page.keyboard.press('Escape');
-    await settle(page, 400);
-    try {
-      await header.scrollIntoViewIfNeeded({ timeout: 2000 });
-      await header.click({ timeout: 2500, force: true });
-      await settle(page, 400);
-    } catch (e) {
-      note(`${SCREEN} ${viewport.name}: the header checkbox would not click after the bulk sweep: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`);
-    }
-    const afterAll = await describeHeader(page);
-    const selectedAfter = await page.locator('tbody input[type="checkbox"]:checked').count();
-    await shootScreen(
-      page,
-      SCREEN,
-      viewport.name,
-      'selection-after-clicking-partial-header',
-      `clicking the header while ${picked} of ${rowCount} were selected left ${selectedAfter} rows selected; header checked=${afterAll.checked}`,
-    );
-    if (selectedAfter > picked) {
-      note(
-        `${SCREEN} ${viewport.name}: clicking the header checkbox while ${picked} rows were selected widened the selection to ${selectedAfter} rows rather than clearing it`,
-      );
     }
 
     await page.unrouteAll({ behavior: 'ignoreErrors' });
