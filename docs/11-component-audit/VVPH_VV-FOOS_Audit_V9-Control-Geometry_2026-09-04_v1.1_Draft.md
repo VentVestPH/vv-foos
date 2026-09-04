@@ -1,6 +1,6 @@
 # V9: control geometry
 
-Version 0.9. The measurement has run. Heights, computed styles and the WCAG 2.5.8 verdict below are final; the focus-ring contrast, the cursor audit and the side-by-side mismatch table are being recomputed after three flaws in my own analysis, described in pass 6. Originally 0.6, and still carrying its sweep-derived figures above for comparison. Heights are now computed from every capture in the dashboards, shell, recruit and sales manifests, 1,609 desktop element captures in the default or disabled state. Intake, the placeholder pages and settings are still being swept, and the computed padding, line-height and border behind each height arrive with `measure.spec.ts`. Nothing here is final, but the distribution is now four areas wide rather than two.
+Version 1.1. The measurement has run and been recomputed after three flaws in the analysis, all described in pass 6. Heights, computed styles and the WCAG 2.5.8 verdict below are final; the focus-ring contrast, the cursor audit and the side-by-side mismatch table are being recomputed after three flaws in my own analysis, described in pass 6. Originally 0.6, and still carrying its sweep-derived figures above for comparison. Heights are now computed from every capture in the dashboards, shell, recruit and sales manifests, 1,609 desktop element captures in the default or disabled state. Intake, the placeholder pages and settings are still being swept, and the computed padding, line-height and border behind each height arrive with `measure.spec.ts`. Nothing here is final, but the distribution is now four areas wide rather than two.
 
 ## What the stylesheet declares
 
@@ -204,6 +204,49 @@ Carbon publishes five row sizes, **24 / 32 / 40 / 48 / 64**, with 64 reserved fo
 **The multiple is the finding, not the height.** A candidate row is 90px tall and the tallest control inside it is an 18px checkbox, so **72px of that row is not a control**. The row is five times the height of the tallest thing in it, on the screen a recruiter spends the day in and the one carrying 72,917 records.
 
 **These figures are higher than the fidelity audit's, and the difference is the migration.** That audit measured 69px on the candidate list and 55px on the requisition list on 2026-09-01. The same screens now measure 90px and 73px. Nothing in the stylesheet changed between those dates; the data did. Real imported names, grade comments and owner lists wrap where 83 rows of seed data did not, so **the rows grew by 30% and 33% when 72,917 real candidates arrived**. That is worth stating plainly for W10: row height here is a function of content, so capping the wrapping columns is the lever, and a fixed row height would simply clip.
+
+### The focus ring against what is actually painted behind it
+
+The ring is `rgb(54, 121, 181)`, `--fo-primary`, declared once at `states.css:9` with `outline-offset: 1px`. Because the offset puts it outside the border box, the surface it must contrast against is the nearest painted ancestor. **The ratio is computed from that constant, not from `getComputedStyle().outlineColor`**, which on an unfocused element returns `currentColor` and made an earlier version of this table meaningless.
+
+| Painted behind the ring | From | Ratio | 1.4.11 | Captures | Screens |
+| :---- | :---- | ----: | :---- | ----: | ----: |
+| `rgb(87, 121, 149)` | `fo-sidebar-panel-header` | **1:1** | **fails** | 124 | **31** |
+| `rgb(66, 125, 152)` | `fo-primary-nav` | **1.01:1** | **fails** | **868** | **31** |
+| `rgb(66, 125, 152)` | `fo-primary-nav-wrap` | **1.01:1** | **fails** | 31 | **31** |
+| `rgb(169, 198, 220)` | `side-tabs-bar` | **2.59:1** | **fails** | 56 | 4 |
+| `rgb(240, 240, 240)` | `shell-main` | 4.04:1 | passes | 460 | 21 |
+| `rgb(250, 250, 250)` | `tr` | 4.41:1 | passes | 444 | 5 |
+| `rgb(255, 255, 255)` | eleven containers | 4.61:1 | passes | 1,945 | 31 |
+
+**23 distinct ring-on-backdrop combinations, 4 of them failing, covering 1,079 measured captures.**
+
+**Three distinct surfaces fail, not two.** V9 0.6 named the primary nav and the sidebar panel header. The measurement adds a third: **`side-tabs-bar` at 2.59:1**, the `SidePanelTabs` component on four record screens, whose `background: var(--section-tint)` is `#a9c6dc`. `fo-primary-nav-wrap` is the same surface as `fo-primary-nav`.
+
+**The nav failure is on every screen and covers every tab.** 868 captures is 14 tabs across 31 screens at two viewports, so a keyboard user has no visible position on any primary navigation tab anywhere in the product. The sidebar figure, 124, is its two panel headers on the same 31 screens.
+
+`check-contrast.mjs` line 20 tests `['focus ring', '--fo-primary', '--fo-surface', 3.0]`, which is the 4.61:1 row: the one pair that passes. **W15 should take its background list from this table**, which is measured from the rendered ancestry, rather than from the token file, since the token file is what produced the wrong answer twice.
+
+### Two things Klent asked for that are already done, or nearly
+
+**Every button, link, tab and summary in the product already shows `cursor: pointer`.** The table of controls whose cursor is not a pointer is **empty**, once disabled and `aria-disabled` controls are excluded, and excluding them is correct: `states.css` gives `[aria-disabled='true']` a `default` cursor deliberately and `.btn:disabled` does the same. **W14 is satisfied as it stands.** An earlier version of this table listed 62 controls, and every one of them was a correctly-disabled control.
+
+**Exactly one textarea can be dragged sideways, not thirteen.** Of **11 textareas measured**, **2 captures** compute `resize: both`, and they are the same control at two viewports: **`Sourcer Grade (grade comment)` on the candidate record**. The five module rules cover every other one. **W13 is a one-line fix on one component**, and the shared declaration V3 recommends is still the right shape because it prevents the sixth omission rather than fixing twelve.
+
+### Controls that sit side by side and do not match
+
+Same screen, same container, tops within 8px, heights differing by 2px or more, with table rows and anything over 44px excluded as content-sized:
+
+| Screen | A | B | Difference |
+| :---- | :---- | :---- | ----: |
+| `sales-contact-new` | `input-date` 36px | `input-checkbox` 13px | **23px** |
+| `recruit-requisition-record` | `button` 16px | `button` 30.25px | **14.25px** |
+| `recruit-candidate-record` | `button` 24px | `input-date` 36px | **12px** |
+| `dashboard-reports` | `button` 37.5px | `button` 28px | **9.5px** |
+| `global-search` | `button` 30.25px | `input-text` 21px | **9.25px** |
+| `placeholder-employees` | `button` 30.25px | `input-text` 21px | **9.25px** |
+
+These are the specific pairs Klent can see. The worst is a 36px date field beside a 13px checkbox on the new-contact form, and the most common is a 30.25px `.btn-sm` beside a 21px bare input, which is the shell search box on every screen that has one.
 
 ## What the full measurement still has to establish
 
