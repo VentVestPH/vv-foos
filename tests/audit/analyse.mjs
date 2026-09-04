@@ -47,6 +47,8 @@ const say = (s) => {
 
 say('# V9 and V13, computed from the measured corpus');
 say('');
+say('> **This file lives in the gitignored corpus and contains live candidate data.** The `name` column of any control that is a record link holds a real candidate or company name, taken from the local Zoho import. Nothing here may be copied into a document in `docs/` without removing those first. Where a finding needs an example, describe the shape and omit the value, as V10 observation 14 does.');
+say('');
 say(`Controls measured: ${controls.length}. Screens measured: ${density.length}.`);
 say('');
 
