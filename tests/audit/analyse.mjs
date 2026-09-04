@@ -71,7 +71,7 @@ say('');
 
 say('## Controls that sit side by side and do not match');
 say('');
-say('Same screen, same container, tops within 8px of each other, heights differing by 2px or more.');
+say('Same screen, same container, tops within 8px of each other, heights differing by 2px or more. **Table rows are excluded**, because a row legitimately holds a wrapped two-line cell beside an 18px checkbox, and so is **anything over 44px**, which is content-sized rather than chrome. Without those two filters the table is a list of tall name links next to short checkboxes and the real mismatches are buried.');
 say('');
 say('| Screen | Container | A | B | Heights | Difference |');
 say('| :---- | :---- | :---- | :---- | :---- | ----: |');
@@ -82,6 +82,8 @@ for (let i = 0; i < desktop.length; i += 1) {
     const a = desktop[i];
     const b = desktop[j];
     if (a.screen !== b.screen || a.container !== b.container) continue;
+    if (a.container === 'table-row' || a.container === 'table-head') continue;
+    if (a.height > 44 || b.height > 44) continue;
     if (Math.abs(a.y - b.y) > 8) continue;
     const diff = Math.abs(a.height - b.height);
     if (diff < 2) continue;
@@ -125,12 +127,15 @@ say('## V9: the focus ring measured against what is actually painted behind it')
 say('');
 say('WCAG 1.4.11 requires 3:1 for a non-text indicator. `outline-offset: 1px` puts the ring outside the element, so the surface that matters is the nearest painted ancestor, not the control.');
 say('');
+const RING = 'rgb(54, 121, 181)';
+say(`The ring colour is **${RING}**, \`--fo-primary\` as declared once in \`states.css:9\`. It is **not** read from \`getComputedStyle().outlineColor\`, which on an unfocused element returns \`currentColor\`, that is the element's own text colour, and would make this table meaningless.`);
+say('');
 const rings = new Map();
 for (const c of controls) {
-  if (c.ringBackdrop === undefined || c.outlineColor === undefined) continue;
-  const ratio = contrast(c.outlineColor, c.ringBackdrop);
+  if (c.ringBackdrop === undefined) continue;
+  const ratio = contrast(RING, c.ringBackdrop);
   if (ratio === null) continue;
-  const key = `${c.outlineColor}|${c.ringBackdrop}|${c.ringBackdropFrom}|${c.container}`;
+  const key = `${c.ringBackdrop}|${c.ringBackdropFrom}|${c.container}`;
   const prior = rings.get(key);
   if (prior === undefined) {
     rings.set(key, { ...c, ratio, count: 1, screens: new Set([c.screen]) });
@@ -140,11 +145,11 @@ for (const c of controls) {
   }
 }
 const ringRows = [...rings.values()].sort((a, b) => a.ratio - b.ratio);
-say('| Ring colour | Painted behind it | From | Container | Ratio | 1.4.11 | Controls | Screens |');
-say('| :---- | :---- | :---- | :---- | ----: | :---- | ----: | ----: |');
+say('| Painted behind the ring | From | Container | Ratio | 1.4.11 | Controls | Screens |');
+say('| :---- | :---- | :---- | ----: | :---- | ----: | ----: |');
 for (const r of ringRows) {
   say(
-    `| ${r.outlineColor} | ${r.ringBackdrop} | \`${r.ringBackdropFrom}\` | ${r.container} | **${round(r.ratio)}:1** | ${r.ratio >= 3 ? 'passes' : '**fails**'} | ${r.count} | ${r.screens.size} |`,
+    `| ${r.ringBackdrop} | \`${r.ringBackdropFrom}\` | ${r.container} | **${round(r.ratio)}:1** | ${r.ratio >= 3 ? 'passes' : '**fails**'} | ${r.count} | ${r.screens.size} |`,
   );
 }
 const failing = ringRows.filter((r) => r.ratio < 3);
@@ -155,12 +160,15 @@ say('');
 
 say('## Controls whose cursor is not a pointer');
 say('');
+say('Disabled and `aria-disabled` controls are excluded: `states.css` gives them `cursor: default` deliberately and `.btn:disabled` does the same, so that is correct behaviour rather than a defect. What remains is W14.');
+say('');
 say('| Kind | Variant | Cursor | Count |');
 say('| :---- | :---- | :---- | ----: |');
 const cursors = new Map();
 for (const c of controls) {
   if (c.cursor === undefined) continue;
-  if (c.kind !== 'button' && c.kind !== 'link' && c.kind !== 'tab' && c.kind !== 'summary') continue;
+  if (c.kind !== 'button' && c.kind !== 'link' && c.kind !== 'tab' && c.kind !== 'summary' && c.kind !== 'link-btn' && c.kind !== 'btn-class') continue;
+  if (c.disabled === true || c.ariaDisabled === true) continue;
   const key = `${c.kind}|${c.variant}|${c.cursor}`;
   cursors.set(key, (cursors.get(key) ?? 0) + 1);
 }

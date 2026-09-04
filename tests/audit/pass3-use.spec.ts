@@ -104,7 +104,7 @@ test('pass 3: walk the real tasks as their user', async ({ page }) => {
     await gotoAsSignedIn(page, '/');
     await settle(page, 900);
     await step(page, 'find-a-candidate', 'start on the dashboard');
-    await click(page, page.getByRole('link', { name: /recruit/i }).first(), 'Recruit nav');
+    await click(page, page.locator('nav[aria-label="Primary"] button', { hasText: /^Recruit$/ }).first(), 'Recruit nav');
     await step(page, 'find-a-candidate', 'after clicking Recruit');
     await gotoAsSignedIn(page, '/recruit/candidates');
     await settle(page, 1200);
@@ -242,7 +242,7 @@ test('pass 3: walk the real tasks as their user', async ({ page }) => {
       await click(page, reqRow.locator('.link-btn').first(), 'requisition link');
       await settle(page, 1200);
       await step(page, 'open-a-requisition', 'requisition record open');
-      const pipeline = page.getByRole('tab', { name: /pipeline/i }).first();
+      const pipeline = page.locator('button.link-btn', { hasText: /^Candidates \(/ }).first();
       if ((await pipeline.count()) > 0) {
         await click(page, pipeline, 'Pipeline tab');
         await step(page, 'open-a-requisition', 'pipeline board');
@@ -255,7 +255,7 @@ test('pass 3: walk the real tasks as their user', async ({ page }) => {
     await gotoAsSignedIn(page, '/');
     await settle(page, 1200);
     await step(page, 'work-a-day', 'the dashboard as it opens');
-    const tasksTab = page.getByRole('link', { name: /task/i }).first();
+    const tasksTab = page.locator('.record-section-header', { hasText: /My Tasks/i }).first();
     if ((await tasksTab.count()) > 0) {
       await click(page, tasksTab, 'tasks');
       await step(page, 'work-a-day', 'after opening tasks');

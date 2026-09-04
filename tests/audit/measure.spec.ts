@@ -22,6 +22,8 @@ interface ControlMetric {
   resize: string;
   cursor: string;
   outlineColor: string;
+  disabled: boolean;
+  ariaDisabled: boolean;
   ringBackdrop: string;
   ringBackdropFrom: string;
   container: string;
@@ -163,6 +165,8 @@ test('measure: control geometry and density', async ({ page }) => {
             resize: cs.resize,
             cursor: cs.cursor,
             outlineColor: cs.outlineColor,
+            disabled: (e as HTMLButtonElement).disabled === true,
+            ariaDisabled: e.getAttribute('aria-disabled') === 'true',
             ringBackdrop: backdrop.color,
             ringBackdropFrom: backdrop.from,
             container,
