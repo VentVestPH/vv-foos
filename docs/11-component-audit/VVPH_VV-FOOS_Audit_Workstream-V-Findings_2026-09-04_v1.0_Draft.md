@@ -6,6 +6,8 @@ Version 1.0. Audit and specification only: nothing here changes a component. Wor
 
 The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens render real candidate names from the Zoho migration. Each area has its own `manifest.<area>.json` naming component, state and viewport.
 
+**These documents carry no candidate data.** Where a finding needed an example of imported data, the shape is described and the value is not reproduced; V10 observation 14 is the one place that had four real first names in it and they were removed on 2026-09-04. The manifests do contain candidate names, in the `name` field of captures of name links and in file paths, which is a second reason the corpus stays out of git. Anything quoted from a manifest into a document has to be checked for that first.
+
 ## The documents
 
 | Item | Document | State |
