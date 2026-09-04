@@ -4,14 +4,14 @@ Version 0.9. Pass 6 asks what the first five passes got wrong. It is not a summa
 
 The method was to take each claim, find the file or the measurement it rests on, and check it there rather than against my note of it. That is slower than re-reading the documents and it is the only thing that found any of what follows.
 
-## Twenty-one claims of mine that failed re-checking
+## Twenty-three claims of mine that failed re-checking
 
-Every one is corrected in place in the document that carried it, with the wrong version left visible. Thirteen of the twenty-one were **corrected downward**, meaning the finding survived but smaller, two were withdrawn outright, and **one was corrected upward**: row 5 became the audit's only Blocks.
+Every one is corrected in place in the document that carried it, with the wrong version left visible. Fourteen of the twenty-three were **corrected downward**, meaning the finding survived but smaller, two were withdrawn outright, and **one was corrected upward**: row 5 became the audit's only Blocks. Row 16's count was wrong three separate times, at 66, then 51, then finally 50 plus 11, which is the clearest single argument in this document for generating figures rather than typing them.
 
 | # | What I wrote | What is true | Where it was |
 | ----: | :---- | :---- | :---- |
 | 1 | "No list announces its results" | `Pager` has `aria-live="polite"`, on `.fo-pager-pos` (`1 / 3646`) and not on `.fo-pager-count` (`1-20 of 72,920`). Six lines apart in one component, and the app announces the less useful number. It also renders only when `pageCount > 1`, so a filter narrowing 72,920 rows to 3 removes the only live region on the screen | V6 row 13a, index finding 7 |
-| 2 | "66 `PlaceholderAction` controls" | **51** rendered call sites. 66 counts the identifier's occurrences, including 13 imports and the definition and export | V1, V2, V6 row 16, V10 ×4, index |
+| 2 | "66 `PlaceholderAction` controls" | **50** rendered call sites. 66 counts the identifier's occurrences, including 13 imports and the definition and export. See 22, because 51 was wrong too | V1, V2, V6 row 16, V10 ×4, index |
 | 3 | "66 usages against 11 natively disabled" | A source count compared to a rendered count. Source has **94** `disabled={...}` expressions; the corpus has 246 captures in a disabled state. Neither is 11, so the comparison is removed rather than restated | V6 row 16, V10 |
 | 4 | Focus ring "fails on four surfaces", including Logout and any hovered primary button | **Two.** `outline-offset: 1px` places the ring outside the border box, so the surface it must contrast against is the nearest painted ancestor. Logout's lands on the white utility header and a primary button's on the white page surface, both **4.606:1**, both passing. What fails is `--fo-nav` at **1.013:1** behind 14 nav tabs and `--fo-sidebar-header` at **1.003:1** | V6 row 11, V8, V10, index, W15 |
 | 5 | "1.01:1" and "4.61:1" | 1.013:1 and 4.606:1. There is no reason to round a computed figure | five documents |
@@ -31,6 +31,8 @@ Every one is corrected in place in the document that carried it, with the wrong 
 | 19 | "Nothing in the audit is rated Blocks", and V8's reasoning that row 5 "is not the user cannot complete the task" | **Row 5 is Blocks.** V12 defines Blocks as "the user cannot complete the task, **or completes it wrongly without knowing**", and I tested only the first clause across several passes. A bulk action silently applied to twenty records instead of three is the second clause exactly. It is now rank 1 in V8, ahead of the height scale | V8, V6 row 5, the findings index |
 | 20 | "`Button fullWidth` is passed at 0 of 137, `SidePanelTabs count` at 0 of 2, `RecordSection defaultOpen` at 26 of 76" | **2, 2 and 30.** My pass-rate regex required a character after the prop name, so it missed every bare boolean prop last in a tag, which is exactly how `fullWidth` and `defaultOpen` are written | pass 6's prop table |
 | 21 | "Six buttons change their label during a long operation" | **Seven.** `LoginPage.tsx:94` renders `{busy ? 'Signing in…' : 'Sign in with email'}`, found while verifying my own spec's selectors against the login markup | V6 row 30 |
+| 22 | "51 rendered `<PlaceholderAction` call sites" | **50.** `grep -c` counts matching *lines*, and `DashboardPage.tsx:195` holds `<PlaceholderActionGear />`, a **hand-rolled local copy of the entire placeholder pattern** defined at line 203 with its own `aria-label`, its own bare `aria-disabled` and its own `show(...)` call. So the corrected count was itself an artefact of a different counting method, and finding it also found a duplicated component |
+| 23 | "11 `show(...)` calls open the same dialog from buttons that are *not* `aria-disabled`, so the pattern is inconsistent across 62 actions" | **10 of the 11 are `aria-disabled`.** Exactly one placeholder action in the product is not: `CandidateRecordPage.tsx:290`, the `Flag` button. The real figure is **61 actions, 60 carrying `aria-disabled`**, so the pattern is nearly uniform and I had described it as inconsistent |
 
 **What survived intact.** Eleven V6 rows I had marked "verified in source" were re-checked against the files: 4, 5, 7, 13, 15, 17, 18, 19, 20, 21 and 22. All eleven hold.
 

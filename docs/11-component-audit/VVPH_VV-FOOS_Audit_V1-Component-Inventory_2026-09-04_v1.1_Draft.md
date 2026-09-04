@@ -79,7 +79,7 @@ Recruit alone produced **4,358 captures**. Three things worth reading off this t
 
 - **The candidate list carries 177 interactive elements on one screen**, and 94 of them survive at 390px. That is the densest screen in the product and the one a recruiter spends the day in.
 - **Mobile is not a subset.** The requisition list clicks 71 openers at 390px against 88 at 1440px, but navigates 55 times against 72, so the ratio of controls that leave the screen changes with the viewport rather than simply shrinking.
-- **Overlay counts are low on the requisition screens**, 5 and 8 against the candidate list's 23. That is partly real, since the candidate list has bulk actions, star grades and column configuration, and partly the `aria-disabled` gap: 51 `PlaceholderAction` controls were skipped as disabled before that was fixed, and the requisition record carries several of them.
+- **Overlay counts are low on the requisition screens**, 5 and 8 against the candidate list's 23. That is partly real, since the candidate list has bulk actions, star grades and column configuration, and partly the `aria-disabled` gap: 50 `PlaceholderAction` controls, and a hand-rolled 51st, were skipped as disabled before that was fixed, and the requisition record carries several of them.
 
 ## Passes 1 and 2 complete: what the whole sweep captured
 
