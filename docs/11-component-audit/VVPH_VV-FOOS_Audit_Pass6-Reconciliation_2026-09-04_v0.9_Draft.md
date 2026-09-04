@@ -4,9 +4,9 @@ Version 0.9. Pass 6 asks what the first five passes got wrong. It is not a summa
 
 The method was to take each claim, find the file or the measurement it rests on, and check it there rather than against my note of it. That is slower than re-reading the documents and it is the only thing that found any of what follows.
 
-## Nineteen claims of mine that failed re-checking
+## Twenty-one claims of mine that failed re-checking
 
-Every one is corrected in place in the document that carried it, with the wrong version left visible. Thirteen of the nineteen were **corrected downward**, meaning the finding survived but smaller, two were withdrawn outright, and **one was corrected upward**: row 5 became the audit's only Blocks.
+Every one is corrected in place in the document that carried it, with the wrong version left visible. Thirteen of the twenty-one were **corrected downward**, meaning the finding survived but smaller, two were withdrawn outright, and **one was corrected upward**: row 5 became the audit's only Blocks.
 
 | # | What I wrote | What is true | Where it was |
 | ----: | :---- | :---- | :---- |
@@ -29,6 +29,8 @@ Every one is corrected in place in the document that carried it, with the wrong 
 | 17 | "All 17 tables show No records while loading" | **5 gate it correctly.** `emptyText={loading ? 'Loading…' : ...}` in `CompaniesListPage`, `ContactsListPage`, `DealsListPage`, `TicketsListPage` and `QueueListPage`. All five are sales or intake; recruit's three lists hard-code the empty text | V6 row 13 |
 | 18 | "A long operation's button label never changes, and no mechanism exists" | **Six change it.** `ListPage` renders `Exporting…`, and five sales pages render `Saving…`. Two more show separate text, `Exporting… N of M` and `Uploading…`. Five express `busy` as `disabled` and nothing more, and those five are in recruit, settings and intake. So it is the same shape as every other finding, not the exception I called it | V6 row 30 |
 | 19 | "Nothing in the audit is rated Blocks", and V8's reasoning that row 5 "is not the user cannot complete the task" | **Row 5 is Blocks.** V12 defines Blocks as "the user cannot complete the task, **or completes it wrongly without knowing**", and I tested only the first clause across several passes. A bulk action silently applied to twenty records instead of three is the second clause exactly. It is now rank 1 in V8, ahead of the height scale | V8, V6 row 5, the findings index |
+| 20 | "`Button fullWidth` is passed at 0 of 137, `SidePanelTabs count` at 0 of 2, `RecordSection defaultOpen` at 26 of 76" | **2, 2 and 30.** My pass-rate regex required a character after the prop name, so it missed every bare boolean prop last in a tag, which is exactly how `fullWidth` and `defaultOpen` are written | pass 6's prop table |
+| 21 | "Six buttons change their label during a long operation" | **Seven.** `LoginPage.tsx:94` renders `{busy ? 'Signing in…' : 'Sign in with email'}`, found while verifying my own spec's selectors against the login markup | V6 row 30 |
 
 **What survived intact.** Eleven V6 rows I had marked "verified in source" were re-checked against the files: 4, 5, 7, 13, 15, 17, 18, 19, 20, 21 and 22. All eleven hold.
 
@@ -160,16 +162,22 @@ The predictive question, applied exhaustively rather than to the four findings t
 | `Input` | `error` | **0 of 94** | The finding, row 14 |
 | `Select` | `error` | **0 of 54** | The finding, row 14 |
 | `Table` | `busy` | 6 of 17 | The finding, row 13, corrected |
-| `RecordSection` | `defaultOpen` | **26 of 76** | Not dead. Section defaults are explicit at 26 sites, which is directly relevant to the parked T3a decision about which sections open at load |
-| `Button` | `fullWidth` | 0 of 137 | Dead option, harmless. Defaults to `false`, so never passing it means never full-width |
+| `RecordSection` | `defaultOpen` | **30 of 76** | Not dead. Section defaults are explicit at 30 sites, which is directly relevant to the parked T3a decision about which sections open at load |
+| `Input` | `label` | **94 of 94** | The acquittal, stated positively: every `Input` in page and module code is labelled |
+| `Button` | `fullWidth` | 2 of 137 | Used, on the login form's two full-width buttons |
+| `SidePanelTabs` | `count` | 2 of 2 | Always passed |
 | `Table` | `zebra` | 0 of 17 | Dead option, and **correct**. Defaults to `true`, which is the wanted behaviour, so passing it would be redundant |
 | `Badge` | `title` | 0 of 31 | Dead option, mildly notable: a tooltip is available and unused on all 31 badges, while rows 23 and 27 found other controls relying on `title` as their only accessible name |
-| `SidePanelTabs` | `count`, `defaultTab` | 0 of 2 each | Dead options |
+| `SidePanelTabs` | `defaultTab` | 0 of 2 | Dead option |
 | `ErrorBoundary` | `onReset` | 0 of 2 | Dead option. The boundary renders a reset affordance that no call site wires |
 
 **Stopping here rather than inflating it.** Beyond the three rows already filed as findings, this is dead API surface, which is a workstream S concern and S is complete. The two facts worth carrying forward are that `RecordSection`'s defaults are explicit at 26 sites, and that `Table zebra` is an example of a never-passed prop being the correct state, which is why "never passed" is not a finding on its own.
 
-**A methodological correction, because the first version of this table was wrong.** My first script keyed each props interface to its **filename**, which broke on `RecordPage.tsx`, a file exporting both `RecordPage` and `RecordSection`. It reported `defaultOpen` as never passed on 10 `RecordPage` call sites when it is passed at 26 of 76 `RecordSection` ones, and it silently skipped `Input` and `Select` entirely because their interfaces read `interface InputProps extends InputHTMLAttributes<...> {` and the pattern expected `{` immediately. Two runs of the same idea produced 0 of 10, then 29 of 76, then 26 of 76. **A counting script needs its own check before its output is quoted**, which is the third time today that a tool of mine has failed by dropping rows rather than erroring: the plan's arithmetic checker skipped the two half-point rows, the harness's focus pass overwrote a manifest, and this keyed props to the wrong component.
+**A second methodological correction, and the count of my own broken counters reaches four.** The version above is the third attempt. The regex checking whether a prop was passed required a character *after* the prop name, `prop\s*=` or `prop` followed by `[/>}\s]`, which silently misses every **bare boolean prop sitting last in a tag**: `<Button … fullWidth>`, `<RecordSection … defaultOpen>`. So it reported `fullWidth` as never passed when the login form passes it twice, `SidePanelTabs count` as never passed when both call sites pass it, and `defaultOpen` as 26 when it is 30.
+
+Four tools of mine have now failed today by **dropping rows rather than erroring**: the plan's arithmetic checker skipped the two half-point rows, the harness's focus pass overwrote a manifest while reporting success, the props script keyed interfaces to filenames, and this one ignored bare boolean attributes. Every one produced a plausible number. That is the argument for `report-figures.mjs` generating the report's figures from the corpus and the documents rather than my typing them, and it is why that script prints which artefacts are **absent** rather than only what it found.
+
+**The first methodological correction, kept for the same reason.** My first script keyed each props interface to its **filename**, which broke on `RecordPage.tsx`, a file exporting both `RecordPage` and `RecordSection`. It reported `defaultOpen` as never passed on 10 `RecordPage` call sites when it is passed at 26 of 76 `RecordSection` ones, and it silently skipped `Input` and `Select` entirely because their interfaces read `interface InputProps extends InputHTMLAttributes<...> {` and the pattern expected `{` immediately. Two runs of the same idea produced 0 of 10, then 29 of 76, then 26 of 76. **A counting script needs its own check before its output is quoted**, which is the third time today that a tool of mine has failed by dropping rows rather than erroring: the plan's arithmetic checker skipped the two half-point rows, the harness's focus pass overwrote a manifest, and this keyed props to the wrong component.
 
 ## Three things measured against the database rather than the documents
 
