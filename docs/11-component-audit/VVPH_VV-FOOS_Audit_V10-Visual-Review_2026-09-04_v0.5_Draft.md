@@ -81,17 +81,17 @@ These come from the capture manifest rather than from looking, so they are numbe
 
 ### Correction: they are not "disabled", they are `aria-disabled` and they do respond
 
-**This supersedes the count below, which I had wrong.** The 31 controls I recorded as disabled are mostly not disabled at all. `shell/Placeholder.tsx`'s `PlaceholderAction` defaults to `ariaDisabled = true`, so it renders a real, clickable `<button>` carrying `aria-disabled="true"`. There are **66 `PlaceholderAction` usages** in the codebase against only **11 natively disabled buttons**, and the labels include `Send To`, `Forms`, `Print Resume`, `View Resume`, `Submit`, `Change Status to…`, `New Task`, `New Event`, `Schedule interview`, `Search`, `Compliance`, `Onboard` and `Delete`.
+**This supersedes the count below, which I had wrong.** The 31 controls I recorded as disabled are mostly not disabled at all. `shell/Placeholder.tsx`'s `PlaceholderAction` defaults to `ariaDisabled = true`, so it renders a real, clickable `<button>` carrying `aria-disabled="true"`. There are **51 rendered `<PlaceholderAction` call sites**, none of which passes `ariaDisabled={false}`, and the labels include `Send To`, `Forms`, `Print Resume`, `View Resume`, `Submit`, `Change Status to…`, `New Task`, `New Event`, `Schedule interview`, `Search`, `Compliance`, `Onboard` and `Delete`.
 
 So a click on most of them opens the placeholder dialog that explains itself, which is the good pattern, not a dead control.
 
 **Two things follow, one about my harness and one about the product.**
 
-My harness treated `aria-disabled="true"` as disabled and therefore never clicked any of the 66, which is why no `fo-placeholder-modal` appears anywhere in the corpus despite that class being in the overlay selector. That is the coverage gap named in the method note, now explained, and it is fixed by clicking `aria-disabled` controls rather than skipping them.
+My harness treated `aria-disabled="true"` as disabled and therefore never clicked any of the 51, which is why no `fo-placeholder-modal` appears anywhere in the corpus despite that class being in the overlay selector. That is the coverage gap named in the method note, now explained, and it is fixed by clicking `aria-disabled` controls rather than skipping them.
 
 The product finding is sharper than the one it replaces. **`aria-disabled="true"` on a control that responds to a click is a contradiction.** It tells assistive technology the control is unavailable, so a screen-reader user is told not to try, while a sighted user clicks it and gets a helpful explanation. The two audiences are given different products. If the control opens a dialog it is not disabled, and the honest markup is an enabled button whose dialog says the feature is not built yet, which is what the dialog already says.
 
-The severity therefore moves: not "a fifth of the screen is dead", which was wrong, but "the placeholder pattern is correct for sighted users and hides itself from assistive technology on 66 controls".
+The severity therefore moves: not "a fifth of the screen is dead", which was wrong, but "the placeholder pattern is correct for sighted users and hides itself from assistive technology on 51 controls".
 
 ### The original count, superseded above
 
@@ -128,11 +128,11 @@ Nine of the observations above were written from a screenshot and then checked a
 
 | Observation, as first written | After reading the source |
 | :---- | :---- |
-| "31 of 144 controls are disabled and do nothing" | **Wrong.** 66 `PlaceholderAction` usages carry `aria-disabled="true"` on real clickable buttons that open an explanatory dialog. The finding became the contradiction between `aria-disabled` and a control that responds |
+| "31 of 144 controls are disabled and do nothing" | **Wrong twice over.** 51 rendered `<PlaceholderAction` call sites carry `aria-disabled="true"` on real clickable buttons that open an explanatory dialog. The finding became the contradiction between `aria-disabled` and a control that responds. I then wrote the corrected count as 66, which was also wrong: 66 counts the identifier's occurrences including 13 imports and the definition |
 | "Every list's bulk-select header is a tri-state checkbox drawn by the browser" | **Understated.** `indeterminate` appears nowhere in the codebase. A partial selection renders unchecked, and clicking it replaces the selection with every row |
 | "The browser's disclosure triangle is a decision we have not made" | **Already made.** `::-webkit-details-marker` is hidden in `controls.css`. Only the instant toggle remains |
 | "The required asterisk is placed inconsistently in one form" | **Three implementations**, two of them hand-written bypasses of `Input` and `Select`, one on the wrong side |
-| "A placeholder is used as a format hint" | **65 placeholders and no hint-text pattern exists**, so there is nowhere else for a hint to go |
+| "A placeholder is used as a format hint" | **65 `placeholder=` attributes and no hint-text pattern exists**, so there is nowhere else for a hint to go. This 65 is HTML placeholder attributes and has nothing to do with `PlaceholderAction` |
 | "Reset sits beside Cancel, near-identically styled" | **Byte-identical.** `Button` defaults to `secondary`, so both carry the same class list |
 | "The green pill means two things" | **One call site.** `badge-success` is used to render a count, so a requisition with nobody shows a green success pill reading `0` |
 | "Three label arrangements coexist" | **The third is module-scoped.** `.info-item dt` lives in `recruit.css` and is used by two pages; `sales.css` has no equivalent |

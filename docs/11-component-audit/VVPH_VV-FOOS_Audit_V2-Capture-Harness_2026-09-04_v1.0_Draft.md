@@ -25,7 +25,7 @@ Recorded because the harness is the instrument, and an instrument's error rate b
 | 3 | Index-based locators reused after a click that navigates | 34 elements lost per area, reported as "would not scroll into view" |
 | 4 | Overlay captured with `.last()` of a selector including always-present containers | **Every overlay element capture was of an unrelated node.** The one labelled `administration` showed the Recently Viewed panel |
 | 5 | Programmatic `.focus()` | No focus ring on anything, which would have been written up as a global defect instead of finding the four real contrast failures |
-| 6 | `aria-disabled` treated as disabled, and Playwright refusing to click it anyway | All **66** `PlaceholderAction` controls unclickable, so the placeholder pattern was never captured once |
+| 6 | `aria-disabled` treated as disabled, and Playwright refusing to click it anyway | All **51** `PlaceholderAction` controls unclickable, so the placeholder pattern was never captured once |
 
 Four of the six would have left a **silent hole** rather than a visible failure, which is the kind that survives into a report. Two of them, 4 and 5, would have produced confident wrong findings.
 
