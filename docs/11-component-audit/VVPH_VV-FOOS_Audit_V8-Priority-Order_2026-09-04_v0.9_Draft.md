@@ -32,4 +32,6 @@ Version 0.9. The order follows V12's severity, then the number of screens a chan
 ## What would change this order
 
 - **V9 and V13's numbers.** If the measured height spread turns out to be one or two pixels, rank 1 drops and the select leads. If it is large and visible on every toolbar, rank 1 is confirmed. This document is 0.9 until that is known.
-- **Pass 3.** If a form's validation genuinely loses a user's work, row 7 becomes **Blocks** and jumps to the top. Nothing currently in the audit is rated Blocks, and that is a finding in itself: no component defect found so far stops a recruiter completing a task.
+- **Pass 3.** If a form's validation genuinely loses a user's work, row 7 becomes **Blocks** and jumps to the top.
+
+**On "nothing is rated Blocks", which I wrote earlier and no longer fully believe.** Rank 2a comes close. A user with three rows selected sees an unchecked box, clicks it, and their selection becomes all rows on the page; if they then run a bulk action, they have acted on twenty records instead of three without being told. That is not "the user cannot complete the task", so it stays **Costs** by the definition in V12. It is worth naming as the closest thing in the audit to a Blocks defect, because the definition, not the harm, is what keeps it out.
