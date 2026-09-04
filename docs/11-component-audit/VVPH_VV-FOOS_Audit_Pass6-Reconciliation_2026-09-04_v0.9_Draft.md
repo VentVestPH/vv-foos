@@ -92,6 +92,16 @@ So the most complicated control in the product has the best keyboard support and
 
 And one guard defect: **`POST rpc/get_my_google_status` is a read**, because PostgREST exposes every RPC as a POST, so a method-based write guard aborts function reads too. Two named read-only RPCs now continue and are logged in `allowed-read-rpcs.<area>.txt`, so what is let through is as visible as what is stopped. Settings had not been swept when this was fixed.
 
+## Three things measured against the database rather than the documents
+
+Queried directly on the local stack at 10:49 on 2026-09-04, because two of them were numbers I had written down twice with different values.
+
+**The candidate count is 72,917, and V5 is right.** `candidate_profiles` and the `candidate_list` view both return exactly 72,917; `people` holds 72,988 and 7 candidate profiles are `is_test`. V5 quotes the pager as reading `1-20 of 72,917`, which matches. Earlier in this session I measured `EXP total=72920` during the export probe, and the difference is three: the fixtures my own spec had created at that moment. Both figures were correct when taken, and 72,917 is the steady state. Neither document needed changing, which is the first time today that checking a number of mine left it alone.
+
+**Nothing my specs created is still there.** `select count(*) from people where last_name like 'Probe%' or first_name = 'Zaudit'` returns **0**. That is the teardown rule holding across the export probe, the starvation spec and the pass 3 walkthrough, and it is also what explains the 72,920 above resolving back to 72,917.
+
+**The sweep produced no client-side crashes at all.** `client_errors` holds **0 rows** after roughly 12,000 captures across 31 routes at two viewports, which involved clicking every opener on every screen, filling every typeable field with an overflowing value, and forcing clicks on 51 `aria-disabled` buttons. That table is the one the gate checks, and an empty one after that much indiscriminate clicking is a real result rather than an absence of evidence: **the defects this audit found are contract and presentation defects, not stability defects.** Worth stating plainly, because a 28-row findings table invites the opposite impression.
+
 ## What pass 6 still owes
 
 - The measured half: V9's computed values, V13's density, the ring-on-backdrop contrast table, the 2.5.8 spacing verdicts, the tab-order inversions and the duplicate-name table, all of which come from `measure.spec.ts` and `analyse.mjs`.
