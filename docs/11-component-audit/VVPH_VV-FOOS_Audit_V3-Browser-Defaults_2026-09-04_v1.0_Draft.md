@@ -13,7 +13,7 @@ Counted from source on 2026-09-04 with `grep` over `app/src`, then cross-checked
 | `input[type="checkbox"]` | 18 | the glyph, its size, the checked and indeterminate marks, the focus ring | Only by hiding it and drawing a replacement |
 | `input[type="radio"]` | 5 | the glyph and the checked dot | Same |
 | `input[type="file"]` | 1 | the button label text, which is locale-dependent, and the "no file chosen" text | No. The button cannot be styled or relabelled |
-| `<details>` / `<summary>` | 6 / 6 | the disclosure triangle, and the open and close behaviour, which is instant with no transition | The marker can be replaced; the instant toggle cannot be animated without JS |
+| `<details>` / `<summary>` | 6 / 6 | **only the instant open and close.** Correction: the triangle is already replaced, `controls.css` hides it with `::-webkit-details-marker`, so it was never an outstanding browser decision | The instant toggle cannot be animated without JS |
 | `<textarea>` | 13 | the resize grabber | Partly, via `resize` |
 | text-ish `<input>` | 31 | autofill styling, the search field's clear button in some browsers | Partly |
 
