@@ -57,7 +57,7 @@ Not one came from a screenshot. Eight came from reading a component's contract, 
 
 **Three interactions are attached to non-interactive elements** (V6 row 31, now W4). The truncated-cell expander across five columns, every dashboard bar's drill-through, and the deal card's navigation, which gives the sharpest case: a keyboard user can move a deal between pipeline stages but cannot open it.
 
-## Fifteen things checked and found correct
+## Seventeen things checked and found correct
 
 Recorded because two of them I had written up as findings first, and an audit that only lists defects is not an audit.
 
@@ -78,6 +78,8 @@ Recorded because two of them I had written up as findings first, and an audit th
 | Colour as the only means of conveying information, WCAG 1.4.1, Level A | **Correct.** `StatusBadge` renders the status as the badge's text content, `{status.replace(/_/g, ' ')}`, so all six tones carry a word as well as a colour. Row 17's finding is narrower and unaffected: one call site, `RequisitionListPage.tsx:341`, bypasses the component with a raw `badge badge-success` class and puts an application **count** inside a success tone, which is a misuse of the tone rather than a reliance on colour |
 | The hand-rolled bar charts, WCAG 1.1.1, Level A | **Correct.** `BarList.tsx` renders each row's `label` and its `count` as text either side of the bar, so the bar is decorative and the data is available without it. Checked because a hand-rolled CSS chart with no charting library is exactly where a text alternative goes missing. The chart is fine; its click target is row 31 |
 | The 13 `onClick` handlers on non-interactive tags | **10 of 13 are legitimate**: three overlay backdrops that close on an outside click, where Escape is the keyboard path, and seven `e.stopPropagation()` guards around inputs and checkboxes, which are not interactions. Only three are real defects. Recorded because reporting 13 would have been true and misleading |
+| The two `localStorage`-backed features | **Correct, and carefully so.** `useRecentlyViewed` and `useBookmarks` wrap **every** read and write in try/catch, guard the parsed value with `Array.isArray`, and apply their caps, `MAX_ITEMS = 15` and `MAX_BOOKMARKS = 20`, **on read as well as on write**, so an older oversized value cannot survive a cap being lowered. `useBookmarks` also exposes `isFull` so the UI can say so. Capping on write only is the usual mistake and neither makes it |
+| The file input's labelling | **Correct.** `engagement.tsx:528` carries a state-dependent `aria-label`, "Upload resume" or "Upload file", and is disabled while an upload is in flight. Row 10's finding is the browser-drawn button text and the locale-dependent "no file chosen", not the control's name |
 
 ### The idle timeout, which is the second counter-example
 
