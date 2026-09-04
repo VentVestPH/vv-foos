@@ -1,6 +1,6 @@
 # Pass 6: reconciling the audit against the code and the corpus
 
-Version 0.8. Pass 6 asks what the first five passes got wrong. It is not a summary of them.
+Version 0.9. Pass 6 asks what the first five passes got wrong. It is not a summary of them.
 
 The method was to take each claim, find the file or the measurement it rests on, and check it there rather than against my note of it. That is slower than re-reading the documents and it is the only thing that found any of what follows.
 
@@ -28,13 +28,33 @@ Every one is corrected in place in the document that carried it, with the wrong 
 
 That split is the most useful thing pass 6 found. **The audit table, whose cells name the file and the declaration, survived re-checking without a single change. The summary prose, written from the table plus memory, is where all thirteen errors were.** A claim degrades when it is restated, not when it is written down.
 
-## Two findings pass 6 added
+## Five findings pass 6 added
 
-Neither came from a screenshot.
+Not one came from a screenshot. Four came from reading a component's contract, and one from counting the manifest.
 
 **Row-level controls carry no row identity** (V6 row 23, now W16). Found by counting duplicate accessible names per screen in the manifest. On the candidate list **100 of 163 interactive controls, 61%, share a name with nineteen others**: `1 star`, `2 stars`, `3 stars`, `Edit` and `Select row`, each twenty times. Verified in `Table.tsx:268`, `StarGrade.tsx:31` and `ApplicationPipeline.tsx:428`. It compounds row 5: with the header checkbox reporting the wrong state *and* no row distinguishable by name, the selection mechanism is unusable non-visually.
 
 **Error and validation presentation** (V6 row 14, previously the audit's only pending row). It did not need pass 3. `Input` and `Select` each accept `error?: string` and render a `.field-error-text` span that `controls.css` styles and `motion.css` animates, and **no call site of the 149 passes it**. Errors surface form-level under four class names, `field-error-text` 22, `rq-error` 16, `form-error` 7, `settings-error` 1. `aria-invalid` appears **0** times, `noValidate` **0** times, and of the five `role="alert"` uses only LoginPage's is a form error, so **45 of 46 error messages are announced to no one**. That moved it from rank 7 to rank 5 in V8.
+
+**Twelve routes set no document title** (V6 row 24, now W17). [WCAG 2.4.2 Page Titled](https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html) is **Level A** and its Understanding document says a single-page application must change the title per view. `useDocumentTitle` exists and `ListPage` and `RecordPage` call it across 17 files; `DashboardPage`, `GlobalSearchPage`, both intake importers, `ModulePlaceholderPage`, both `path="*"` stubs and `LoginPage` call nothing, so 12 of 31 routes plus `/login` all read `VentVest Front Office OS`.
+
+**Sortable column headers are mouse-only** (V6 row 25, now W4). `Table.tsx:212` gives a sortable `<th>` an `onClick` and no `tabIndex`, no inner `<button>` and no `onKeyDown`, while `aria-sort` at line 217 is set correctly, so a screen-reader user is told a column is sorted and cannot change it. [WCAG 2.1.1](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html) is **Level A**. The reason this is well evidenced rather than arguable: line 249 of the same file gives every `<tr>` a correct roving `tabIndex` with `onKeyDown` and `onFocus`. Keyboard support was implemented for rows and skipped for headers, twenty lines apart.
+
+**Five dialogs assert an inertness none of them enforces** (V6 row 26, now W18). `IdleSignOut`, `Placeholder`, `recruit/Dialog`, `sales/Modal` and `intake/Drawer` all set `aria-modal="true"`. Grep for `activeElement`, `trapFocus` or `focusTrap` across `app/src` returns nothing, and three of the five lack `autoFocus`. The [APG](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) warns the attribute should be set only when application code prevents external interaction, because misuse "can prevent users of some assistive technologies from perceiving content outside the dialog". So this is worse than incomplete: the page behind is announced as inert while Tab still reaches it. It is row 16's contradiction one level more serious, and the three module dialogs at 43, 40 and 39 lines are the same component written three times because ESLint forbids cross-module imports and `components/ui/` holds no dialog.
+
+## Seven things checked and found correct
+
+Recorded because two of them I had written up as findings first, and an audit that only lists defects is not an audit.
+
+| Checked | Verdict |
+| :---- | :---- |
+| Field labelling | Correct. All 95 `<Input` and 53 of 54 `<Select` pass a label. One real case, `SheetImportPage.tsx:236` |
+| `autocomplete` on 93 fields | **Correct by omission.** WCAG 1.3.5 covers fields about *the user*; every other field here holds candidate or company data, where autofill would offer the recruiter's own details for a candidate's record. The two that exist, `email` and `current-password` on `LoginPage`, are exactly the two that should |
+| WCAG 2.5.8 on the pager arrows | Conforms, by the spacing exception at 30px between centres |
+| `prefers-reduced-motion` | Handled at `motion.css:267`, guarded by `scripts/check-motion.mjs` |
+| `lang` attribute | Set, `lang="en"` in `index.html` |
+| `aria-sort` | Implemented correctly; the header's keyboard access is the defect, not the announcement |
+| `aria-modal` | Present on all five dialogs; the behaviour it asserts is what is missing |
 
 ## Three gaps in the harness itself, beyond V2's six
 
