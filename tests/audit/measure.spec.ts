@@ -77,6 +77,21 @@ test('measure: control geometry and density', async ({ page }) => {
       await guardWrites(page, route.id);
       await gotoAsSignedIn(page, path);
       await settle(page, 900);
+      try {
+        await page.waitForLoadState('networkidle', { timeout: 6000 });
+      } catch {
+        void 0;
+      }
+      await settle(page, 1200);
+      const settledHeight = async () =>
+        page.evaluate(() => (document.querySelector('.shell-content') ?? document.documentElement).scrollHeight);
+      let h1 = await settledHeight();
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        await page.waitForTimeout(700);
+        const h2 = await settledHeight();
+        if (h2 === h1) break;
+        h1 = h2;
+      }
 
       const measured = await page.evaluate(() => {
         const visible = (el: Element) => {
