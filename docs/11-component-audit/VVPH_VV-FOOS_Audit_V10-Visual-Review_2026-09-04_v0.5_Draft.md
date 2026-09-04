@@ -51,6 +51,16 @@ Worth recording where a screen is right, because the audit is meant to produce a
 25. **The candidate count column uses a filled green pill**, `4`, `0`, `44`, `65`, next to a small person glyph. A zero rendered as a green pill reads as a positive state when it means the requisition has nobody in it, which is the one thing on this screen worth questioning.
 26. **The table overflows horizontally at 1440px.** `Company` is cut mid-word at the right edge, "Aster Analyti", "Birchwood L", "Corvid Syste", so there is a horizontal scroll on a 1440-wide viewport. The architecture requires wide content to scroll inside its own container rather than the page, and what this shows is that the column set is wider than the space at the standard desktop width.
 
+## The new requisition form: the height mismatch in a grid
+
+The clearest instance in the product, because a form grid puts the mismatched controls in aligned columns where the eye compares them directly.
+
+27. **Column three is taller than columns one and two, on every row.** Row one is `Title` (text input), `Job code` (text input), `Company` (**native select**). Row two is `Location` (text), `Employment type` (**select**), `Openings` (number). Row three is `Budget status` (**select**), `Reason for opening` (**select**), `Opened date` (**date, with the browser's calendar glyph**). The selects and the date carry the browser's own control furniture and sit taller than the plain text inputs they are aligned with *(eyeballed; V9's measurement gives select 36px against input 24)*. **This is the screen to put in front of anyone who asks why the height scale matters.**
+28. **The required asterisk is placed inconsistently.** `Requisition Owners` renders it **before** the label, `* Requisition Owners`, while `Title *` and `Openings *` render it **after**. Two conventions in one form.
+29. **A placeholder is used as a format hint.** `Job code` shows `<Client>-<n>, e.g. Acme-3` as placeholder text, which disappears the moment the user types, exactly when the format matters most. NN/g is explicit that a placeholder is not a label ([nngroup.com/articles/form-design-placeholders](https://www.nngroup.com/articles/form-design-placeholders/)), and GOV.UK mandates hint text between the label and the input for this purpose.
+30. **`Save`, `Cancel` and `Reset` sit above the form**, not below it, with `Save` filled and the other two outlined. `Reset` discards everything the user has typed and sits immediately beside `Cancel`, which discards everything and leaves. Two adjacent, near-identically styled controls with different destructive outcomes is the proximity problem again, and here without the redundant visual signal that `Erase…` has on the record page.
+31. **Requisition Owners is a bordered box of four native checkboxes** at 13 by 13, which is the unsized case from V9 rather than the 18px table case, and it is a required field.
+
 ## Measured from the corpus, not eyeballed
 
 These come from the capture manifest rather than from looking, so they are numbers rather than impressions.
