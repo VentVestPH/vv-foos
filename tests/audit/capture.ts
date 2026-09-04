@@ -152,6 +152,19 @@ export async function settle(page: Page, ms = 250): Promise<void> {
   await waitForAnimations(page, 1500);
 }
 
+export async function markExistingOverlays(page: Page): Promise<void> {
+  await page.evaluate((sel) => {
+    for (const el of Array.from(document.querySelectorAll(sel))) el.setAttribute('data-ov', 'pre');
+  }, '[role=\"dialog\"], [role=\"menu\"], [role=\"listbox\"], [role=\"alertdialog\"], dialog[open], .fo-placeholder-modal, .fo-placeholder-overlay, .fo-utility-menu, .fo-sidebar-panel, .filter-rail, .rq-dialog, .intake-drawer-overlay, .intake-inline-panel, .intake-reject-panel, .dash-widgets-panel, .panel-form, .fo-toast, .toast');
+}
+
+export function newOverlaySelector(): string {
+  return '[role=\"dialog\"], [role=\"menu\"], [role=\"listbox\"], [role=\"alertdialog\"], dialog[open], .fo-placeholder-modal, .fo-placeholder-overlay, .fo-utility-menu, .fo-sidebar-panel, .filter-rail, .rq-dialog, .intake-drawer-overlay, .intake-inline-panel, .intake-reject-panel, .dash-widgets-panel, .panel-form, .fo-toast, .toast'
+    .split(', ')
+    .map((s) => `${s}:not([data-ov="pre"])`)
+    .join(', ');
+}
+
 export async function overlayFingerprint(page: Page): Promise<string> {
   return page.evaluate(() => {
     const nodes = document.querySelectorAll(

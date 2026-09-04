@@ -5,6 +5,8 @@ import {
   blockedWrites,
   flush,
   guardWrites,
+  markExistingOverlays,
+  newOverlaySelector,
   note,
   overlayFingerprint,
   settle,
@@ -218,6 +220,7 @@ test('sweep: every interactive element, every state', async ({ page }) => {
           continue;
         }
         const before = await overlayFingerprint(page);
+        await markExistingOverlays(page);
         const urlBefore = page.url();
         try {
           await el.scrollIntoViewIfNeeded({ timeout: 2500 });
@@ -238,10 +241,14 @@ test('sweep: every interactive element, every state', async ({ page }) => {
         } else if (after !== before) {
           openers += 1;
           await shootScreen(page, route.id, viewport.name, `opened-by-${d.name}`);
-          const overlay = page
-            .locator('[role="dialog"], [role="menu"], [role="listbox"], [role="alertdialog"], dialog[open], .fo-placeholder-modal, .fo-placeholder-overlay, .fo-utility-menu, .fo-sidebar-panel, .filter-rail, .rq-dialog, .intake-drawer-overlay, .intake-inline-panel, .intake-reject-panel, .dash-widgets-panel, .panel-form, .fo-toast, .toast')
-            .last();
-          await shootElement(page, overlay, route.id, viewport.name, 'overlay', 'overlay', 'open', d.name);
+          const fresh = page.locator(newOverlaySelector());
+          const freshCount = await fresh.count();
+          if (freshCount === 0) {
+            note(`${route.id} ${viewport.name}: "${d.name}" changed the overlay set but no new overlay node appeared, so only the screen was captured`);
+          }
+          for (let k = 0; k < Math.min(freshCount, 3); k += 1) {
+            await shootElement(page, fresh.nth(k), route.id, viewport.name, 'overlay', 'overlay', 'open', d.name);
+          }
           await page.keyboard.press('Escape');
         } else {
           await shootScreen(page, route.id, viewport.name, `clicked-${d.name}`, 'no overlay and no navigation: the click changed state in place or did nothing');
