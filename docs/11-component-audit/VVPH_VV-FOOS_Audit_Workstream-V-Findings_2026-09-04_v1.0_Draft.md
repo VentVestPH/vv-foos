@@ -13,7 +13,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | Item | Document | State |
 | :---- | :---- | :---- |
 | V1 | `Audit_V1-Component-Inventory` | 1.1, passes 1 and 2 coverage; four areas final at 7,104 captures, three being re-swept after harness defect 10 |
-| V2 | `Audit_V2-Capture-Harness` | 1.2, including the ten defects the harness had, seven of which would have failed silently |
+| V2 | `Audit_V2-Capture-Harness` | **1.3**, including the eleven defects the harness had, seven of which would have failed silently |
 | V3 | `Audit_V3-Browser-Defaults` | done |
 | V4 | `Audit_V4-ARIA-Contracts` | done, read from w3.org |
 | V5 | `Audit_V5-Taleo-Comparison` | done, and it corrects two stale findings in the 2026-09-01 fidelity audit |
