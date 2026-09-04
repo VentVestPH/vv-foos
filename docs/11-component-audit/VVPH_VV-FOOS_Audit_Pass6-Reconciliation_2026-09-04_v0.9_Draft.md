@@ -78,7 +78,7 @@ Recorded because two of them I had written up as findings first, and an audit th
 | `aria-sort` | Implemented correctly; the header's keyboard access is the defect, not the announcement |
 | `aria-modal` | Present on all five dialogs; the behaviour it asserts is what is missing |
 | **`KanbanBoard`'s drag interaction** | **Correct, and the best-implemented interaction in the product.** See below |
-| A skip link, WCAG 2.4.1 Bypass Blocks, Level A | **Correct.** `AppShell.tsx:16` renders `Skip to main content` targeting `#main-content`, which is the `<main>` element carrying `tabIndex={-1}` so the target is programmatically focusable, and `widgets.css:209` moves it from `top: -100px` to `top: 4px` on `:focus`. Checked because a shell with 14 nav tabs and a sidebar is exactly where its absence would hurt |
+| A skip link, WCAG 2.4.1 Bypass Blocks, Level A | **Correct, and confirmed by the harness rather than only by reading.** `AppShell.tsx:16` renders `Skip to main content` targeting `#main-content`, which is the `<main>` element carrying `tabIndex={-1}` so the target is programmatically focusable, and `widgets.css:209` moves it from `top: -100px` to `top: 4px` on `:focus`. The sweep records `link "Skip to main content" would not hover` on **every screen**, which is the correct outcome: it is genuinely off-screen until focused, so a mouse cannot reach it and a keyboard can. Checked because a shell with 14 nav tabs and a sidebar is exactly where its absence would hurt |
 | `.visually-hidden` | Really defined, at `widgets.css:9`. The Kanban board's keyboard help and its live-region announcements depend on it, so an undefined class would have made them visible instead of available |
 | Star target size | **Meets 2.5.8 AA outright**, 24 x 24 across 63 captures, declared at `widgets.css:227`. What the star grade needs is the keyboard contract in row 27, not a size change |
 | The idle timeout, WCAG 2.2.1 Timing Adjustable, Level A | **Correct, and generously so.** See below |
@@ -190,6 +190,16 @@ Queried directly on the local stack at 10:49 on 2026-09-04, because two of them 
 **Nothing my specs created is still there.** `select count(*) from people where last_name like 'Probe%' or first_name = 'Zaudit'` returns **0**. That is the teardown rule holding across the export probe, the starvation spec and the pass 3 walkthrough, and it is also what explains the 72,920 above resolving back to 72,917.
 
 **The sweep produced no client-side crashes at all.** `client_errors` holds **0 rows** after roughly 12,000 captures across 31 routes at two viewports, which involved clicking every opener on every screen, filling every typeable field with an overflowing value, and forcing clicks on 51 `aria-disabled` buttons. That table is the one the gate checks, and an empty one after that much indiscriminate clicking is a real result rather than an absence of evidence: **the defects this audit found are contract and presentation defects, not stability defects.** Worth stating plainly, because a 28-row findings table invites the opposite impression.
+
+### The two note types the clean re-sweep still emits, and why both are correct
+
+Worth recording because a note that repeats on every screen looks like a defect and neither is.
+
+**`link "Skip to main content" would not hover`**, on all 31 screens. The skip link sits at `top: -100px` until focused, so Playwright genuinely cannot hover it. That is the acquittal above, measured rather than read.
+
+**`"Collapse sidebar" changed the overlay set but no new overlay node appeared`**, on every screen with a sidebar. `.fo-sidebar-panel` is in the harness's overlay selector, so collapsing the sidebar changes the overlay fingerprint without producing a new node. An artefact of that selector being deliberately broad, and the screen is still captured either way.
+
+After the fixes in V2, **those two are the only notes the sweep emits that are not a plain navigation record.** No capture failures, no vanished elements, no unclickable controls.
 
 ## What pass 6 still owes
 
