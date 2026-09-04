@@ -35,7 +35,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | 3 Use | the real tasks walked as their user | harness written, queued |
 | 4 References | judged against cited published sources | done, V4 and V11 |
 | 5 Measurement | heights, spacing, density in numbers | harness written, queued |
-| 6 Reconciliation | what the first five missed | **0.9**, source half done: 23 wrong claims corrected, 11 verified rows re-checked and all 11 held, 10 findings added, 20 acquittals recorded, 3 harness gaps closed. The measured half waits on the chain |
+| 6 Reconciliation | what the first five missed | **0.9**, source half done: 24 wrong claims corrected, 11 verified rows re-checked and all 11 held, 10 findings added, 20 acquittals recorded, 3 harness gaps closed. The measured half waits on the chain |
 
 ## The three things Klent actually complained about, and what each turned out to be
 

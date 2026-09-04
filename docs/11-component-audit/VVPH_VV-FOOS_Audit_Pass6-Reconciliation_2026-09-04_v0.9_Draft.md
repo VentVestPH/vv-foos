@@ -4,9 +4,9 @@ Version 0.9. Pass 6 asks what the first five passes got wrong. It is not a summa
 
 The method was to take each claim, find the file or the measurement it rests on, and check it there rather than against my note of it. That is slower than re-reading the documents and it is the only thing that found any of what follows.
 
-## Twenty-three claims of mine that failed re-checking
+## Twenty-four claims of mine that failed re-checking
 
-Every one is corrected in place in the document that carried it, with the wrong version left visible. Fourteen of the twenty-three were **corrected downward**, meaning the finding survived but smaller, two were withdrawn outright, and **one was corrected upward**: row 5 became the audit's only Blocks. Row 16's count was wrong three separate times, at 66, then 51, then finally 50 plus 11, which is the clearest single argument in this document for generating figures rather than typing them.
+Every one is corrected in place in the document that carried it, with the wrong version left visible. Fifteen of the twenty-four were **corrected downward**, meaning the finding survived but smaller, two were withdrawn outright, and **one was corrected upward**: row 5 became the audit's only Blocks. Row 16's count was wrong three separate times, at 66, then 51, then finally 50 plus 11, which is the clearest single argument in this document for generating figures rather than typing them.
 
 | # | What I wrote | What is true | Where it was |
 | ----: | :---- | :---- | :---- |
@@ -33,6 +33,7 @@ Every one is corrected in place in the document that carried it, with the wrong 
 | 21 | "Six buttons change their label during a long operation" | **Seven.** `LoginPage.tsx:94` renders `{busy ? 'Signing in…' : 'Sign in with email'}`, found while verifying my own spec's selectors against the login markup | V6 row 30 |
 | 22 | "51 rendered `<PlaceholderAction` call sites" | **50.** `grep -c` counts matching *lines*, and `DashboardPage.tsx:195` holds `<PlaceholderActionGear />`, a **hand-rolled local copy of the entire placeholder pattern** defined at line 203 with its own `aria-label`, its own bare `aria-disabled` and its own `show(...)` call. So the corrected count was itself an artefact of a different counting method, and finding it also found a duplicated component |
 | 23 | "11 `show(...)` calls open the same dialog from buttons that are *not* `aria-disabled`, so the pattern is inconsistent across 62 actions" | **10 of the 11 are `aria-disabled`.** Exactly one placeholder action in the product is not: `CandidateRecordPage.tsx:290`, the `Flag` button. The real figure is **61 actions, 60 carrying `aria-disabled`**, so the pattern is nearly uniform and I had described it as inconsistent |
+| 24 | "No radio was captured because the harness is one level deep and all five live inside dialogs" | **The dialogs were swept and still produced no radio.** The interior pass opened `Merge another candidate record into this one` by name. All five radios are **conditional on data**: one per duplicate match, two once rows are selected, two once the intake queue has a row, and `intake_items` holds 0. Not a harness gap at all |
 
 **What survived intact.** Eleven V6 rows I had marked "verified in source" were re-checked against the files: 4, 5, 7, 13, 15, 17, 18, 19, 20, 21 and 22. All eleven hold.
 
