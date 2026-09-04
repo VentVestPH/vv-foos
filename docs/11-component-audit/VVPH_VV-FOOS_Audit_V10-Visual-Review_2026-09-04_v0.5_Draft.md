@@ -21,6 +21,33 @@ The first screen a recruiter sees every morning. What is actually on it:
 8. **The title wraps to two lines and "Switch to My Dashboard" then takes a third**, right-aligned and alone.
 9. **A window chip sits at the bottom**, "My View: John Buena (Admin at VentVest) ×", taking a row of the viewport on the smallest screen. It is Taleo-faithful, and it is also the least useful row on a phone.
 
+## Measured from the corpus, not eyeballed
+
+These come from the capture manifest rather than from looking, so they are numbers rather than impressions.
+
+### A fifth of the controls on the landing screen do nothing
+
+Across the three dashboard tabs, **31 of 144 controls are disabled**: 113 captured in a default state, 31 captured as disabled. On `/` alone there are **16**, including *31-day view*, *7-day view*, *Agenda view*, *Advanced Search*, *Announcements* and *Configure Recently Viewed*.
+
+Three of those are the calendar's own view switchers, so the one panel on the screen carrying real information has three dead controls attached to it.
+
+This is Taleo-faithful in the sense that Taleo has those controls, and it is a usability problem regardless: a disabled control with no explanation tells the user their expectation was reasonable and then refuses, which is worse than the control being absent. `CLAUDE.md` already prescribes the alternative for exactly this case, `shell/TaleoPlaceholder.tsx`, which is used in 18 files and says plainly that the feature is not built yet. **The finding is not "these should work", it is that 31 controls chose `disabled` where the project's own convention is a placeholder that explains itself.** Which of the two each control should use is Klent's call; being silently inconsistent is not.
+
+### Two controls fail the WCAG minimum target size
+
+| Control | Rendered | WCAG 2.5.8 needs |
+| :---- | ----: | ----: |
+| "Remove bookmark" × on the window chip | **20 x 16px** | 24 x 24 |
+| The window chip itself | 258 x **19px** | 24 x 24 |
+
+[WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) is a AA criterion requiring 24 by 24 CSS pixels, with a spacing exception. Both of these sit in the bottom window-chip bar, adjacent to each other, so the spacing exception is unlikely to save them and would need to be demonstrated rather than assumed.
+
+### The focus ring, which is the worst thing in this document
+
+Recorded in full as W15. The ring is `outline: 2px solid var(--fo-primary)` at `#3679b5`, and against the primary nav's `#427d98` that is **1.01:1** where WCAG 1.4.11 requires 3:1. A keyboard user has no visible position across all 14 nav tabs, the sidebar panel headers, the Logout button, or any hovered primary button. `check-contrast.mjs` tests the ring against the white page surface only, where it passes at 4.61:1, so the gate is green.
+
+Two things made this findable rather than missable. Looking at a capture and not believing it, then checking the CSS. And discovering that `:focus-visible` does not match a programmatic `.focus()`, which meant my own harness was showing no ring on anything: without that fix this would have been written up as "no focus ring anywhere", which is both wrong and unactionable.
+
 ## What this already tells W
 
 - The density work is not mainly about padding. It is about **panels that keep their full chrome when they have nothing in them**, which is a component behaviour, not a spacing token. That reframes W10: the empty-state component and the density work are the same job.
