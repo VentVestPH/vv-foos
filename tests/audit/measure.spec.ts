@@ -1,0 +1,249 @@
+import { test } from '@playwright/test';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../e2e/helpers';
+import { ROUTES, VIEWPORTS, resolveIds, resolvePath } from './routes';
+import { CORPUS, guardWrites, settle } from './capture';
+
+interface ControlMetric {
+  screen: string;
+  viewport: string;
+  kind: string;
+  variant: string;
+  name: string;
+  height: number;
+  width: number;
+  fontSize: string;
+  lineHeight: string;
+  paddingTop: string;
+  paddingBottom: string;
+  borderTop: string;
+  boxSizing: string;
+  container: string;
+  x: number;
+  y: number;
+}
+
+interface DensityMetric {
+  screen: string;
+  viewport: string;
+  scrollHeight: number;
+  clientHeight: number;
+  screens: number;
+  emptyPx: number;
+  emptyShare: number;
+  largestGapPx: number;
+  largestGapAfter: string;
+  labelToControl: number[];
+  controlToControl: number[];
+  rowHeight: number | null;
+  rowControlHeight: number | null;
+}
+
+test('measure: control geometry and density', async ({ page }) => {
+  test.setTimeout(0);
+  const ids = await resolveIds();
+  const controls: ControlMetric[] = [];
+  const density: DensityMetric[] = [];
+
+  await signIn(page, PERSONA_EMAILS.admin);
+
+  for (const viewport of VIEWPORTS) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    for (const route of ROUTES) {
+      const path = resolvePath(route, ids);
+      if (path === null) continue;
+      await guardWrites(page, route.id);
+      await gotoAsSignedIn(page, path);
+      await settle(page, 900);
+
+      const measured = await page.evaluate(() => {
+        const visible = (el: Element) => {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return r.width > 1 && r.height > 1 && cs.visibility !== 'hidden' && cs.display !== 'none';
+        };
+
+        const describe = (el: Element, kind: string) => {
+          const e = el as HTMLElement;
+          const r = e.getBoundingClientRect();
+          const cs = getComputedStyle(e);
+          const cls = e.className?.toString() ?? '';
+          const variant =
+            cls
+              .split(/\s+/)
+              .filter((c) => /^(btn|fo|input|field)/.test(c))
+              .slice(0, 3)
+              .join(' ') || kind;
+          let container = 'page';
+          if (e.closest('.fo-pager')) container = 'pager';
+          else if (e.closest('thead')) container = 'table-head';
+          else if (e.closest('tbody')) container = 'table-row';
+          else if (e.closest('.list-page-toolbar')) container = 'toolbar';
+          else if (e.closest('.fo-filter-rail, .fo-advanced-search')) container = 'filter-rail';
+          else if (e.closest('.record-section')) container = 'record-section';
+          else if (e.closest('.fo-utility-header, .fo-primary-nav-wrap')) container = 'shell-header';
+          else if (e.closest('.fo-sidebar')) container = 'sidebar';
+          else if (e.closest('[role="dialog"]')) container = 'dialog';
+          return {
+            kind,
+            variant,
+            name: (e.getAttribute('aria-label') ?? (e.innerText || '').trim().split('\n')[0] ?? '').slice(0, 40),
+            height: Math.round(r.height * 100) / 100,
+            width: Math.round(r.width),
+            fontSize: cs.fontSize,
+            lineHeight: cs.lineHeight,
+            paddingTop: cs.paddingTop,
+            paddingBottom: cs.paddingBottom,
+            borderTop: cs.borderTopWidth,
+            boxSizing: cs.boxSizing,
+            container,
+            x: Math.round(r.x),
+            y: Math.round(r.y),
+          };
+        };
+
+        const out: ReturnType<typeof describe>[] = [];
+        const groups: [string, string][] = [
+          ['button', 'button'],
+          ['select', 'select'],
+          ['textarea', 'textarea'],
+          ['input[type="text"], input:not([type])', 'input-text'],
+          ['input[type="search"]', 'input-search'],
+          ['input[type="date"]', 'input-date'],
+          ['input[type="datetime-local"]', 'input-datetime'],
+          ['input[type="number"]', 'input-number'],
+          ['input[type="email"]', 'input-email'],
+          ['input[type="checkbox"]', 'input-checkbox'],
+          ['input[type="radio"]', 'input-radio'],
+          ['input[type="file"]', 'input-file'],
+          ['.badge', 'badge'],
+          ['.link-btn', 'link-btn'],
+          ['a.btn, .btn', 'btn-class'],
+        ];
+        for (const [sel, kind] of groups) {
+          for (const el of Array.from(document.querySelectorAll(sel))) {
+            if (!visible(el)) continue;
+            out.push(describe(el, kind));
+          }
+        }
+
+        const scroller = document.querySelector('.shell-content') as HTMLElement | null;
+        const root = scroller ?? document.documentElement;
+
+        const blocks = Array.from(root.querySelectorAll('*')).filter((el) => {
+          const cs = getComputedStyle(el);
+          const r = el.getBoundingClientRect();
+          return (
+            r.height > 8 &&
+            r.width > 40 &&
+            cs.display !== 'inline' &&
+            (el.children.length === 0 || (el as HTMLElement).innerText?.trim().length > 0)
+          );
+        });
+        const spans = blocks
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            return { top: r.top, bottom: r.bottom, tag: el.tagName + '.' + (el.className?.toString().split(' ')[0] ?? '') };
+          })
+          .sort((a, b) => a.top - b.top);
+
+        let covered = 0;
+        let cursor = -Infinity;
+        let largestGap = 0;
+        let largestGapAfter = '';
+        let prevTag = 'start';
+        for (const s of spans) {
+          if (s.top > cursor) {
+            const gap = s.top - (cursor === -Infinity ? s.top : cursor);
+            if (gap > largestGap) {
+              largestGap = gap;
+              largestGapAfter = prevTag;
+            }
+            covered += s.bottom - s.top;
+            cursor = s.bottom;
+          } else if (s.bottom > cursor) {
+            covered += s.bottom - cursor;
+            cursor = s.bottom;
+          }
+          prevTag = s.tag;
+        }
+
+        const labelGaps: number[] = [];
+        for (const label of Array.from(document.querySelectorAll('label'))) {
+          const control =
+            label.parentElement?.querySelector('input, select, textarea') ??
+            document.getElementById(label.getAttribute('for') ?? '');
+          if (control === null || !visible(label) || !visible(control)) continue;
+          const lr = label.getBoundingClientRect();
+          const cr = control.getBoundingClientRect();
+          if (cr.top >= lr.bottom) labelGaps.push(Math.round(cr.top - lr.bottom));
+        }
+
+        const fieldGaps: number[] = [];
+        const fields = Array.from(document.querySelectorAll('.field')).filter(visible);
+        for (let i = 1; i < fields.length; i += 1) {
+          const a = fields[i - 1].getBoundingClientRect();
+          const b = fields[i].getBoundingClientRect();
+          if (b.top >= a.bottom && Math.abs(b.x - a.x) < 4) fieldGaps.push(Math.round(b.top - a.bottom));
+        }
+
+        const firstRow = document.querySelector('tbody tr:not(:has(td[colspan]))');
+        const rowHeight = firstRow ? Math.round(firstRow.getBoundingClientRect().height) : null;
+        const rowControl = firstRow?.querySelector('button, input, select, .link-btn');
+        const rowControlHeight = rowControl ? Math.round(rowControl.getBoundingClientRect().height) : null;
+
+        return {
+          controls: out,
+          scrollHeight: root.scrollHeight,
+          clientHeight: root.clientHeight,
+          coveredPx: Math.round(covered),
+          largestGapPx: Math.round(largestGap),
+          largestGapAfter,
+          labelGaps,
+          fieldGaps,
+          rowHeight,
+          rowControlHeight,
+        };
+      });
+
+      for (const c of measured.controls) {
+        controls.push({ screen: route.id, viewport: viewport.name, ...c });
+      }
+      const empty = Math.max(0, measured.scrollHeight - measured.coveredPx);
+      density.push({
+        screen: route.id,
+        viewport: viewport.name,
+        scrollHeight: measured.scrollHeight,
+        clientHeight: measured.clientHeight,
+        screens: Number((measured.scrollHeight / Math.max(1, measured.clientHeight)).toFixed(2)),
+        emptyPx: empty,
+        emptyShare: Number((empty / Math.max(1, measured.scrollHeight)).toFixed(3)),
+        largestGapPx: measured.largestGapPx,
+        largestGapAfter: measured.largestGapAfter,
+        labelToControl: measured.labelGaps,
+        controlToControl: measured.fieldGaps,
+        rowHeight: measured.rowHeight,
+        rowControlHeight: measured.rowControlHeight,
+      });
+
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
+    }
+  }
+
+  mkdirSync(CORPUS, { recursive: true });
+  writeFileSync(join(CORPUS, 'measure-controls.json'), JSON.stringify(controls, null, 2));
+  writeFileSync(join(CORPUS, 'measure-density.json'), JSON.stringify(density, null, 2));
+
+  const heights = new Map<string, Set<number>>();
+  for (const c of controls) {
+    if (c.viewport !== 'desktop') continue;
+    const key = c.kind;
+    if (!heights.has(key)) heights.set(key, new Set());
+    heights.get(key)!.add(Math.round(c.height));
+  }
+  console.log(`MEASURE controls=${controls.length} screens=${density.length}`);
+  for (const [kind, set] of [...heights.entries()].sort()) {
+    console.log(`MEASURE HEIGHTS ${kind}: ${[...set].sort((a, b) => a - b).join(', ')}`);
+  }
+});
