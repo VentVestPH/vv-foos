@@ -40,7 +40,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 4. **Nothing declares a control height.** Eight rendered button heights on two areas alone, a 28px spread, with a select at 36px sharing forms with inputs at 24px.
 5. **Density is a component behaviour, not a spacing token.** Panels keep their full chrome when empty, which is the mechanism behind the 47% empty home page the fidelity audit already called the single most visible departure from Taleo.
 6. **`aria-disabled` on 66 controls that respond** gives screen-reader and sighted users different products.
-7. **`Table` has no loading state and no list announces its results**, so a screen-reader user is told "No candidates match." while the query runs and never told it finished.
+7. **`Table` has no loading state, and the pager announces the page position rather than the result count.** Corrected on 2026-09-04: I had written that no list announces anything, and `Pager` does have an `aria-live` region. It is on `.fo-pager-pos` ("1 / 3646"), not on `.fo-pager-count` ("1-20 of 72,920"), and it renders only when there is more than one page. So a filter narrowing 72,920 rows to 3 announces nothing, and a screen-reader user is told "No candidates match." while the query runs and never told it finished.
 
 ## What this audit does not know
 
