@@ -1,6 +1,6 @@
 # V13: density and wasted vertical space
 
-Version 0.4. **The mechanism is established and the numbers are not yet in.** `measure.spec.ts` is queued behind the recruit re-sweep; this document holds the method, what is already known from source, and the shape of the answer, so that only figures are missing.
+Version 1.0. **The mechanism is established and the numbers are in.** `measure.spec.ts` is queued behind the recruit re-sweep; this document holds the method, what is already known from source, and the shape of the answer, so that only figures are missing.
 
 Klent, 2026-09-04: "taleo is still the standard, but i can see ugly designs with huge spaces and what not. i want that change."
 
@@ -47,6 +47,60 @@ Three facts from source and from the earlier audits, all independent of the pend
 **Section defaults are already explicit and already used.** `RecordSection` accepts `defaultOpen` and **26 of its 76 call sites pass it**, so eight of the seventeen sections on the candidate record are closed at load by deliberate choice. The mechanism for the paragraph above therefore exists and is in service; what is left is one default, which is the parked T3a decision.
 
 **Empty panels keep their full chrome.** This is the mechanism behind the fidelity audit's F6, which called the home page's **47% empty viewport** "the single most visible departure from feels like Taleo". A panel with nothing in it still renders its header, its body padding and a one-line message, and three of them stack on the home page. That is a component behaviour, not a spacing value, which is why V6 row 3 files it under density rather than under the height scale.
+
+## Measured, at 1440x900, with `.shell-content` as the scroller
+
+The empty share is the fraction of the page's scroll height that no leaf element covers. It is measured after the page height stops changing, polled every 700ms until two reads agree, because a record page fetches its sections separately.
+
+| Screen | Content | Viewports | Empty px | **Empty share** | Largest single gap |
+| :---- | ----: | ----: | ----: | ----: | ----: |
+| `not-found`, `not-found-intake` | 752px | 1 | 734px | **97.6%** | 0px |
+| `global-search` | 752px | 1 | 659px | **87.6%** | 32px |
+| `placeholder-onboard` | 752px | 1 | 607px | **80.7%** | 41px |
+| `placeholder-courses` | 752px | 1 | 540px | **71.8%** | 32px |
+| `placeholder-employees`, `placeholder-users` | 752px | 1 | 533px | **70.9%** | 32px |
+| `dashboard-my-view` | 985px | 1.31 | 572px | **58.1%** | 61px |
+| `sales-company-new` | 752px | 1 | 423px | **56.3%** | 41px |
+| `recruit-candidate-record` | 3,241px | 4.31 | 1,795px | **55.4%** | 77px |
+| `dashboard-reports` | 878px | 1.17 | 423px | **48.2%** | 61px |
+| `recruit-requisition-new`, `recruit-requisition-edit` | 1,369px | 1.82 | 657px | **48.0%** | 67px |
+| `dashboard-pipeline` | 770px | 1.02 | 364px | **47.3%** | 61px |
+| `sales-company-record` | 1,052px | 1.4 | 485px | **46.1%** | 61px |
+| `recruit-requisition-record` | 3,333px | 4.43 | 1,292px | **38.8%** | 61px |
+| `settings` | 1,396px | 1.86 | 509px | **36.5%** | 64px |
+| `sales-deal-record` | 3,498px | 4.65 | 1,210px | **34.6%** | 47px |
+| `sales-companies` | 1,572px | 2.09 | 172px | **10.9%** | 33px |
+| `sales-contacts` | 1,674px | 2.23 | 172px | **10.3%** | 33px |
+| `recruit-candidates` | 2,058px | 2.74 | 222px | **10.8%** | 52px |
+| `recruit-requisitions` | 2,172px | 2.89 | 204px | **9.4%** | 49px |
+
+### The answer, and it is a clean split
+
+**The lists are dense and everything else is half empty.** The four list screens sit at **9.4% to 10.9%** empty. Every other screen in the product sits between **34.6% and 97.6%**. There is no middle: no screen lands between 11% and 34%.
+
+That reframes Klent's complaint precisely. He is not seeing a product with loose spacing throughout, because the screens carrying the most information are the tightest in it. **He is seeing the forms, the record pages, the dashboards and the placeholder modules**, and on those the majority of the page carries nothing.
+
+Four things follow.
+
+**The record page is not primarily a length problem, it is an emptiness problem.** The candidate record is 3,241px over 4.31 viewports, which is long, and **1,795px of it, 55.4%, is empty**. Shortening it by closing the timeline addresses the length; it does not address the fact that more than half of what remains is blank.
+
+**The fidelity audit's home-page figure was conservative.** It measured 47% empty on `/` at a 1600px viewport. Measured here at 1440x900 with the settled height, `dashboard-my-view` is **58.1%** empty. Independent method, same conclusion, larger number.
+
+**The placeholder modules are the emptiest real screens**, at 70.9% to 80.7%. They are `TaleoModulePlaceholderPage`, deliberately unbuilt, so this is expected rather than a defect, and it is worth stating so nobody spends W10 effort on them. The two not-found stubs at 97.6% are the same case.
+
+**No single gap explains any of it.** The largest gap on any screen is **77px**, on the candidate record, and most sit at 32 to 67px. So the emptiness is not one giant hole to close; it is accumulated across the 281 declarations counted above, which is exactly what the mechanism section predicted. **W10 has to work from this table rather than from a rule change.**
+
+### Spacing consistency, which is largely fine
+
+| Measure | Result |
+| :---- | :---- |
+| Label to control | **4px on ten of the eleven screens with labelled fields.** The exception is the requisition form, which has 4px **and 37px** |
+| Control to control | 16px on three sales forms, 8px on the candidate record and settings, and then outliers: **98px and 117px** on the requisition form, **194px and 341px** on the candidate record |
+| Table row height | 90, 73, 56, 56, 52, 45, 24px, against Carbon's 24/32/40/48/64 |
+
+**Label-to-control alignment is not a finding.** It is 4px almost everywhere, which closes V8 rank 11. The requisition form's second value, 37px, is the one inconsistency and it is one screen.
+
+**Control-to-control is where the record and requisition pages differ from everything else.** 194px and 341px between adjacent controls on the candidate record, and 98px and 117px on the requisition form, against 8px and 16px elsewhere. Those gaps are the measured form of the 55.4% and 48.0% empty shares, and they are the specific targets W10 should close.
 
 ## What this document needs to be final
 
