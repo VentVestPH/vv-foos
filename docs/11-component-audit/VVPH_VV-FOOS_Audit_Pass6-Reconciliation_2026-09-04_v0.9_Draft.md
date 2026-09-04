@@ -4,9 +4,9 @@ Version 0.9. Pass 6 asks what the first five passes got wrong. It is not a summa
 
 The method was to take each claim, find the file or the measurement it rests on, and check it there rather than against my note of it. That is slower than re-reading the documents and it is the only thing that found any of what follows.
 
-## Sixteen claims of mine that failed re-checking
+## Eighteen claims of mine that failed re-checking
 
-Every one is corrected in place in the document that carried it, with the wrong version left visible. Eleven of the sixteen were **corrected downward**, meaning the finding survived but smaller, and two were withdrawn outright.
+Every one is corrected in place in the document that carried it, with the wrong version left visible. Thirteen of the eighteen were **corrected downward**, meaning the finding survived but smaller, and two were withdrawn outright.
 
 | # | What I wrote | What is true | Where it was |
 | ----: | :---- | :---- | :---- |
@@ -26,6 +26,8 @@ Every one is corrected in place in the document that carried it, with the wrong 
 | 14 | "An unlabelled gear icon floats alone" | It carries `aria-label="Configure candidate list columns"` at `CandidateListPage.tsx:668`. It is *visually* unlabelled, with no adjacent text and no `title`, which is a real affordance gap and a different claim | V10 observation 4 |
 | 15 | "`Requisition Owner(s)` reads No owners on a filled requisition, while the list screen showed `Rita Demo (recruiter)`" | **Withdrawn.** Worth checking, because the two screens do read different sources: the list takes a denormalised `owner_names` from the `requisition_list` view, the record queries `requisition_owners`. Checked on the local stack and **zero of 690 requisitions disagree**. The explanation is the data: **9 owner rows exist across 690 requisitions**, so 681 have no owner at all, and I compared a record with none against a different requisition's row | V10 observation 38 |
 | 16 | "`Table` has no loading state at all" | It has `busy?: boolean`, rendering `aria-busy`, passed at **6 of 17** call sites. I had grepped `Table.tsx` for `loading`, `isLoading` and `pending` and the prop is called `busy`. The finding survives, smaller and more precise: `busy` does not gate the empty row, so all 17 tables still show "No records" during the first load, and neither recruit list passes it | V6 row 13 |
+| 17 | "All 17 tables show No records while loading" | **5 gate it correctly.** `emptyText={loading ? 'Loading…' : ...}` in `CompaniesListPage`, `ContactsListPage`, `DealsListPage`, `TicketsListPage` and `QueueListPage`. All five are sales or intake; recruit's three lists hard-code the empty text | V6 row 13 |
+| 18 | "A long operation's button label never changes, and no mechanism exists" | **Six change it.** `ListPage` renders `Exporting…`, and five sales pages render `Saving…`. Two more show separate text, `Exporting… N of M` and `Uploading…`. Five express `busy` as `disabled` and nothing more, and those five are in recruit, settings and intake. So it is the same shape as every other finding, not the exception I called it | V6 row 30 |
 
 **What survived intact.** Eleven V6 rows I had marked "verified in source" were re-checked against the files: 4, 5, 7, 13, 15, 17, 18, 19, 20, 21 and 22. All eleven hold.
 
@@ -121,7 +123,17 @@ This is the most transferable thing in the audit, and it took until pass 6 to se
 
 That changes what workstream W is. **Five of the findings are wiring, not building.** Nobody has to design an error presentation, a list-return contract, a title convention or a badge tone: those decisions were made and the code is in the repository. The work is passing a prop that already exists on 149 call sites, calling a hook that already exists on 12 routes, and replacing one raw class.
 
-**The exception proves the rule is worth stating.** Row 30, a long operation greying out its button with no label change, no spinner and no announcement, is the opposite case: `Button` has no loading prop, no spinner component exists in `app/src`, and there are no spinner keyframes among the fourteen layer files. That is a mechanism which does not exist rather than one that is not wired, and it is the only finding in the table of that kind. Knowing which of the two shape a finding has decides whether W connects something or designs something, and five of the six are connecting.
+**I claimed one exception to this pattern and there is none.** I wrote row 30 up as a mechanism that does not exist: a long operation greying out its button, with `Button` having no loading prop and no spinner anywhere in `app/src`. Checking the strings instead of the component found six buttons that change their own label during the operation and two more that render separate progress text. So row 30 is the same shape as the rest, and the pattern has no exception among the ten findings.
+
+**And the pattern has a boundary, which is the most actionable thing in this document.** Where the loading-feedback and progress patterns are used, they are used consistently, and where they are absent they are absent by module rather than at random:
+
+| Feedback | sales | intake | recruit |
+| :---- | :---- | :---- | :---- |
+| `emptyText` gated on `loading` | 4 of 4 lists | 1 of 1 | **0 of 3** |
+| `busy` passed to `Table` | 4 | 1 | **0** |
+| Button label changing to `Saving…` | 5 | 0 | **0** |
+
+Recruit is the ATS core and the highest-traffic module in the product, and it has none of the three. The CRM beside it has all of them. That reframes rows 13 and 30 from "FOOS lacks loading feedback" to **"the pattern is in the repository, working, and was never applied to recruit"**, which is a copy rather than a design, and it explains why my own screenshot review concluded there was no loading state at all: most of the screens I looked at were recruit.
 
 It also predicts where else to look, which is the useful part. The question to ask of any shared component in this codebase is not "does it support X" but **"how many call sites actually pass X"**, and that is a `grep` rather than an investigation. Two of pass 6's findings and two of its acquittals came from asking exactly that: counting `<Input` against `label=` acquitted 95 fields and convicted one, and counting `<PlaceholderAction` against `ariaDisabled={false}` established that all 51 carry the default.
 
