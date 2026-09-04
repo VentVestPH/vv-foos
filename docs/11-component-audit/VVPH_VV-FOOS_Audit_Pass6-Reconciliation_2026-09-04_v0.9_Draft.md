@@ -4,9 +4,9 @@ Version 0.9. Pass 6 asks what the first five passes got wrong. It is not a summa
 
 The method was to take each claim, find the file or the measurement it rests on, and check it there rather than against my note of it. That is slower than re-reading the documents and it is the only thing that found any of what follows.
 
-## Fifteen claims of mine that failed re-checking
+## Sixteen claims of mine that failed re-checking
 
-Every one is corrected in place in the document that carried it, with the wrong version left visible. Ten of the fifteen were **corrected downward**, meaning the finding survived but smaller, and two were withdrawn outright.
+Every one is corrected in place in the document that carried it, with the wrong version left visible. Eleven of the sixteen were **corrected downward**, meaning the finding survived but smaller, and two were withdrawn outright.
 
 | # | What I wrote | What is true | Where it was |
 | ----: | :---- | :---- | :---- |
@@ -25,6 +25,7 @@ Every one is corrected in place in the document that carried it, with the wrong 
 | 13 | Candidate record at "7,304px, 9.71 viewports" | Disputed against my own earlier T3 measurement of **5,979px in a 572px window**. They do not reconcile and neither window is the 900px this audit uses. Both recorded, neither quoted | V6 row 3, index |
 | 14 | "An unlabelled gear icon floats alone" | It carries `aria-label="Configure candidate list columns"` at `CandidateListPage.tsx:668`. It is *visually* unlabelled, with no adjacent text and no `title`, which is a real affordance gap and a different claim | V10 observation 4 |
 | 15 | "`Requisition Owner(s)` reads No owners on a filled requisition, while the list screen showed `Rita Demo (recruiter)`" | **Withdrawn.** Worth checking, because the two screens do read different sources: the list takes a denormalised `owner_names` from the `requisition_list` view, the record queries `requisition_owners`. Checked on the local stack and **zero of 690 requisitions disagree**. The explanation is the data: **9 owner rows exist across 690 requisitions**, so 681 have no owner at all, and I compared a record with none against a different requisition's row | V10 observation 38 |
+| 16 | "`Table` has no loading state at all" | It has `busy?: boolean`, rendering `aria-busy`, passed at **6 of 17** call sites. I had grepped `Table.tsx` for `loading`, `isLoading` and `pending` and the prop is called `busy`. The finding survives, smaller and more precise: `busy` does not gate the empty row, so all 17 tables still show "No records" during the first load, and neither recruit list passes it | V6 row 13 |
 
 **What survived intact.** Eleven V6 rows I had marked "verified in source" were re-checked against the files: 4, 5, 7, 13, 15, 17, 18, 19, 20, 21 and 22. All eleven hold.
 
@@ -98,7 +99,7 @@ And one guard defect: **`POST rpc/get_my_google_status` is a read**, because Pos
 
 This is the most transferable thing in the audit, and it took until pass 6 to see because each instance had been filed as its own row.
 
-**FOOS repeatedly builds the shared mechanism correctly and then does not wire it.** Four separate findings are the same shape:
+**FOOS repeatedly builds the shared mechanism correctly and then does not wire it.** Five separate findings are the same shape:
 
 | The mechanism, which exists and works | Call sites using it |
 | :---- | :---- |
@@ -106,8 +107,9 @@ This is the most transferable thing in the audit, and it took until pass 6 to se
 | `lib/listReturn.ts` gives `useListLink` to store the list URL and `useBackToList` to read it | **2 of 11** list-to-record paths |
 | `hooks/useDocumentTitle.ts` sets and reverts `document.title` | 17 files via `ListPage` and `RecordPage`, **not** the 12 routes using neither |
 | `components/ui/Badge.tsx` with six tones | 32 uses, and `RequisitionListPage.tsx:341` bypasses it with a raw `badge badge-success` class |
+| `Table` accepts `busy?: boolean` and renders `aria-busy` | **6 of 17**, and neither recruit list is among them. It also does not gate the empty row, so all 17 show "No records" while loading |
 
-That changes what workstream W is. **Four of the findings are wiring, not building.** Nobody has to design an error presentation, a list-return contract, a title convention or a badge tone: those decisions were made and the code is in the repository. The work is passing a prop that already exists on 149 call sites, calling a hook that already exists on 12 routes, and replacing one raw class.
+That changes what workstream W is. **Five of the findings are wiring, not building.** Nobody has to design an error presentation, a list-return contract, a title convention or a badge tone: those decisions were made and the code is in the repository. The work is passing a prop that already exists on 149 call sites, calling a hook that already exists on 12 routes, and replacing one raw class.
 
 It also predicts where else to look, which is the useful part. The question to ask of any shared component in this codebase is not "does it support X" but **"how many call sites actually pass X"**, and that is a `grep` rather than an investigation. Two of pass 6's findings and two of its acquittals came from asking exactly that: counting `<Input` against `label=` acquitted 95 fields and convicted one, and counting `<PlaceholderAction` against `ariaDisabled={false}` established that all 51 carry the default.
 
