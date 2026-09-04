@@ -20,7 +20,7 @@ The screenshot corpus is `audit/corpus/`, **gitignored**, because the screens re
 | V6, V12 | `Audit_V6-Audit-Table` | **2.6**, 34 rows, every one verified in source or measured, none pending, plus the things checked and found correct |
 | V7 | `Spec_V7-Select-Combobox`, `Spec_V7-Remaining-Replacements` | done |
 | V8 | `Audit_V8-Priority-Order` | **1.1**, one row rated Blocks at rank 1, plus a rank 0 cluster of Level A failures |
-| V9 | `Audit_V9-Control-Geometry` | **0.9**, measured: heights, computed styles and the 2.5.8 verdict are final; ring contrast, cursor and side-by-side recomputing |
+| V9 | `Audit_V9-Control-Geometry` | **1.0**, measured: heights, computed styles, row heights and the 2.5.8 verdict final; ring contrast, cursor and side-by-side recomputing |
 | V10 | `Audit_V10-Visual-Review` | 0.6, the looking half done with two more observations corrected, the task costs pending pass 3 |
 | V11 | `Audit_V11-Design-References` | done, with the "not published" answers kept |
 | V13 | `Audit_V13-Density` | 0.4, mechanism established and the three wrong approaches ruled out; numbers pending the measurement |

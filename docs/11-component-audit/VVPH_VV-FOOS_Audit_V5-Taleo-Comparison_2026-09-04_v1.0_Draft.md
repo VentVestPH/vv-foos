@@ -29,7 +29,7 @@ So the sprawl is not a fidelity trade at all. Tightening it moves *towards* Tale
 
 ## Row height has a defensible target already
 
-The fidelity audit did this arithmetic and it should be reused rather than redone. Carbon publishes five row sizes, 24 / 32 / 40 / 48 / 64, with 64 reserved for two-line content ([data-table/style](https://carbondesignsystem.com/components/data-table/style/)). Measured then: the candidate list at **69px exceeds Carbon's largest size entirely**, and the requisition list at 55px sits between the two largest.
+The fidelity audit did this arithmetic and it should be reused rather than redone. Carbon publishes five row sizes, 24 / 32 / 40 / 48 / 64, with 64 reserved for two-line content ([data-table/style](https://carbondesignsystem.com/components/data-table/style/)). Measured then: the candidate list at **69px exceeds Carbon's largest size entirely**, and the requisition list at 55px sits between the two largest. **Re-measured on 2026-09-04 they are 90px and 73px**, so both now exceed the 64px maximum and the gap has widened. The stylesheet did not change between those dates; the data did. Real imported names, grade comments and owner lists wrap where the earlier 83 rows of seed data did not, so the rows grew by 30% and 33% when 72,917 real candidates arrived. Row height here is a function of content, which means capping the wrapping columns is the lever and a fixed row height would clip.
 
 The audit's conclusion, which V9 and W1 should adopt: capping grade comments at two lines lands the candidate row near 64px, "which is what Carbon reserves that size for. This gives the decision a defensible target rather than a preference."
 

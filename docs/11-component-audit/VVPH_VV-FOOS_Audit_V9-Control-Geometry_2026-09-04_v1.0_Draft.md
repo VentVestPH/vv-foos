@@ -184,6 +184,27 @@ Every control under 24px on a side, with a 24px circle centred on it, against th
 
 Both fixes are the same one: give those controls 24px and the spacing exception stops mattering.
 
+### Table row height against the tallest control in the row
+
+| Screen | Row height | Tallest control in the row | Row height as a multiple |
+| :---- | ----: | ----: | ----: |
+| recruit-candidates | **90px** | 18px | **5.0x** |
+| recruit-requisitions | **73px** | 18px | **4.1x** |
+| sales-contacts | 56px | 34px | 1.6x |
+| sales-companies | 56px | 32px | 1.8x |
+| recruit-requisition-record | 56px | 16px | 3.5x |
+| settings | 52px | 30px | 1.7x |
+| sales-company-record | 45px | none | - |
+| dashboard-my-view | 24px | none | - |
+
+Carbon publishes five row sizes, **24 / 32 / 40 / 48 / 64**, with 64 reserved for two-line content ([data-table/style](https://carbondesignsystem.com/components/data-table/style/)).
+
+**The two recruit lists exceed Carbon's largest size outright**: 90px and 73px against a 64px maximum that is itself meant for two-line rows. The sales lists at 56px and settings at 52px sit between 48 and 64, off the scale but inside its range. The dashboard's 24px is exactly Carbon's smallest.
+
+**The multiple is the finding, not the height.** A candidate row is 90px tall and the tallest control inside it is an 18px checkbox, so **72px of that row is not a control**. The row is five times the height of the tallest thing in it, on the screen a recruiter spends the day in and the one carrying 72,917 records.
+
+**These figures are higher than the fidelity audit's, and the difference is the migration.** That audit measured 69px on the candidate list and 55px on the requisition list on 2026-09-01. The same screens now measure 90px and 73px. Nothing in the stylesheet changed between those dates; the data did. Real imported names, grade comments and owner lists wrap where 83 rows of seed data did not, so **the rows grew by 30% and 33% when 72,917 real candidates arrived**. That is worth stating plainly for W10: row height here is a function of content, so capping the wrapping columns is the lever, and a fixed row height would simply clip.
+
 ## What the full measurement still has to establish
 
 - The same distribution across recruit, sales, intake, settings and the placeholder pages, which hold every form and every table in the product.
