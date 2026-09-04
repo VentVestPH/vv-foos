@@ -1,6 +1,23 @@
 # V8: the order workstream W should build in
 
-Version 0.96. Rank 1 confirmed by measurement; its severity was raised to Costs and put back to Degrades the same day, see the rank 1 cell. Error presentation moved from rank 7 to rank 5 once it was verified from source rather than left to pass 3. The order follows V12's severity, then the number of screens a change reaches. It does **not** follow ease of implementation, which is why the cheapest item is not first.
+Version 1.0. A rank 0 cluster of Level A conformance failures now precedes the component order, on the evidence pass 6 added. Rank 1 confirmed by measurement; its severity was raised to Costs and put back to Degrades the same day, see the rank 1 cell. Error presentation moved from rank 7 to rank 5 once it was verified from source rather than left to pass 3. The order follows V12's severity, then the number of screens a change reaches. It does **not** follow ease of implementation, which is why the cheapest item is not first.
+
+## Rank 0: the Level A cluster, which should ship before anything else
+
+**This group did not exist when this document was first written, and it changes the answer.** Pass 6 found nine further findings by reading component contracts, and most of them are WCAG **Level A** failures that are each a handful of lines. Level A is the floor, not the target, and these are cheaper than any component in the order below.
+
+| Item | Criterion | Scope | Size |
+| :---- | :---- | :---- | :---- |
+| Sortable `<th>` has no `tabIndex` or `onKeyDown`, so sorting is mouse-only (row 25) | **2.1.1 Keyboard, A** | every sortable column in the product | one element, and `Table.tsx:249` already shows the pattern twenty lines away |
+| `CappedCell`, `BarList` bars, and the deal card are `onClick` on a `div` (row 31) | **2.1.1 Keyboard, A** | 5 truncated columns, every dashboard bar, the deals board | three elements |
+| 12 routes plus `/login` set no `document.title` (row 24) | **2.4.2 Page Titled, A** | 12 of 31 routes | 12 calls to a hook that already exists |
+| `ItemDrawer`'s two radios share no `name`, so arrow keys do nothing (row 29) | **2.1.1 / 4.1.2, A** | 1 group | one attribute |
+| No radio group has a group label; `fieldset` and `legend` appear nowhere (row 29) | **1.3.1 Info and Relationships, A** | 4 groups | four wrappers |
+| The bulk-select header renders a partial selection as unchecked and widens it on click (row 5) | 4.1.2 in spirit; a data-scope error in practice | `Table`, 17 uses | a handful of lines |
+
+**Why this goes first, against my own earlier ordering.** Rank 1 below is the control height scale, and it is still the right first *component* because it touches every other one. But it is a 363-usage change, and everything in this cluster is a few lines against a published, testable criterion. Shipping conformance failures behind a refactor means carrying them for the length of the refactor. The two do not compete: this cluster is a day, and it makes the rest of the workstream's testing easier because keyboard operation is a precondition for testing anything else by keyboard.
+
+**Not in this cluster, deliberately.** The 22px pager arrows **conform** to 2.5.8 by the spacing exception, and the star buttons meet it outright at 24 by 24. Neither should be resized on accessibility grounds. And the focus-ring contrast failure (row 11) is 1.4.11 at **AA**, not A, so it sits at rank 10 with W7 rather than here, even though it is the most visible of them.
 
 ## The order
 
