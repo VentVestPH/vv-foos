@@ -40,6 +40,17 @@ The screen a recruiter spends the day on, and the clearest single illustration o
 19. **`Country` reads `-1`**, the same migration artefact the list shows, here rendered as a value in a record rather than a cell.
 20. **The Recently Viewed rail is now full**, eight candidates deep, which is the same rail that was an empty void on the dashboard. So the left rail's emptiness is a first-session state, not a permanent one, and finding 3 should be read that way.
 
+## The requisition list, desktop, and what it does better
+
+Worth recording where a screen is right, because the audit is meant to produce a scale rather than a complaint list.
+
+21. **The bulk action bar shows three enabled controls, not seven disabled ones.** `Delete`, `Forms` and `Change status to…` are live. The candidate list's equivalent band holds seven greyed buttons and a gear. Two screens in the same product, two different answers to the same problem, and this is the better one.
+22. **A primary action sits in the title band**, `New requisition`, top right and filled. The candidate list has no create action at all, which is correct because candidates arrive through intake, but the asymmetry means the two lists teach different habits.
+23. **Rows are shorter here**, roughly 45 to 90px against the candidate list's 100 *(eyeballed)*, and the tall ones are tall for the same reason: `Title` wrapping to five lines on `VVPH-5 AU MELBOURNE BD Manager (Israel-connected)` and `Next Steps` wrapping to three. So row height is a wrapping problem on both lists, not a padding problem.
+24. **The unviewed badge does real work.** `4 Unviewed Candidates (4)` in red, against `Candidates (0)` in plain text for a draft. This is the count U1.3 fixed after it was computed from 1,000 of 14,008 applications, and it reads clearly.
+25. **The candidate count column uses a filled green pill**, `4`, `0`, `44`, `65`, next to a small person glyph. A zero rendered as a green pill reads as a positive state when it means the requisition has nobody in it, which is the one thing on this screen worth questioning.
+26. **The table overflows horizontally at 1440px.** `Company` is cut mid-word at the right edge, "Aster Analyti", "Birchwood L", "Corvid Syste", so there is a horizontal scroll on a 1440-wide viewport. The architecture requires wide content to scroll inside its own container rather than the page, and what this shows is that the column set is wider than the space at the standard desktop width.
+
 ## Measured from the corpus, not eyeballed
 
 These come from the capture manifest rather than from looking, so they are numbers rather than impressions.
