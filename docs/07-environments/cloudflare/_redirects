@@ -1,0 +1,25 @@
+# Deliberately empty of rules. Do not add the SPA catch-all here.
+#
+# Cloudflare Pages already does the SPA fallback, and does it correctly:
+#   "If your project does not include a top-level 404.html file, Pages assumes that you
+#    are deploying a single-page application. ... Pages' default single-page application
+#    behavior matches all incoming paths to the root (/), allowing you to capture URLs
+#    like /about or /help and respond to them from within your SPA."
+#   developers.cloudflare.com/pages/configuration/serving-pages/, read 2026-09-07
+# The build writes exactly one top-level HTML file, index.html, and no 404.html, so this
+# applies. Check with: find app/dist-redesign-2 -maxdepth 1 -name '*.html'
+#
+# The rule a Vercel port reaches for, "/* /index.html 200", is actively wrong here:
+#   "Redirects are always followed, regardless of whether or not an asset matches the
+#    incoming request."
+#   developers.cloudflare.com/pages/configuration/redirects/, read 2026-09-07
+# Vercel's rewrite source is /((?!assets/).*), a negative lookahead that excludes the
+# hashed bundle. _redirects has no lookahead, so /* would proxy every request for
+# /assets/index-<hash>.js to index.html and the app would serve HTML as JavaScript.
+#
+# Other facts from the same page, so nobody has to re-derive them:
+#   - 2,000 static and 100 dynamic rules, 2,100 combined, 1,000 characters per rule.
+#   - Order matters; the top-most rule for a source wins; static before dynamic.
+#   - 200 is supported, as "Proxying", relative URLs only. Other rewrite codes are not.
+#   - Only the first proxy applies: /a -> /b and /b -> /c does not make /a serve /c.
+#   - Redirects run before headers, so a request matching both lets the redirect win.

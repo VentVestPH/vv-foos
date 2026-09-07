@@ -27,8 +27,8 @@ The rule in mechanical terms:
 | 2 Dead-control verdicts | **DONE** 69377c6 |
 | 3 Information architecture | **DONE** e4a2b0e |
 | 4 Motion and polish | **DONE** f004088 |
-| 5 Execute the findings | **IN PROGRESS** |
-| 6 Hosting, X1 to X12 | **NOT STARTED** |
+| 5 Execute the findings | **DONE** 4d5c401, the last of 18 commits, from 2fed123 |
+| 6 Hosting, X1 to X12 | **IN PROGRESS** |
 
 **Never skip an issue, an error, or a failure.** When anything fails: read the code, form a hypothesis, test the hypothesis, fix the cause. Never retry and hope. Never route around it. Never pick a simpler path because it happens to pass. Never leave a failing check as "pre-existing" without first proving it is, and then fixing it anyway if it is in scope.
 

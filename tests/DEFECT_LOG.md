@@ -282,3 +282,39 @@ Error: a header plus one record per visible row; got 0 records for 3 rows
 - **The lesson:** a token pair that only ever meets on a conditionally-rendered element is invisible to a browser sweep. When axe finds one, the fix is the colour **and** a static pair, or the next data shape hides it again.
 - **Status:** closed.
 - **Closed date:** 2026-09-07
+
+---
+
+### QA-017: `check-cutover.mjs` guessed its target and guessed the live project, and followed redirects so it misreported a working function as missing
+
+- **Date found:** 2026-09-07, first real run of the script, at the start of Goal 6.
+- **Module/agent:** `scripts/check-cutover.mjs`, written by me earlier the same day
+- **Severity:** **High as a process defect**, low as an impact. It sent read-only traffic to production while a standing instruction said all work stays on the local stack. No writes happened and the `anon` role could not have made one, but the target selection was wrong by design rather than by accident.
+- **Verbatim, the evidence that identified it:** the response headers carried `sb-project-ref: mebfbbvrqdctamnzvbbs`, alongside `sb-error-code: NOT_FOUND` and `{"code":"NOT_FOUND","message":"Requested function was not found"}`.
+- **What it did to production:** one `select * from dash.vw_ats_funnel limit 1` through PostgREST as `anon`, which was refused with `permission denied for schema dash`, and one `OPTIONS` per function, eleven in total.
+- **Cause 1, the target.** The script read `SUPABASE_URL ?? VITE_SUPABASE_URL ?? FOOS_SUPABASE_URL`. There is no root `.env` in this checkout, so the second name won, and `app/.env` holds `VITE_SUPABASE_URL=https://mebfbbvrqdctamnzvbbs.supabase.co`. The fallback chain was ordered by convenience and put the live project ahead of the local one.
+- **Cause 2, the redirects.** `fetch` follows a 302 by default. `google-oauth-callback` answers `OPTIONS` with a 302, the redirect was followed to something that 404s, and the check reported the function absent. Locally `curl -X OPTIONS` returns 302 for the same function, which is how the two readings were told apart.
+- **Fix 1:** the target must be named. `CUTOVER_SUPABASE_URL` and `CUTOVER_SUPABASE_ANON_KEY`, or `--url=` and `--anon=`. The three older naming conventions are not read at all, and the live ref `mebfbbvrqdctamnzvbbs` is refused unless `--allow-live` is passed. This is the same shape as `migration/import.mjs` and `scripts/purge-zoho-import.mjs`, which refuse a non-local target unless told.
+- **Fix 2:** every fetch passes `redirect: 'manual'`, and a 404 is read further rather than taken at face value, because a deployed function is allowed to answer 404 itself. Absent only if the gateway says so: `sb-error-code: NOT_FOUND`, a `"code": "NOT_FOUND"` body, or the local runtime's plain `Function not found`.
+- **Proof, both directions:** `no-such-function` reads `gateway says absent`; `careers-status` reads `deployed, OPTIONS -> 204`. The refusals were proved too: no target exits 2 with the usage text, and the live ref exits 2 with the refusal.
+- **A real finding the wrong-project run produced, which is not a defect:** `careers-status` is genuinely not deployed to the live project, while `careers-page` and `google-oauth-callback` are. That matches the ledger, where everything from 2026-09-01 onwards exists locally and in git only.
+- **The lesson:** a fallback chain of environment variable names is a silent target selector. For anything that talks to a project, the target is an argument, not a default, and the dangerous value is refused rather than reached by falling through.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
+
+---
+
+### QA-018: the Cloudflare `_redirects` port would have served HTML in place of every JavaScript bundle
+
+- **Date found:** 2026-09-07, checking the port against Cloudflare's documentation before committing it, at the start of Goal 6.
+- **Module/agent:** `docs/07-environments/cloudflare/_redirects`, written by me the same day, plus the runbook paragraph that justified it
+- **Severity:** **High if it had shipped, zero as it stands.** The file has never been deployed; Cloudflare is not the host yet and X12 is undecided. Caught by reading the vendor's documentation rather than by a test, because nothing in this repository can test another host's routing.
+- **What it said:** the file held one rule, `/* /index.html 200`, and the runbook claimed "Cloudflare Pages serves an existing static file before consulting `_redirects`, so the whole rewrite is one line ... That is a simplification rather than a compromise: the same requests resolve the same way."
+- **Verbatim refutation, from `developers.cloudflare.com/pages/configuration/redirects/` read 2026-09-07:** `Redirects are always followed, regardless of whether or not an asset matches the incoming request.`
+- **Cause:** Vercel's rewrite source is `/((?!assets/).*)`, a negative lookahead that excludes the hashed bundle. `_redirects` supports splats and placeholders but no lookahead, so `/*` matches `/assets/index-<hash>.js` as well. Every bundle request would have been proxied to `index.html` and the browser would have received HTML with a JavaScript content type. The claim was not imprecise, it was the inverse of the documented behaviour, and it was asserted from recall rather than read.
+- **Fix, and there is no rule to write:** Pages does the SPA fallback itself. `If your project does not include a top-level 404.html file, Pages assumes that you are deploying a single-page application ... Pages' default single-page application behavior matches all incoming paths to the root (/)`, from `developers.cloudflare.com/pages/configuration/serving-pages/`. The precondition holds: `find app/dist-redesign-2 -maxdepth 1 -name '*.html'` returns only `index.html`, and there is no `404.html` in the output. `_redirects` now contains only comments, which Cloudflare supports, and they record why the catch-all must not come back.
+- **Two related differences found in the same read, both now handled in `_headers`:** Pages adds `Access-Control-Allow-Origin: *` to every static asset response by default where Vercel adds none, so the port now detaches it with `! Access-Control-Allow-Origin`; and a deep link answered by the SPA fallback keeps its own URL, so the `/index.html` `Cache-Control` rule does not match it and Cloudflare's `public, max-age=0, must-revalidate` default applies instead, which is equivalent.
+- **Measured against the documented limits:** `_headers` uses 4 rules of 100, longest line 500 characters of 2,000; `_redirects` uses 0 of 2,100.
+- **The lesson:** for a platform this repository cannot execute, no gate exists, so the vendor's own sentence is the only test available. "Serves the asset first" is a reasonable guess about a static host and it was wrong; the sentence that settles it took one fetch.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
