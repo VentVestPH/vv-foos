@@ -49,6 +49,8 @@ Derived from `supabase/config.toml` and from every `Deno.env.get` reachable from
 
 **Corrected 2026-09-07.** The first version of this table read only each function's own `index.ts` and therefore missed what `_shared/` reads on its behalf. `careers-page` and `careers-status` both import `_shared/careers-html.ts`, which reads `APP_PRIMARY_ORIGIN`, so two cells were short and the secrets table undercounted that variable's reach as five functions when it is eight. The `verify_jwt` column was checked against `config.toml` and is right: six blocks set it false, and the other five functions have no block, so they take the default of true.
 
+`_shared/` now holds two modules and only one of them touches configuration. `careers-html.ts` reads `APP_PRIMARY_ORIGIN`; `mime-header.ts`, added the same day for QA-006, reads nothing (`grep -c Deno.env` returns 0), which is why it can be unit-tested from vitest while `careers-html.ts` cannot. The three import edges are `careers-page` and `careers-status` to `careers-html.ts`, and `google-sync` to `mime-header.ts`. **No secret was added or removed**, so the table above and the count of ten still stand.
+
 | Function | `verify_jwt` | Secrets it reads |
 | :---- | :---- | :---- |
 | `careers-page` | **false** | `CAREERS_PUBLIC_ORIGIN`, `APP_PRIMARY_ORIGIN` (via `_shared/careers-html.ts`) |
@@ -65,7 +67,7 @@ Derived from `supabase/config.toml` and from every `Deno.env.get` reachable from
 
 **The two origin variables point at different hosts, and swapping them is the easy mistake.**
 
-- `CAREERS_PUBLIC_ORIGIN` is the origin the **careers pages are served from**, which is the Supabase Functions origin unless a custom domain fronts it. `careers-page/index.ts:320` falls back to `https://${url.host}`, and the hardcoded `https` is there because `req.url`'s scheme cannot be trusted behind Supabase's proxy. It builds the canonical URL, the sitemap and `robots.txt` from it, so a wrong value produces a site that indexes itself under a hostname that does not serve it.
+- `CAREERS_PUBLIC_ORIGIN` is the origin the **careers pages are served from**, which is the Supabase Functions origin unless a custom domain fronts it. **Two** functions fall back to `https://${url.host}` when it is unset, `careers-page/index.ts:320` and `careers-status/index.ts:29`, and the hardcoded `https` is in both because `req.url`'s scheme cannot be trusted behind Supabase's proxy. `CLAUDE.md` and the earlier draft of this section named only `careers-page`. It builds the canonical URL, the sitemap and `robots.txt` from it, so a wrong value produces a site that indexes itself under a hostname that does not serve it.
 - `APP_PRIMARY_ORIGIN` is the **frontend host's** origin, Vercel or Cloudflare. Five authenticated functions use it as their CORS allow-origin, so it has to match the origin the browser is on. `_shared/careers-html.ts:87` also uses it to build `${origin}/og-careers.png`, and `og-careers.png` is one of the 34 files the frontend build emits, so that link only resolves if this points at the frontend and not at Supabase.
 
 Setting both to the same value works for CORS and quietly breaks either the careers canonical URLs or the Open Graph image, depending on which value you pick.
@@ -144,13 +146,17 @@ The comment above it in the file is the part that matters: `A list of *exact* UR
 
 The two images the app serves itself, `/ventvest-logo.webp` at `LoginPage.tsx:56` and `UtilityHeader.tsx:47`, are same-origin. **Nothing the app loads falls outside the committed CSP**, which is worth knowing because a CSP that blocks a real request fails at runtime with a console error and no visible symptom.
 
+**`script-src 'self'` with no `'unsafe-inline'` is satisfied, checked against the built file rather than assumed.** `app/dist-redesign-2/index.html` contains exactly **one** `<script>`, with a `src` of `/assets/index-<hash>.js`, and **zero** inline script bodies, **zero** `style` attributes and **zero** `<style>` blocks. So the strictest directive in the policy costs nothing.
+
+**`style-src`'s `'unsafe-inline'` is load-bearing and cannot be dropped.** The app uses **nine** inline `style={{...}}` props. Seven are cosmetic and could move to classes, but two cannot: `components/ui/Select.tsx:316` positions the portalled menu from measured coordinates, and `modules/dashboards/components/BarList.tsx:17` sets each bar's width from its share of the maximum. A nonce does not help here, because CSP governs inline **style attributes** through `style-src-attr`, which needs `'unsafe-inline'` or `'unsafe-hashes'` rather than a nonce, and setting a custom property through `element.style.setProperty` is still a style attribute. So this stays, and the reason is written down so nobody tightens it and breaks the select menu and every dashboard bar at once.
+
 ## X11: what "builds on push" would actually do, so the decision is one read
 
 **This is Klent's to answer and nothing here changes it.** What follows is the mechanism, because the question is easy to answer wrongly by analogy with the Actions workflow.
 
 **The two mechanisms are independent.** `.github/workflows/ci.yml` is still committed and still declares `on: push: branches: [main, develop]`; it is disabled at the GitHub repository level rather than in the file, which is why five commits reached `develop` today without it running. A host's git integration is a separate subscription to the same pushes. Enabling one does not enable the other, and enabling both means every push runs the gate on GitHub **and** a build on the host.
 
-**What a push-triggered build would run.** `vercel.json` already names it: `installCommand: npm install` and `buildCommand: npm run build --workspace=app`, and `app/package.json`'s `build` is `tsc --noEmit && vite build`. So a host build type-checks and builds, and **that is all**. It does not run ESLint, the six guard scripts, the 249 API tests, the 176 browser tests or `validate.sql`, because none of those is in `buildCommand`. A green deploy therefore means "it compiled", not "it passed".
+**What a push-triggered build would run.** `vercel.json` already names it: `installCommand: npm install` and `buildCommand: npm run build --workspace=app`, and `app/package.json`'s `build` is `tsc --noEmit && vite build`. So a host build type-checks and builds, and **that is all**. It does not run ESLint, the **ten** guard scripts, the **265** vitest tests, the **179** browser tests or `validate.sql`, because none of those is in `buildCommand`. The whole gate is 22 checks and a host build runs two of them. A green deploy therefore means "it compiled", not "it passed".
 
 **The trade-off, stated once.** Against: a build on every push publishes whatever is on the branch, and this branch takes work-in-progress commits. In favour: preview deployments per branch are the only practical way to look at a change on a real origin, and they are what make X4's redirect-URL question worth solving.
 

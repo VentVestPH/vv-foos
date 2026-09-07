@@ -204,7 +204,7 @@ V9's finding was not that every control should be one height. It was that **eigh
 
 `.btn` went from `padding: 9px 18px; line-height: 1.25` to `min-height: var(--control-h-md); padding: 0 18px; line-height: 1`, and the same shape for `.btn-sm`. Text inputs and selects gained `min-height: var(--control-h-md)` and lost their vertical padding; `textarea` keeps its padding, because a multi-line control must not be pinned to a single-line height.
 
-**Measured across all 31 routes afterwards, and this is the whole result:**
+**Measured across all 31 routes afterwards, and this is the whole result** (with the caveat that this selector was already missing the new components, see correction 3 below):
 
 ```
 PROBE controlsMeasured=332 distinctHeights=2
@@ -212,9 +212,20 @@ PROBE controlsMeasured=332 distinctHeights=2
   HEIGHT 40px x191
 ```
 
-**Two heights, both on the published scale, across 332 controls.** Eight arbitrary values became two chosen ones, and the two that remain are the two Carbon says to pair. `tests/audit/control-heights.spec.ts` is the guard V9.5 asked for: it walks every route, measures every button and single-line field, and fails on any height outside `[24, 32, 40, 48]`, so the next hand-tuned padding cannot reintroduce the drift.
+**Two heights, both on the published scale, across 332 controls.** Eight arbitrary values became two chosen ones, and the two that remain are the two Carbon says to pair.
 
 Klent's complaint was "i can see multiple fields and buttons that have different heights". The answer was not to hunt the mismatched pairs; it was that **almost nothing chose a height at all**, and the fix is four tokens and four rules.
+
+### Superseded the same evening by W25, and three claims above were wrong
+
+Klent, the evening of 2026-09-07: **"i can see fields having heights of 40. make max button, fields height to 32px."** Two heights was not the answer to "multiple fields and buttons that have different heights"; it was the same complaint one step smaller. W25 replaces both with a single `--control-h: 32px`.
+
+Three things in this section do not survive that, and they were wrong when written rather than only in hindsight.
+
+1. **"`tests/audit/control-heights.spec.ts` is the guard V9.5 asked for" is false.** V9.5 asked for "a guard that fails the build the way `check-contrast.mjs` and `check-motion.mjs` do". That spec runs under `playwright.audit.config.ts` and **is not in `scripts/gate.sh`**, so it never failed a build and never could. The guard V9.5 asked for is `scripts/check-control-heights.mjs`, written for W25 and wired into the gate as check 22.
+2. **The token names contradicted the spec they cite.** V9.2 asked for `--control-h`, `--control-h-sm` and `--control-h-lg`, with `--control-h` as the base. W1 shipped `-xs`, `-sm`, `-md` and `-lg` and made `-md` the base, which left `VVPH_VV-FOOS_Spec_V7-Select-Combobox` line 59, "Field height: `--control-h` from V9", pointing at a token that **did not exist**. W25's rename makes that reference resolve for the first time.
+3. **The guard had gone stale, and its number kept looking like proof.** `tests/audit/control-heights.spec.ts` selected `'button.btn, .field input..., .field select, .input'`. W2 removed every native `<select>` from the application, so by the close of Goal 5 that clause matched nothing and the spec had stopped seeing the combobox, its menu items, the date button and the section headers, which is to say it had stopped seeing the components Goal 5 built. On the W25 tree the stale selector reads **259** controls; with `.field-select`, `.field-select-option`, `.date-field-btn` and `.record-section-header` added it reads **369**. A guard that narrows its own scope in silence is worse than none.
+4. **Two of the four tokens had no uses at all.** `--control-h-xs` was described here as "reserved for icon-only targets" and `--control-h-lg` as "reserved". Neither was ever referenced by a single rule. "Reserved" was a generous word for unused, and W25 deletes both.
 
 ### 12. W16 and W17, row identity in the accessible name
 
@@ -550,15 +561,17 @@ Re-walked twice on 2026-09-07 with the pass 3 harness. Every one of the six numb
 
 ## What Goal 5 delivered, and what it cost
 
-**Workstream W is 21 of 22.** The open one is W9, the remaining-work list, which is `VVPH_VV-FOOS_List_Remaining-Work` and closes with this goal. Two `Blocks` findings shipped: V6 row 5, the bulk-select header, and G1-4, the Pipeline dashboard reporting zero on 99% of the data, which workstream V never saw.
+**Workstream W is 24 of 24** as of the close of 2026-09-07. It read 21 of 22 while this section was being written; W9, the remaining-work list, closed it at 22; W24, Klent's login flash, took it to 23; and W25, his "make max button, fields height to 32px", took it to 24. Both W24 and W25 were his own reports rather than planned items, which is why each raises both halves of the count rather than only the numerator. Two `Blocks` findings shipped: V6 row 5, the bulk-select header, and G1-4, the Pipeline dashboard reporting zero on 99% of the data, which workstream V never saw.
 
 **Six new shared components, 929 lines**, each replacing a browser control rather than restyling one, and each asserted by its own spec: `Select` 372, `DateField` 364, `dateParts` 73, `FileField` 53, `ErrorSummary` 49, `Spinner` 18.
 
-**The suites grew with the work**: 249 API and RLS tests, 176 browser tests, 34 schema checks, 35 contrast pairs, and a sixth guard script, `check-icons.mjs`. Four new browser specs: `select-combobox` 11 tests, `form-affordances` 7, `date-field` 4, `list-return` 1. Two of those figures were wrong when first written here and are corrected: the browser total was 175 at run F and is 176 now, and `form-affordances` held 6 tests at run F, not 7. Item 29's requisition-form assertion is the test that made both true.
+**The suites grew with the work**: at the close of Goal 5, 249 vitest tests, 176 browser tests, 34 schema checks, 35 contrast pairs, and a sixth guard script, `check-icons.mjs`. Four new browser specs: `select-combobox` 11 tests, `form-affordances` 7, `date-field` 4, `list-return` 1. Two of those figures were wrong when first written here and are corrected: the browser total was 175 at run F and 176 after run G, and `form-affordances` held 6 tests at run F, not 7. Item 29's requisition-form assertion is the test that made both true. **After Goal 6 and W24 the totals are 265 vitest and 178 browser**, and the guard count is nine rather than six; the current figures live in `CLAUDE.md` and in `VVPH_VV-FOOS_List_Remaining-Work`.
 
 **Twelve of my own claims corrected in this goal**, on top of workstream V's 24: Goal 4's size count of 60 and its 9 sites to move; its "26 ad-hoc overrides" that did not match its own table; its three exit animations that are six; Goal 3's claim that the candidate list has no column picker; its "keep Source open" verdict on a section already closed; the 45 unannounced messages that are 44; the nine bare navigation paths that are 14; the "1,053 companies" that are 195; and the two the re-walk forced, that `useListLink` shortens the return rather than the outward path, and that the error summary reaches what comes back rather than the keystrokes.
 
-**The defect log holds 17 entries**, counting QA-011's reopening as its own, and this goal added QA-010 through QA-016, which is seven of them. QA-014 is the only one still open. Three real product defects were found by the gate rather than by reading: the `nested-interactive` violation my own deal-card fix created, the contrast failure that removing eleven false `aria-disabled` attributes uncovered, and `.side-tab-count` at 4.35:1.
+**The defect log holds 23 entries covering 22 distinct ids** as of the close of the day, the extra entry being QA-011's reopening. Goal 5 added QA-010 through QA-016, which is seven; Goal 6 added QA-017 and QA-018; W24's own gate run added QA-019; and the two runs after it added QA-020, QA-021 and QA-022. **20 are closed and 3 are open**, and the log's tally at the top carries a row per open defect saying why. Ten were closed on 2026-09-07 alone, and four of those ten, QA-019 through QA-022, were found by the gate rather than by reading.
+
+**Corrected 2026-09-07:** this said "QA-014 is the only one still open". That was true only of the defects Goal 5 itself raised. **Six older ones were open at the time**, and three of those have since been verified closed against the schema and the code rather than assumed: QA-002, whose RLS was enabled by migration `20260901000002`; QA-004, whose `validate.sql` assertion is no longer count-based; and QA-007, whose `reminder.due` gap is answered by `MyReminders.tsx` on the home dashboard. **QA-014 is now closed too**, on the ten-consecutive-passes criterion it set for itself, met fifteen times over, with the honest note that the cause was never proven. **Three remain open**: QA-003 and QA-008, both parked by Klent, and QA-006, the Gmail mojibake, which is real and is not a plan item. Three real product defects were found by the gate rather than by reading: the `nested-interactive` violation my own deal-card fix created, the contrast failure that removing eleven false `aria-disabled` attributes uncovered, and `.side-tab-count` at 4.35:1.
 
 **What it cost.** Seven gate runs, A to G. Two were clean five times over on the first attempt; the rest failed at least once, and run C failed all five passes identically, which is what turned a suspicion into a diagnosis rather than a guess.
 

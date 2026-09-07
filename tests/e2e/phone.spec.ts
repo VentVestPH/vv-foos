@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 
 const PHONE = { width: 390, height: 844 };
@@ -13,6 +13,31 @@ const ROUTES = [
   ['search', '/search?q=an'],
 ] as const;
 
+async function settleLayout(page: Page, capMs = 8000): Promise<void> {
+  await page
+    .locator('.table-wrap, .kanban, .record-page, .intake-queue, main, [role="main"]')
+    .first()
+    .waitFor({ state: 'visible', timeout: capMs })
+    .catch(() => undefined);
+
+  const read = () =>
+    page.evaluate(() => {
+      const de = document.documentElement;
+      return `${de.scrollWidth}x${de.clientWidth}`;
+    });
+
+  const deadline = Date.now() + capMs;
+  let previous = await read();
+  let stable = 0;
+  while (Date.now() < deadline) {
+    await page.waitForTimeout(150);
+    const current = await read();
+    stable = current === previous ? stable + 1 : 0;
+    previous = current;
+    if (stable >= 3) return;
+  }
+}
+
 test.describe('Q8: usable on a phone', () => {
   test('no route scrolls the page sideways at 390px', async ({ page }) => {
     test.setTimeout(180000);
@@ -22,19 +47,25 @@ test.describe('Q8: usable on a phone', () => {
     const offenders: string[] = [];
     for (const [name, path] of ROUTES) {
       await gotoAsSignedIn(page, path);
-      await page.waitForTimeout(1200);
+      await settleLayout(page);
       const overflow = await page.evaluate(() => {
         const de = document.documentElement;
         return {
           amount: Math.max(0, de.scrollWidth - de.clientWidth),
           culprits: [...document.querySelectorAll('body *')]
             .filter((el) => {
-              if (el.closest('nav.fo-primary-nav') || el.closest('.table-wrap')) return false;
+              const inNav = el.closest('nav.fo-primary-nav') !== null;
+              const insideWrap = !el.matches('.table-wrap') && el.closest('.table-wrap') !== null;
+              if (inNav || insideWrap) return false;
               const r = el.getBoundingClientRect();
               return r.width > 0 && r.right > window.innerWidth + 2;
             })
             .slice(0, 3)
-            .map((el) => `${el.tagName.toLowerCase()}.${(el.className || '').toString().slice(0, 30)}`),
+            .map(
+              (el) =>
+                `${el.tagName.toLowerCase()}.${(el.className || '').toString().slice(0, 30)}` +
+                `@${Math.round(el.getBoundingClientRect().right)}`,
+            ),
         };
       });
       if (overflow.amount > 0) {

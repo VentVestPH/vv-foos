@@ -135,17 +135,17 @@ Functions that write on a user's behalf run under the caller's own JWT where RLS
 Both suites run against the local stack from a clean `npm run db:reset` with no manual steps. They are order-independent and leave no rows, storage objects or queue entries behind; that was verified over eight consecutive loops, not one run.
 
 ```sh
-bash scripts/gate.sh 5             # everything below, five times; the way to verify a change
+bash scripts/gate.sh 5             # 22 checks, five times; the way to verify a change
 
-npm run test --workspace=tests     # 249 API/RLS tests (vitest, files run serially)
-npm run e2e  --workspace=tests     # 176 browser tests (playwright, 2 workers)
+npm run test --workspace=tests     # 265 vitest tests, files run serially: 119 api, 144 unit, 2 mocks
+npm run e2e  --workspace=tests     # 178 browser tests (playwright, 2 workers)
 psql "$DB_URL" -f supabase/tests/validate.sql   # 34 checks; 3 structural, 31 need the seed
 node scripts/check-attachment-queue.mjs         # no orphaned attachment files, no leaked client_errors
 ```
 
-**Corrected 2026-09-07:** the two suite counts above read 64 and 39 and had been stale for weeks. `validate.sql` also read 18 and then 35; it is **34**, because the gate counted `PASS` lines and check 15 prints two, while checks `5b` and `14b` carry letter suffixes so the numbered labels stop at 32.
+**Corrected 2026-09-07:** the two suite counts above read 64 and 39 and had been stale for weeks, and "API/RLS tests" was itself a misnomer, because `tests/vitest.config.ts` includes `api/**`, `mocks/**` and `unit/**` and the unit directory is now the largest of the three. `validate.sql` also read 18 and then 35; it is **34**, because the gate counted `PASS` lines and check 15 prints two, while checks `5b` and `14b` carry letter suffixes so the numbered labels stop at 32.
 
-**The nine guard scripts**, all of which the gate runs:
+**The ten guard scripts**, all of which the gate runs:
 
 | Script | What it fails on |
 |---|---|
@@ -158,15 +158,20 @@ node scripts/check-attachment-queue.mjs         # no orphaned attachment files, 
 | `check-migrations.mjs` | drift between the migrations and what they should declare |
 | `check-unbounded-queries.mjs` | a read of a large table with no bound |
 | `check-paged-order.mjs` | a paged read with no stable order |
+| `check-control-heights.mjs` | a `--control-h*` token over **32px**, or a height, min-height, max-height or width over 32px on any of eleven control selectors. Klent asked for one control height on 2026-09-07; W25 in `VVPH_VV-FOOS_Goal_Workstream-W-Component-Implementation` records which selectors are in scope, and that the 44px nav tabs and the 48px kanban column are deliberately not |
+
+`supabase/functions/_shared/` holds the code two or more functions share, and it is imported with an explicit `.ts` extension because Deno requires one. `tests/tsconfig.json` therefore sets `allowImportingTsExtensions: true`, so a pure module in there can be unit-tested from vitest with the same specifier the function uses: `_shared/mime-header.ts` is tested by `tests/unit/mime-header.test.ts` that way. Anything in `_shared/` that reads `Deno.env` cannot be imported from vitest, which is why `careers-html.ts` has no unit test and `mime-header.ts` does.
 
 Two more that are not guards and are not in the gate: `scripts/check-env-target.mjs`, and `scripts/check-cutover.mjs`, which is Goal 6's automated X10 and **requires an explicit target** (`CUTOVER_SUPABASE_URL` plus `CUTOVER_SUPABASE_ANON_KEY`) because an earlier version read `VITE_SUPABASE_URL` and therefore talked to the live project. See `docs/07-environments/VVPH_VV-FOOS_Runbook_Hosting-And-Cutover` and QA-017.
 
-Four things bite anyone adding tests here:
+Six things bite anyone adding tests here:
 
 - **Fixtures must be run-unique.** Cleanup by a shared prefix means two specs delete each other's rows. Every spec derives its tag from `process.pid` plus a random suffix.
 - **`datetime-local` inputs are local time.** Filling one from `toISOString()` puts the value hours out; on UTC+8 a "+1 hour" reminder lands in the past and the reminder sweep fires it. Use `localDateTimeValue()` from `tests/e2e/helpers.ts`.
 - **Playwright is capped at 2 workers** because the local Realtime container has a messages-per-second limit and every page subscribes. Symptom is `docker logs supabase_realtime_* | grep MessagePerSecondRateLimitReached` and live-update tests going stale.
 - **Vitest runs files serially** (`fileParallelism: false`) because the 10 MB oversized-resume case saturates the edge runtime enough that concurrent Edge Function calls return 503.
+- **A flat wait or a single read is never a substitute for a condition.** This cost four separate false failures on 2026-09-07 alone, logged as QA-019, QA-021 and QA-022: a combobox read once while its two neighbours polled; `waitForAnimations` returning at its 3000ms cap indistinguishably from success; a lookup list measured before its query landed; and a layout measured 1200ms after navigation because 1200 felt long enough. Every fix had the same shape, and none of them was to wait longer: **assert the condition, or read until the reading stops changing.** `optionNames`, `chooseOption` and `settleLayout` in `tests/e2e/helpers.ts` and `phone.spec.ts` are the patterns to copy. A wait that can give up must not return the same way it returns on success.
+- **`Element.closest()` matches the element itself.** `phone.spec.ts` filtered overflow culprits with `el.closest('.table-wrap')` to skip a scroll container's contents, and thereby skipped the container too, so the one element most likely to be at fault was the one never reported. Use `!el.matches(sel) && el.closest(sel)` when the intent is descendants only.
 
 Teardown belongs in `afterEach`/`afterAll`, never inline at the end of a test: a failing assertion aborts the rest of the block and the rows leak. Delete a storage object **before** its `attachments` row, or the file becomes unreachable (the DELETE policy matches on that row and `remove()` then returns an empty array with no error).
 

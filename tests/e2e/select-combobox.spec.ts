@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, optionNames, signIn } from './helpers';
 
 const STAGES = ['All stages', 'Lead', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
 
@@ -197,6 +197,9 @@ test.describe('the select replacement honours the APG combobox contract', () => 
     await expect(page.locator('.table-wrap')).toBeVisible({ timeout: 25000 });
     const box = page.getByRole('combobox', { name: 'Company' });
     await expect(box).toBeVisible();
+    await expect
+      .poll(async () => (await optionNames(page, box)).length, { timeout: 25000 })
+      .toBeGreaterThan(20);
     await box.click();
     const list = page.getByRole('listbox');
     await expect(list).toBeVisible();

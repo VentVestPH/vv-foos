@@ -58,6 +58,8 @@ No hard-coded values. The control takes its height from the V9 scale, and its me
 
 - Field height: `--control-h` from V9.
 - Menu item height: the same token.
+
+**Resolved 2026-09-07.** These two lines referenced a token that did not exist for three days: W1 shipped the scale as `--control-h-xs`, `-sm`, `-md` and `-lg`, with `-md` as the base, and `Select.tsx` was built against `--control-h-md`. W25 collapses the scale to a single `--control-h: 32px` at Klent's request, so the specifier above is now the real one, and Carbon's rule that the menu item height must equal the field height holds because `.field-select` and `.field-select-option` reference the same token.
 - Colours: existing `--fo-*` tokens only, and the focus ring is whatever `states.css` already gives every other control, so the replacement does not introduce a second focus idiom.
 - Motion: the open and close must sit inside the budget `check-motion.mjs` enforces. `--motion-instant` for the colour change, and the menu appearing should reuse the dropdown animation the codebase already has rather than a new one.
 

@@ -6,6 +6,20 @@ Severity scale: **Critical** — data loss/corruption, RLS breach, auth bypass, 
 
 No real PII in any row below — all evidence is schema/config state or synthetic (`is_test`) data.
 
+## Tally, 2026-09-07
+
+**23 entries covering 22 distinct ids, 20 closed and 3 open**, one of those three narrowed to a part nobody here can finish. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+
+| Id | What | Why it is open |
+| :---- | :---- | :---- |
+| QA-003 | The four test-persona Auth passwords are QA-known values | Operational, and Klent parked it. `scripts/rotate-persona-passwords.mjs` is the tool; it belongs to the cutover, not to this work. Plan item B2 |
+| QA-006 | Synced Gmail subjects show mojibake, an em-dash arriving as `Ã¢Â€Â”` | **Narrowed 2026-09-07.** The decoding gap is fixed: `google-sync` now runs the Subject header through a tested RFC 2047 decoder. The reported double-mojibake is a different mechanism, needs one raw header from a live account to identify, and repairing it would take a heuristic that could mangle a legitimately accented subject |
+| QA-008 | Three of the four committed success metrics have no instrumentation | Klent parked the PM metrics. Plan item E1 |
+
+**Closed 2026-09-07 after being verified rather than assumed:** QA-002, QA-004, QA-007, QA-014, QA-017, QA-018, QA-019, QA-020, QA-021 and QA-022, which is ten in a day. The last three were found by the gate rather than by reading, and QA-020, the kanban board being a scrollable region no keyboard can reach, is a product defect that git shows has been shipping since **54ce896**. The first three had already been fixed and this log had simply not been updated, which is its own kind of wrong: a log that says "open" about something that works sends the next reader to fix it twice. Each closure below carries the query or the file that proves it.
+
+**Correction to an earlier claim of mine.** The Goal 5 execution log said "QA-014 is the only one still open". That was true only of the defects Goal 5 raised; six older ones were open at the time, of which three have now been verified closed and three remain for the reasons above.
+
 ---
 
 ### QA-001 — `dash` schema not exposed to PostgREST
@@ -32,8 +46,11 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 - **Expected:** `true`, per the architecture doc's deny-by-default rule (section 5).
 - **Actual:** `false`. Actual exposure is contained today because `select grantee, privilege_type from information_schema.role_table_grants where table_name='careers_rate_limit'` shows only `postgres` holds SELECT/INSERT/UPDATE/DELETE — `anon`/`authenticated`/`service_role` only have the default `TRUNCATE/REFERENCES/TRIGGER` grants, so no role can currently read or write this table over the API even with RLS off. But this is fragile: any future migration that grants broader access to this table would silently become exploitable, since there's no RLS policy to catch it.
 - **Evidence:** `pg_class`/`information_schema.role_table_grants` queries against `mebfbbvrqdctamnzvbbs`, 2026-07-25. No PII (table only holds `ip`/`created_at`).
-- **Status:** open
-- **Fix owner:** Agent 4 owner — `alter table careers_rate_limit enable row level security;` plus a service-role-only policy (the `careers-apply` Edge Function is the only intended writer, via service role, which bypasses RLS regardless — so a permissive-looking `using (false)` policy is correct here, not a gap).
+- **Closed 2026-09-07, verified against the schema rather than assumed.** `select relrowsecurity from pg_class where relname='careers_rate_limit'` now returns **true**, enabled by migration `20260901000002_careers_rate_limit_rls.sql`. `pg_policies` shows **no policy on the table**, which is the correct end state and not an omission: RLS with no policy denies every non-superuser, and the only intended writer is `careers-apply` under the service role, which bypasses RLS. `validate.sql` check 2, "RLS enabled on every public table", passes, so this cannot silently regress.
+- **The severity argument was also overstated and is corrected in the plan as D27.** `anon` never held a SELECT grant on this table, so the exposure was defence in depth rather than an open door. Plan section 6.1 records it as closed and moot.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
+- **Original fix owner note, kept for the record:** Agent 4 owner — `alter table careers_rate_limit enable row level security;` plus a service-role-only policy (the `careers-apply` Edge Function is the only intended writer, via service role, which bypasses RLS regardless — so a permissive-looking `using (false)` policy is correct here, not a gap).
 - **Closed date:** —
 - **Note on severity:** per the brief's rule of engagement, this should default to Critical since it's an RLS finding. Flagging for John's explicit sign-off on the Medium downgrade rather than silently applying it — see Gate 4 exit report.
 
@@ -72,8 +89,12 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 - **Expected:** Subject displayed as sent (UTF-8 throughout).
 - **Actual:** Non-ASCII characters mangled — consistent with a UTF-8 byte string being decoded as Latin-1 (or the reverse) somewhere between the Gmail API response and the `activities.subject` write.
 - **Evidence:** Observed on real synced subjects during the live smoke test, 2026-07-25 (subjects are John's own inbox, not candidate/client PII — not pasted verbatim here beyond what's in the live-smoke doc).
-- **Status:** open
-- **Fix owner:** Agent 6 owner — check whether `google-sync` decodes the Gmail API's base64url/MIME-encoded-word subject header correctly (`=?UTF-8?...?=` style encoded-words need explicit decoding, not just base64).
+- **Half-closed 2026-09-07, and the half that is closed is the unambiguous one.** `google-sync/index.ts:119` wrote `subject: headers.Subject ?? null`, the raw header value, with nothing decoding RFC 2047 encoded-words. It now writes `decodeMimeHeader(headers.Subject)`, from a new pure module `supabase/functions/_shared/mime-header.ts`, tested by 16 cases in `tests/unit/mime-header.test.ts`: base64 and quoted-printable, `_` as space, a declared `ISO-8859-1` charset, an RFC 2231 language tag such as `=?UTF-8*en?B?...?=`, the whitespace between two adjacent encoded words being dropped while whitespace next to ordinary text is kept, and five malformed inputs that must leave the header untouched rather than mangle it.
+- **The change cannot make anything worse, which is why it ships without a live sample.** The function returns its input unchanged when the value contains no `=?`, and again when nothing decoded, so if Gmail has already decoded the header the call is a no-op. Two tests assert exactly that.
+- **What is still open, stated rather than glossed.** The reported symptom was an em-dash arriving as `Ã¢Â€Â”`, which is UTF-8 bytes read as Latin-1 **twice**. An undecoded encoded-word would have been stored literally as `=?UTF-8?B?4oCU?=` instead, so **the decoder alone does not explain the report**, and a subject that is already mojibake when Gmail hands it over cannot be repaired without a heuristic. The obvious heuristic, reinterpreting the characters as Latin-1 bytes and decoding them as UTF-8 while that stays valid, would also mangle a subject that legitimately contains `Ã©`, so it is a judgement about candidate-facing stored text rather than a bug fix, and it is not made here.
+- **What Google's own reference does not settle.** `users.messages.get` with `format=metadata` documents `payload.headers[].value` only as "The value of the header after the `:` separator", and does not say whether encoded-words are decoded. So which of the two mechanisms produced `Ã¢Â€Â”` needs one raw header from a live account, and that is the one step this work will not take on its own.
+- **Status:** open, narrowed. The decoding gap is fixed and tested; the mojibake case needs a live sample and then a decision.
+- **Fix owner:** Agent 6 owner for the remaining half. The decoding gap is done.
 - **Closed date:** —
 
 ### QA-007 — `reminder.due` has no UI consumer anywhere in the app
@@ -85,9 +106,10 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 - **Expected:** Some UI surface (bell icon, banner, list) shows the user their fired reminders, per the architecture doc's event taxonomy implying every event has a UI effect.
 - **Actual:** None found.
 - **Evidence:** Codebase grep, 2026-07-25. No PII.
-- **Status:** open
-- **Fix owner:** Whoever owns the reminders feature end-to-end — needs a product decision on whether this was an intentional scope cut (confirm with John) or a real gap to close before Gate 4/5.
-- **Closed date:** —
+- **Closed 2026-09-07, and the product gap this described is gone.** `app/src/pages/MyReminders.tsx` reads `reminders` filtered to `.in('status', ['fired', 'pending'])`, subscribes to Realtime on the `reminders` table at line 77, marks fired rows `is-due`, counts them, and announces "N reminders due." It is mounted on the home dashboard at `DashboardPage.tsx:93`, so the person who set the reminder sees it without navigating anywhere. Dismissal writes `status = 'dismissed'` at line 99.
+- **One precise caveat, because the original complaint was literal.** This consumes the **table change**, not the `events_outbox` row, so "no Realtime subscription on `reminder.due`" is still true as written. That is the right design rather than a shortcut: the outbox is a service-role consumer surface, and what the user needs to see is the `reminders.status` flip that the same trigger performs. Plan section 6.4 records the decision as "Closed: interface", fixed as D31.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
 
 ### QA-008 — Three of the four committed success metrics have no instrumentation at all
 
@@ -113,8 +135,9 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 - **Severity:** **Low** — test hygiene, not a schema defect. The underlying data is correct; the assertion is stale.
 - **Detail:** Check 9 asserts `select count(*) from staff <> 4` fails. The live project now has 5 staff rows — the original 4 seed rows plus a real row created when John signed in via Google OAuth during Agent 6 testing. This is expected, healthy drift (a real user account existing), not a regression. Every other check 9 assertion (sources, statuses+labels+order, admin row by email, companies/people/requisitions/applications/deals counts) passed exactly as written.
 - **Fix owner:** Whoever next touches `validate.sql` — change the assertion to `>= 4` and specifically check the 4 known seed IDs are present, rather than an exact total count, so it stays robust as real staff accounts are added.
-- **Status:** open (cosmetic test fix, not urgent)
-- **Closed date:** —
+- **Closed 2026-09-07, already fixed and the log was stale.** `validate.sql` check 9 no longer asserts a count. It asserts the specific admin row, `if not exists (select 1 from staff where email = 'john@ventvest.com' and role = 'admin' and is_active)`, and then that the four seeded demo staff are all present and active, with a comment in the file saying the exact count is **deliberately** not asserted because `scripts/add-local-staff.sql` exists so a developer or UAT account can be added. Locally `staff` holds **12** rows and check 9 passes, which is the proof the assertion is no longer count-based.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
 
 ### QA-009 — the unviewed-badge live-update test failed at two workers, and is no longer reproducible
 
@@ -250,7 +273,11 @@ Error: a header plus one record per visible row; got 0 records for 3 rows
 - **One hypothesis refuted from the vendor's own documentation rather than dropped.** The obvious explanation was that the insert went out with the anon key because `gotoAsSignedIn` does a full page load and the session had not been read back from local storage yet. That does not hold for supabase-js v2: the v2 rewrite "forces the library to wait for a valid/invalid session before taking any action", and `auth.getSession` reads the token from local storage without a server round trip unless it is expired. So a request issued moments after load carries the restored JWT rather than the anon key. Sources: https://supabase.com/blog/supabase-js-v2 and https://supabase.com/docs/reference/javascript/auth-getsession. That leaves the wrong-route candidate and a plain insert error, which is what the two diagnostics now distinguish.
 - **Machine contention is part of the picture, and it is recorded rather than used as an excuse.** While this run was going, a second Claude Code session was driving a browser in a different repository, `/Users/klentz/Work/Kappa-Omini-typescript`, with its own Supabase stack. It shares no git tree, no database and no dev server with this project, so it cannot corrupt anything here; what it does is compete for CPU, which widens exactly the timing windows that produced this defect and the 204-node contrast artefact. That argues for sturdier waits, which is what was built, and not for a retry.
 - **A second harness defect found while verifying the fix, and it is the same class as the contrast race in item 25 of the Goal 5 log.** `waitForAnimations` polled until nothing was running, which is one reading. Running `accessibility.spec.ts` alongside three other specs still failed once on a route sweep, because an animation can start in the gap between the check and axe's measurement. It now requires **three consecutive still readings** 80ms apart. The four specs then passed together three times over, 11 of 11 each.
-- **Status:** open until a run reproduces it with the diagnostics in place, or ten consecutive gate passes do not.
+- **Closed 2026-09-07 on the criterion this entry set, and the criterion is stated rather than quietly met.** "Ten consecutive gate passes" have now happened and then some: **fifteen consecutive clean full-suite browser passes** since the diagnostics landed, in three separate five-pass gate runs, with the counts each run printed rather than summarised. Run F, `gate-batch5.log`: `browser 175 passed` five times. Run G, `gate-batch6.log`: `browser 176 passed` five times. Run G6, `gate-g6.log`: `browser 176 passed` five times. `error-reporting.spec.ts` carries three tests and runs in every one of those passes, so the test that failed has now passed fifteen times in a row.
+- **What is honest about this closure.** The cause was **never proven**. The wrong-route candidate stayed a candidate, and the diagnostics that would have distinguished it, the URL assertion and the console capture, never fired again. So this closes on absence of recurrence against a pre-declared threshold, not on a diagnosis. If it returns, the two diagnostics will say which of the two candidates it is, which is more than was available the first time.
+- **What was actually changed, and it was not a retry.** A `toHaveURL` assertion before the dispatch, a console capture in the poll's failure message, and run-unique `?probe=` routes in the collision spec. All three are still in place and all three are cheap. The first two make the next occurrence diagnostic; the third removes the mechanism outright.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
 
 ---
 
@@ -317,5 +344,73 @@ Error: a header plus one record per visible row; got 0 records for 3 rows
 - **Two related differences found in the same read, both now handled in `_headers`:** Pages adds `Access-Control-Allow-Origin: *` to every static asset response by default where Vercel adds none, so the port now detaches it with `! Access-Control-Allow-Origin`; and a deep link answered by the SPA fallback keeps its own URL, so the `/index.html` `Cache-Control` rule does not match it and Cloudflare's `public, max-age=0, must-revalidate` default applies instead, which is equivalent.
 - **Measured against the documented limits:** `_headers` uses 4 rules of 100, longest line 500 characters of 2,000; `_redirects` uses 0 of 2,100.
 - **The lesson:** for a platform this repository cannot execute, no gate exists, so the vendor's own sentence is the only test available. "Serves the asset first" is a reasonable guess about a static host and it was wrong; the sentence that settles it took one fetch.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
+
+---
+
+### QA-019: `shared-views` read a combobox that had not been populated, and one failure there cascades into three because the fixture tag is per-worker
+
+- **Date found:** 2026-09-07, gate pass 2 of 5 while verifying W24. Pass 1 of the same run passed all 178 browser tests on the same tree.
+- **Module/agent:** `tests/e2e/shared-views.spec.ts:64` "another staff member sees the shared view and not the private one", plus the file's module-level `tag`
+- **Severity:** **Medium**, and it is two defects in one report because the second one hides the first.
+- **Verbatim, the real failure:** `Error: expect(received).toContain(expected) // indexOf  Expected substring: "qa-shared-view-5385-8gr8tq shared (shared)"  Received string: "Saved views…"`
+- **Verbatim, the two collateral failures:** `Expected substring: "qa-shared-view-7958-9se3rl shared (shared)"  Received string: "Saved views…"  Call Log: - Timeout 25000ms exceeded while waiting on the predicate` and `Error: the row must survive a delete a non-owner is not allowed to make  Expected length: 1  Received length: 0  Received array: []`
+- **Defect one, the cause of the real failure.** `useSavedViews` in `app/src/modules/recruit/savedViews.tsx:38` returns early on `if (!staff) return`, so the combobox is empty until the session's staff row has resolved **and** the query has come back. Test 2 read `optionNames` **once**, immediately after `gotoAsSignedIn`, which only asserts the URL is not `/login`. Its two neighbours, tests 1 and 3, both poll for up to 20 and 25 seconds. So test 2 was the only unsynchronised read of an asynchronously populated control in the file, and `"Saved views…"` is the placeholder with no options behind it.
+- **Was this W24's fault? No, and the evidence is in the same run.** Pass 1 passed all 178 tests on the identical tree; the failure appeared in pass 2. The race predates W24: nothing in the old test waited. What W24 changed is the timing, because `RequireAuth` now blocks on the staff fetch, so the page mounts a little later relative to navigation and an unsynchronised read is likelier to lose. **The test was always wrong and the change made it show.** Recording it the other way round would have been convenient and false.
+- **Defect two, why one failure became three.** `const tag = \`qa-shared-view-${process.pid}-...\`` is computed at module load. Playwright **recycles a worker after a test fails**, so the next test runs in a new process with a **new pid and therefore a new tag**, and looks for a row that nothing created. The JSON report shows it exactly: `passed worker=1`, `failed worker=1`, `failed worker=2`, `failed worker=3`. Tests 3 and 4 were collateral, and their error text pointed at a name that never existed, which is a very good way to spend an hour on the wrong thing. `process.pid` gives **worker** uniqueness, not run uniqueness, which is a narrower guarantee than the CLAUDE.md rule intends.
+- **Fix one:** test 2 now polls for the shared view exactly as test 3 does, and captures the polled snapshot so the negative assertion, that the sourcer does not see the private view, is made against the **same** reading rather than a second one.
+- **Fix two:** the fixtures no longer come from test 1. A file-level `test.beforeAll` inserts both rows with the admin client, `SHARED` shared and `PRIVATE` not, owned by the recruiter `a0000000-0000-4000-8000-000000000002`. `beforeAll` runs **once per worker**, so a recycled worker seeds its own tag before its first test and tests 2, 3 and 4 no longer depend on test 1 having run at all. Test 1 keeps its UI flow under its own name, `${tag} ui shared`, so it cannot collide with the seeded row.
+- **One thing that already worked and is worth not breaking:** no rows leaked. `select count(*) from ats_saved_views where name like 'qa-shared-view-%'` returned **0** after the failing pass, because the file-level `afterAll` deletes `like('<tag>%')` and runs on every recycled worker too.
+- **The second unanchored read was fixed pre-emptively, and my first description of it was too strong.** I wrote that `list-persistence.spec.ts:131`, a negative assertion on a single unsynchronised read, "always passes" and so "could never fail". **Measured, that is wrong.** A probe that seeds a view the sourcer *can* see and then performs the old immediate read found it **6 times out of 6** on an idle machine: `PROBE immediateRead="Saved views…|QA Vacuous Probe … recruiter (shared)"`, `immediateContainsBait=true`. The reason is that `optionNames` is not instantaneous: it waits for the combobox to be visible, clicks it, and waits for the listbox, and by then the query has usually returned. So the read normally wins. It is a **latent** hazard of the same class rather than a demonstrated vacuous pass, and it is fixed because it goes vacuous exactly when the machine is loaded, which is when `shared-views` lost. Recording it as proven would have been the more flattering version.
+- **The whole suite was swept for the same class, not just the file that failed.** Every read of an asynchronously populated control was checked: `optionNames` has six call sites and `allInnerTexts` three. Four of the nine were already anchored, by a poll or by a preceding `toBeVisible`. **Two were not**, and both are fixed here: `shared-views.spec.ts:63` and `list-persistence.spec.ts:131`. `server-side-list.spec.ts:114` sits after a poll on the row count, `:161` after `expect(rows.first()).toBeVisible()`, and `list-persistence.spec.ts:169` is inside a poll, so those three needed nothing.
+- **The lesson, and it is not "add a wait".** Two tests in the same file polled and one did not, which is a review failure rather than a timing one: an asynchronously populated control has exactly one correct read, and it is a polled one. The second lesson is sharper: **a fixture identifier derived from `process.pid` is void the moment Playwright recycles a worker**, and every test that depends on a previous test's fixture will then fail with an error message naming something that never existed.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
+
+---
+
+### QA-020: the kanban board is a scrollable region a keyboard cannot reach
+
+- **Date found:** 2026-09-07, gate pass 4 of 5 on the tree carrying W24, QA-019 and QA-006. Passes 1, 2 and 3 of the same run did not report it.
+- **Module/agent:** `app/src/components/ui/KanbanBoard.tsx:209`, the `.kanban` container, seen on `/sales/deals`
+- **Severity:** **Medium**, and it is a real product defect rather than a harness one. WCAG 2.1.1: content that scrolls must be operable from a keyboard.
+- **Verbatim:** `deals: scrollable-region-focusable (serious, 1 node(s)) e.g. .kanban`
+- **Cause:** `panels.css:1` gives `.kanban` `display: flex` with `overflow-x: auto`, so the board scrolls horizontally, and the container carried no `tabIndex`. axe's `scrollable-region-focusable` rule is satisfied when the scrollable element is focusable **or** contains focusable content, which is why this is intermittent rather than constant: with only **2** deals in the database most stage columns render empty, so on a run where no card lands in the visible columns the board has no focusable descendant and the rule fires. More data hides it; less data exposes it.
+- **Pre-existing, confirmed from git rather than asserted.** `git log -S "overflow-x: auto" -- app/src/styles/layers/panels.css` points at **54ce896**, the N3 cascade audit, and `KanbanBoard.tsx` was last touched at **18b0733**, W4. Nothing in the tree that surfaced it, W24, QA-019 or QA-006, goes near the board: they touch `auth/`, two specs and an Edge Function. So the defect has been shipping for as long as the board has scrolled, and the gate run that found it deserves the credit rather than the blame.
+- **Why three earlier gate runs missed it.** Same shape as QA-016. The rule's outcome depends on the rendered data, and a route sweep that visits `/sales/deals` once sees whatever the fixtures left behind.
+- **Fix:** the container becomes `role="group"` with `aria-label="Stage board, scrollable"` and `tabIndex={0}`, so a keyboard user can focus the board and scroll it with the arrow keys, and a screen reader announces what they have landed on. The cards' own keyboard contract is untouched: `kanban-keyboard.spec.ts` still drives space-to-grab, arrow-to-move and escape-to-cancel through the cards themselves, and this adds one tab stop in front of them rather than changing them.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
+
+---
+
+### QA-021: `waitForAnimations` gives up at its own cap, so the 204-node contrast artefact came back
+
+- **Date found:** 2026-09-07, gate pass 4 of 5, in the same failure as QA-020.
+- **Module/agent:** `tests/e2e/helpers.ts` `waitForAnimations`, and `tests/e2e/accessibility.spec.ts:63`
+- **Severity:** **Medium.** A false failure, and the second time this exact signature has been reported, which is what makes it worth a new entry rather than reopening item 25 of the Goal 5 log.
+- **Verbatim:** `requisitions: color-contrast (serious, 204 node(s)) e.g. tr:nth-child(1) > td:nth-child(2)`
+- **What was already tried and was not enough.** Item 25 of the Goal 5 log diagnosed this as axe sampling the `table-results-in` fade, which `motion.css:276` runs on `.table tbody.results-in-a` from `opacity: 0.55` to `1`. The first fix polled until nothing was running, which failed again; the second required **three consecutive still readings 80ms apart**, and four gate runs then passed. It has now failed a fifth run.
+- **Cause, and it is in the helper's own control flow:** `waitForAnimations` returns on `quiet >= 3 || Date.now() > deadline`, with `capMs = 3000`. **The cap is a return, not a failure.** Under load the loop can exhaust 3000ms with the fade still running and return anyway, and the caller has no way to tell the two exits apart. Waiting harder is also the wrong tool: the helper can only observe animations that have **started**, and the requisitions list applies `.results-in-a` after its rows arrive, so a slow query can begin a fade after the helper has already returned quiet.
+- **Fix, which removes the race rather than widening the window:** `accessibility.spec.ts` now declares `test.use({ reducedMotion: 'reduce' })`. `motion.css:281` already carries the `prefers-reduced-motion: reduce` block that `check-motion.mjs` requires, and it sets `animation-duration: 0.01ms !important` on every element, so the fade is over before axe can sample it and the resting `opacity: 1` is what gets measured. **This is what axe should have been measuring all along:** WCAG 1.4.3 is about text as it rests, not about the middle of a decorative transition.
+- **What this does not do:** it does not stop the motion being tested. `interaction-motion.spec.ts` still asserts the fade exists, its duration and its easing, and `check-motion.mjs` still fails the build on a duration over 220ms. The motion is tested where motion is the subject, and not where contrast is.
+- **The lesson:** a helper whose timeout path is indistinguishable from its success path will eventually be read as success. If a wait can give up, it should say so; better still, remove the thing being waited for.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
+
+---
+
+### QA-022: two more unsynchronised reads, and this is the fourth instance of one pattern in a day
+
+- **Date found:** 2026-09-07, gate pass 1 of 5 over the W25 tree. **Pass 2 passed all 179 browser tests on the same tree**, which is what establishes both as races rather than as breakage W25 introduced.
+- **Module/agent:** `tests/e2e/select-combobox.spec.ts:210` and `tests/e2e/phone.spec.ts:25`
+- **Severity:** **Medium.** Two false failures, and the pattern behind them matters more than either.
+- **Verbatim, the select one:** `Expected: > 20  Received: 1`
+- **Cause:** the test opens the `Company` combobox on `/recruit/requisitions` and immediately measures it. There are **195** companies, so the list should hold about 196 options; a reading of **1** is the placeholder alone, before the lookup query returned. It waits for `.table-wrap` to be visible, which is a different query. **Fix:** poll `optionNames(page, box).length` past 20 before measuring, which is what `chooseOption` and `optionNames` already do everywhere else.
+- **Verbatim, the phone one:** `Error: a phone must not scroll sideways` with `Array [ "intake: 43px, e.g. " ]`
+- **Cause, in two parts.** The measurement came after a flat `page.waitForTimeout(1200)`, so a route whose column widths depend on data that lands late is measured mid-layout. **W25 did not widen anything**, which the diff shows: every change is a `min-height` or a `width` going **down**, from 40px to 32px, and `/intake` renders no kanban and no date field. **Fix:** `settleLayout()` waits for a content anchor and then for **three consecutive identical readings** of `scrollWidth x clientWidth` 150ms apart, so the assertion runs against a layout that has stopped moving rather than against a guess about how long that takes.
+- **The second part is why an hour went into the wrong place.** The culprit list filtered with `el.closest('.table-wrap')`, and `closest` **matches the element itself**, so when `.table-wrap` was the overflowing element it excluded itself and the error read `43px, e.g. ` with no culprit named. The filter now excludes only descendants, `!el.matches('.table-wrap') && el.closest('.table-wrap')`, and each culprit reports its right edge. A diagnostic that hides the one element most likely to be at fault is worse than none.
+- **The pattern, named once so it stops being rediscovered.** Four separate failures today were the same mistake: **a flat wait or a single read standing in for a condition.** QA-019, a combobox read once while its neighbours polled. QA-021, `waitForAnimations` returning at its 3000ms cap indistinguishably from success. QA-022's select read, taken before the lookup landed. QA-022's phone measurement, taken 1200ms after navigation because 1200 felt long enough. Every fix has the same shape: **assert the condition, or read until the reading stops changing.** None of them was fixed by waiting longer.
 - **Status:** closed.
 - **Closed date:** 2026-09-07

@@ -41,6 +41,7 @@ Fifteen components exist in `app/src/components/ui/`, but `Select.tsx` wraps a n
   - **V9.3** Apply it by declaring the height rather than deriving it: an explicit height or min-height plus `line-height: 1` and centred content, so a control's height stops depending on its font-size or on a line-height nobody set. Native controls that cannot be made to match are then a case for the custom component V3 already lists.
   - **V9.4** Vertical rhythm and alignment belong to the same item: label-to-control spacing, the baseline of a label against its field, control-to-control gaps in a toolbar and a filter rail, and row height in a table against the controls inside it.
   - **V9.5** A guard that fails the build the way `check-contrast.mjs` and `check-motion.mjs` do, asserting every control resolves to a tier of the scale, so the next hand-tuned padding cannot reintroduce this.
+    - **Delivered 2026-09-07 in W25, not in W1.** W1 claimed `tests/audit/control-heights.spec.ts` satisfied this, and it did not: that spec runs under `playwright.audit.config.ts` and is not in `scripts/gate.sh`, so it never failed a build. `scripts/check-control-heights.mjs` is the guard, and it is in the gate. There is also no longer a scale to resolve to a tier of: W25 collapsed it to one value, 32px, because Klent asked for one height rather than a scale.
 
 ## How it runs: six passes, each one named
 

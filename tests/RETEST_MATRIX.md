@@ -43,7 +43,7 @@ Legend: **PASS** (re-ran it, green) · **FAIL** (re-ran it, red, see defect log)
 | 2.9 | Saved view persists across sessions/devices | `tests/e2e/list-persistence.spec.ts`. Found it broken first: saving a view failed outright because the insert sent null into the NOT NULL `sort` column. Now verified across a genuinely new browser context, and confirmed another staff member is not offered it | PASS |
 | 2.10 | Recently Viewed rail, last 15 | `tests/e2e/record-ui.spec.ts` (records opens across two modules, newest first, and caps at 15). Fixed a defect: the rail never populated at all | PASS |
 | 2.11 | CSV export matches on-screen filtered set | `tests/e2e/list-persistence.spec.ts` captures the real download and compares it line by line against the visible rows: one header plus one line per row, and every on-screen name present | PASS |
-| 2.12 | Design tokens + WCAG AA + text cap | `scripts/check-contrast.mjs` (17 pairs, all AA) + `tests/e2e/record-ui.spec.ts` (no horizontal body scroll at 1024, 1280 and 1440px) | PASS |
+| 2.12 | Design tokens + WCAG AA + text cap | `scripts/check-contrast.mjs` (**35** pairs, all AA; read 17 until 2026-09-07) + `tests/e2e/record-ui.spec.ts` (no horizontal body scroll at 1024, 1280 and 1440px) + `scripts/check-control-heights.mjs` (one control height, 32px) | PASS |
 | 2.13 | Sourcer session RLS (no req edit, no CRM, grade-own-only) | `validate.sql` check 10 | PASS |
 | 2.14 | All demo data is_test=true | Confirmed via seed-count queries this pass | PASS |
 | 2.15 | Full Gate 3 demo script click-through | Already run and documented at Agent 2's own Gate 3 (2026-07-25, per delivery plan); folded into the regression checklist for re-run before Gate 4 | TRACED |

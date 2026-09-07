@@ -2,11 +2,11 @@
 
 Written at the close of Goal 5, from the code as it stands rather than from the earlier briefs. Every count here was measured on 2026-09-07 and every claim that contradicts an earlier document says so.
 
-## Workstream W is 22 of 22
+## Workstream W is 24 of 24
 
 | Item | State | Where the evidence is |
 | :---- | :---- | :---- |
-| W1 control height scale | Done | 332 controls measured, 2 distinct heights, 32px and 40px |
+| W1 control height scale | Done, then superseded | 332 controls measured, 2 distinct heights, 32px and 40px. **W25 replaces both with one**, because two heights is what Klent objected to |
 | W2 select and combobox | Done | `tests/e2e/select-combobox.spec.ts`, 11 tests |
 | W3 date field | Done | `tests/e2e/date-field.spec.ts`, 4 tests, 0 `type="date"` left |
 | W4 checkbox and radio glyphs | Done | `indeterminate` set through a ref, mixed state asserted |
@@ -18,7 +18,9 @@ Written at the close of Goal 5, from the code as it stands rather than from the 
 | W8c the small and the deferred | Done except one deferred part | `TICK_MS`, spinners hidden. V6 row 32's mobile gate waits on P4 |
 | W10 information architecture | Done | Nine sections closed, 42 inline inputs replaced by one toggle |
 | W13 to W22 | Done | Items 7 to 15 of the Goal 5 log |
-| **W9 the remaining task list** | **Done, this document** | Closed with Goal 5 on 2026-09-07, which takes W to 22 of 22 |
+| **W9 the remaining task list** | **Done, this document** | Closed with Goal 5 on 2026-09-07, taking W to 22 of 22 |
+| **W24 the login flash** | **Done** | Fixed the same day, after Goal 6, which is where Klent asked for it. `SessionProvider` holds a `staffResolvedFor` marker so `loading` covers the staff fetch; `tests/e2e/login-flash.spec.ts` proves it both ways, `holdCardRenders=0` with the fix and `1` without. That takes W to 23 of 23 |
+| **W25 one control height** | **Done** | One `--control-h: 32px` replaces the four-token scale W1 shipped. Measured across all 31 routes at `controlsMeasured=369 distinctHeights=1`, and guarded by `scripts/check-control-heights.mjs`, gate check 9 of 22, proven to fail on a broken tree. The 44px nav tabs and the 48px kanban column are out of scope with the reason recorded |
 
 ## Goal 2's build list, restated with what Goal 5 changed
 
@@ -99,4 +101,4 @@ Run G covers the two changes made after F, which F therefore did not verify: the
 
 Six new shared components carry the replacements, **929 lines** in total: `Select` 372, `DateField` 364, `dateParts` 73, `FileField` 53, `ErrorSummary` 49 and `Spinner` 18. The two large ones are large because a browser control is being replaced rather than restyled, and each is asserted by its own spec rather than by inspection.
 
-The suite counts have grown with the work: **249 API and RLS tests**, **176 browser tests**, **34 schema checks**, **35 contrast pairs** and **six** guard scripts, the sixth being `check-icons.mjs`. The browser figure was 175 at run F and is 176 after run G's added assertion.
+The suite counts have grown with the work: **265 vitest tests** (119 `api`, 144 `unit`, 2 `mocks`), **178 browser tests**, **34 schema checks**, **35 contrast pairs** and **nine** guard scripts. Every one of those figures has been corrected downward or restated at least once: the browser total was 175 at gate F, 176 after gate G's added assertion and 178 after W24's two; the vitest total was 249 until the MIME-header decoder added 16 unit tests; "API and RLS tests" was a misnomer, because the vitest config includes `api/**`, `mocks/**` and `unit/**`; the schema checks read 35 until the gate stopped counting `PASS` lines; and the guards were described as "four" in `CLAUDE.md` and as "six" here when there are nine.
