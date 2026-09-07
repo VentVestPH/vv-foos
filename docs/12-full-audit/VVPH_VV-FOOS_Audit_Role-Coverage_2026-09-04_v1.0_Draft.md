@@ -193,6 +193,16 @@ All 102 of those rows are `talent_pool` (95), `outreach` (6) and `associated` (1
 
 **Workstream V looked straight at this screen and did not see it.** `Audit_V13-Density` measured `dashboard-pipeline` at 47.3% empty with a 61px largest gap, and `Audit_V6-Audit-Table` row 33 recorded that it skips from `h1` to `h3`. So the screen was photographed at two viewports, measured for whitespace and audited for heading semantics, and **nobody checked whether the numbers on it were true**. That is the honest reason a Blocks-severity defect survived 16,879 captures: the entire audit was pointed at appearance and structure, and a screen full of confident zeros looks perfectly well-built. It is also the argument for this goal existing.
 
+**FIXED 2026-09-07.** `dashboards/lib.ts` no longer carries a private copy: both `APPLICATION_STAGE_ORDER` and `DEAL_STAGE_ORDER` are deleted and `PipelineByStage.tsx` imports the canonical `APPLICATION_STAGES` and `DEAL_STAGES` from `lib/database.types`, so the list cannot drift again. Verified in the browser, not by reading the diff:
+
+```
+REQ  200 rows=102 /rest/v1/vw_ats_funnel?applied_at=gte.2026-08-08&applied_at=lte.2026-09-07T23:59:59
+BARS Talent Pool|95  Outreach|6  Associated|1  Received|0  Screening|0  Phone Screen|0
+     Submitted|0  Client Interview|0  Offer|0  Hired|0  Rejected|0
+```
+
+95 + 6 + 1 = 102, which is exactly the row count the request returned, and the funnel now renders all eleven stages instead of eight.
+
 **Two things make this Blocks rather than Costs.** It reports a confident, precise falsehood rather than an error or a blank, so nothing prompts the reader to doubt it; and it is the landing screen of a nav tab available to all four roles. Someone reading it concludes the company has no pipeline at all.
 
 ### G1-5. The candidate record fires four requests per load that fail with `400`, and nothing shows it

@@ -5,9 +5,8 @@ import { Widget } from './components/Widget';
 import { BarList } from './components/BarList';
 import { KpiCard, KpiRow } from './components/Kpi';
 import { useOutboxRefresh } from './hooks';
+import { APPLICATION_STAGES, DEAL_STAGES } from '../../lib/database.types';
 import {
-  APPLICATION_STAGE_ORDER,
-  DEAL_STAGE_ORDER,
   countBy,
   exportFilename,
   fmtMoney,
@@ -43,8 +42,8 @@ export function PipelineByStage({ range }: { range: DateRange }) {
   useEffect(load, [load]);
   useOutboxRefresh(load);
 
-  const atsCounts = countBy(ats, (r) => r.stage, APPLICATION_STAGE_ORDER);
-  const crmCounts = countBy(crm, (r) => r.stage, DEAL_STAGE_ORDER);
+  const atsCounts = countBy(ats, (r) => r.stage, APPLICATION_STAGES);
+  const crmCounts = countBy(crm, (r) => r.stage, DEAL_STAGES);
   const openValue = crm
     .filter((d) => d.stage !== 'won' && d.stage !== 'lost')
     .reduce((sum, d) => sum + (d.value ?? 0), 0);

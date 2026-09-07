@@ -182,22 +182,3 @@ export function countBy<T>(
   return labels.map((label) => ({ label, count: counts.get(label) ?? 0 }));
 }
 
-export const APPLICATION_STAGE_ORDER = [
-  'received',
-  'screening',
-  'phone_screen',
-  'submitted',
-  'client_interview',
-  'offer',
-  'hired',
-  'rejected',
-];
-
-export const DEAL_STAGE_ORDER = [
-  'lead',
-  'qualified',
-  'proposal',
-  'negotiation',
-  'won',
-  'lost',
-];
