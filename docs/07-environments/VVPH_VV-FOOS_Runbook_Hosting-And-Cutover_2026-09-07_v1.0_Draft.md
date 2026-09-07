@@ -63,6 +63,13 @@ Derived from `supabase/config.toml` and from every `Deno.env.get` reachable from
 | `intake-sheet-fetch` | true | `APP_PRIMARY_ORIGIN` |
 | `intake-sheet-commit` | true | `APP_PRIMARY_ORIGIN` |
 
+**The two origin variables point at different hosts, and swapping them is the easy mistake.**
+
+- `CAREERS_PUBLIC_ORIGIN` is the origin the **careers pages are served from**, which is the Supabase Functions origin unless a custom domain fronts it. `careers-page/index.ts:320` falls back to `https://${url.host}`, and the hardcoded `https` is there because `req.url`'s scheme cannot be trusted behind Supabase's proxy. It builds the canonical URL, the sitemap and `robots.txt` from it, so a wrong value produces a site that indexes itself under a hostname that does not serve it.
+- `APP_PRIMARY_ORIGIN` is the **frontend host's** origin, Vercel or Cloudflare. Five authenticated functions use it as their CORS allow-origin, so it has to match the origin the browser is on. `_shared/careers-html.ts:87` also uses it to build `${origin}/og-careers.png`, and `og-careers.png` is one of the 34 files the frontend build emits, so that link only resolves if this points at the frontend and not at Supabase.
+
+Setting both to the same value works for CORS and quietly breaks either the careers canonical URLs or the Open Graph image, depending on which value you pick.
+
 **Ten secrets to set**, and each one has a consequence if it is missed:
 
 | Secret | Missing it means |
@@ -123,6 +130,19 @@ The comment above it in the file is the part that matters: `A list of *exact* UR
 **A preview deployment gets a new origin every time**, so an exact list cannot cover them: whatever is enumerated today does not match the next deploy's hostname, and sign-in on a preview fails while production works. Set the production origin exactly and cover previews with a pattern in the Dashboard's redirect-URL list rather than by adding hostnames one at a time. This is the failure that looks like "OAuth is broken" and is in fact "this origin was not on the list".
 
 **X7 is the same origin from the other side.** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` go into the host's environment, and `lib/supabase.ts` throws at boot if either is absent, so a missing variable is a blank page rather than a degraded one. Both are baked into the bundle at build time, which is why changing them needs a rebuild and not just a restart.
+
+**The CSP was checked against what the app actually loads, rather than assumed to fit.** Every absolute URL in `app/src` was listed and classified:
+
+| What the app references | CSP directive that governs it | Covered |
+| :---- | :---- | :---- |
+| `https://<ref>.supabase.co` REST, Auth, Storage and Functions | `connect-src 'self' https://*.supabase.co` | yes |
+| `wss://<ref>.supabase.co` Realtime | `connect-src ... wss://*.supabase.co` | yes |
+| The one dynamic frame, `engagement.tsx:605` `<iframe src={url}>` with a Storage signed URL | `frame-src 'self' blob: https://*.supabase.co` | yes, and this is why `blob:` and `supabase.co` are in that directive |
+| `google.com/search` and `linkedin.com/search` on the candidate record, and `docs.google.com` in the sheet import | none: they are `<a target="_blank" rel="noreferrer">` top-level navigations, which no directive here restricts | not applicable |
+| `googleapis.com/auth/...` in `settings/lib.ts` | none: these are OAuth **scope identifiers**, compared as strings and never fetched | not applicable |
+| `accounts.google.com` during sign-in | a top-level navigation, but `connect-src` lists it anyway | yes, belt and braces |
+
+The two images the app serves itself, `/ventvest-logo.webp` at `LoginPage.tsx:56` and `UtilityHeader.tsx:47`, are same-origin. **Nothing the app loads falls outside the committed CSP**, which is worth knowing because a CSP that blocks a real request fails at runtime with a console error and no visible symptom.
 
 ## X11: what "builds on push" would actually do, so the decision is one read
 

@@ -46,7 +46,7 @@ npx playwright test e2e/crm-deals.spec.ts     # from tests/
 
 Two static gates: `npm run lint --workspace=app` (ESLint 9 flat config at `app/eslint.config.js`, with `typescript-eslint` and `eslint-plugin-react-hooks`) and `npm run typecheck --workspace=app`. There is no Prettier config. `strict`, `noUnusedLocals` and `noUnusedParameters` are all on, so unused imports break the build.
 
-`.github/workflows/ci.yml` runs both plus the build and four guard scripts (`check-contrast`, `check-motion`, `check-comments`, `check-migrations`) on every push to `main` and `develop`.
+`.github/workflows/ci.yml` runs both plus the build and the guard scripts on every push to `main` and `develop`. **Corrected 2026-09-07:** this said "four guard scripts" and named four. There are **nine**, and `bash scripts/gate.sh` is the way to run everything at once.
 
 **No comments in source.** `.ts`, `.tsx`, `.js`, `.mjs` and `.css` files carry no comments; `scripts/check-comments.mjs` guards against reintroducing low-value ones. Rationale belongs in `docs/` or a commit message. SQL migrations are the one exception: their header comments are the only record of why a schema decision was made.
 
@@ -135,11 +135,31 @@ Functions that write on a user's behalf run under the caller's own JWT where RLS
 Both suites run against the local stack from a clean `npm run db:reset` with no manual steps. They are order-independent and leave no rows, storage objects or queue entries behind; that was verified over eight consecutive loops, not one run.
 
 ```sh
-npm run test --workspace=tests     # 64 API/RLS tests (vitest, files run serially)
-npm run e2e  --workspace=tests     # 39 browser tests (playwright, 2 workers)
-psql "$DB_URL" -f supabase/tests/validate.sql   # 34 schema checks
-node scripts/check-attachment-queue.mjs         # no orphaned attachment files
+bash scripts/gate.sh 5             # everything below, five times; the way to verify a change
+
+npm run test --workspace=tests     # 249 API/RLS tests (vitest, files run serially)
+npm run e2e  --workspace=tests     # 176 browser tests (playwright, 2 workers)
+psql "$DB_URL" -f supabase/tests/validate.sql   # 34 checks; 3 structural, 31 need the seed
+node scripts/check-attachment-queue.mjs         # no orphaned attachment files, no leaked client_errors
 ```
+
+**Corrected 2026-09-07:** the two suite counts above read 64 and 39 and had been stale for weeks. `validate.sql` also read 18 and then 35; it is **34**, because the gate counted `PASS` lines and check 15 prints two, while checks `5b` and `14b` carry letter suffixes so the numbered labels stop at 32.
+
+**The nine guard scripts**, all of which the gate runs:
+
+| Script | What it fails on |
+|---|---|
+| `check-comments.mjs` | a comment in `.ts`, `.tsx`, `.js`, `.mjs` or `.css` |
+| `check-contrast.mjs` | a token pair below its WCAG ratio; **35 pairs** |
+| `check-motion.mjs` | an animation over `MAX_MS = 220`, or a layout-shifting property; `--motion-spin` is exempt but must be on an `infinite` animation |
+| `check-css-layers.mjs` | an unlayered rule, or a layer file that is not imported |
+| `check-icons.mjs` | an icon size off the scale, which it reads from `tokens.css`'s own `--icon-*` values rather than hardcoding: 16, 20, 24, 40 |
+| `check-licences.mjs` | a runtime dependency that is not permissively licensed |
+| `check-migrations.mjs` | drift between the migrations and what they should declare |
+| `check-unbounded-queries.mjs` | a read of a large table with no bound |
+| `check-paged-order.mjs` | a paged read with no stable order |
+
+Two more that are not guards and are not in the gate: `scripts/check-env-target.mjs`, and `scripts/check-cutover.mjs`, which is Goal 6's automated X10 and **requires an explicit target** (`CUTOVER_SUPABASE_URL` plus `CUTOVER_SUPABASE_ANON_KEY`) because an earlier version read `VITE_SUPABASE_URL` and therefore talked to the live project. See `docs/07-environments/VVPH_VV-FOOS_Runbook_Hosting-And-Cutover` and QA-017.
 
 Four things bite anyone adding tests here:
 
