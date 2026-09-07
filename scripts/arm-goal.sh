@@ -26,7 +26,7 @@ fi
 F="$SRC/goal-$N.md"
 [ -f "$F" ] || { echo "no goal $N. Goals available: $(ls "$SRC" | sed 's/goal-//;s/\.md//' | tr '\n' ' ')"; exit 1; }
 
-cp "$F" "$ROOT/.claude/goal-armed.md"
+cat "$F" "$SRC/_always.md" > "$ROOT/.claude/goal-armed.md"
 rm -f "$ROOT/.claude/.goal-reminder-stamp"
 echo "armed goal $N: $(head -1 "$F" | sed 's/^# ACTIVE GOAL: //')"
 echo "The reminder fires on the next tool call, then every ${FOOS_REMINDER_SECONDS:-480}s of activity."
