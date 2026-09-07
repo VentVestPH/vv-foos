@@ -25,7 +25,13 @@
       ],
       "project": [
         "**/*.ts"
-      ]
+      ],
+      "playwright": {
+        "config": [
+          "playwright.config.ts",
+          "playwright.audit.config.ts"
+        ]
+      }
     }
   },
   "ignore": [

@@ -17,6 +17,7 @@ test.describe('the dashboard survives being remounted', () => {
     await waitForRealtime(page);
 
     const tabs = ['/?tab=pipeline', '/', '/?tab=reports', '/?tab=pipeline', '/'];
+    const ownRoutes = ['/', '/?tab=pipeline', '/?tab=reports'];
     for (let round = 0; round < 4; round += 1) {
       for (const tab of tabs) {
         await page.goto(tab);
@@ -33,7 +34,8 @@ test.describe('the dashboard survives being remounted', () => {
     const { data, error } = await admin
       .from('client_errors')
       .select('id, message, route')
-      .gte('occurred_at', startedAt);
+      .gte('occurred_at', startedAt)
+      .in('route', ownRoutes);
     if (error) throw new Error(`could not read client_errors: ${error.message}`);
     const recorded = data ?? [];
     if (recorded.length > 0) {

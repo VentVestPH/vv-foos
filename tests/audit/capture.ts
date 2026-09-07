@@ -19,7 +19,7 @@ export interface Shot {
 }
 
 export const shots: Shot[] = [];
-export const notes: string[] = [];
+const notes: string[] = [];
 export const blockedWrites: string[] = [];
 
 let counter = 0;
@@ -40,7 +40,7 @@ const AREA_TAG = (() => {
   return area;
 })();
 
-export function manifestPath(): string {
+function manifestPath(): string {
   return join(CORPUS, `manifest.${AREA_TAG}.json`);
 }
 
@@ -60,7 +60,7 @@ export function note(line: string): void {
 
 const READ_ONLY_RPCS = new Set(['get_my_google_status', 'get_my_role']);
 
-export const allowedReadRpcs: string[] = [];
+const allowedReadRpcs: string[] = [];
 
 export async function guardWrites(page: Page, screen: string): Promise<void> {
   const handler = async (route: import('@playwright/test').Route) => {

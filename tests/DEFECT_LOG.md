@@ -130,3 +130,31 @@ No real PII in any row below — all evidence is schema/config state or syntheti
   - **Now clean: 5 consecutive full runs at two workers, 153 passed, rate-limit delta 0 each time.** Reverting U1.14 alone leaves it clean (153 passed, delta 0), and reverting U1.12's channel singleton alone leaves it clean too, so **no single change can be credited** and the honest reading is that the failure needed a burst that the current tree no longer produces. The one other difference is the regression spec itself, which now delays its own responses with `page.route` instead of racing the database, and so makes far fewer requests.
 - **Status:** closed as not reproducible, with the caveat that it was never attributed to one cause. If it returns, `FOOS_PW_WORKERS=1` is the documented lever and the rate-limit delta is the metric to read, measured before and after a run rather than with `--since`.
 - **Closed date:** 2026-09-04
+
+---
+
+### QA-010: `dashboard-channel-collision` claims another worker's `client_errors` rows, then deletes them
+
+- **Date found:** 2026-09-07, in gate pass 1 of 3 while closing Goal 1. Fixed the same day.
+- **Module/agent:** `tests/e2e/dashboard-channel-collision.spec.ts:47` "switching tabs does not rebind a realtime channel that is already joined"
+- **Severity:** **Medium.** Two faults, both real: the assertion false-fails, and its cleanup destroys a concurrent spec's fixtures, so the collision can be scored against either spec depending on scheduling.
+- **Steps to reproduce:** `npx playwright test e2e/dashboard-channel-collision.spec.ts e2e/error-reporting.spec.ts --workers=2`, repeatedly. It reproduces only when the two land in the same window, which is why one gate pass failed and the next passed on an unchanged tree.
+- **Expected:** the test fails only on a client error the dashboard itself reported.
+- **Actual, verbatim from `.gate/browser-pass-1.json`:**
+
+```
+Error: the dashboard reported a client error while switching tabs
+- Expected  -  1
++ Received  + 18
++   "/recruit/candidates: e2e-error-3759-lgglsc flood 14",
++   ... 15 more flood rows ...
++   "/recruit/requisitions: e2e-error-3759-lgglsc rejection",
++   "/recruit/candidates: e2e-error-3759-lgglsc uncaught",
+```
+
+- **Cause:** the spec read `client_errors` filtered on `occurred_at >= startedAt` and **nothing else**. `error-reporting.spec.ts:5` tags its rows run-uniquely (`e2e-error-${process.pid}-${random}`) and `:62` deliberately writes 15 flood rows plus a rejection and an uncaught error, all on `/recruit/*`. At two workers those land inside the collision test's time window. The spec then deleted every row it had matched, so it also removed the other spec's fixtures **and destroyed the evidence of its own failure**, which is why `client_errors` read 0 rows by the time I looked.
+- **Fix:** scope the read to the three routes this spec actually visits, `['/', '/?tab=pipeline', '/?tab=reports']`, via `.in('route', ownRoutes)`. `errorReporter.ts:47` writes `route` as `window.location.pathname + window.location.search`, so a client error this spec caused must carry one of those three. It still catches any real dashboard error and can no longer match or delete another spec's rows.
+- **Evidence the fix holds:** the two specs run together at two workers, **5 consecutive runs, 4 passed each, exit 0 every time**. Before the fix the same pairing produced the failure above.
+- **The general lesson, and it is already in `CLAUDE.md`:** "Fixtures must be run-unique. Cleanup by a shared prefix means two specs delete each other's rows." Cleaning up by **time window** is a weaker version of the same mistake, because the window belongs to no one. A spec that asserts a table is empty must still scope that assertion to rows it could have caused.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
