@@ -187,6 +187,35 @@ So `.is-placeholder` now carries **no visual change at all**. The class stays as
 
 **The wider lesson, and it applies to every `aria-disabled` in any codebase.** A false disabled claim is not one defect, it is a suppressor: it hid a cursor bug, an announcement bug and a contrast failure at once, and the contrast failure was invisible to the accessibility suite that runs on every commit.
 
+### 11. W1, the control height scale, and the cause was that nothing chose a height
+
+V9's finding was not that every control should be one height. It was that **eight arbitrary values are not a scale**: FOOS had 16, 19, 24, 28, 30, 32, 40 and 44, of which 16, 19, 28 and 30 "correspond to nothing published and are simply what padding plus a font produced".
+
+**The mechanism, measured by V9 rather than guessed.** Only two rules in the product set a `line-height` on a control, `.btn` at 17.5px and `.btn-sm` at 16.25px, which produced the only two stable heights, 37.5px and 30.25px. **Every other control computed `line-height: normal`**, so its height was font metrics plus padding plus border, and a 13.33px user-agent default font recurred wherever nothing set one. For most controls nobody had chosen a height.
+
+**Fixed by declaring height instead of deriving it**, against [Carbon's published 24 / 32 / 40 / 48 scale](https://carbondesignsystem.com/components/button/usage/) with its documented pairing rule of small buttons with 32px fields and medium with 40px:
+
+| Token | Value | Applies to |
+| :---- | ----: | :---- |
+| `--control-h-xs` | 24px | reserved for icon-only targets, which is also WCAG 2.5.8's AA minimum |
+| `--control-h-sm` | 32px | `.btn-sm` |
+| `--control-h-md` | 40px | `.btn`, and single-line `input`, `select`, `.input` |
+| `--control-h-lg` | 48px | reserved |
+
+`.btn` went from `padding: 9px 18px; line-height: 1.25` to `min-height: var(--control-h-md); padding: 0 18px; line-height: 1`, and the same shape for `.btn-sm`. Text inputs and selects gained `min-height: var(--control-h-md)` and lost their vertical padding; `textarea` keeps its padding, because a multi-line control must not be pinned to a single-line height.
+
+**Measured across all 31 routes afterwards, and this is the whole result:**
+
+```
+PROBE controlsMeasured=332 distinctHeights=2
+  HEIGHT 32px x141
+  HEIGHT 40px x191
+```
+
+**Two heights, both on the published scale, across 332 controls.** Eight arbitrary values became two chosen ones, and the two that remain are the two Carbon says to pair. `tests/audit/control-heights.spec.ts` is the guard V9.5 asked for: it walks every route, measures every button and single-line field, and fails on any height outside `[24, 32, 40, 48]`, so the next hand-tuned padding cannot reintroduce the drift.
+
+Klent's complaint was "i can see multiple fields and buttons that have different heights". The answer was not to hunt the mismatched pairs; it was that **almost nothing chose a height at all**, and the fix is four tokens and four rules.
+
 ## What went wrong doing it
 
 **I leaked a test fixture by killing the suite, for the second time this session.** Gate pass 1 reported `FAIL validate.sql` with `ERROR: FAIL 9: people count`, because `people where is_test` was **11** against an expected **10**.

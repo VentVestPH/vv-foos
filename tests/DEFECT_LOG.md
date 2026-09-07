@@ -220,3 +220,17 @@ Error: a header plus one record per visible row; got 0 records for 3 rows
 - **The lesson, and it is about how I fixed QA-011:** when a defect is a pattern rather than a line, fixing the instance that failed is not fixing the defect. I should have grepped the file for every other assertion built the same way before calling it done, and the gate had to tell me twice.
 - **Status:** closed.
 - **Closed date:** 2026-09-07
+
+
+---
+
+### QA-011 reopened and closed properly: narrowing the race was not fixing it
+
+- **Date:** 2026-09-07, the same day QA-011 was first closed.
+- **What happened:** the first fix read the neighbouring row from the live DOM immediately before the keypress instead of at the top of the test. That narrowed the window and did not remove it. The gate failed it again, identically, with a third row key: `Expected "80efe836..."`, `Received "91ea1134..."`.
+- **A second attempt that was worse, and is recorded because it failed 8 of 8.** I tried a zero-gap measurement: one `page.evaluate` that read the active row index, dispatched a synthetic `KeyboardEvent`, and read the index again. It reported `j moves down one row / Received: 0` on every run. The reason is architectural: `Table`'s `moveActive` sets React state and focus lands in the commit that follows, so nothing about focus is observable in the same synchronous turn as the dispatch. **A zero-gap measurement is impossible for an asynchronously-applied focus change**, and that is worth knowing before anyone tries it again.
+- **The fix that works, and it is the pattern the suite already had.** `list-persistence.spec.ts` seeds run-unique fixtures and filters the list to them. Both keyboard tests now do the same: they insert three `people` rows tagged `Zkeys<pid>-<random>`, filter the candidate list to that token, and walk the three rows they own. Other workers' writes cannot enter a filtered set that only this run's token matches, so a realtime reload re-fetches the identical three rows and the identities hold.
+- **Evidence:** **8 of 8 runs**, and `people where is_test` back to **10** afterwards, so the fixtures tear down cleanly.
+- **The lesson, and it is the third time this session that this exact reasoning error cost a gate run:** when the cause is "another actor can change this state", the fix is to stop sharing the state, not to read it later. Narrowing a race window is not closing it.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
