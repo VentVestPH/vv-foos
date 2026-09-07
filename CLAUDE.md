@@ -137,7 +137,7 @@ Both suites run against the local stack from a clean `npm run db:reset` with no 
 ```sh
 npm run test --workspace=tests     # 64 API/RLS tests (vitest, files run serially)
 npm run e2e  --workspace=tests     # 39 browser tests (playwright, 2 workers)
-psql "$DB_URL" -f supabase/tests/validate.sql   # 18 schema checks
+psql "$DB_URL" -f supabase/tests/validate.sql   # 34 schema checks
 node scripts/check-attachment-queue.mjs         # no orphaned attachment files
 ```
 

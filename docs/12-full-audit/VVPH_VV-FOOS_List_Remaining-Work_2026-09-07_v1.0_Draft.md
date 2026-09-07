@@ -2,7 +2,7 @@
 
 Written at the close of Goal 5, from the code as it stands rather than from the earlier briefs. Every count here was measured on 2026-09-07 and every claim that contradicts an earlier document says so.
 
-## Workstream W is 21 of 22
+## Workstream W is 22 of 22
 
 | Item | State | Where the evidence is |
 | :---- | :---- | :---- |
@@ -18,7 +18,7 @@ Written at the close of Goal 5, from the code as it stands rather than from the 
 | W8c the small and the deferred | Done except one deferred part | `TICK_MS`, spinners hidden. V6 row 32's mobile gate waits on P4 |
 | W10 information architecture | Done | Nine sections closed, 42 inline inputs replaced by one toggle |
 | W13 to W22 | Done | Items 7 to 15 of the Goal 5 log |
-| **W9 the remaining task list** | **This document** | |
+| **W9 the remaining task list** | **Done, this document** | Closed with Goal 5 on 2026-09-07, which takes W to 22 of 22 |
 
 ## Goal 2's build list, restated with what Goal 5 changed
 
@@ -69,17 +69,34 @@ Numbered G5-1 to G5-7 so they can be argued about separately. G5-5 was closed in
 
 ## Outside workstream W
 
-- **Goal 6, X1 to X12.** Hosting and cutover. Section 7.28 of the plan carries every step. X1 creates the develop project and is Klent's; X8 (what data the hosted instance carries) and X12 (which host, decided on licensing rather than capability) are also Klent's. X10 is the only part that can fail in an interesting way.
+- **Goal 6, X1 to X12.** Hosting and cutover. `docs/07-environments/VVPH_VV-FOOS_Runbook_Hosting-And-Cutover` is the working document; plan section 7.28 carries the item list. **Updated 2026-09-07:** the eight items that are mine are prepared as far as they can go without a target, and the four that are Klent's are named as his rather than assumed.
+
+| X | State after Goal 6's preparation |
+| :---- | :---- |
+| X1 create the develop project | **Klent's action.** Everything below waits on the ref |
+| X2 apply the 54 migrations | **Rehearsed.** All 54 applied in order into a scratch database on plain Postgres 17.6 with the local shim, 0 failures. Cannot be applied for real until X1 |
+| X3 `pg_cron`, `dash` exposed, OAuth domain | **Documented from the local stack.** Four cron jobs, not the two the plan named; ten `dash` objects, seven views over three materialized views; and the `hd` parameter is a hint, so the domain restriction has to be set on the provider |
+| X4 redirect URLs | **Documented, with the trap named.** `redirectTo` is `window.location.origin`, and Supabase's list is exact URLs, so preview deploys need a pattern rather than enumeration |
+| X5 deploy the 11 functions | **Table verified against `config.toml` and every reachable `Deno.env.get`.** Six run `verify_jwt=false`; ten secrets to set. Needs a target |
+| X6 `CAREERS_PUBLIC_ORIGIN` | **Documented.** Needs a target |
+| X7 the two `VITE_` variables | **Documented.** Baked at build time, so a change needs a rebuild |
+| X8 what data goes up | **Klent's decision.** 72,988 `people` and 72,917 `candidate_profiles` are real people |
+| X9 purge the demo rows first | **Coverage verified.** Every base table carrying `is_test` is one of the four in the purge order; the other three hits are views |
+| X10 verify after deploy | **Three of the five automated** in `scripts/check-cutover.mjs`; Google sign-in and the live update stay manual |
+| X11 build on push | **Klent's decision**, with the mechanism written up and a recommendation: production from `main`, previews elsewhere, no automatic production deploy from `develop` |
+| X12 which host | **Klent's decision.** The research is finished: Vercel Hobby forbids commercial use, Cloudflare Pages carries no such restriction as of the 2026-09-07 read, and the Cloudflare port is committed |
+
+Two defects came out of preparing this rather than out of shipping it: **QA-017**, the cutover check reading `VITE_SUPABASE_URL` and therefore talking to the live project on its first real run, and **QA-018**, a `_redirects` port that would have proxied every hashed bundle request to `index.html`. Both are closed and both are in `tests/DEFECT_LOG.md`, which now holds **19** entries.
 - **W24, the login flash.** Klent, 2026-09-07: "upon successful login, i can see an account not provision display, then redirects me to home page. i don't like that." Scheduled after Goal 6 and before the final test pass.
 - **The parked and blocked register.** T3a, A3, A4, B2, B3, K10b and E6, none of which are mine to close.
 - **P4 to P7.** The read-only-on-a-phone question, the Web Support URL, the four unmapped 0% fields, and the star grade column.
 
 ## What the gate says about this state
 
-Run F, the whole batch with QA-014, QA-015 and QA-016 fixed, is **five clean passes, 21 of 21 checks each**, `browser 175 passed`, `validate.sql 35 check(s) pass`, `importer 11 module(s) idempotent`, `attachments` clean. It is recorded pass by pass in the Goal 5 log's gate table.
+Run F, the whole batch with QA-014, QA-015 and QA-016 fixed, is **five clean passes, 21 of 21 checks each**, `browser 175 passed`, `validate.sql 35 check(s) pass`, `importer 11 module(s) idempotent`, `attachments` clean. It is recorded pass by pass in the Goal 5 log's gate table. The `35` there is what the gate printed at the time; it counted `PASS` lines and one check prints two, so the distinct total is **34** and the gate now says so.
 
-Run G covers the two changes made after F, which F therefore did not verify: the date field naming the real fault, and the error summary reaching the one form of six that the audit had actually measured. A commit claiming five clean passes has to mean five passes over the tree it contains, which is why they are a separate commit and a separate run.
+Run G covers the two changes made after F, which F therefore did not verify: the date field naming the real fault, and the error summary reaching the one form of six that the audit had actually measured. A commit claiming five clean passes has to mean five passes over the tree it contains, which is why they are a separate commit and a separate run. **Run G finished clean five times, 21 of 21 each, `browser 176 passed` every pass.**
 
 Six new shared components carry the replacements, **929 lines** in total: `Select` 372, `DateField` 364, `dateParts` 73, `FileField` 53, `ErrorSummary` 49 and `Spinner` 18. The two large ones are large because a browser control is being replaced rather than restyled, and each is asserted by its own spec rather than by inspection.
 
-The suite counts have grown with the work: **249 API and RLS tests**, **175 browser tests**, **35 schema checks**, **35 contrast pairs** and **six** guard scripts, the sixth being `check-icons.mjs`.
+The suite counts have grown with the work: **249 API and RLS tests**, **176 browser tests**, **34 schema checks**, **35 contrast pairs** and **six** guard scripts, the sixth being `check-icons.mjs`. The browser figure was 175 at run F and is 176 after run G's added assertion.

@@ -1,26 +1,59 @@
 # Goal 6: the cutover runbook, X1 to X12
 
-Written from the code and the config rather than from the plan's summary, so every figure here is re-checkable with the command beside it. Nothing in this document was executed against a hosted project: X1 has not happened, so X2 to X7 have no target yet. What is done here is the part that does not need one.
+Written from the code and the config rather than from the plan's summary, so every figure here is re-checkable with the command beside it. **X1 has not happened**, so X2 to X7 have no target yet, and what is done here is the part that does not need one.
+
+One correction to how that used to read. This paragraph said "nothing in this document was executed against a hosted project", and the first real run of `scripts/check-cutover.mjs` had already gone to the live project by reading `VITE_SUPABASE_URL` out of `app/.env`. It made read-only requests as `anon`, all refused or informational, and it is written up as QA-017 in `tests/DEFECT_LOG.md` and in the check's own section below. The script now refuses to guess a target at all.
+
+**What is proven, and how far.** X2 was rehearsed into a scratch database, X3's four cron jobs and ten `dash` objects were read from the local stack, X5's `verify_jwt` settings and ten secrets were derived from `config.toml` and every reachable `Deno.env.get`, X9's purge order was checked for coverage against every table carrying `is_test`, and X12's licensing was read from both vendors with their page dates. **Nothing here has served a request from a hosted origin.**
 
 ## What is settled and is not relitigated
 
-The artefact is a static SPA. `vercel.json` is committed with `outputDirectory: app/dist-redesign-2`, the SPA rewrite `/((?!assets/).*)` without which every deep link 404s, immutable asset caching, and a header set whose CSP already allows `https://*.supabase.co`, `wss://*.supabase.co` and `https://accounts.google.com`. `script-src` is `'self'` with no `unsafe-inline`, which the Vite production build satisfies.
+The artefact is a static SPA, **34 files and 955,095 bytes**, largest 215,735. `vercel.json` is committed with `outputDirectory: app/dist-redesign-2`, the SPA rewrite `/((?!assets/).*)` without which every deep link 404s, immutable asset caching, and a header set whose CSP already allows `https://*.supabase.co`, `wss://*.supabase.co` and `https://accounts.google.com`. `script-src` is `'self'` with no `unsafe-inline`, which the Vite production build satisfies.
+
+Two row counts in this document are easy to confuse and are both correct: **72,988 `people`** and **72,917 `candidate_profiles`**. A person can exist without a candidate profile, which is why X8's decision is stated against `people` while the plan's privacy language names candidate records.
 
 Fly is ruled out on its own documentation: static files must be packaged as a container image, so it means maintaining a web server to serve a few dozen files.
 
 ## X2: the migration count, and what proves it
 
-**54 migrations**, `ls supabase/migrations/*.sql | wc -l`. They apply cleanly from scratch in order, which `npm run db:reset` exercises on every local run. A fresh project has no ledger to reconcile, which is the reason X1 exists: the live project had ten migrations applied through the MCP connector under generated timestamps against six hand-written repo files, so `supabase db push` refuses with `LegacyDbPushMissingLocalError`.
+**54 migrations**, `ls supabase/migrations/*.sql | wc -l`. A fresh project has no ledger to reconcile, which is the reason X1 exists: the live project had ten migrations applied through the MCP connector under generated timestamps against six hand-written repo files, so `supabase db push` refuses with `LegacyDbPushMissingLocalError`.
+
+### X2 was rehearsed rather than asserted, on 2026-09-07
+
+Saying "`npm run db:reset` exercises this on every local run" is true but is not a rehearsal of X2, because `db:reset` also seeds and it destroys the working database, which currently holds the imported corpus. So the run went into a scratch database on the same local Postgres instead:
+
+```
+createdb foos_x2_rehearsal on 127.0.0.1:55322 (PostgreSQL 17.6)
+psql -f supabase/tests/local_shim.sql        -> shim ok
+54 migrations applied in lexical order       -> ok 1..54, failed 0
+```
+
+Every one of the 54 applied with `ON_ERROR_STOP=1` into an empty database, with no Supabase services present beyond what `local_shim.sql` stubs: the `anon`, `authenticated` and `service_role` roles, the `auth` schema, and `auth.uid()` / `auth.jwt()`. The scratch database was dropped afterwards. **This is the strongest evidence available without X1**: it proves the migrations are self-contained and order-correct, and it does not prove anything about a Supabase project's own extensions or the Dashboard settings, which is what X3 is for.
+
+**One finding that changes X10, and it would have been discovered the hard way.** `validate.sql` is **not** a schema-only check, so it cannot be used as a smoke test straight after X2. Against the freshly migrated scratch database it stops at the fourth check:
+
+```
+NOTICE:  PASS 1: all 24 expected tables exist
+NOTICE:  PASS 2: RLS enabled on every public table
+NOTICE:  PASS 3: all required triggers exist
+ERROR:  FAIL 4: seed requisition REQ-0001 not found
+```
+
+**3 of its 34 checks are structural and 31 need seed data.** After applying migrations to the new project, either seed it or expect `validate.sql` to fail at check 4; a failure there says nothing about the migrations. The three structural checks are worth running on their own, because between them they assert all 24 tables, RLS on every one, and every required trigger.
+
+**And the check count itself was wrong.** `scripts/gate.sh` printed `35 check(s) pass` because it counted `PASS` lines, and check 15 prints two, one for the intake-item teardown and one for the reminder teardown. Two checks also carry letter suffixes, `5b` and `14b`, so the numbered labels run to 32 while the distinct checks number **34**. The gate now counts distinct labels and prints 34.
 
 ## X5 and X6: the eleven functions, their JWT setting and their secrets
 
-Derived from `supabase/config.toml` and from every `Deno.env.get` in each function, not from prose. `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are platform-provided and are not listed.
+Derived from `supabase/config.toml` and from every `Deno.env.get` reachable from each function, not from prose. `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are platform-provided and are not listed.
+
+**Corrected 2026-09-07.** The first version of this table read only each function's own `index.ts` and therefore missed what `_shared/` reads on its behalf. `careers-page` and `careers-status` both import `_shared/careers-html.ts`, which reads `APP_PRIMARY_ORIGIN`, so two cells were short and the secrets table undercounted that variable's reach as five functions when it is eight. The `verify_jwt` column was checked against `config.toml` and is right: six blocks set it false, and the other five functions have no block, so they take the default of true.
 
 | Function | `verify_jwt` | Secrets it reads |
 | :---- | :---- | :---- |
-| `careers-page` | **false** | `CAREERS_PUBLIC_ORIGIN` |
+| `careers-page` | **false** | `CAREERS_PUBLIC_ORIGIN`, `APP_PRIMARY_ORIGIN` (via `_shared/careers-html.ts`) |
 | `careers-apply` | **false** | `CAREERS_PUBLIC_ORIGIN`, `CAREERS_RATE_LIMIT_PER_HOUR` |
-| `careers-status` | **false** | `CAREERS_PUBLIC_ORIGIN` |
+| `careers-status` | **false** | `CAREERS_PUBLIC_ORIGIN`, `APP_PRIMARY_ORIGIN` (via `_shared/careers-html.ts`) |
 | `google-oauth-callback` | **false** | `APP_ALLOWED_ORIGINS`, `APP_SETTINGS_URL`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI` |
 | `google-sync` | **false** | `APP_PRIMARY_ORIGIN`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_SYNC_SECRET` |
 | `intake-email-parser` | **false** | `INTAKE_EMAIL_PARSER_SECRET` |
@@ -36,7 +69,7 @@ Derived from `supabase/config.toml` and from every `Deno.env.get` in each functi
 | :---- | :---- |
 | `CAREERS_PUBLIC_ORIGIN` | `careers-page` builds its links from `req.url`, whose scheme cannot be trusted behind Supabase's proxy, which is why the function hardcodes `https` |
 | `CAREERS_RATE_LIMIT_PER_HOUR` | the public apply endpoint falls back to its built-in default rather than the intended limit |
-| `APP_PRIMARY_ORIGIN` | five functions send `Access-Control-Allow-Origin: *`, which is the wrong answer for an authenticated endpoint |
+| `APP_PRIMARY_ORIGIN` | **eight** functions read it, not five, and the consequence splits. For the five authenticated ones plus `google-oauth-start` and `google-sync` it means `Access-Control-Allow-Origin: *`, which is the wrong answer for an authenticated endpoint. For `careers-page` and `careers-status` it reaches `_shared/careers-html.ts`, where it builds the Open Graph image URL, so a missing value drops the preview card from every shared careers link and breaks nothing else |
 | `APP_ALLOWED_ORIGINS` | `google-oauth-callback` has no allow-list to redirect back to, so the OAuth round trip cannot complete safely |
 | `APP_SETTINGS_URL` | the callback falls back to the relative `/settings`, which is not a valid redirect target from Supabase's domain |
 | `GOOGLE_OAUTH_CLIENT_ID`, `_SECRET`, `_REDIRECT_URI` | the whole Google integration is dead: no connect, no sync, no send, no meeting |
@@ -57,8 +90,51 @@ Derived from `supabase/config.toml` and from every `Deno.env.get` in each functi
 | `foos-prune-retained` | `17 3 * * *` | `retention_policy` stops being enforced, so `client_errors` and the other retained tables grow without bound |
 
 The last two were not in the plan's summary of this item and are recorded here because a cutover that enables `pg_cron` and checks only the reminder job would leave two of the four silently dead.
-2. **`dash` in Data API → Exposed schemas.** Miss this and **every dashboard query returns `PGRST106`**, which is defect QA-001, already recorded once. It gates **seven** views: `vw_ats_funnel`, `vw_crm_funnel`, `vw_requisition_aging`, `vw_source_effectiveness`, `vw_staff_activities`, `vw_staff_grading` and `vw_success_metrics`.
+2. **`dash` in Data API → Exposed schemas.** Miss this and **every dashboard query returns `PGRST106`**, which is defect QA-001, already recorded once. It gates **seven views**, `vw_ats_funnel`, `vw_crm_funnel`, `vw_requisition_aging`, `vw_source_effectiveness`, `vw_staff_activities`, `vw_staff_grading` and `vw_success_metrics`, which read from **three materialized views**, `mv_staff_stage_advances`, `mv_stage_durations` and `mv_success_metrics`. Ten objects in the schema, and the split matters: the materialized views are what `dash-refresh-materialized-views` and `dash-refresh-success-metrics` refresh, so exposing the schema without `pg_cron` gives dashboards that answer and never change. Counted with `select table_name from information_schema.views where table_schema='dash'` and `select matviewname from pg_matviews where schemaname='dash'`.
 3. **Google OAuth restricted to the ventvest.com hosted domain, with email/password as the fallback.** The test personas sign in with a password, so removing the fallback breaks the suites as well as the demo.
+
+**What actually enforces the domain, checked rather than assumed.** `LoginPage.tsx:31` sends `queryParams: { hd: 'ventvest.com' }`, and that is a **hint to Google's account chooser, not a restriction**: a caller who constructs the request without it is not blocked by anything in this repository. There is no server-side domain check in any migration or Edge Function; `grep -rn "ventvest.com" supabase/migrations/ supabase/functions/*/index.ts` finds only two strings in the careers page's markup. So the restriction has to be configured on the provider, which is exactly why X3 lists it as a Dashboard setting rather than as code.
+
+**Missing it is not a data breach, and the reason is worth knowing.** `get_my_role()` is `select role::text from staff where id = auth.uid() and is_active`, so a session with no `staff` row gets `NULL`, and RLS is deny-by-default. Exercised on the local stack as `authenticated` with an unknown `sub`:
+
+```
+get_my_role => NULL
+people visible => 0
+requisitions visible => 0
+companies visible => 0
+deals visible => 0
+```
+
+An unrestricted provider therefore lets a stranger reach the login screen and obtain an empty application, not any data. That is a defence in depth rather than a reason to skip the setting, and it is the same mechanism behind the "Account not provisioned" flash logged as W24.
+
+## X4 and X7: the redirect URLs, and the one that a preview deploy breaks
+
+**What the app asks for.** `app/src/auth/LoginPage.tsx:31` sends `redirectTo: window.location.origin`, so the value Supabase is asked to redirect to is whatever origin served the page. There is no hardcoded callback in the frontend.
+
+**What the local config allows, and why it is not a template for the hosted one.** `supabase/config.toml:180-184`:
+
+```
+site_url = "http://localhost:5175"
+additional_redirect_urls = ["http://localhost:5175", "http://127.0.0.1:5175"]
+```
+
+The comment above it in the file is the part that matters: `A list of *exact* URLs that auth providers are permitted to redirect to post authentication`. Two exact URLs cover a local dev server on either loopback name.
+
+**A preview deployment gets a new origin every time**, so an exact list cannot cover them: whatever is enumerated today does not match the next deploy's hostname, and sign-in on a preview fails while production works. Set the production origin exactly and cover previews with a pattern in the Dashboard's redirect-URL list rather than by adding hostnames one at a time. This is the failure that looks like "OAuth is broken" and is in fact "this origin was not on the list".
+
+**X7 is the same origin from the other side.** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` go into the host's environment, and `lib/supabase.ts` throws at boot if either is absent, so a missing variable is a blank page rather than a degraded one. Both are baked into the bundle at build time, which is why changing them needs a rebuild and not just a restart.
+
+## X11: what "builds on push" would actually do, so the decision is one read
+
+**This is Klent's to answer and nothing here changes it.** What follows is the mechanism, because the question is easy to answer wrongly by analogy with the Actions workflow.
+
+**The two mechanisms are independent.** `.github/workflows/ci.yml` is still committed and still declares `on: push: branches: [main, develop]`; it is disabled at the GitHub repository level rather than in the file, which is why five commits reached `develop` today without it running. A host's git integration is a separate subscription to the same pushes. Enabling one does not enable the other, and enabling both means every push runs the gate on GitHub **and** a build on the host.
+
+**What a push-triggered build would run.** `vercel.json` already names it: `installCommand: npm install` and `buildCommand: npm run build --workspace=app`, and `app/package.json`'s `build` is `tsc --noEmit && vite build`. So a host build type-checks and builds, and **that is all**. It does not run ESLint, the six guard scripts, the 249 API tests, the 176 browser tests or `validate.sql`, because none of those is in `buildCommand`. A green deploy therefore means "it compiled", not "it passed".
+
+**The trade-off, stated once.** Against: a build on every push publishes whatever is on the branch, and this branch takes work-in-progress commits. In favour: preview deployments per branch are the only practical way to look at a change on a real origin, and they are what make X4's redirect-URL question worth solving.
+
+**My recommendation, which is not a decision.** Connect the integration but scope it: production builds from `main` only, previews from other branches, and no automatic production deploy from `develop`. That gives previews without letting a mid-afternoon commit become the live site. If the answer is no integration at all, the deploy is `vercel --prod` or `wrangler pages deploy` by hand, which is fine and one command; the loss is preview origins.
 
 ## X10: five checks, each proving a different item
 
@@ -70,16 +146,18 @@ Run these after deploying, not before, and treat a green result as evidence that
 | One dashboard widget renders numbers | `dash` is exposed, so X3 took |
 | A deep link such as `/recruit/candidates/<id>` loads on a cold visit | the SPA rewrite, so X7's host config took |
 | A row changes and the list updates without a refresh | `wss://` passes the CSP |
-| The public careers page lists a role | the six `verify_jwt=false` functions deployed and `CAREERS_PUBLIC_ORIGIN` is right |
+| The public careers page lists a role | `careers-page` deployed with `verify_jwt=false` and `CAREERS_PUBLIC_ORIGIN` set. It proves that one function, not all six; `scripts/check-cutover.mjs` probes the other ten |
 
-The careers check has a known correct-but-surprising outcome: **every seeded requisition is `is_test`, so a seed-only instance shows zero roles**. That is the right answer, not a failure.
+The careers check has a known correct-but-surprising outcome: **every seeded requisition is `is_test`, so a seed-only instance shows zero roles**. That is the right answer, not a failure. Locally, 3 of 690 requisitions carry `is_test`, and the live careers listing filters them out.
+
+**Three of the five can be automated and are**, by `scripts/check-cutover.mjs`: the dashboard query, the deep link and the careers page. The two that cannot are Google sign-in, which needs a real Google account and a browser, and the live update, which needs a second session watching. Do those two by hand and do not mark them done from the script's output.
 
 ## What is Klent's, and is not decided here
 
 - **X1**, create the develop project and hand over the ref.
 - **X8**, what data the hosted instance carries. The **72,917** imported candidate records are real people. Seed data only is a legitimate answer, and no real data goes up on my judgement.
-- **X11**, whether Vercel's git integration builds on push. The GitHub Actions workflow is disabled at Klent's instruction and stays disabled; Vercel building on push is a separate mechanism and needs its own yes or no.
-- **X12**, the host, decided on licensing rather than capability. Vercel Hobby is non-commercial per Vercel's own terms, so this is Pro at $20 per seat per month; Cloudflare Pages serves static assets free. If Cloudflare, `vercel.json`'s rewrite and headers port to `_redirects` and `_headers`, and their commercial terms need reading first.
+- **X11**, whether the host's git integration builds on push. The GitHub Actions workflow is disabled at Klent's instruction and stays disabled; a host building on push is a separate mechanism and needs its own yes or no. The X11 section above sets out what such a build would and would not run, and carries a recommendation rather than a decision.
+- **X12**, the host, decided on licensing rather than capability. Vercel Hobby is non-commercial per Vercel's own terms, so Vercel means Pro: a **$20/month platform fee** that includes one deploying seat and $20 of usage credit, with extra deploying seats $20 each and viewer seats free. Cloudflare Pages serves static assets free and, as of the read on 2026-09-07, carries no commercial-use restriction, so the research part of this item is finished and only the choice is left. The Cloudflare port is already committed. Section X12 below has both vendors quoted with their page dates.
 
 ## X8's numbers, measured rather than quoted
 
@@ -90,7 +168,7 @@ What a cutover would actually carry, from the local stack on 2026-09-07:
 | `people` | **72,988** | 10 |
 | `candidate_profiles` | 72,917 | n/a |
 | `applications` | 86,133 | n/a |
-| `activities` | 213,744 | n/a |
+| `activities` | **213,929** | n/a |
 | `companies` | 195 | 5 |
 | `requisitions` | 690 | 3 |
 | `deals` | 2 | 2 |
@@ -99,9 +177,26 @@ What a cutover would actually carry, from the local stack on 2026-09-07:
 
 The 72,988 people are the decision. Everything else is small: 195 companies and 690 requisitions are not a privacy question, and `deals` is entirely demo data.
 
+`activities` read 213,744 when this table was first written and 213,929 an hour later, because the gate runs write rows. It is the one figure here that moves on its own; re-read it rather than quoting it. Every other row was re-measured on 2026-09-07 and was unchanged. `applications` has no `is_test` column, which is why its cell says `n/a` rather than 0.
+
 ## X9: the purge, if real data goes up
 
-Order matters because of the foreign keys: `people`, `requisitions`, `deals`, `companies`, with the statements in `README.md`. `staff` has no `is_test` column, so the three demo staff (Rita, Sam, Ben) are deleted by hand. Locally that is currently 10 test people and 3 test requisitions, which `validate.sql` checks 9 and 10 assert.
+Order matters because of the foreign keys: `people`, `requisitions`, `deals`, `companies`, with the statements in `README.md`. `staff` has no `is_test` column, so the three demo staff (Rita, Sam and Ben) are deleted by hand. Locally that is currently 10 test people, 5 test companies, 3 test requisitions and 2 test deals.
+
+**The purge order was checked for coverage rather than taken on trust.** Every base table in `public` that carries an `is_test` column is one of the four:
+
+```
+select c.relname, c.relkind from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  join information_schema.columns col
+    on col.table_name = c.relname and col.table_schema = 'public'
+ where n.nspname = 'public' and col.column_name = 'is_test';
+
+companies|r   deals|r   people|r   requisitions|r
+company_list|v   contact_list|v   deal_list|v
+```
+
+The other three hits are views over those tables (`relkind` `v`), so they carry no rows of their own. Nothing with an `is_test` column is missing from the purge, and nothing in the purge lacks the column.
 
 ## X12: the host question, answered on licensing, read from the vendors on 2026-09-07
 
@@ -117,17 +212,35 @@ and, in the same section, commercial usage is defined as any deployment used "fo
 
 **Cloudflare Pages carries no equivalent restriction.** Two things had to be checked separately, because the old answer is widely repeated and is out of date.
 
-- The **non-HTML content limit, the old section 2.8, no longer exists**. Cloudflare retired it on 2023-05-16 and moved the restriction into a CDN-specific section aimed at video and large files hosted outside Cloudflare, rather than at "a disproportionate percentage of pictures, audio files, or other non-HTML content". A 1.0 MB JavaScript and CSS bundle was never the target and is not now.
+- The **non-HTML content limit, the old section 2.8, no longer exists**. Cloudflare retired it on 2023-05-16 and moved the restriction into a CDN-specific section aimed at video and large files hosted outside Cloudflare, rather than at "a disproportionate percentage of pictures, audio files, or other non-HTML content". A 955 KB JavaScript and CSS bundle was never the target and is not now.
 - The **Developer Platform service-specific terms**, last updated 2026-06-02, contain no commercial-use prohibition and no enumeration of permitted content types. The restriction there is on unlawful or harmful content, which is not this.
 
-**And the free tier's numbers are far from binding for this artefact.** Pages free allows **500 builds per month, 20,000 files per deployment, 25 MiB per asset and 100 custom domains**, and static asset requests are, in Cloudflare's own words, "free and unlimited". The build is **34 files, 955,095 bytes, largest 215,735 bytes**: **0.17%** of the 20,000-file limit and **0.82%** of the 25 MiB per-asset limit. The old figure of 41 files at 1.0 MB was wrong; the percentages barely move, which is the point.
+**And the free tier's numbers are far from binding for this artefact.** Re-read from the Pages limits page on 2026-09-07, its own `dateModified` being 2026-09-05:
 
-**So the fact is settled and the decision is still Klent's.** On capability the two are interchangeable for this bundle. On licensing, Vercel requires a paid plan for this engagement and Cloudflare Pages does not. If Cloudflare, `vercel.json`'s rewrite and headers port to `_redirects` and `_headers`, which is an hour of work, and the CSP moves verbatim.
+| Free-plan limit | Value | What this build uses |
+| :---- | :---- | :---- |
+| Builds per month | 500 | one per deploy |
+| Concurrent builds | 1 at a time | one |
+| Build timeout | 20 minutes | `built in 990ms` |
+| Files per site | 20,000 | **34**, which is 0.17% |
+| Single asset size | 25 MiB | **215,735 bytes**, which is 0.82% |
+| Custom domains per project | 100 | one |
+| `_headers` rules | 100 | **4** |
+| Characters per header | 2,000 | longest is **500** |
+| `_redirects` rules | 2,100 combined | **0** |
+| Projects per account | 100 | one |
+
+Static asset requests are, in Cloudflare's own words, "free and unlimited". Nothing here is within two orders of magnitude of a limit. The old figure of 41 files at 1.0 MB was wrong; the percentages barely move, which is the point.
+
+**So the fact is settled and the decision is still Klent's.** On capability the two are interchangeable for this bundle. On licensing, Vercel requires a paid plan for this engagement and Cloudflare Pages does not. If Cloudflare, the port is already done and committed. The headers moved verbatim, including the CSP; the rewrite did not move at all, because Pages does the SPA fallback itself and a ported `/*` rule would have broken every bundle request, which is QA-018 and the section below.
 
 **Sources**
 - Vercel, Fair Use Guidelines, https://vercel.com/docs/limits/fair-use-guidelines, last updated 2026-07-29
 - Vercel, Pro plan, https://vercel.com/docs/plans/pro, last updated 2026-09-02
-- Cloudflare, Pages limits, https://developers.cloudflare.com/pages/platform/limits/
+- Cloudflare, Pages limits, https://developers.cloudflare.com/pages/platform/limits/, `dateModified` 2026-09-05, re-read 2026-09-07
+- Cloudflare, Pages `_redirects`, https://developers.cloudflare.com/pages/configuration/redirects/, last updated 2026-08-25, read 2026-09-07
+- Cloudflare, Pages `_headers`, https://developers.cloudflare.com/pages/configuration/headers/, read 2026-09-07
+- Cloudflare, Serving Pages, https://developers.cloudflare.com/pages/configuration/serving-pages/, `dateModified` 2026-04-21, read 2026-09-07
 - Cloudflare, Workers pricing, static assets, https://developers.cloudflare.com/workers/platform/pricing/
 - Cloudflare, "Goodbye, section 2.8 and hello to Cloudflare's new terms of service", https://blog.cloudflare.com/updated-tos/, 2023-05-16
 - Cloudflare, Service-Specific Terms, Developer Platform, https://www.cloudflare.com/service-specific-terms-developer-platform/, last updated 2026-06-02
@@ -233,7 +346,10 @@ Against the documented limits: `_headers` uses **4 rules of the 100 allowed** wi
 
 ## What this runbook does not answer, stated rather than left implied
 
-- **Whether the hosted instance works.** Nothing here has run against a hosted project, because X1 has not happened. Every figure is from the repository or the local stack, and every check is written to skip rather than pass when it cannot reach a target.
+- **Whether the hosted instance works.** Nothing here has served a request from a hosted origin, because X1 has not happened. Every figure is from the repository or the local stack, and every check is written to skip rather than pass when it cannot reach a target. The one exception is recorded honestly rather than buried: `scripts/check-cutover.mjs` reached the live project's API on its first run, read-only, which is QA-017.
 - ~~**The build's exact output.**~~ **Measured 2026-09-07, and the plan's figure was wrong.** It recorded "41 files at 1.0 MB with the largest at 212 KB". A fresh `npm run build --workspace=app` writes **34 files** totalling **955,095 bytes** (0.91 MiB, 0.96 MB), largest `assets/vendor-supabase-wIXNjVJv.js` at **215,735 bytes**, in 990ms. Twenty-nine files are in `assets/`; the other five are `index.html`, `favicon.png`, `apple-touch-icon.png`, `og-careers.png` and `ventvest-logo.webp`. Re-measure with `find app/dist-redesign-2 -type f | wc -l` and `find app/dist-redesign-2 -type f -exec stat -f%z {} + | awk '{s+=$1} END{print s}'`. Fewer files and fewer bytes than claimed, so nothing about either host's limits changes.
-- **Whether Vercel's git integration should build on push.** X11, and Klent's. The GitHub Actions workflow stays disabled at his instruction; Vercel building on push is a separate mechanism that needs its own answer.
+- **Whether the host's git integration should build on push.** X11, and Klent's. The X11 section sets out the mechanism and carries a recommendation; the answer is still his.
+- **Whether Cloudflare's `_headers` and `_redirects` behave as documented.** They are verified against Cloudflare's own pages, with dates, and against the documented limits. Neither file has served a request. The one thing that would have been caught only by deploying was caught by reading instead, which is QA-018, and that is luck as much as method.
+- **Whether the 11 Edge Functions deploy.** Their `verify_jwt` settings and secrets are verified against `config.toml` and every reachable `Deno.env.get`, and all 11 answer `OPTIONS` on the local stack. `supabase functions deploy` has not been run against any project from this checkout.
+- **Anything about performance or cost under real traffic.** No load figures, no bandwidth estimate, no Supabase compute sizing. The free-tier headroom table is about static-asset limits, not about the database.
 - **What `supabase migration list --linked` says today.** The last reading, on 2026-09-01, showed an empty remote for the ten `20260901*` migrations that existed then. `CLAUDE.md` said "eight" until 2026-09-07 and that was wrong; there are ten of those files, and thirty-six dated 2026-09-01 or later. The command talks to the live project, and this session's standing instruction is that everything happens on the local stack, so it was not re-run: read it yourself before the first deploy.

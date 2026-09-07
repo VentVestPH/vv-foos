@@ -79,7 +79,7 @@ one_pass() {
     printf '%s\n' "$v" | grep -E 'FAIL|ERROR' | head -4
     fail=1
   else
-    printf 'ok    %-12s %s check(s) pass\n' "validate.sql" "$(printf '%s\n' "$v" | grep -c 'PASS')"
+    printf 'ok    %-12s %s check(s) pass\n' "validate.sql" "$(printf '%s\n' "$v" | grep -oE 'PASS [0-9]+[a-z]?' | sort -u | wc -l | tr -d ' ')"
   fi
 
   local imp bad modules

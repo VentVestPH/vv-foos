@@ -554,7 +554,7 @@ Re-walked twice on 2026-09-07 with the pass 3 harness. Every one of the six numb
 
 **Six new shared components, 929 lines**, each replacing a browser control rather than restyling one, and each asserted by its own spec: `Select` 372, `DateField` 364, `dateParts` 73, `FileField` 53, `ErrorSummary` 49, `Spinner` 18.
 
-**The suites grew with the work**: 249 API and RLS tests, 176 browser tests, 35 schema checks, 35 contrast pairs, and a sixth guard script, `check-icons.mjs`. Four new browser specs: `select-combobox` 11 tests, `form-affordances` 7, `date-field` 4, `list-return` 1. Two of those figures were wrong when first written here and are corrected: the browser total was 175 at run F and is 176 now, and `form-affordances` held 6 tests at run F, not 7. Item 29's requisition-form assertion is the test that made both true.
+**The suites grew with the work**: 249 API and RLS tests, 176 browser tests, 34 schema checks, 35 contrast pairs, and a sixth guard script, `check-icons.mjs`. Four new browser specs: `select-combobox` 11 tests, `form-affordances` 7, `date-field` 4, `list-return` 1. Two of those figures were wrong when first written here and are corrected: the browser total was 175 at run F and is 176 now, and `form-affordances` held 6 tests at run F, not 7. Item 29's requisition-form assertion is the test that made both true.
 
 **Twelve of my own claims corrected in this goal**, on top of workstream V's 24: Goal 4's size count of 60 and its 9 sites to move; its "26 ad-hoc overrides" that did not match its own table; its three exit animations that are six; Goal 3's claim that the candidate list has no column picker; its "keep Source open" verdict on a section already closed; the 45 unannounced messages that are 44; the nine bare navigation paths that are 14; the "1,053 companies" that are 195; and the two the re-walk forced, that `useListLink` shortens the return rather than the outward path, and that the error summary reaches what comes back rather than the keystrokes.
 
@@ -576,6 +576,8 @@ None was dismissed as a flake and none was retried. Every one is in `tests/DEFEC
 ## Gate results
 
 Reported as they happened rather than as a summary.
+
+**Corrected 2026-09-07: `validate.sql` holds 34 checks, not 35.** The gate counted `PASS` lines and check 15 prints two of them, one for the intake-item teardown and one for the reminder teardown. Two checks also carry letter suffixes, `5b` and `14b`, so the numbered labels run to 32 while the distinct checks are 34. `scripts/gate.sh` now counts distinct labels with `grep -oE 'PASS [0-9]+[a-z]?' | sort -u | wc -l` and prints `34 check(s) pass`. Gate logs from before that change read 35 and are left as they were printed.
 
 | Run | Pass | Result |
 | :---- | :---- | :---- |
