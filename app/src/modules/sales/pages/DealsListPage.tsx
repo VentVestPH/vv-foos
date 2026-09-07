@@ -213,9 +213,15 @@ export function DealsListPage() {
       id: d.id,
       stage: d.stage,
       content: (
-        <div className="sales-kanban-card" onClick={() => navigate(`/sales/deals/${d.id}`)}>
+        <div className="sales-kanban-card">
           <span className="sales-kanban-card-code">
-            {d.display_code}
+            <button
+              type="button"
+              className="sales-kanban-card-open"
+              onClick={() => navigate(`/sales/deals/${d.id}`)}
+            >
+              {d.display_code}
+            </button>
             {d.is_test && (
               <>
                 {' '}
@@ -454,7 +460,7 @@ export function DealsListPage() {
             sortDir={sort?.dir ?? 'asc'}
             onSortChange={(key, dir) => setSort({ key, dir })}
             onRowClick={(d) => navigate(`/sales/deals/${d.id}`)}
-            emptyText={loading ? 'Loading…' : 'No deals match.'}
+            emptyText="No deals match."
           />
         )}
 

@@ -39,16 +39,18 @@ export function CappedCell({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   if (!text) return null;
   return (
-    <div
+    <button
+      type="button"
       className={expanded ? 'cell-expanded' : 'cell-capped'}
-      title={expanded ? 'Click to collapse' : 'Click to expand'}
+      aria-expanded={expanded}
+      title={expanded ? 'Collapse' : 'Expand'}
       onClick={(e) => {
         e.stopPropagation();
         setExpanded((v) => !v);
       }}
     >
       {text}
-    </div>
+    </button>
   );
 }
 
@@ -166,6 +168,7 @@ export function Table<T>({
   };
 
   const onRowKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, index: number, row: T) => {
+    if (event.target !== event.currentTarget) return;
     const key = event.key;
     if (key === 'ArrowDown' || key === 'j') {
       event.preventDefault();
@@ -225,7 +228,6 @@ export function Table<T>({
                 key={col.key}
                 className={col.sortable ? 'sortable' : undefined}
                 style={col.width ? { width: col.width } : undefined}
-                onClick={col.sortable ? () => toggleSort(col.key) : undefined}
                 aria-sort={
                   sortKey === col.key
                     ? sortDir === 'asc'
@@ -234,11 +236,21 @@ export function Table<T>({
                     : undefined
                 }
               >
-                {col.header}
-                {col.sortable && sortKey === col.key && (
-                  <span className="sort-arrow">
-                    {sortDir === 'asc' ? '▲' : '▼'}
-                  </span>
+                {col.sortable ? (
+                  <button
+                    type="button"
+                    className="th-sort-btn"
+                    onClick={() => toggleSort(col.key)}
+                  >
+                    {col.header}
+                    {sortKey === col.key && (
+                      <span className="sort-arrow">
+                        {sortDir === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  col.header
                 )}
               </th>
             ))}
@@ -251,7 +263,7 @@ export function Table<T>({
                 className="table-empty"
                 colSpan={columns.length + (selectable ? 1 : 0)}
               >
-                {emptyText}
+                {busy === true ? 'Loading…' : emptyText}
               </td>
             </tr>
           )}

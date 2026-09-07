@@ -69,7 +69,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--sp-1);
-  resize: vertical;
   box-sizing: border-box;
 }
 
@@ -247,6 +246,19 @@
   font-size: var(--fs-meta);
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+.sales-kanban-card-open {
+  appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--fo-link);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .sales-kanban-card-code {

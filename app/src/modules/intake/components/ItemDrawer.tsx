@@ -186,17 +186,27 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
                 {dedup.hasContactProfile ? 'contact' : null}
                 {!dedup.hasCandidateProfile && !dedup.hasContactProfile ? 'none yet' : ''}
               </p>
-              <div className="intake-dedup-choice">
+              <div
+                className="intake-dedup-choice"
+                role="radiogroup"
+                aria-label="How to import this person"
+              >
                 <label>
                   <input
                     type="radio"
+                    name="intake-dedup-mode"
                     checked={mode === 'merge'}
                     onChange={() => setMode('merge')}
                   />{' '}
                   Merge into existing person
                 </label>
                 <label>
-                  <input type="radio" checked={mode === 'new'} onChange={() => setMode('new')} />{' '}
+                  <input
+                    type="radio"
+                    name="intake-dedup-mode"
+                    checked={mode === 'new'}
+                    onChange={() => setMode('new')}
+                  />{' '}
                   Import as new (logs an override)
                 </label>
               </div>

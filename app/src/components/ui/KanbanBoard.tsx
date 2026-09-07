@@ -64,6 +64,7 @@ function Card({
       className={className.join(' ')}
       {...listeners}
       {...attributes}
+      role="group"
       aria-label={`${stageLabel}, ${position} of ${count}${grabbed ? ', grabbed' : ''}`}
       aria-describedby="kanban-keyboard-help"
       onKeyDown={(e) => onKeyDown(e, card.id)}
@@ -149,6 +150,7 @@ export function KanbanBoard({
   };
 
   const onCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, cardId: string) => {
+    if (e.target !== e.currentTarget) return;
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
       if (grabbedId === cardId) {
