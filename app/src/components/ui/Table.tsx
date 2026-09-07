@@ -18,6 +18,7 @@ interface TableProps<T> {
   columns: TableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
+  rowName?: (row: T) => string;
 
   selectable?: boolean;
   selected?: Set<string>;
@@ -58,6 +59,7 @@ export function Table<T>({
   columns,
   rows,
   rowKey,
+  rowName,
   selectable = false,
   selected,
   onSelectionChange,
@@ -289,7 +291,9 @@ export function Table<T>({
                       type="checkbox"
                       checked={sel.has(key)}
                       onChange={() => toggleRow(key)}
-                      aria-label="Select row"
+                      aria-label={
+                        rowName !== undefined ? `Select ${rowName(row)}` : 'Select row'
+                      }
                     />
                   </td>
                 )}

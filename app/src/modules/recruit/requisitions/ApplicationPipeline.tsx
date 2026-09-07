@@ -428,7 +428,11 @@ export function ApplicationPipeline({
             type="button"
             className={r.is_shortlisted ? 'shortlist-btn on' : 'shortlist-btn'}
             title="Shortlist (ACE flag)"
-            aria-label={r.is_shortlisted ? 'Remove from shortlist' : 'Add to shortlist'}
+            aria-label={
+              r.is_shortlisted
+                ? `Remove ${r.name} from shortlist`
+                : `Add ${r.name} to shortlist`
+            }
             onClick={(e) => {
               e.stopPropagation();
               void toggleShortlist(r);
@@ -502,7 +506,9 @@ export function ApplicationPipeline({
                 className={r.is_shortlisted ? 'shortlist-btn on' : 'shortlist-btn'}
                 title="Shortlist (ACE flag)"
                 aria-label={
-                  r.is_shortlisted ? 'Remove from shortlist' : 'Add to shortlist'
+                  r.is_shortlisted
+                    ? `Remove ${r.name} from shortlist`
+                    : `Add ${r.name} to shortlist`
                 }
                 onClick={() => void toggleShortlist(r)}
               >

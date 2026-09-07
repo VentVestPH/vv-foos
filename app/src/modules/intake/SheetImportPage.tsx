@@ -234,8 +234,8 @@ export function SheetImportPage() {
 
           {templates.length > 0 && (
             <div className="field">
-              <label className="field-label">Recall a saved mapping</label>
               <Select
+                label="Recall a saved mapping"
                 placeholder="Choose a template…"
                 options={templates.map((t) => ({ value: t.id, label: t.name }))}
                 onChange={(e) => applyTemplate(e.target.value)}

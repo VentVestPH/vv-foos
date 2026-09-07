@@ -387,7 +387,9 @@ export function CandidateListPage() {
           <span
             className={r.has_resume ? 'cand-resume-icon' : 'cand-resume-icon cand-resume-none'}
             role="img"
-            aria-label={r.has_resume ? 'Resume on file' : 'No resume on file'}
+            aria-label={
+              r.has_resume ? `Resume on file for ${r.name}` : `No resume on file for ${r.name}`
+            }
             title={r.has_resume ? 'Resume on file' : 'No resume on file'}
           >
             <ResumeIcon size={16} />
@@ -412,10 +414,11 @@ export function CandidateListPage() {
           return prof && canGrade(prof) ? (
             <StarGrade
               value={r.star_grade}
+              subject={r.name}
               onChange={(v) => void updateGrade(r.id, { star_grade: v })}
             />
           ) : (
-            <StarGrade value={r.star_grade} />
+            <StarGrade value={r.star_grade} subject={r.name} />
           );
         },
       },
@@ -431,6 +434,7 @@ export function CandidateListPage() {
                 <Button
                   size="sm"
                   variant="ghost"
+                  aria-label={`Edit grade comment for ${r.name}`}
                   onClick={() => {
                     setCommentDraft(prof.grade_comment ?? '');
                     setCommentEdit(prof);
@@ -605,6 +609,7 @@ export function CandidateListPage() {
         columns={columns}
         rows={pager.pageRows}
         rowKey={(r) => r.id}
+        rowName={(r) => r.name}
         busy={loading}
         sortKey={sort?.key ?? null}
         sortDir={sort?.dir ?? 'asc'}

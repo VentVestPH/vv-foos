@@ -216,6 +216,35 @@ PROBE controlsMeasured=332 distinctHeights=2
 
 Klent's complaint was "i can see multiple fields and buttons that have different heights". The answer was not to hunt the mismatched pairs; it was that **almost nothing chose a height at all**, and the fix is four tokens and four rules.
 
+### 12. W16 and W17, row identity in the accessible name
+
+V6 row 23, measured: on the candidate list **100 of 163 interactive controls, 61%, shared a name with nineteen others**. `Table.tsx` labelled every row checkbox `Select row`, `StarGrade` labelled every group `Star grade` and named each star from a `title` attribute alone, and `ApplicationPipeline` gave 21 controls the same `Add to shortlist`.
+
+Changed:
+
+| Control | Was | Now |
+| :---- | :---- | :---- |
+| Row checkbox | `Select row`, x20 | `Select <candidate>`, via a new optional `rowName` prop on `Table` |
+| Star grade group | `Star grade`, x20 | `Star grade for <candidate>` |
+| Each star | named only by `title`, the weakest source in the accessible-name computation | `aria-label` carrying the value and the subject, with `title` kept for the tooltip |
+| Shortlist button | `Add to shortlist`, x21 | `Add <candidate> to shortlist` / `Remove <candidate> from shortlist` |
+| Resume indicator | `No resume on file`, x20 | `No resume on file for <candidate>` |
+| Per-row grade-comment Edit | `Edit`, x20 | `Edit grade comment for <candidate>` |
+
+Measured on the candidate list before and after, and on the requisition record's pipeline:
+
+```
+before   controls=178 distinctNames=140 sharingAName=40   (x20 "No resume on file", x20 "Edit")
+after    controls=178 distinctNames=178 sharingAName=0
+         shortlistButtons=21 distinctNames=21
+```
+
+**Zero of 178 row-level controls now share a name**, against 61% before. The last two groups of twenty were found by the probe rather than by the audit: V6 named the checkbox, the star group and the shortlist button, and the resume indicator and the per-row `Edit` were not in that list. Measuring the whole row rather than the three known cases is what caught them.
+
+`tests/audit/row-names.spec.ts` now asserts `sharingAName === 0`, so a new row-level control cannot ship with a shared name.
+
+**W17 in the same commit, both one-liners.** `SheetImportPage.tsx` held the only `<Select` of 54 with no `label`, so its accessible name was its placeholder option; it now passes `label="Recall a saved mapping"` and the hand-rolled `<label className="field-label">` beside it is gone, because `Select` renders its own. And `StarGrade`'s reliance on `title` is fixed by the same `aria-label` change above.
+
 ## What went wrong doing it
 
 **I leaked a test fixture by killing the suite, for the second time this session.** Gate pass 1 reported `FAIL validate.sql` with `ERROR: FAIL 9: people count`, because `people where is_test` was **11** against an expected **10**.
