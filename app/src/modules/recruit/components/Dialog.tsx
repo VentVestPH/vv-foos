@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useOverlayDismiss } from '../../../hooks/useOverlayDismiss';
+import { Dialog as UiDialog } from '../../../components/ui/Dialog';
 
 interface DialogProps {
   title: string;
@@ -9,35 +9,20 @@ interface DialogProps {
 }
 
 export function Dialog({ title, children, footer, onClose }: DialogProps) {
-  const { closing, requestClose } = useOverlayDismiss(onClose);
-
   return (
-    <div
-      className="rq-overlay"
-      data-closing={closing ? 'true' : undefined}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={requestClose}
+    <UiDialog
+      title={title}
+      footer={footer}
+      onClose={onClose}
+      overlayClass="rq-overlay"
+      panelClass="rq-dialog"
+      headClass="rq-dialog-head"
+      bodyClass="rq-dialog-body"
+      footClass="rq-dialog-foot"
+      closeClass="rq-dialog-x"
+      closeLabel="Close dialog"
     >
-      <div
-        className="rq-dialog"
-        data-closing={closing ? 'true' : undefined}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="rq-dialog-head">
-          <h2>{title}</h2>
-          <button type="button" className="rq-dialog-x" onClick={requestClose} aria-label="Close dialog">
-            ×
-          </button>
-        </div>
-        <div className="rq-dialog-body">{children}</div>
-        {footer && (
-          <div className="rq-dialog-foot">
-            {typeof footer === 'function' ? footer(requestClose) : footer}
-          </div>
-        )}
-      </div>
-    </div>
+      {children}
+    </UiDialog>
   );
 }

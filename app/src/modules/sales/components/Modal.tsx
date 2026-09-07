@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useOverlayDismiss } from '../../../hooks/useOverlayDismiss';
+import { Dialog as UiDialog } from '../../../components/ui/Dialog';
 
 interface ModalProps {
   title: string;
@@ -9,32 +9,17 @@ interface ModalProps {
 }
 
 export function Modal({ title, children, onClose }: ModalProps) {
-  const { closing, requestClose } = useOverlayDismiss(onClose);
-
   return (
-    <div
-      className="sales-modal-overlay"
-      data-closing={closing ? 'true' : undefined}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={requestClose}
+    <UiDialog
+      title={title}
+      onClose={onClose}
+      overlayClass="sales-modal-overlay"
+      panelClass="sales-modal"
+      headClass="sales-modal-head"
+      bodyClass="sales-modal-body"
+      closeClass="sales-modal-x"
     >
-      <div
-        className="sales-modal"
-        data-closing={closing ? 'true' : undefined}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sales-modal-head">
-          <h2>{title}</h2>
-          {onClose && (
-            <button type="button" className="sales-modal-x" onClick={requestClose} aria-label="Close">
-              ×
-            </button>
-          )}
-        </div>
-        <div className="sales-modal-body">{children}</div>
-      </div>
-    </div>
+      {children}
+    </UiDialog>
   );
 }

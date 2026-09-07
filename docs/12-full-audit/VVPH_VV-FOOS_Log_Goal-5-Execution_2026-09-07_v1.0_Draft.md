@@ -245,6 +245,37 @@ after    controls=178 distinctNames=178 sharingAName=0
 
 **W17 in the same commit, both one-liners.** `SheetImportPage.tsx` held the only `<Select` of 54 with no `label`, so its accessible name was its placeholder option; it now passes `label="Recall a saved mapping"` and the hand-rolled `<label className="field-label">` beside it is gone, because `Select` renders its own. And `StarGrade`'s reliance on `title` is fixed by the same `aria-label` change above.
 
+### 13. W18, W19 and W20: one dialog that actually traps and restores focus
+
+V6 row 26: `IdleSignOut`, `Placeholder`, `recruit/Dialog`, `sales/Modal` and `intake/Drawer` all declare `aria-modal="true"` and **not one trapped focus or returned it to the trigger**. A grep for `activeElement`, `trapFocus` or `focusTrap` across `app/src` returned nothing. The APG warns that `aria-modal="true"` should be set only when application code prevents external interaction, so the attribute was asserting an inertness that did not exist.
+
+Three of the five were the **same component written three times**, which follows from ESLint forbidding cross-module imports while `components/ui/` held no dialog: `recruit/components/Dialog.tsx` at 43 lines, `sales/components/Modal.tsx` at 40 and `intake/components/Drawer.tsx` at 39.
+
+**Built `components/ui/Dialog.tsx` plus `hooks/useFocusTrap.ts`**, and the three module files are now 28, 25 and 27 lines of pure configuration: each passes its own class names, so no CSS moved and no visual changed. The shared component owns the semantics; the modules own their appearance.
+
+Measured, driving a real `sales/Modal` from the contact record:
+
+```
+PROBE dialog    focusMovedIn=true  tabsThatLeftTheDialog=0/8  focusReturnedToTrigger=true
+PROBE afterClose activeTag=BUTTON  activeName="Send email"    isBody=false
+PROBE focusLog  ["INPUT:","TEXTAREA:","BUTTON:Cancel","BUTTON:Send","BUTTON:Close","INPUT:","INPUT:","BUTTON:Send email"]
+```
+
+Eight Tab presses, none escaped the dialog, and focus came back to the control that opened it.
+
+**Two real bugs in my own first version of the hook, both found by instrumenting rather than reasoning.** The probe reported `focusReturnedToTrigger=false` with focus on `BODY`, so I added a log inside the hook, and it printed:
+
+```
+captured:INPUT:   cleanup:isEl=true:inDoc=true
+captured:INPUT:   cleanup:isEl=true:inDoc=false
+```
+
+That names both faults at once. **First, it captured the wrong element.** The hook read `document.activeElement` inside `useEffect`, but React applies `autoFocus` during the commit, **before** passive effects run, and `ContactRecordPage.tsx:346` puts `autoFocus` on the Subject field. So the "return to" target was an input **inside the dialog**, which is detached by the time the dialog closes, hence `inDoc=false`. **Second, the capture happened twice**, because `main.tsx:11` is `StrictMode` and React 18 double-invokes effects in development: the first cleanup restored focus, and the second invocation then captured whatever was focused at that moment, overwriting the good value.
+
+Fixed by capturing during **render** rather than in an effect, `useRef(document.activeElement)`, which runs before the commit and therefore before `autoFocus`, and which `useRef` keeps across a StrictMode double-render. The hook also no longer steals focus when something inside the panel already has it, so a dialog's own `autoFocus` is respected rather than overridden.
+
+**The general lesson: an effect is too late to record what had focus.** By the time a passive effect runs, the browser and React have both already moved focus.
+
 ## What went wrong doing it
 
 **I leaked a test fixture by killing the suite, for the second time this session.** Gate pass 1 reported `FAIL validate.sql` with `ERROR: FAIL 9: people count`, because `people where is_test` was **11** against an expected **10**.
