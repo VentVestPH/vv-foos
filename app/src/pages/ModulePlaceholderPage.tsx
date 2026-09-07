@@ -127,7 +127,6 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
         </div>
       )}
 
-      {}
       <button
         type="button"
         className="fo-gear-btn is-placeholder"

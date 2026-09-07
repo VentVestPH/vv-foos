@@ -111,13 +111,13 @@ This is the change Klent asked for, and it cannot be done the way it was asked.
 
 ## 7. The icon scale: wire the tokens, and raise the floor
 
-Measured across `app/src`: **60 `size=` instances in 7 distinct values.**
+Measured across `app/src`: **61 `size=` instances in 7 distinct values.** Corrected on implementation, 2026-09-07: the first count said 60 because it read JSX call sites only and missed `StarGrade.tsx:12`, whose signature defaults to `size = 14` and feeds five of that component's seven call sites.
 
 | Size | Instances | What they are |
 | ----: | ----: | :---- |
 | **40** | **31** | `RecordPage` page-title icons. Entirely consistent |
 | 16 | 12 | general inline icons |
-| 14 | 7 | dense icons, including the sidebar collapse chevron |
+| 14 | 8 | dense icons, including the sidebar collapse chevron, and `StarGrade`'s prop default |
 | 18 | 6 | |
 | 20 | 2 | `PrimaryNav` home icon, and the global default |
 | 13 | 1 | `DataExportCard.tsx:122`, inside a button |
@@ -125,7 +125,7 @@ Measured across `app/src`: **60 `size=` instances in 7 distinct values.**
 
 **Two things the brief had wrong, corrected here.** `--icon-lg` **is** used, at `pagination.css:76-77`, giving `.fo-cal-view-btn` a 24x24 box. And the largest icon is **40px with 31 instances**, not 20px. There is also a fourth mechanism the brief does not mention: `main.tsx:12` sets `<LucideProvider size={20} strokeWidth={1.6}>`, so every icon that passes no size is already 20px.
 
-So the real picture is better than "seven arbitrary sizes": there are **two consistent anchors** (40px for page titles, 20px as the global default) and **26 ad-hoc overrides** below them.
+So the real picture is better than "seven arbitrary sizes": there are **two consistent anchors** (40px for page titles, 20px as the global default) and **28 ad-hoc overrides** below them. This figure first read 26, which did not even match the table above it: the original rows below the two anchors summed to 27, and the `StarGrade` default makes 28.
 
 **Change, and it answers "make the icons a bit larger" by raising the floor rather than scaling everything:**
 
@@ -137,9 +137,13 @@ So the real picture is better than "seven arbitrary sizes": there are **two cons
 | `--icon-lg` | 24px | **24px** | icon-only buttons, which also helps WCAG 2.5.8 |
 | `--icon-page` | absent | **40px** | the 31 title icons, so they stop being a magic number |
 
-That moves 9 instances up (one 12, one 13, seven 14) and leaves the other 51 alone. Note the two smallest are both inside buttons, so raising them helps legibility and target size together.
+That moves 16 instances up (one 12, one 13, eight 14 including the `StarGrade` default, and six 18) and leaves the other 45 alone. Note the two smallest are both inside buttons, so raising them helps legibility and target size together.
 
-**Assertion:** a static check in the style of `check-contrast.mjs` that fails if any `size=` literal in `app/src` is below 16 or is a value with no matching token.
+**Corrected on implementation, 2026-09-07.** The first version of this section said "moves 9 instances up and leaves the other 51 alone", which left the six 18px instances in place, and in the next line asserted that every size must match a token. 18 matches no token, so the two statements cannot both hold. The 18px step therefore moves to 20, which keeps the assertion enforceable and raises six more icons.
+
+**Assertion:** a static check in the style of `check-contrast.mjs` that fails if any `size=` literal in `app/src` is below 16 or is a value with no matching token. Built as `scripts/check-icons.mjs`, which derives the allowed set from `tokens.css` instead of hard-coding it.
+
+**One thing this assertion cannot see, found by measuring the rendered boxes.** Eight icons whose literal says 16 rendered **14 wide by 16 tall**, because `.fo-gear-btn` never zeroed the user-agent `<button>` padding of `1px 6px`, leaving a 14px content box that the `<svg>` flex-shrank into. A source scan cannot detect it; `tests/audit/icon-scale.spec.ts` asserts both scale membership and `width === height` for every rendered `svg.lucide`.
 
 ## 8. The sidebar chevron jumps while the other two rotate smoothly
 

@@ -46,7 +46,7 @@ input[type='radio'] {
 
 .badge,
 .star-grade .star,
-.fo-sidebar-collapse-btn,
+.fo-sidebar-panel-btn,
 .fo-qs-advanced-link,
 .fo-gear-btn,
 .fo-nav-scroll-btn,
@@ -175,6 +175,10 @@ input[type='radio'] {
 
 .fo-utility-caret {
   transition: transform var(--motion-instant) var(--ease-out);
+}
+
+.fo-sidebar-collapse-chevron {
+  transition: transform var(--motion-quick) var(--ease-out);
 }
 
 .fo-utility-link[aria-expanded='true'] .fo-utility-caret {

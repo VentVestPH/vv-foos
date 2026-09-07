@@ -259,11 +259,8 @@ export function CandidateRecordPage() {
           detail="No resume is on file for this candidate yet."
         />
       )}
-      {}
       <PlaceholderAction label="Print Resume" size="sm" />
-      {}
       <PlaceholderAction label="Submit" size="sm" />
-      {}
       <PlaceholderAction label="More" size="sm" caret />
       {canGrade && draft && (
         <Button size="sm" variant="primary" onClick={() => void saveProfile()}>
@@ -282,7 +279,6 @@ export function CandidateRecordPage() {
         <>
           {profile?.star_grade != null && <StarGrade value={profile.star_grade} />}
           {person.is_test && <Badge tone="outline">Test data</Badge>}
-          {}
           <button
             type="button"
             className="link-btn"
@@ -297,11 +293,10 @@ export function CandidateRecordPage() {
             className="link-btn fo-back-to-list"
             onClick={backToList}
           >
-            <CircleArrowUp size={18} aria-hidden="true" />
+            <CircleArrowUp size={20} aria-hidden="true" />
             Back To List
           </button>
           <span className="text-secondary">|</span>
-          {}
           <button
             type="button"
             className="link-btn"
@@ -650,7 +645,6 @@ export function CandidateRecordPage() {
         </RecordSection>
       )}
 
-      {}
       <RecordSection title="Resume and Cover Letter">
         <dl className="info-grid">
           {person.linkedin_public_url && (

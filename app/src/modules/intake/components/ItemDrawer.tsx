@@ -219,7 +219,7 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
 
       {item.target_type === 'candidate' && !isReadOnly(item) && item.status !== 'imported' && (
         <RecordSection title={`Grading${needsGrading ? ' (required before import)' : ' (optional)'}`}>
-          <StarGrade value={grade} size={18} onChange={setGrade} />
+          <StarGrade value={grade} size={20} onChange={setGrade} />
           <Input
             label="Grade comment"
             value={gradeComment}

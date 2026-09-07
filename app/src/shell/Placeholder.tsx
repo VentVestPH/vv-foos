@@ -62,7 +62,6 @@ export function PlaceholderProvider({
             <div className="fo-placeholder-body">
               This action is not available in the current FOOS MVP.
               {state.detail ? ` ${state.detail}` : ''}
-              {}
             </div>
             <div className="fo-placeholder-footer">
               <button

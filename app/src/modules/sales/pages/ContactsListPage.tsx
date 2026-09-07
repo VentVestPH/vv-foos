@@ -258,13 +258,11 @@ export function ContactsListPage() {
       exportFilename="contacts.csv"
     >
       <div className="record-action-bar fo-list-action-bar">
-        {}
         <PlaceholderAction
           label="Send Email"
           size="sm"
           detail="Bulk email from the contact list isn't implemented — open a contact record to send a real email."
         />
-        {}
         <PlaceholderAction
           label="Delete"
           size="sm"

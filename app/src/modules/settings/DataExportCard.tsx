@@ -119,7 +119,7 @@ export function DataExportCard() {
                     onClick={() => void exportModule(m)}
                     data-testid={`export-${m.key}`}
                   >
-                    <Download size={13} />
+                    <Download size={16} />
                     {busy === m.key
                       ? `Exporting… ${progress.toLocaleString()} of ${(n ?? 0).toLocaleString()}`
                       : 'Export CSV'}

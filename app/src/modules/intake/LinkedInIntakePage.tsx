@@ -173,7 +173,7 @@ export function LinkedInIntakePage() {
                 <label className="field-label">
                   Star grade <span className="field-required">*</span>
                 </label>
-                <StarGrade value={grade} size={18} onChange={setGrade} />
+                <StarGrade value={grade} size={20} onChange={setGrade} />
               </div>
               <Input
                 label="Grade comment"

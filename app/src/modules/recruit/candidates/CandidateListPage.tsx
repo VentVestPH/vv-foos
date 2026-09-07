@@ -349,7 +349,7 @@ export function CandidateListPage() {
       key: 'flagcol',
       header: (
         <span className="cand-flag-col" role="img" aria-label="Flag" title="Flag">
-          <FlagIcon size={14} />
+          <FlagIcon size={16} />
         </span>
       ),
       width: '32px',
@@ -538,7 +538,6 @@ export function CandidateListPage() {
             onChange={(e) => setLastName(e.target.value)}
             aria-label="Last name"
           />
-          {}
           <button type="button" className="btn btn-secondary btn-sm fo-go-btn">
             Go!
           </button>
@@ -575,7 +574,6 @@ export function CandidateListPage() {
       )}
 
       <div className="record-action-bar fo-list-action-bar">
-        {}
         <CandidateBulkActions
           selected={selected}
           profiles={profiles}
@@ -584,13 +582,9 @@ export function CandidateListPage() {
           onDone={load}
           onClear={() => setSelected(new Set())}
         />
-        {}
         <PlaceholderAction label="View Resume" size="sm" />
-        {}
         <PlaceholderAction label="Print Resume" size="sm" />
-        {}
         <PlaceholderAction label="Submit" size="sm" />
-        {}
         <PlaceholderAction label="More" size="sm" caret />
         <CandidateGearButton />
       </div>

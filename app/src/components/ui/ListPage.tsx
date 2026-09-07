@@ -106,7 +106,6 @@ export function ListPage({
             aria-label={`Search ${title}`}
           />
         </div>
-        {}
         <button type="button" className="btn btn-secondary btn-sm fo-go-btn">
           Go!
         </button>

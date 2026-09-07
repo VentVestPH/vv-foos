@@ -302,7 +302,7 @@ export function RequisitionRecordPage() {
             className="link-btn fo-back-to-list"
             onClick={backToList}
           >
-            <CircleArrowUp size={18} aria-hidden="true" />
+            <CircleArrowUp size={20} aria-hidden="true" />
             Back To List
           </button>
         </>
@@ -411,7 +411,6 @@ export function RequisitionRecordPage() {
       </RecordSection>
 
       <RecordSection title="Contacts" defaultOpen={false}>
-        {}
         <p className="text-secondary">No contacts attached.</p>
         <PlaceholderAction label="Attach Contact" size="sm" variant="ghost" />
         <PlaceholderAction label="New Contact" size="sm" variant="ghost" />

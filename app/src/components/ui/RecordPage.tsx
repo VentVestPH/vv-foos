@@ -85,7 +85,7 @@ export function RecordSection({
     <section className="record-section" data-open={open ? 'true' : 'false'}>
       <button type="button" className="record-section-header" onClick={toggle} aria-expanded={open}>
         <span className="record-section-chevron" aria-hidden="true">
-          <ChevronDown size={14} />
+          <ChevronDown size={16} />
         </span>
         {title}
       </button>

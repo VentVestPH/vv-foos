@@ -340,7 +340,7 @@ export function RequisitionListPage() {
         sortValue: (r) => r.applications,
         render: (r) => (
           <span className="fo-candidates-cell">
-            <PersonIcon size={18} />
+            <PersonIcon size={20} />
             <span className="badge badge-success">{r.applications}</span>
           </span>
         ),
@@ -562,14 +562,11 @@ export function RequisitionListPage() {
 
       {canBulk && (
         <div className="record-action-bar fo-list-action-bar">
-          {}
           <PlaceholderAction
             label="Delete"
             detail="Bulk delete isn't implemented for requisitions yet."
           />
-          {}
           <PlaceholderAction label="Forms" />
-          {}
           <PlaceholderAction
             label="Change status to…"
             caret

@@ -35,10 +35,10 @@
   --fo-canvas-alt: #eeeeee;
   --fo-ink: #1a1a1a;
 
-  --icon-xs: 14px;
   --icon-sm: 16px;
   --icon-md: 20px;
   --icon-lg: 24px;
+  --icon-page: 40px;
 
   --shell-header-h: 104px;
   --shell-sidebar-w: 340px;

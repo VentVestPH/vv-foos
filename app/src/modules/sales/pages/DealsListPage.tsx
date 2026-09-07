@@ -424,7 +424,6 @@ export function DealsListPage() {
         exportFilename="deals.csv"
       >
         <div className="record-action-bar fo-list-action-bar">
-          {}
           <PlaceholderAction
             label="Delete"
             detail="Bulk delete isn't implemented for deals yet."

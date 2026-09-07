@@ -296,6 +296,55 @@ V6 and Goal 4 both measured the ring failing WCAG 1.4.11 on three surfaces, and 
 
 **One error of mine, caught by lint rather than by me.** The first version called `useFocusTrap` **after** `IdleSignOut`'s `if (remainingMs === null) return null;`, which is a genuine rules-of-hooks violation: `react-hooks/rules-of-hooks` reported `React Hook "useFocusTrap" is called conditionally`. Moved above the early return and gated by its own `active` argument instead, which is what that argument is for.
 
+### 15. W21, one icon scale, plus the two motion gaps Goal 4 found, and an icon the static guard could not see
+
+**The inventory, corrected.** Goal 4 counted 60 `size=` instances in 7 values. The real figure is **61**, because the audit read only JSX call sites and missed `StarGrade.tsx:12`, whose signature defaulted to `size = 14` and fed **five** of the seven `StarGrade` call sites. A default is a size literal like any other, so the count is 61 and the number of below-floor sites was 10, not 9.
+
+**What moved, and it is 16 sites rather than Goal 4's 9.**
+
+| From | To | Sites |
+| ----: | ----: | :---- |
+| 12 | 16 | `BookmarkBar.tsx:70`, the bookmark close button |
+| 13 | 16 | `DataExportCard.tsx:122`, inside the export button |
+| 14 | 16 | `ShellSidebar.tsx:72` and `:154`, `RecordPage.tsx:88`, `GoogleIntegrationCard.tsx:7`, `CandidateListPage.tsx:352`, `ApplicationPipeline.tsx:441` and `:515` |
+| 14 | 16 | `StarGrade.tsx:12`, the prop default, which the audit missed |
+| 18 | 20 | `ShellSidebar.tsx:172`, `CandidateRecordPage.tsx:300`, `RequisitionRecordPage.tsx:305`, `RequisitionListPage.tsx:343`, `LinkedInIntakePage.tsx:176`, `ItemDrawer.tsx:222` |
+
+**Goal 4 contradicted itself and the assertion wins.** Its table said the change "moves 9 instances up and leaves the other 51 alone", which leaves the six 18px instances in place, while its assertion in the same section demanded that every size "match a token". 18 matches no token, so the two cannot both hold. Moving 18 to 20 is the resolution that keeps the assertion enforceable, and it is also the better answer to what Klent asked for, because it raises six more icons rather than fewer.
+
+**Tokens.** `--icon-xs: 14px` is retired, nothing referenced it. `--icon-page: 40px` is added and is load-bearing: `.fo-page-icon > svg` now sizes from it, so the 31 page-title icons take their box from the token rather than from 31 separate literals. The scale is `16, 20, 24, 40`.
+
+**The guard, and it was proven before it was trusted.** `scripts/check-icons.mjs` reads the allowed set out of `tokens.css` rather than hard-coding it, so retiring or adding a token changes what the guard permits in the same commit. It reports `61 icon size(s) on the 16, 20, 24, 40 scale.` Before wiring it into the gate I broke the tree twice on purpose and confirmed both messages:
+
+```
+app/src/shell/BookmarkBar.tsx:70: size={12} is below the 16px floor
+app/src/shell/BookmarkBar.tsx:70: size={18} matches no --icon-* token (scale is 16, 20, 24, 40)
+```
+
+It is now `run "icons"` in `scripts/gate.sh` and a step in `.github/workflows/ci.yml`, whose guard list it keeps in sync. The workflow itself stays disabled.
+
+**Then the browser found what the source could not.** `tests/audit/icon-scale.spec.ts` measures every rendered `svg.lucide` box on every route as admin, and its first run disagreed with the static guard:
+
+```
+PROBE iconsMeasured=612 distinctSizes=4 floor=14
+  ICON 14px x8   ICON 16px x334   ICON 20px x243   ICON 40px x27
+  OFFENDER 14x16 lucide lucide-settings  first seen placeholder-courses
+```
+
+Eight icons rendered **14 wide by 16 tall**, distorted, while their source said `size={16}`. Cause, measured in the page rather than guessed: `.fo-gear-btn` is `28px` square with `box-sizing: border-box` and a `1px` border, but it never zeroed the user-agent `<button>` padding, which Chrome sets to `1px 6px`. That leaves a content box **14px** wide, and the `<svg>` is a flex item with the default `flex-shrink: 1`, so it shrank horizontally to 14 while its height stayed 16. The button measured correctly at 28x28 the whole time, which is why every earlier height and target-size probe passed. Fixed with `padding: 0` on `.fo-gear-btn`. Second run: `iconsMeasured=617 distinctSizes=3 floor=16`, no offenders.
+
+**This is the argument for measuring rendered geometry and not just source.** A static scan of `size=` literals says the scale is clean; the rendered boxes say eight icons are 2px narrower than they are tall. The probe asserts `w === h` as well as membership, so a squeezed icon fails even when its literal is correct.
+
+**Goal 4 section 8, the sidebar chevron.** The rotation was an inline `style={{ transform: ... }}` on the `<svg>`, and `motion.css:49` transitioned `.fo-sidebar-collapse-btn`, the button, so no `transition: transform` ever reached the element that moved. It is now a class, `.fo-sidebar-collapse-chevron`, rotated by `.fo-sidebar-collapse-btn[data-collapsed='true']`, matching the `.record-section[data-open='false']` pattern already in the codebase, with the transition in `motion.css` where the other two chevrons declare theirs. Measured: `transitionProperty=transform inlineStyle=null before=none after=matrix(-1, 0, 0, -1, 0, 0)`.
+
+**Goal 4 section 9, the dashboard bars.** `width` cannot be the animated property, it is in `check-motion.mjs`'s `FORBIDDEN_PROPS`. The inline width stays for correctness and the reveal is a keyframed `scaleX` from `transform-origin: left` at `--motion-panel`. Measured: `origin=0px 7px animation=dash-bar-grow duration=0.22s transitionDuration=0s inline=width: 100%;`. The bars render on `/?tab=pipeline` and `/?tab=reports`, not on the default `My View` tab, which is why the first version of that assertion found nothing to measure.
+
+**A class that named one button and styled two.** `.fo-sidebar-collapse-btn` was also the class on `Configure Recently Viewed`, which does not collapse anything. My own probe found it, as a Playwright strict-mode violation reporting two matches for one locator. The shared look is now `.fo-sidebar-panel-btn`, carried by both buttons; `.fo-sidebar-collapse-btn` survives on the collapse button alone, as the hook its chevron selector needs.
+
+**Thirty-two empty `{}` expressions removed**, across 16 files, all residue of comments stripped when the no-comments rule came in. They rendered nothing and `check-comments` cannot see them, because an empty JSX expression is not a comment.
+
+**My own error, and it is a language footgun worth recording.** Inserting the guard into `gate.sh` with `perl -0pi -e 's|...\|\| fail=1|...|'` prepended two lines **above the shebang** instead of replacing the matched line. Perl strips the backslash before its own delimiter, so the `\|\|` I escaped reached the regex engine as `||`, an alternation with an empty branch, which matches the empty string at offset 0. The rule: never use `|` as the `s///` delimiter when the pattern contains `||`. Caught immediately by reading `git diff` rather than assuming the edit landed, and fixed with `s{}{}` and `\Q...\E`.
+
 ## What went wrong doing it
 
 **I leaked a test fixture by killing the suite, for the second time this session.** Gate pass 1 reported `FAIL validate.sql` with `ERROR: FAIL 9: people count`, because `people where is_test` was **11** against an expected **10**.

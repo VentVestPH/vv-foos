@@ -133,6 +133,18 @@
   display: block;
   height: 100%;
   background: var(--primary);
+  transform-origin: left;
+  animation: dash-bar-grow var(--motion-panel) var(--ease-out) both;
+}
+
+@keyframes dash-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .dash-barlist-fill.tone-success {

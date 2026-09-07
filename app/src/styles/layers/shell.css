@@ -76,6 +76,10 @@
   font-size: var(--fs-2xs);
 }
 
+.fo-sidebar-collapse-btn[data-collapsed='true'] .fo-sidebar-collapse-chevron {
+  transform: rotate(180deg);
+}
+
 .fo-logout {
   background: var(--fo-logout);
   color: var(--surface);
@@ -303,7 +307,7 @@
   flex: 1;
 }
 
-.fo-sidebar-collapse-btn {
+.fo-sidebar-panel-btn {
   background: none;
   border: none;
   color: var(--surface);

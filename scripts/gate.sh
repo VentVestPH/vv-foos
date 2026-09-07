@@ -41,6 +41,7 @@ one_pass() {
   run "contrast"    node scripts/check-contrast.mjs       || fail=1
   run "motion"      node scripts/check-motion.mjs         || fail=1
   run "css-layers"  node scripts/check-css-layers.mjs     || fail=1
+  run "icons"       node scripts/check-icons.mjs          || fail=1
   run "unbounded"   node scripts/check-unbounded-queries.mjs || fail=1
   run "paged-order" node scripts/check-paged-order.mjs    || fail=1
   run "licences"    node scripts/check-licences.mjs       || fail=1

@@ -281,7 +281,6 @@ export function CompaniesListPage() {
       exportFilename="companies.csv"
     >
       <div className="record-action-bar fo-list-action-bar">
-        {}
         <PlaceholderAction
           label="Delete"
           detail="Bulk delete isn't implemented for accounts yet."

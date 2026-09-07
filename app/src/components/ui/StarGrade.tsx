@@ -9,7 +9,7 @@ interface StarGradeProps {
 
 const GRADES = [1, 2, 3];
 
-export function StarGrade({ value, size = 14, subject, onChange }: StarGradeProps) {
+export function StarGrade({ value, size = 16, subject, onChange }: StarGradeProps) {
   const grade = value ?? 0;
   const of = subject !== undefined && subject !== '' ? ` for ${subject}` : '';
 

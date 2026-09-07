@@ -4,7 +4,7 @@ function ScopeMark({ granted }: { granted: boolean }) {
   const Icon = granted ? Check : Minus;
   return (
     <Icon
-      size={14}
+      size={16}
 
       aria-label={granted ? 'Granted' : 'Not granted'}
     />

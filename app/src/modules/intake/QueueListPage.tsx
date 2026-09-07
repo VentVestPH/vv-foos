@@ -110,7 +110,6 @@ export function QueueListPage() {
           <Link to="/intake/sheet">
             <Button size="sm">Import a sheet</Button>
           </Link>
-          {}
           <PlaceholderAction label="More" caret size="sm" />
           <button
             type="button"

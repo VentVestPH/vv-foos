@@ -446,7 +446,6 @@ export function RequisitionFormPage() {
             <label className="field-label" htmlFor="req-description">
               Description
             </label>
-            {}
             <div className="rq-editor-toolbar" role="toolbar" aria-label="Text formatting (not available)">
               {['Undo', 'Redo', 'Bold', 'Italic', 'Underline', 'Bullet list', 'Numbered list', 'Link'].map(
                 (label) => (

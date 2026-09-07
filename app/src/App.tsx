@@ -94,7 +94,6 @@ export default function App() {
                   </RequireAuth>
                 }
               />
-              {}
               <Route
                 path="employees/*"
                 element={

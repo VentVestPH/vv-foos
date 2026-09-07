@@ -52,7 +52,6 @@ function MyViewTab() {
             <h1>
               My View: {staffName} ({roleLabel} at VentVest)
             </h1>
-            {}
             <PlaceholderAction
               label="Switch to My Dashboard"
               variant="ghost"
@@ -69,16 +68,13 @@ function MyViewTab() {
         aria-label="Dashboard settings"
         onClick={() => show('Dashboard settings')}
       >
-        {}
         <GearIcon size={16} />
       </button>
 
       <RecordSection title="My Calendar" defaultOpen>
         <div className="record-section-inline-actions">
-          {}
           <PlaceholderAction label="New Event" variant="ghost" size="sm" />
           <span className="record-section-divider" aria-hidden="true">|</span>
-          {}
           <PlaceholderAction label="Schedule interview" variant="ghost" size="sm" />
         </div>
         <div className="fo-calendar-body">
@@ -99,7 +95,6 @@ function MyViewTab() {
 
       <RecordSection title="My Tasks" defaultOpen>
         <div className="record-section-inline-actions">
-          {}
           <PlaceholderAction label="New Task" variant="ghost" size="sm" />
           <label className="fo-disabled-checkbox">
             <input type="checkbox" disabled aria-disabled="true" />
@@ -119,7 +114,6 @@ function MyViewTab() {
 
       <RecordSection title="My Interviews" defaultOpen={false}>
         <div className="record-section-inline-actions">
-          {}
           <PlaceholderAction label="Schedule interview" variant="ghost" size="sm" />
         </div>
         <p>There are currently no interviews scheduled.</p>
