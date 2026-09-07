@@ -28,7 +28,8 @@ The rule in mechanical terms:
 | 3 Information architecture | **DONE** e4a2b0e |
 | 4 Motion and polish | **DONE** f004088 |
 | 5 Execute the findings | **DONE** 4d5c401, the last of 18 commits, from 2fed123 |
-| 6 Hosting, X1 to X12 | **IN PROGRESS** |
+| 6 Hosting, X1 to X12 | **AS FAR AS IT GOES** 425cf9e. The 8 items that are mine are prepared and verified; X2 rehearsed into a scratch database, X3/X4/X5/X9/X12 checked against a source. **Blocked on X1**, which only Klent can do, and on his 3 decisions: X8 what data goes up, X11 build on push, X12 which host |
+| **After Goal 6: W24**, the login flash | **NEXT.** Diagnosed in `Goal_Workstream-W-Component-Implementation`; the fix and its spec are drafted. Klent asked for it after Goal 6 and before the final test pass |
 
 **Never skip an issue, an error, or a failure.** When anything fails: read the code, form a hypothesis, test the hypothesis, fix the cause. Never retry and hope. Never route around it. Never pick a simpler path because it happens to pass. Never leave a failing check as "pre-existing" without first proving it is, and then fixing it anyway if it is in scope.
 

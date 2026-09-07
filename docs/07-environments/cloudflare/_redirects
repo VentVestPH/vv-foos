@@ -9,13 +9,25 @@
 # The build writes exactly one top-level HTML file, index.html, and no 404.html, so this
 # applies. Check with: find app/dist-redesign-2 -maxdepth 1 -name '*.html'
 #
-# The rule a Vercel port reaches for, "/* /index.html 200", is actively wrong here:
+# The rule a Vercel port reaches for, "/* /index.html 200", is actively wrong here,
+# and the reason is a difference between the two platforms rather than a syntax gap.
+#
+# Cloudflare consults _redirects before it looks for the asset:
 #   "Redirects are always followed, regardless of whether or not an asset matches the
 #    incoming request."
 #   developers.cloudflare.com/pages/configuration/redirects/, read 2026-09-07
-# Vercel's rewrite source is /((?!assets/).*), a negative lookahead that excludes the
-# hashed bundle. _redirects has no lookahead, so /* would proxy every request for
-# /assets/index-<hash>.js to index.html and the app would serve HTML as JavaScript.
+#
+# Vercel checks the filesystem first. Its routing runs in phases, and the Build Output
+# API documents handle: 'filesystem' as "check matches after the filesystem misses",
+# with handle: 'rewrite' later still, so a vercel.json rewrite never sees a request that
+# an existing file answers.
+#   vercel.com/docs/build-output-api/configuration, read 2026-09-07
+#
+# So on Vercel the /((?!assets/).*) lookahead is belt and braces; here there is no
+# filesystem check to fall back on, and /* would proxy every request for
+# /assets/index-<hash>.js to index.html, serving HTML where the browser expects
+# JavaScript. _redirects also has no negative lookahead to copy the exclusion with:
+# splats and placeholders only.
 #
 # Other facts from the same page, so nobody has to re-derive them:
 #   - 2,000 static and 100 dynamic rules, 2,100 combined, 1,000 characters per rule.

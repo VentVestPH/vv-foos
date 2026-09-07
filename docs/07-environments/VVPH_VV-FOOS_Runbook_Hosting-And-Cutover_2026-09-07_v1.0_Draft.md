@@ -241,6 +241,8 @@ Static asset requests are, in Cloudflare's own words, "free and unlimited". Noth
 - Cloudflare, Pages `_redirects`, https://developers.cloudflare.com/pages/configuration/redirects/, last updated 2026-08-25, read 2026-09-07
 - Cloudflare, Pages `_headers`, https://developers.cloudflare.com/pages/configuration/headers/, read 2026-09-07
 - Cloudflare, Serving Pages, https://developers.cloudflare.com/pages/configuration/serving-pages/, `dateModified` 2026-04-21, read 2026-09-07
+- Vercel, Build Output API configuration, https://vercel.com/docs/build-output-api/configuration, read 2026-09-07, for the routing phases and `handle: 'filesystem'`
+- Vercel, Rewrites, https://vercel.com/docs/routing/rewrites, last updated 2026-08-11, which documents the negative-lookahead source idiom itself: `"source": "/:path((?!uk/).*)"`
 - Cloudflare, Workers pricing, static assets, https://developers.cloudflare.com/workers/platform/pricing/
 - Cloudflare, "Goodbye, section 2.8 and hello to Cloudflare's new terms of service", https://blog.cloudflare.com/updated-tos/, 2023-05-16
 - Cloudflare, Service-Specific Terms, Developer Platform, https://www.cloudflare.com/service-specific-terms-developer-platform/, last updated 2026-06-02
@@ -325,7 +327,9 @@ The three `FAIL` lines are the design rule working, not a problem: **a check tha
 >
 > `developers.cloudflare.com/pages/configuration/redirects/`, read 2026-09-07
 
-Vercel's rewrite source is `/((?!assets/).*)`, a negative lookahead that excludes the hashed bundle; `_redirects` has no lookahead. So `/*` would have proxied every request for `/assets/index-<hash>.js` to `index.html`, and the app would have served HTML where the browser expected JavaScript. The claim was not merely imprecise, it inverted the behaviour.
+**The difference is platform behaviour, not syntax.** Vercel checks the filesystem before it applies a rewrite, which its Build Output API documents as routing phases: `handle: 'filesystem'` is annotated `check matches after the filesystem misses`, and `handle: 'rewrite'` is a later phase still, so a `vercel.json` rewrite never sees a request an existing file answers. Cloudflare has no such step in front of `_redirects`. So `vercel.json`'s `/((?!assets/).*)` lookahead is belt and braces on Vercel, and on Cloudflare there is nothing behind it: `/*` would have proxied every request for `/assets/index-<hash>.js` to `index.html`, and the app would have served HTML where the browser expected JavaScript. `_redirects` has no negative lookahead to copy the exclusion with either; it supports splats and placeholders only.
+
+The claim was not merely imprecise, it asserted Vercel's behaviour of a platform that documents the opposite.
 
 **No rule is needed, because Pages already does this and does it correctly:**
 
