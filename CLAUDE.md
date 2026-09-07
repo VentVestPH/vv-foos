@@ -126,7 +126,7 @@ No CSS framework and no charting library (dashboard bars are hand-rolled CSS in 
 
 ### Edge Functions
 
-`supabase/functions/` holds careers (`careers-page`, `careers-apply`), intake (`intake-sheet-fetch`, `intake-sheet-commit`, `intake-email-parser`) and Google integration (`google-oauth-start`, `google-oauth-callback`, `google-sync`, `gmail-send`, `calendar-create-meeting`). `README.md` and `README-agent6.md` in that directory record each function's `verify_jwt` setting, deploy state, and secrets. Two rules learned the hard way there: any function a browser calls needs explicit `OPTIONS`/CORS handling, and `req.url`'s scheme cannot be trusted behind Supabase's proxy (`careers-page` hardcodes `https`, overridable via `CAREERS_PUBLIC_ORIGIN`).
+`supabase/functions/` holds **eleven** functions: careers (`careers-page`, `careers-apply`, `careers-status`), intake (`intake-sheet-fetch`, `intake-sheet-commit`, `intake-email-parser`) and Google integration (`google-oauth-start`, `google-oauth-callback`, `google-sync`, `gmail-send`, `calendar-create-meeting`). `README.md` and `README-agent6.md` in that directory record each function's `verify_jwt` setting, deploy state, and secrets. Two rules learned the hard way there: any function a browser calls needs explicit `OPTIONS`/CORS handling, and `req.url`'s scheme cannot be trusted behind Supabase's proxy (`careers-page` hardcodes `https`, overridable via `CAREERS_PUBLIC_ORIGIN`).
 
 Functions that write on a user's behalf run under the caller's own JWT where RLS should decide (`intake-sheet-commit`); service-role use is confined to the public careers surface and outbox consumers.
 
@@ -176,13 +176,15 @@ Develop against the local stack: `supabase start`, then `npm run db:reset` (whic
 
 `npm run db:push` is deliberately gated behind `scripts/confirm-production-push.mjs` and exits 1. Two reasons: it writes to the live project, and the migration ledgers do not line up. Ten migrations were applied to production through the MCP connector on 2026-07-25 under generated timestamps, while the repo carries six hand-written files reconstructing the same objects under different names. `supabase db push` refuses on its own with `LegacyDbPushMissingLocalError`; do not "fix" that with `migration repair --status reverted` without reading the Deployment state section of `docs/07-environments/`.
 
-As of 2026-09-01, the eight `20260901*` migrations and the Edge Function changes exist locally and in git only. Verified with `supabase migration list --linked`: all eight report an empty `remote`.
+**Corrected 2026-09-07.** This paragraph used to say "the eight `20260901*` migrations". Both halves of that were wrong by the time anyone read it: there are **ten** `20260901*` files, and **thirty-six** migrations dated 2026-09-01 or later (`ls supabase/migrations/ | awk '$0>="20260901"' | wc -l` returns 36 against a total of 54). They exist locally and in git only.
+
+The only remote reading taken is the one from 2026-09-01, when `supabase migration list --linked` showed an empty `remote` for the ten files that existed then. That command talks to the live project, so it has deliberately not been re-run; re-read it yourself before the first deploy rather than trusting this line.
 
 ## Environment
 
 | File | Variables |
 |---|---|
-| `.env` (root) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `.env` (root) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. **Absent in this checkout as of 2026-09-07**, and because it is gitignored the absence is silent: `source .env` succeeds and sets nothing. Use `app/.env`'s `VITE_` pair or `tests/.env`'s `FOOS_` pair, or pass the URL explicitly |
 | `app/.env` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (client throws at boot if either is missing) |
 | `tests/.env` | `FOOS_SUPABASE_URL`, `FOOS_SUPABASE_ANON_KEY`, `FOOS_QA_TEST_PASSWORD`, optional `FOOS_BASE_URL` |
 

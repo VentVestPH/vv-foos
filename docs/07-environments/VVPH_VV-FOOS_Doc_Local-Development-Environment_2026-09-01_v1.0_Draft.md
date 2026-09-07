@@ -120,3 +120,16 @@ The safe order when the time comes:
 4. Only then push, and only the September set.
 
 Steps 1 and 2 are the outstanding Agent 6 RPC drift item. It is now also a prerequisite for deploying anything, not just a documentation gap.
+
+## Corrected 2026-09-07: there is no root `.env` in this checkout
+
+`CLAUDE.md` tabulates a root `.env` holding `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`. The file **is absent**, and because it is gitignored its absence is silent: `source .env` in a shell script succeeds and sets nothing, so anything relying on `$DATABASE_URL` or `$SUPABASE_URL` from it reads empty and fails later with a confusing message. What actually exists:
+
+| File | Variables |
+| :---- | :---- |
+| `app/.env` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
+| `tests/.env` | `FOOS_SUPABASE_URL`, `FOOS_SUPABASE_ANON_KEY`, `FOOS_QA_TEST_PASSWORD`, `FOOS_BASE_URL`, `FOOS_INTAKE_PARSER_SECRET` |
+| `supabase/functions/.env` | `INTAKE_EMAIL_PARSER_SECRET`, `GOOGLE_SYNC_SECRET`, `APP_PRIMARY_ORIGIN`, `APP_ALLOWED_ORIGINS` |
+| root `.env` | **absent** |
+
+`scripts/check-cutover.mjs` therefore reads any of the three naming conventions and names them all when none is set, rather than assuming the documented one.
