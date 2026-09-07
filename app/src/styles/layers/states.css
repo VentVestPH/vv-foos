@@ -6,8 +6,9 @@ a:focus-visible,
 button:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--fo-primary);
+  outline: 2px solid var(--fo-ink);
   outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--fo-surface);
 }
 
 .btn:active:not(:disabled):not([aria-disabled='true']) {

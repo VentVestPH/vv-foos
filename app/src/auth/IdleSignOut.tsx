@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { supabase } from '../lib/supabase';
 
 const IDLE_LIMIT_MS = 60 * 60 * 1000;
@@ -68,12 +69,15 @@ export function IdleSignOut() {
     };
   }, [markActive]);
 
+  const panelRef = useFocusTrap<HTMLDivElement>(remainingMs !== null);
+
   if (remainingMs === null) return null;
 
   const seconds = Math.max(1, Math.ceil(remainingMs / 1000));
   return (
     <div className="fo-placeholder-overlay" role="presentation">
       <div
+        ref={panelRef}
         className="fo-placeholder-modal"
         role="alertdialog"
         aria-modal="true"

@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface PlaceholderContextValue {
   show: (action: string, detail?: string) => void;
@@ -31,6 +32,7 @@ export function PlaceholderProvider({
 
   const dismiss = useCallback(() => setState(null), []);
   const { closing, requestClose } = useOverlayDismiss(state ? dismiss : undefined);
+  const panelRef = useFocusTrap<HTMLDivElement>(state !== null);
 
   const value = useMemo(() => ({ show }), [show]);
 
@@ -47,6 +49,7 @@ export function PlaceholderProvider({
           }}
         >
           <div
+            ref={panelRef}
             className="fo-placeholder-modal"
             data-closing={closing ? 'true' : undefined}
             role="dialog"

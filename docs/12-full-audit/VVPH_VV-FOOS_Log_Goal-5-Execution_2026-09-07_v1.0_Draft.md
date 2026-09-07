@@ -276,6 +276,26 @@ Fixed by capturing during **render** rather than in an effect, `useRef(document.
 
 **The general lesson: an effect is too late to record what had focus.** By the time a passive effect runs, the browser and React have both already moved focus.
 
+### 14. W15 and W22, the focus ring, and the guard that was green while the ring was invisible
+
+V6 and Goal 4 both measured the ring failing WCAG 1.4.11 on three surfaces, and Goal 4 proved that **no blue can fix it**: even `#0d2f52`, nearly black, reaches only 2.96:1 against the shell's mid-blues. The answer is structural, and GOV.UK states the principle: pair a dark part with a light part so one of them always contrasts.
+
+**Changed to a two-part ring built from tokens FOOS already had**: `outline: 2px solid var(--fo-ink)` at `outline-offset: 1px`, with `box-shadow: 0 0 0 4px var(--fo-surface)` as the halo outside it. Measured in the browser by focusing a real control on each ground and reading the computed outline colour against the nearest painted ancestor:
+
+| Ground | Before | After |
+| :---- | ----: | ----: |
+| `.fo-primary-nav`, all 14 tabs | **1.01:1** | **3.83:1** |
+| `.fo-sidebar-panel-header` | **1.00:1** | **3.79:1** |
+| page canvas | 4.04:1 | 15.27:1 |
+
+**And the guard was the real problem.** `check-contrast.mjs` tested exactly one pair, `['focus ring', '--fo-primary', '--fo-surface', 3.0]`, which is the single ground the old ring passed on. So the gate was green on every commit while a keyboard user had no visible position on any primary navigation tab. The guard now tests **six** pairs, taken from V9's measured table of grounds rather than from `tokens.css`: the ring on surface, canvas, the primary nav, the sidebar header and a section tint, plus the halo against the nav. `check-contrast` reports **34 pairs, all passing**, up from 29.
+
+**W22, the change Klent asked for**, and it is quieter rather than gone. He said "remove the box highlight when clicking the search box". It cannot be removed: a text input matches `:focus-visible` however focus arrived, per MDN, and deleting the indicator fails WCAG 2.4.7. It was also not the accessibility problem, passing at 5.04:1 inside its own white field. The complaint was aesthetic and fair, because a 2px inset outline inside a 1px border reads as a heavy double border. The outline is now `transparent`, kept only so forced-colors mode still shows something, and the indicator is `box-shadow: inset 0 0 0 2px var(--fo-primary)`, which thickens the existing border instead of drawing a second line. That is what GOV.UK does for form inputs, and it changes no geometry, so nothing reflows.
+
+**The last two dialogs are trapped too.** `IdleSignOut` and `Placeholder` keep their own markup, including `role="alertdialog"` and their `aria-labelledby`, and gain `useFocusTrap`. All five dialogs V6 row 26 named now back their `aria-modal` claim with real trapping.
+
+**One error of mine, caught by lint rather than by me.** The first version called `useFocusTrap` **after** `IdleSignOut`'s `if (remainingMs === null) return null;`, which is a genuine rules-of-hooks violation: `react-hooks/rules-of-hooks` reported `React Hook "useFocusTrap" is called conditionally`. Moved above the early return and gated by its own `active` argument instead, which is what that argument is for.
+
 ## What went wrong doing it
 
 **I leaked a test fixture by killing the suite, for the second time this session.** Gate pass 1 reported `FAIL validate.sql` with `ERROR: FAIL 9: people count`, because `people where is_test` was **11** against an expected **10**.
