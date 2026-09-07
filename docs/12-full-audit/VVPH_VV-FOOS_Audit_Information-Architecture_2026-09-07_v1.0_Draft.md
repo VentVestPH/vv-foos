@@ -69,7 +69,7 @@ That reframes the verdict: **do not remove `Current title` and `Current employer
 
 ### The 17 accordions
 
-`RecordSection` accepts `defaultOpen` and **30 of its 76 call sites already pass it**, so closing a section by default needs no new mechanism.
+`RecordSection` accepts `defaultOpen` and **29 of its 76 call sites already pass it** (re-counted in Goal 4; the figure carried in the briefs was 30), so closing a section by default needs no new mechanism.
 
 | Section | Verdict | Why |
 | :---- | :---- | :---- |
