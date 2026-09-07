@@ -477,6 +477,45 @@ Three points change how items in this stream should be justified and built.
 
 **Pagination is a fidelity choice, not a best practice.** Salesforce's `lightning-datatable`, the nearest vendor baseline for a dense enterprise list, has no pagination at all and uses infinite scrolling. C5 is still the right call for resemblance, and virtualised infinite scroll is the alternative if use matters more than likeness. Either fixes the real problem, which is 83 rows rendering unbounded.
 
+### The plan with the six goals laid over it, 2026-09-04
+
+One picture of what is done, what remains, and which goal does it. **227 of 264 done, 37 remaining**, and the 37 divides cleanly.
+
+| | Items | Who does it | State |
+| :---- | ----: | :---- | :---- |
+| Workstreams **A to V** | 230 | done | **227 done.** Everything through the component audit |
+| ↳ still open inside them | **3** | **Klent** | E half, B half, A1, T1. All parked, each needs an account, a credential or a decision from a person. Nothing technical blocks them |
+| Workstream **W** | 22 | **Goal 5** | 0 started. Component implementation, ordered so the Level A cluster and the only `Blocks` finding land first |
+| Workstream **X** | 12 | **Goal 6** | 0 started. Hosting and cutover. X8 and X11 are Klent's decisions, not mine |
+| **total** | **264** | | **227 done, 37 remaining** |
+
+**Goals 1 to 4 add to this rather than draw from it.** They are audits: they change no product code and their output is findings, which become new numbered items. So the denominator grows when they finish, and the honest position today is that **37 is a floor, not the remaining work**.
+
+### The running order
+
+| Goal | Produces | Feeds |
+| :---- | :---- | :---- |
+| **1** Functional coverage, per page per role | A route x role matrix, and the four unlooked-for classes, the best being a control the UI offers that RLS then refuses | Goals 2 and 3 both need it |
+| **2** Build, remove or defer | One verdict on each of the 61 dead controls, with Taleo evidence and a size | Goal 5's build list |
+| **3** Information architecture | Per-field verdicts, argued from fill rates against 72,917 real records | Goal 5, as W10 |
+| **4** Motion and polish | The icon scale, the quieter focus indicator, the ring fix, the missing transitions | Goal 5, as W15, W21, W22, W8b |
+| **5** Execute | The component work: W's 22 items plus every verdict from 1 to 4 | |
+| **6** Hosting and cutover | X's 12 items | Can run in parallel with 1 to 4, since it touches no component code |
+
+**Goal 6 is the only one that can run out of order.** It shares nothing with the component work, so if Klent wants a URL sooner it can go first or alongside. Everything else is sequential: 1 before 2 and 3, all of 1 to 4 before 5.
+
+### Arming the reminder on every transition
+
+`scripts/goal-reminder.sh` re-injects the active goal every 8 minutes of tool activity, and is silent unless armed. **The hook must be re-armed at every goal transition**, so the instruction lives in three places rather than in anyone's memory:
+
+```sh
+bash scripts/arm-goal.sh 1      # arm goal 1
+bash scripts/arm-goal.sh        # show what is armed, and the list
+bash scripts/arm-goal.sh off    # disarm
+```
+
+Each armed goal file **ends by naming the next one**, so the reminder that fires carries its own re-arm instruction. That matters because **an armed goal that no longer matches the work is worse than none: it reads as confirmation.** Any session noticing a stale armed goal re-arms before doing anything else.
+
 ### Completion status, revised 2026-09-02
 
 **227 of 264 numbered tasks are done**, which is the sum of the table above and nothing else. The denominator moved again on 2026-09-04: workstream V added 13 items for the component audit and **all 13 are now done**. Workstream W entered the table on 2026-09-04 with 23 items and workstream X with 12 for hosting and cutover; W23 then moved to Goal 1 as an audit task, leaving W at 22, so the denominator is 264. Neither has started. It is audit and specification only, so none of them changed a component; the code changes are workstream W, which is not in this table because it has not started. The denominator moved on 2026-09-03: workstream U added U1.11 to U1.16 and U3.5, seven tasks found by measuring rather than by planning, and every one of them is done. Workstream D closed completely the same day when D5's bytes arrived through the API. What is left is E½, B½, A1 and T1, which is three and every one of them is in the parked and blocked register, and workstream V is complete, so the open list is back to those three. T1 added four follow-ups; T2, T4 and T5 are done, and T3 turned out to be measurable rather than a design decision: its premise was a node count my own R3 and T2 work had already invalidated, so it is answered in section 7.13 and split, leaving T3a, a single default, as the only part that is yours. Workstream R added six and workstream S eight on 2026-09-02; S1 to S7 are done and verified over nine consecutive gate passes. P2 and P3 were dropped rather than left open: cost figures and a contract date are not FOOS work. The denominator jumped on 2026-09-02 when six background audits added workstreams K, L, M and N, and a further pass asking what nobody had examined added O. 50 tasks between them. That is the honest shape of it: the plan was at 70 of 77 because it had never looked at data access, accessibility, browser security or stylesheet architecture at all.

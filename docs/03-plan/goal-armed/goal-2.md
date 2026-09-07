@@ -15,3 +15,5 @@ Decide what happens to every control that does not work. Judgement, not discover
 **Deliverable:** `docs/12-full-audit/VVPH_VV-FOOS_Audit_Dead-Control-Verdicts_<date>_v1.0_Draft.md`. A table with one row per control: label, where it lives, what it does now, verdict, evidence, size. End with the build list ordered by value over effort. **Every control gets a verdict; "unclear" is not one.** Where a verdict is genuinely Klent's, say so and put it in the parked register rather than guessing.
 
 **Standing rules.** As Goal 1: verify, separate measured from inferred, **fix errors rather than skipping them, search the web, no shortcuts**, no comments in source, local stack only, commit in batches saying what you got wrong, do not stop early.
+
+**ON FINISHING THIS GOAL, RE-ARM THE REMINDER BEFORE STARTING THE NEXT ONE:** `bash scripts/arm-goal.sh 3` An armed goal that no longer matches the work is worse than none, because it reads as confirmation. If you notice the armed goal is stale, re-arm it before doing anything else.

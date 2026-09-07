@@ -15,3 +15,5 @@ Search the web for how the design systems already cited in `Audit_V11-Design-Ref
 **Deliverable:** `docs/12-full-audit/VVPH_VV-FOOS_Audit_Motion-And-Polish_<date>_v1.0_Draft.md`, with each proposed change, the published reference behind it, and the assertion that will prove it. **Keep the Taleo aesthetic**: nothing bouncy, nothing slow, no motion that a dense enterprise list would not have.
 
 **Standing rules.** As Goal 1: verify, fix errors rather than skipping, search the web for standards rather than recalling them, no comments in source, local stack only, do not stop early.
+
+**ON FINISHING THIS GOAL, RE-ARM THE REMINDER BEFORE STARTING THE NEXT ONE:** `bash scripts/arm-goal.sh 5` An armed goal that no longer matches the work is worse than none, because it reads as confirmation. If you notice the armed goal is stale, re-arm it before doing anything else.
