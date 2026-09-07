@@ -536,6 +536,43 @@ The invalid state is now `'format' | 'range' | null`, and the range message name
 
 **Why it is a separate commit.** Gate F verified the batch before this line existed. A commit whose message claims five clean passes has to mean five passes over the tree that commit contains, so this one gets its own run rather than borrowing F's.
 
+### 29. The six task costs did not move, and the instrument is why
+
+Re-walked twice on 2026-09-07 with the pass 3 harness. Every one of the six numbers is **identical to the 2026-09-04 baseline**: 5/2/16/4, 1/0/26/2, 5/2/31/2, 3/0/16/2, 3/2/0/3, 2/1/0/2. W11's rule says a component that did not make its task cheaper has not earned its commit, so this needs an answer rather than a restatement.
+
+**V10's prediction was wrong about what `useListLink` does.** It expected find-a-candidate's four page loads to fall once `useListLink` was wired. `useListLink` carries the list URL forward so the **return** lands on the same filtered list; it cannot shorten the outward path, which is dashboard, tab, list, record whatever the record page remembers. The walkthrough measures only the outward path. `tests/e2e/list-return.spec.ts` measures what did change: three sales record pages now come back to their list with the query string intact, which was previously impossible at any price.
+
+**The 31 keystrokes were never going to fall.** They fill the form's required fields. A summary changes what comes back, not the typing needed to provoke it. What changed is asserted in `form-affordances.spec.ts`: **one** focused `role="alert"` summary instead of the same message rendered twice, `#req-title` with `aria-invalid="true"` and `aria-describedby`, and a link that moves focus to the field. The probe counts copies: `ownerMessageCopies=1`, against V10's finding of twice, with `aria-invalid` on 0 fields and nothing in a live region.
+
+**And the re-walk found a real gap, not just a measurement artefact.** The validation walkthrough uses `/recruit/requisitions/new`, and that was **the one form of six I had not wired the summary into**. The first re-walk measured a form that still did `setError(validation.join(' '))` and rendered it at two places in the same tree, which is exactly V10's complaint. Fixed, asserted, and re-walked. When an audit names the screen it measured, that screen is the one to fix first rather than the five that are easier to reach.
+
+**What the table is good for now.** It measures the cost of reaching an outcome; Goal 5 mostly changed the quality of what arrives. Four of the six rows were always going to read "none". Its remaining honest use is as a regression guard: if any of the six ever rises, something got worse, and none did.
+
+## What Goal 5 delivered, and what it cost
+
+**Workstream W is 21 of 22.** The open one is W9, the remaining-work list, which is `VVPH_VV-FOOS_List_Remaining-Work` and closes with this goal. Two `Blocks` findings shipped: V6 row 5, the bulk-select header, and G1-4, the Pipeline dashboard reporting zero on 99% of the data, which workstream V never saw.
+
+**Six new shared components, 929 lines**, each replacing a browser control rather than restyling one, and each asserted by its own spec: `Select` 372, `DateField` 364, `dateParts` 73, `FileField` 53, `ErrorSummary` 49, `Spinner` 18.
+
+**The suites grew with the work**: 249 API and RLS tests, 176 browser tests, 35 schema checks, 35 contrast pairs, and a sixth guard script, `check-icons.mjs`. Four new browser specs: `select-combobox` 11 tests, `form-affordances` 7, `date-field` 4, `list-return` 1. Two of those figures were wrong when first written here and are corrected: the browser total was 175 at run F and is 176 now, and `form-affordances` held 6 tests at run F, not 7. Item 29's requisition-form assertion is the test that made both true.
+
+**Twelve of my own claims corrected in this goal**, on top of workstream V's 24: Goal 4's size count of 60 and its 9 sites to move; its "26 ad-hoc overrides" that did not match its own table; its three exit animations that are six; Goal 3's claim that the candidate list has no column picker; its "keep Source open" verdict on a section already closed; the 45 unannounced messages that are 44; the nine bare navigation paths that are 14; the "1,053 companies" that are 195; and the two the re-walk forced, that `useListLink` shortens the return rather than the outward path, and that the error summary reaches what comes back rather than the keystrokes.
+
+**The defect log holds 17 entries**, counting QA-011's reopening as its own, and this goal added QA-010 through QA-016, which is seven of them. QA-014 is the only one still open. Three real product defects were found by the gate rather than by reading: the `nested-interactive` violation my own deal-card fix created, the contrast failure that removing eleven false `aria-disabled` attributes uncovered, and `.side-tab-count` at 4.35:1.
+
+**What it cost.** Seven gate runs, A to G. Two were clean five times over on the first attempt; the rest failed at least once, and run C failed all five passes identically, which is what turned a suspicion into a diagnosis rather than a guess.
+
+Counted by **cause** rather than by failing test name, because one cause failed as many as eight tests, there were **fourteen**:
+
+| Class | Count | Which |
+| :---- | ----: | :---- |
+| Product defects | **4** | the `nested-interactive` violation my own deal-card fix introduced; the `.is-placeholder` contrast that removing eleven false `aria-disabled` attributes uncovered; the CSV export that exported nothing; `.side-tab-count` at 4.35:1 |
+| My process or the harness | 4 | a fixture leaked by killing a suite; sixteen `client_errors` from editing `app/src` mid-run; the one-shot `waitForAnimations` that let axe measure a fade; the timeline teardown that deleted by an unindexed `LIKE` |
+| Tests asserting the old behaviour | 5 | `record-ui` asserting a control was disabled when it responded; `list-keyboard`'s row-order race; `interaction-motion` assuming the first section is open; `selectOption` on a control that is no longer a `<select>`, across five specs; two timing gaps in specs I had just written |
+| Unattributed | 1 | QA-014, still open, with the diagnostics in place and two hypotheses refuted by evidence |
+
+None was dismissed as a flake and none was retried. Every one is in `tests/DEFECT_LOG.md` or in the items above with its verbatim error.
+
 ## Gate results
 
 Reported as they happened rather than as a summary.
@@ -555,7 +592,8 @@ Reported as they happened rather than as a summary.
 | | 3 | **FAIL `browser`**, `timeline-cap.spec.ts` teardown: `canceling statement due to statement timeout`, and it leaked **120** `activities` rows. QA-015 |
 | | 4 | **FAIL `browser`**, `deal record: color-contrast (serious, 1 node(s)) .side-tab-count`. QA-016, and the only product defect of the three |
 | | 5 | stopped deliberately, with Playwright idle, once three defects were identified. Continuing would have leaked another 120 rows a pass |
-| **F**, the same batch with QA-014, QA-015 and QA-016 fixed | 1 to 5 | see below |
+| **F**, the same batch with QA-014, QA-015 and QA-016 fixed | 1 to 5 | **5 clean passes, 21 of 21 each**, `browser 175 passed` every time |
+| **G**, items 28 and 29's fixes, which F did not contain | 1 to 5 | **5 clean passes, 21 of 21 each**, `browser 176 passed` every time, `api-tests 249 passed`, `validate.sql 35 check(s) pass`, `contrast All 35 pairs`, `attachments` clean. 19:00 to 19:04 for the last of them |
 
 **Every failure here is recorded rather than discarded, and all but one were mine.** Each was a real failure of a real check on a real condition, and the gate was right to fail every time.
 
@@ -563,4 +601,5 @@ Reported as they happened rather than as a summary.
 - Run **B** gives **four clean passes** on items 3 to 5, with pass 2 failing because I edited source mid-run.
 - Run **C** is a **genuine, reproducible product failure** that five consecutive passes agreed on, and the only failure so far that was a defect in the change rather than in my process. **C2** is the same batch after the fix, clean five times. It is the answer to why the bar is five passes and not one: a single run would have caught this too, but five identical failures are what turned "a flake" into "a diagnosis" without my having to guess.
 - Run **D** is clean five times over.
+- Run **G** is clean five times over, and it exists only because F did not contain the two lines items 28 and 29 changed. A commit claiming five clean passes has to mean five passes over the tree it contains.
 - Run **E** is the interesting one, and it is honest to say it is **not five clean passes**. It failed three times out of four run, each differently, and **one of the three is in the product**: `.side-tab-count` at 4.35:1 against a 4.5:1 requirement (QA-016). The other two are the harness: a spec that reads a row without first proving it is on the route it thinks it is (QA-014), and a teardown that deletes 120 rows with an unindexed `LIKE` on a 213,819-row table (QA-015). All three are logged in `tests/DEFECT_LOG.md`. **The 5-of-5 claim belongs to run F, not to E**, and run E is recorded exactly as it happened. Item 27 has the detail.

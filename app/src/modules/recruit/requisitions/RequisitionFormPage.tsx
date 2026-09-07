@@ -10,6 +10,7 @@ import { RecordSection } from '../../../components/ui/RecordPage';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { CURRENCIES } from '../../../lib/format';
+import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSummary';
 import { supabase } from '../../../lib/supabase';
 import { type ApproverRow, errMsg, todayIso } from '../lib';
 import { useLookups } from '../hooks';
@@ -76,6 +77,7 @@ export function RequisitionFormPage() {
   const [originalApprovers, setOriginalApprovers] = useState<ApproverRow[]>([]);
   const [originalOwners, setOriginalOwners] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showProblems, setShowProblems] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(!editing);
 
@@ -143,18 +145,22 @@ export function RequisitionFormPage() {
   }, [editing, id]);
 
   const validation = useMemo(() => {
-    const problems: string[] = [];
-    if (!form.title.trim()) problems.push('Title is required.');
-    if (ownerIds.length === 0) problems.push('At least one owner is required.');
+    const problems: FieldError[] = [];
+    if (!form.title.trim()) problems.push({ field: 'req-title', message: 'Title is required.' });
+    if (ownerIds.length === 0) problems.push({ message: 'At least one owner is required.' });
     const min = form.pay_min ? Number(form.pay_min) : null;
     const max = form.pay_max ? Number(form.pay_max) : null;
-    if (min != null && Number.isNaN(min)) problems.push('Pay min must be a number.');
-    if (max != null && Number.isNaN(max)) problems.push('Pay max must be a number.');
+    if (min != null && Number.isNaN(min)) {
+      problems.push({ field: 'req-pay-min', message: 'Pay min must be a number.' });
+    }
+    if (max != null && Number.isNaN(max)) {
+      problems.push({ field: 'req-pay-max', message: 'Pay max must be a number.' });
+    }
     if (min != null && max != null && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
-      problems.push('Pay min cannot exceed pay max.');
+      problems.push({ field: 'req-pay-min', message: 'Pay min cannot exceed pay max.' });
     }
     if (approvers.some((a) => !a.staff_id)) {
-      problems.push('Every approver row needs a staff member.');
+      problems.push({ message: 'Every approver row needs a staff member.' });
     }
     return problems;
   }, [form, ownerIds, approvers]);
@@ -168,9 +174,10 @@ export function RequisitionFormPage() {
 
   const save = async () => {
     if (validation.length > 0) {
-      setError(validation.join(' '));
+      setShowProblems(true);
       return;
     }
+    setShowProblems(false);
     setBusy(true);
     setError(null);
     try {
@@ -299,7 +306,8 @@ export function RequisitionFormPage() {
       >
         {actionButtons}
 
-        {error && <p className="form-error" role="alert">{error}</p>}
+        <ErrorSummary errors={showProblems ? validation : []} />
+        {error !== null && <p className="form-error" role="alert">{error}</p>}
 
         <RecordSection title="Requisition Owner(s):">
           <div className="field">
@@ -330,8 +338,10 @@ export function RequisitionFormPage() {
         <RecordSection title="Requisition Information:">
           <div className="rq-form-grid">
             <Input
+              id="req-title"
               label="Title"
               required
+              error={showProblems ? validation.find((v) => v.field === 'req-title')?.message : undefined}
               value={form.title}
               onChange={(e) => set('title', e.target.value)}
             />
@@ -395,14 +405,18 @@ export function RequisitionFormPage() {
               onChange={(e) => set('opened_date', e.target.value)}
             />
             <Input
+              id="req-pay-min"
               label="Pay min"
               type="number"
+              error={showProblems ? validation.find((v) => v.field === 'req-pay-min')?.message : undefined}
               value={form.pay_min}
               onChange={(e) => set('pay_min', e.target.value)}
             />
             <Input
+              id="req-pay-max"
               label="Pay max"
               type="number"
+              error={showProblems ? validation.find((v) => v.field === 'req-pay-max')?.message : undefined}
               value={form.pay_max}
               onChange={(e) => set('pay_max', e.target.value)}
             />
@@ -522,8 +536,6 @@ export function RequisitionFormPage() {
             </Button>
           </div>
         </RecordSection>
-
-        {error && <p className="form-error" role="alert">{error}</p>}
 
         {actionButtons}
       </form>

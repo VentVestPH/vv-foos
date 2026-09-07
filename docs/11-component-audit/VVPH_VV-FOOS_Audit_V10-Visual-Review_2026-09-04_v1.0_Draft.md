@@ -190,3 +190,26 @@ Three readings, and the third is the one worth acting on.
 ## What W11 should re-measure against this
 
 These six rows are the baseline. W11's rule is that a component which did not make its task cheaper has not earned its commit, so after each change the same six walkthroughs are re-run and the deltas reported against this table. Two of them should move if the workstream works: **find-a-candidate's four page loads** should fall once `useListLink` is wired at the nine bare paths, and **validation-error's 31 keystrokes for two duplicated, unannounced messages** should buy a summary the user can act on.
+
+## Pass 3 re-walked after Goal 5, and the honest answer is that none of the six numbers moved
+
+Run 2026-09-07 at 18:44 as the **recruiter** persona, same harness, same counters, same local stack. The harness needed two changes to keep measuring the same tasks: it drives the new combobox by opening it and picking an option, and it recognises the date field by its `YYYY-MM-DD` placeholder rather than by `input[type=date]`, because neither control is a native one any more.
+
+| Task | Steps | Clicks | Keystrokes | Page loads | Delta |
+| :---- | ----: | ----: | ----: | ----: | :---- |
+| Find a candidate by name and open them | 5 | 2 | 16 | **4** | none |
+| Search for something that matches nothing | 1 | 0 | 26 | 2 | none |
+| Hit a validation error and read it | 5 | 2 | **31** | 2 | none |
+| Export a filtered list | 3 | 0 | 16 | 2 | none |
+| Open a requisition and reach its pipeline | 3 | 2 | 0 | 3 | none |
+| Work a day: open the dashboard and its tasks | 2 | 1 | 0 | 2 | none |
+
+**Identical, to the number, twice: before and after the requisition form was fixed.** That is not a result to dress up, and W11's rule, that a component which did not make its task cheaper has not earned its commit, has to be answered rather than restated.
+
+**The prediction this document made was wrong about what `useListLink` does.** It said find-a-candidate's four page loads "should fall once `useListLink` is wired at the nine bare paths". `useListLink` carries the list URL **forward so the return journey lands on the same filtered list**. It cannot shorten the outward path, which is dashboard, tab, list, record, and is four loads whatever the record page remembers. The walkthrough measures only the outward path, so the improvement it was predicted to show is one it cannot see. `tests/e2e/list-return.spec.ts` measures the part that did change: three sales record pages now return to their list with the query string intact, which was not possible before at any cost in clicks.
+
+**The validation task's 31 keystrokes were never going to fall either**, and saying otherwise would have been the same mistake. Those 31 characters fill the form's required fields; an error summary changes what comes **back**, not how much typing it takes to provoke it. What changed is measured in `tests/e2e/form-affordances.spec.ts` instead: the same submit now produces **one** `role="alert"` summary rather than the same message rendered twice, it is focused, `#req-title` carries `aria-invalid="true"` and `aria-describedby`, and the summary's link moves focus to the field. The probe counts the copies: `ownerMessageCopies=1`, where V10 recorded it rendered twice with `aria-invalid` on 0 fields and nothing in a live region.
+
+**So the instrument was wrong for these changes, not the changes.** Steps, clicks, keystrokes and page loads measure the cost of *reaching* an outcome. Goal 5 mostly changed the *quality* of what arrives: whether a message is announced, whether focus lands somewhere useful, whether a filtered list survives a detour, whether a control can be driven by keyboard at all. Four rows of this table were always going to read "none". The remaining honest use of the table is as a regression guard: **if any of these six numbers ever goes up, something got worse**, and none of them did.
+
+**One thing this exposed that was a real gap rather than a measurement artefact.** The validation walkthrough uses `/recruit/requisitions/new`, and that was the one form of six that I had **not** wired the summary into, so the first re-walk measured a form that still joined its problems into one string and rendered it in two places, exactly as V10 found. Fixed and asserted before the second re-walk. The lesson is narrow and worth keeping: when an audit names the screen it measured, fix that screen first, not the five that were easier to reach.

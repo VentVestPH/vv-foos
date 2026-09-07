@@ -76,7 +76,9 @@ Numbered G5-1 to G5-7 so they can be argued about separately. G5-5 was closed in
 
 ## What the gate says about this state
 
-Run F, the whole batch with QA-014, QA-015 and QA-016 fixed, is recorded pass by pass in the Goal 5 log's gate table rather than summarised here. Pass 1: **21 of 21 checks, `browser 175 passed`, `validate.sql 35 check(s) pass`, `importer 11 module(s) idempotent`, `attachments` clean**.
+Run F, the whole batch with QA-014, QA-015 and QA-016 fixed, is **five clean passes, 21 of 21 checks each**, `browser 175 passed`, `validate.sql 35 check(s) pass`, `importer 11 module(s) idempotent`, `attachments` clean. It is recorded pass by pass in the Goal 5 log's gate table.
+
+Run G covers the two changes made after F, which F therefore did not verify: the date field naming the real fault, and the error summary reaching the one form of six that the audit had actually measured. A commit claiming five clean passes has to mean five passes over the tree it contains, which is why they are a separate commit and a separate run.
 
 Six new shared components carry the replacements, **929 lines** in total: `Select` 372, `DateField` 364, `dateParts` 73, `FileField` 53, `ErrorSummary` 49 and `Spinner` 18. The two large ones are large because a browser control is being replaced rather than restyled, and each is asserted by its own spec rather than by inspection.
 

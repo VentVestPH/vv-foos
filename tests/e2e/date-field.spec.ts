@@ -108,6 +108,14 @@ test('the range fields refuse a date outside min and max', async ({ page }) => {
 
   await start.fill('2099-01-01');
   await start.press('Enter');
-  await expect(page.locator('.field-error-text').filter({ hasText: 'YYYY-MM-DD' }).first()).toBeVisible();
+  const outOfRange = page.locator('.field-error-text').filter({ hasText: /Pick a date/ }).first();
+  await expect(outOfRange).toBeVisible();
+  console.log(`PROBE rangeMessage="${(await outOfRange.textContent()) ?? ''}"`);
   expect(await start.inputValue()).toBe('2099-01-01');
+
+  await start.fill('2026-02-31');
+  await start.press('Enter');
+  await expect(
+    page.locator('.field-error-text').filter({ hasText: /YYYY-MM-DD/ }).first(),
+  ).toBeVisible();
 });

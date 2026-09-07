@@ -179,3 +179,27 @@ test('a button that is working says so with aria-busy and a spinner', async ({ p
   expect(anim.count).toBe('infinite');
   await expect(fetchBtn).not.toHaveAttribute('aria-busy', 'true', { timeout: 15000 });
 });
+
+test('the requisition form answers a failed submit with one summary, not two copies', async ({
+  page,
+}) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await gotoAsSignedIn(page, '/recruit/requisitions/new');
+  await expect(page.locator('#req-title')).toBeVisible({ timeout: 25000 });
+
+  await page.getByRole('button', { name: 'Save', exact: true }).first().click();
+
+  const summary = page.locator('.error-summary');
+  await expect(summary).toHaveCount(1);
+  await expect(summary).toBeFocused();
+  await expect(summary).toContainText('Title is required.');
+  await expect(summary).toContainText('At least one owner is required.');
+
+  const anywhere = page.getByText('At least one owner is required.');
+  console.log(`PROBE ownerMessageCopies=${String(await anywhere.count())}`);
+  expect(await anywhere.count()).toBe(1);
+
+  await expect(page.locator('#req-title')).toHaveAttribute('aria-invalid', 'true');
+  await summary.getByRole('link', { name: 'Title is required.' }).click();
+  await expect(page.locator('#req-title')).toBeFocused();
+});

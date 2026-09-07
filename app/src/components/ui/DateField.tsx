@@ -45,6 +45,15 @@ function sameDay(a: DateParts | null, b: DateParts): boolean {
   return a !== null && a.year === b.year && a.month === b.month && a.day === b.day;
 }
 
+function rangeMessage(min?: string, max?: string): string {
+  const from = min !== undefined && min !== '' ? min : null;
+  const to = max !== undefined && max !== '' ? max : null;
+  if (from !== null && to !== null) return `Pick a date between ${from} and ${to}.`;
+  if (from !== null) return `Pick a date on or after ${from}.`;
+  if (to !== null) return `Pick a date on or before ${to}.`;
+  return 'That date is not allowed here.';
+}
+
 interface CalendarDialogProps {
   cursor: DateParts;
   selected: DateParts | null;
@@ -223,14 +232,14 @@ export function DateField({
   const [text, setText] = useState(value);
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState<DateParts>(() => parseDateValue(value) ?? todayParts());
-  const [invalid, setInvalid] = useState(false);
+  const [invalid, setInvalid] = useState<'format' | 'range' | null>(null);
 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const location = useLocation();
 
   useEffect(() => {
     setText(value);
-    setInvalid(false);
+    setInvalid(null);
     const parsed = parseDateValue(value);
     if (parsed !== null) setCursor(parsed);
   }, [value]);
@@ -246,16 +255,20 @@ export function DateField({
   const commitText = () => {
     const raw = text.trim();
     if (raw === '') {
-      setInvalid(false);
+      setInvalid(null);
       if (value !== '') emit('');
       return;
     }
     const parsed = parseDateValue(raw);
-    if (parsed === null || outOfRange(parsed, min, max)) {
-      setInvalid(true);
+    if (parsed === null) {
+      setInvalid('format');
       return;
     }
-    setInvalid(false);
+    if (outOfRange(parsed, min, max)) {
+      setInvalid('range');
+      return;
+    }
+    setInvalid(null);
     const next = formatDateValue(parsed);
     setCursor(parsed);
     setText(next);
@@ -270,7 +283,7 @@ export function DateField({
   const choose = (parts: DateParts) => {
     if (outOfRange(parts, min, max)) return;
     const next = formatDateValue(parts);
-    setInvalid(false);
+    setInvalid(null);
     setText(next);
     setCursor(parts);
     if (next !== value) emit(next);
@@ -302,7 +315,7 @@ export function DateField({
           required={required}
           aria-label={label === undefined ? ariaLabel : undefined}
           aria-describedby={describedBy}
-          aria-invalid={invalid || error !== undefined ? true : undefined}
+          aria-invalid={invalid !== null || error !== undefined ? true : undefined}
           onChange={(event) => setText(event.target.value)}
           onBlur={commitText}
           onKeyDown={(event) => {
@@ -335,9 +348,9 @@ export function DateField({
       <span className="visually-hidden" id={hintId}>
         {DATE_FORMAT_HINT}
       </span>
-      {invalid && (
+      {invalid !== null && (
         <span className="field-error-text" role="alert">
-          {DATE_FORMAT_HINT}
+          {invalid === 'format' ? DATE_FORMAT_HINT : rangeMessage(min, max)}
         </span>
       )}
       {error !== undefined && (
