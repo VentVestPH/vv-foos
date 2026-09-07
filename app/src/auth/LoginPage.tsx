@@ -47,6 +47,8 @@ export function LoginPage() {
     if (err) setError(err.message);
   };
 
+  const signingIn = busy || (session !== null && loading);
+
   return (
     <div className="login-page">
       <div className="login-card">
@@ -92,8 +94,8 @@ export function LoginPage() {
               {error}
             </p>
           )}
-          <Button type="submit" variant="secondary" disabled={busy} fullWidth>
-            {busy ? 'Signing in…' : 'Sign in with email'}
+          <Button type="submit" variant="secondary" loading={signingIn} fullWidth>
+            {signingIn ? 'Signing in…' : 'Sign in with email'}
           </Button>
         </form>
       </div>

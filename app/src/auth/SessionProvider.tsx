@@ -33,6 +33,7 @@ const SessionContext = createContext<SessionState>({
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [staff, setStaff] = useState<Staff | null>(null);
+  const [staffResolvedFor, setStaffResolvedFor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +41,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     async function loadStaff(s: Session | null) {
       if (!s) {
-        if (!cancelled) setStaff(null);
+        if (!cancelled) {
+          setStaff(null);
+          setStaffResolvedFor(null);
+        }
         return;
       }
       const { data } = await supabase
@@ -48,7 +52,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('id', s.user.id)
         .maybeSingle();
-      if (!cancelled) setStaff(data ?? null);
+      if (!cancelled) {
+        setStaff(data ?? null);
+        setStaffResolvedFor(s.user.id);
+      }
     }
 
     let loadedForUser: string | null | undefined;
@@ -83,11 +90,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setStaff(null);
+    setStaffResolvedFor(null);
   };
+
+  const staffPending = session !== null && staffResolvedFor !== session.user.id;
 
   return (
     <SessionContext.Provider
-      value={{ session, staff, role: staff?.role ?? null, loading, signOut }}
+      value={{
+        session,
+        staff,
+        role: staff?.role ?? null,
+        loading: loading || staffPending,
+        signOut,
+      }}
     >
       {children}
     </SessionContext.Provider>

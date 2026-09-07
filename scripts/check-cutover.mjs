@@ -12,7 +12,6 @@ function flag(name) {
 
 const URL_IN = flag('url') || process.env.CUTOVER_SUPABASE_URL;
 const ANON_IN = flag('anon') || process.env.CUTOVER_SUPABASE_ANON_KEY;
-const SERVICE = process.env.CUTOVER_SERVICE_ROLE_KEY;
 const ORIGIN = flag('origin') || process.env.CUTOVER_APP_ORIGIN || '';
 const ALLOW_LIVE = flag('allow-live') !== undefined;
 
@@ -38,8 +37,8 @@ if (!URL_IN || !ANON_IN) {
       '  CUTOVER_SUPABASE_URL=http://127.0.0.1:55321 \\\n' +
       '  CUTOVER_SUPABASE_ANON_KEY=<the local anon key> \\\n' +
       '  node scripts/check-cutover.mjs\n\n' +
-      'or pass --url= and --anon=. Optional: CUTOVER_SERVICE_ROLE_KEY for the pg_cron check,\n' +
-      'CUTOVER_APP_ORIGIN for the deep-link and careers checks.',
+      'or pass --url= and --anon=. Optional: CUTOVER_APP_ORIGIN, or --origin=, for the deep-link\n' +
+      'and careers checks. Without it those two are reported as manual rather than passed.',
   );
   process.exit(2);
 }
@@ -55,9 +54,10 @@ if (URL_IN.includes(LIVE_REF) && !ALLOW_LIVE) {
 }
 
 const results = [];
-function record(name, ok, detail) {
-  results.push({ name, ok, detail });
-  console.log(`${ok ? 'ok  ' : 'FAIL'} ${name.padEnd(34)} ${detail}`);
+function record(name, state, detail) {
+  results.push({ name, state, detail });
+  const tag = state === true ? 'ok  ' : state === 'manual' ? 'todo' : 'FAIL';
+  console.log(`${tag} ${name.padEnd(34)} ${detail}`);
 }
 
 console.log(`target ${URL_IN}${URL_IN.includes(LIVE_REF) ? '  (LIVE, allowed by --allow-live)' : ''}\n`);
@@ -99,17 +99,13 @@ for (const fn of FUNCTIONS) {
   record(`function ${fn}`, deployed, detail);
 }
 
-if (SERVICE) {
-  const admin = createClient(URL_IN, SERVICE);
-  const { data, error } = await admin.rpc('foos_cutover_cron_jobs').catch(() => ({ data: null, error: null }));
-  if (error || data === null) {
-    record('pg_cron scheduled jobs', false, 'no RPC to read cron.job; check it in the SQL editor: select jobname from cron.job');
-  } else {
-    record('pg_cron scheduled jobs', Array.isArray(data) && data.length > 0, JSON.stringify(data));
-  }
-} else {
-  record('pg_cron scheduled jobs', false, 'CUTOVER_SERVICE_ROLE_KEY not set, so this check was skipped rather than passed');
-}
+record(
+  'pg_cron scheduled jobs',
+  'manual',
+  'the cron schema is not on the Data API and no RPC exposes it, so this cannot be automated. ' +
+    'Run in the SQL editor: select jobname, schedule from cron.job; expect 4 rows, ' +
+    'foos-reminder-due, dash-refresh-materialized-views, dash-refresh-success-metrics, foos-prune-retained',
+);
 
 if (ORIGIN) {
   const deep = await fetch(`${ORIGIN}/recruit/candidates/00000000-0000-4000-8000-000000000000`, {
@@ -127,13 +123,25 @@ if (ORIGIN) {
   const cstatus = careers instanceof Error ? careers.message : careers.status;
   record('public careers page', !(careers instanceof Error) && cstatus === 200, `GET -> ${cstatus}`);
 } else {
-  record('SPA rewrite on a deep link', false, 'CUTOVER_APP_ORIGIN not set, so this check was skipped rather than passed');
-  record('public careers page', false, 'CUTOVER_APP_ORIGIN not set, so this check was skipped rather than passed');
+  record('SPA rewrite on a deep link', 'manual', 'CUTOVER_APP_ORIGIN not set, so this was not run');
+  record('public careers page', 'manual', 'CUTOVER_APP_ORIGIN not set, so this was not run');
 }
 
-const failed = results.filter((r) => !r.ok);
-console.log(`\n${results.length - failed.length} of ${results.length} cutover check(s) pass.`);
+record('Google sign-in completes', 'manual', 'needs a real ventvest.com account and a browser');
+record('a live update arrives over wss://', 'manual', 'needs two sessions watching the same row');
+
+const failed = results.filter((r) => r.state === false);
+const manual = results.filter((r) => r.state === 'manual');
+const passed = results.filter((r) => r.state === true);
+console.log(`\n${passed.length} of ${passed.length + failed.length} automated check(s) pass.`);
+if (manual.length > 0) {
+  console.log(`${manual.length} check(s) cannot be automated and are not counted as passing:`);
+  for (const r of manual) console.log(`  - ${r.name}`);
+}
 if (failed.length > 0) {
-  console.log('Not ready. Each failing line names what to set.');
+  console.log('Not ready. Each FAIL line names what to set.');
   process.exit(1);
+}
+if (manual.length > 0) {
+  console.log('Every automated check passes. The list above is still yours to do by hand.');
 }
