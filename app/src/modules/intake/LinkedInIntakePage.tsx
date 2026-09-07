@@ -6,6 +6,7 @@ import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { useSession } from '../../auth/SessionProvider';
 import { supabase } from '../../lib/supabase';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { StarGrade } from '../../components/ui/StarGrade';
 import { Inbox as InboxIcon } from 'lucide-react';
 
@@ -14,6 +15,7 @@ const EMPTY_BATCH_LABEL = '';
 const EMPTY_TARGET_TYPE: 'candidate' | 'contact' = 'candidate';
 
 export function LinkedInIntakePage() {
+  useDocumentTitle('Intake: LinkedIn');
   const { staff } = useSession();
   const navigate = useNavigate();
   const [urls, setUrls] = useState('');

@@ -6,6 +6,7 @@ import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { Inbox as InboxIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { checkDedup } from './hooks';
 
 const PARSED_FIELDS = [
@@ -35,6 +36,7 @@ interface MappingTemplate {
 }
 
 export function SheetImportPage() {
+  useDocumentTitle('Intake: Sheet import');
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('url');
   const [url, setUrl] = useState('');

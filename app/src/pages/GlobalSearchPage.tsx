@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { RecordSection } from '../components/ui/RecordPage';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const LIMIT = 25;
 
@@ -32,6 +33,7 @@ function joined(...parts: (string | null | undefined)[]): string {
 }
 
 export function GlobalSearchPage() {
+  useDocumentTitle('Search everything');
   const [params, setParams] = useSearchParams();
   const query = params.get('q') ?? '';
   const [draft, setDraft] = useState(query);

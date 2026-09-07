@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Table } from '../components/ui/Table';
 import { PlaceholderAction, usePlaceholder } from '../shell/Placeholder';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type ModuleKey = 'employees' | 'onboard' | 'users' | 'courses';
 
@@ -102,6 +103,7 @@ function CoursesTable() {
 export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
   const { show } = usePlaceholder();
   const config = MODULES[module];
+  useDocumentTitle(config.title);
 
   return (
     <div className="list-page">

@@ -3,6 +3,7 @@ import './intake.css';
 import { QueueListPage } from './QueueListPage';
 import { LinkedInIntakePage } from './LinkedInIntakePage';
 import { SheetImportPage } from './SheetImportPage';
+import { StubPanel } from '../../components/ui/StubPanel';
 
 export function IntakeRoutes() {
   return (
@@ -12,11 +13,7 @@ export function IntakeRoutes() {
       <Route path="sheet" element={<SheetImportPage />} />
       <Route
         path="*"
-        element={
-          <div className="stub-panel">
-            <h1>Not found in Intake</h1>
-          </div>
-        }
+        element={<StubPanel title="Not found in Intake" />}
       />
     </Routes>
   );

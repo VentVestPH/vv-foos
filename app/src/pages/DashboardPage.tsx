@@ -13,10 +13,12 @@ import {
 import { DashboardWidgetsPanel } from '../modules/dashboards';
 import { MyReminders } from './MyReminders';
 import { MyTasks } from './MyTasks';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function DashboardPage() {
   const [params] = useSearchParams();
   const tab = params.get('tab');
+  useDocumentTitle(tab === 'pipeline' ? 'Pipeline' : tab === 'reports' ? 'Run Report' : 'My View');
 
   if (tab === 'pipeline') return <PipelineTab />;
   if (tab === 'reports') return <ReportsTab />;

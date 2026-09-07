@@ -5,6 +5,7 @@ import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './auth/LoginPage';
 import { AppShell } from './shell/AppShell';
 import { PlaceholderProvider } from './shell/Placeholder';
+import { StubPanel } from './components/ui/StubPanel';
 const DashboardPage = lazy(() =>
   import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
@@ -128,11 +129,7 @@ export default function App() {
               />
               <Route
                 path="*"
-                element={
-                  <div className="stub-panel">
-                    <h1>Page not found</h1>
-                  </div>
-                }
+                element={<StubPanel title="Page not found" />}
               />
             </Route>
           </Routes>

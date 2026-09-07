@@ -4,8 +4,10 @@ import { supabase } from '../lib/supabase';
 import { useSession } from './SessionProvider';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export function LoginPage() {
+  useDocumentTitle('Sign in');
   const { session, loading } = useSession();
   const location = useLocation();
   const from =
