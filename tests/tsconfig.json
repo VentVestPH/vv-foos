@@ -10,6 +10,7 @@
       "node"
     ],
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "exactOptionalPropertyTypes": true
   },
   "include": [

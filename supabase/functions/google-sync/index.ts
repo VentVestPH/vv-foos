@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decodeMimeHeader } from "../_shared/mime-header.ts";
 
 const ALLOW_ORIGIN = Deno.env.get("APP_PRIMARY_ORIGIN") ?? "*";
 
@@ -116,7 +117,7 @@ async function syncGmail(sb: ReturnType<typeof client>, staffId: string, tokens:
 
       await sb.from("activities").insert({
         kind: "email",
-        subject: headers.Subject ?? null,
+        subject: decodeMimeHeader(headers.Subject),
         occurred_at: headers.Date ? new Date(headers.Date).toISOString() : new Date().toISOString(),
         person_id: person.id,
         gmail_message_id: m.id,
