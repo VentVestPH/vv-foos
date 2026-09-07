@@ -135,7 +135,7 @@ test('selection states: partial, full, and the bulk bar they reveal', async ({ p
     );
     if (selectedAfter > picked) {
       note(
-        `${SCREEN} ${viewport.name}: clicking the header checkbox while ${picked} rows were selected widened the selection to ${selectedAfter} rows rather than clearing it`,
+        `${SCREEN} ${viewport.name}: clicking the header checkbox while ${picked} rows were selected moved to ${selectedAfter} rows selected, which is the ARIA APG mixed-state behaviour and is correct provided the header renders indeterminate first`,
       );
     }
 

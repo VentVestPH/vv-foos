@@ -112,7 +112,14 @@ export function Table<T>({
     setInternalDir(nextDir);
   };
 
-  const allSelected = rows.length > 0 && rows.every((r) => sel.has(rowKey(r)));
+  const selectedOnPage = rows.filter((r) => sel.has(rowKey(r))).length;
+  const allSelected = rows.length > 0 && selectedOnPage === rows.length;
+  const someSelected = selectedOnPage > 0 && selectedOnPage < rows.length;
+  const selectAllRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current !== null) selectAllRef.current.indeterminate = someSelected;
+  }, [someSelected]);
 
   const toggleAll = () => {
     setSelection(allSelected ? new Set() : new Set(rows.map(rowKey)));
@@ -201,10 +208,15 @@ export function Table<T>({
             {selectable && (
               <th className="checkbox-col">
                 <input
+                  ref={selectAllRef}
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  aria-label="Select all rows"
+                  aria-label={
+                    someSelected
+                      ? `Select all rows, ${selectedOnPage} of ${rows.length} selected`
+                      : 'Select all rows'
+                  }
                 />
               </th>
             )}
