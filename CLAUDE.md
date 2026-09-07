@@ -210,7 +210,8 @@ The only remote reading taken is the one from 2026-09-01, when `supabase migrati
 | File | Variables |
 |---|---|
 | `.env` (root) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. **Absent in this checkout as of 2026-09-07**, and because it is gitignored the absence is silent: `source .env` succeeds and sets nothing. Use `app/.env`'s `VITE_` pair or `tests/.env`'s `FOOS_` pair, or pass the URL explicitly |
-| `app/.env` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (client throws at boot if either is missing) |
+| `app/.env` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (client throws at boot if either is missing). **This one points at the LIVE project**, and it is what a production build bakes in |
+| `app/.env.development` | the same two names pointing at `http://127.0.0.1:55321`, committed and safe to commit. **Vite loads it at higher priority than `.env` in dev mode**, which is the only reason `npm run dev` talks to the local stack rather than to production. There is no `app/.env.production`, so `npm run build` falls back to `.env` and bakes the live ref: `grep -o 'https://[a-z0-9]*\.supabase\.co' app/dist-redesign-2/assets/*.js` confirms it. That is X7's whole point, and it means the built bundle in this tree must not be deployed as-is |
 | `tests/.env` | `FOOS_SUPABASE_URL`, `FOOS_SUPABASE_ANON_KEY`, `FOOS_QA_TEST_PASSWORD`, optional `FOOS_BASE_URL` |
 
 ## Things migrations cannot do

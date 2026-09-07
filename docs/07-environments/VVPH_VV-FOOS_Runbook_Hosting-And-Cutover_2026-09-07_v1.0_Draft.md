@@ -133,6 +133,18 @@ The comment above it in the file is the part that matters: `A list of *exact* UR
 
 **X7 is the same origin from the other side.** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` go into the host's environment, and `lib/supabase.ts` throws at boot if either is absent, so a missing variable is a blank page rather than a degraded one. Both are baked into the bundle at build time, which is why changing them needs a rebuild and not just a restart.
 
+**The bundle in this tree currently points at the live project, and that is worth knowing before anyone deploys it.** Vite loads `app/.env.development` at higher priority than `app/.env` in dev mode, which is the only reason `npm run dev` talks to `http://127.0.0.1:55321`; there is **no `app/.env.production`**, so `npm run build` falls back to `app/.env` and bakes `https://mebfbbvrqdctamnzvbbs.supabase.co`. Verified both ways rather than assumed:
+
+```
+curl -s http://localhost:5175/src/lib/supabase.ts | grep -oE 'https?://[a-z0-9.:]+'
+  http://127.0.0.1:55321
+
+grep -ohoE 'https://[a-z0-9]+\.supabase\.co' app/dist-redesign-2/assets/*.js | sort -u
+  https://mebfbbvrqdctamnzvbbs.supabase.co
+```
+
+So `app/dist-redesign-2` is a **local build artefact, not a deployable one**. On the host, X7 is satisfied by setting the two variables in the host's own environment, which overrides any `.env` in the repository; the alternative, an `app/.env.production` committed alongside the others, would put a project ref in git and is not recommended.
+
 **The CSP was checked against what the app actually loads, rather than assumed to fit.** Every absolute URL in `app/src` was listed and classified:
 
 | What the app references | CSP directive that governs it | Covered |
