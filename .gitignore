@@ -47,3 +47,7 @@ discovery/
 
 # Component audit corpus: screenshots render real candidate names. Never committed.
 audit/corpus/
+
+# armed goal + reminder throttle stamp, per-session state
+.claude/goal-armed.md
+.claude/.goal-reminder-stamp

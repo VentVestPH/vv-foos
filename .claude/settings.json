@@ -11,6 +11,17 @@
             "statusMessage": "Checking comments..."
           }
         ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/goal-reminder.sh\" 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "Goal reminder..."
+          }
+        ]
       }
     ]
   }
