@@ -2,7 +2,7 @@
 
 **Project:** VV-FOOS · **Date:** 2026-09-04 · v1.0 Draft
 
-Five goals, run one at a time. Goals 1 to 4 produce findings and change no product code. Goal 5 executes them.
+**Six** goals, run one at a time. Goals 1 to 4 produce findings and change no product code. Goal 5 executes the component work. Goal 6 is hosting, which is separate because it is infrastructure rather than code and is gated on Klent creating the project.
 
 Each prompt is self-sufficient, so the standing rules are repeated in each rather than referenced.
 
@@ -16,6 +16,42 @@ rm -f .claude/.goal-reminder-stamp
 ```
 
 It then re-injects the goal and the standing rules **every 8 minutes of tool activity**, which prevents drift during a long run without firing while idle. Override the interval with `FOOS_REMINDER_SECONDS`. Disarm with `rm .claude/goal-armed.md`.
+
+## Coverage map: every existing W and X item, and which goal executes it
+
+Written because the first draft of Goal 5 said "together with workstreams W and X" and only named W1, W2, the rank 0 cluster and row 5. That is too loose for work we run one item at a time, and it hid three duplicates. **Nothing below is orphaned and nothing is done twice.**
+
+| Item | Executed by | Note |
+| :---- | :---- | :---- |
+| rank 0 cluster, V6 row 5 | **Goal 5**, first | Level A failures and the only `Blocks` finding |
+| W1 control geometry | **Goal 5** | Touches every other component, so it precedes them |
+| W2 select → combobox | **Goal 5** | Spec already written, `Spec_V7-Select-Combobox` |
+| W3 date input | **Goal 5** | |
+| W4 checkbox, radio, and the keyboard contracts | **Goal 5** | Carries row 5, rows 25, 27, 29, 31 |
+| W5 file input | **Goal 5** | |
+| W6 disclosure, both halves | **Goal 5** | The 6 `<details>`, plus wrapping `RecordSection`'s header in a heading |
+| W7 focus and scrollbars | **Goal 5** | Scrollbars are **recommended not to change** |
+| W8a wiring what exists | **Goal 5** | The five props and calls that already exist and are unused |
+| W8b the two that need designing | **Goal 4** designs, **Goal 5** builds | A loading affordance; the error-summary pattern |
+| W8c small and deferred | **Goal 5** | `TICK_MS`; number spinners **recommended not to build** |
+| W9 remaining task list | **Goal 5** | `verify-zoho-sample.mjs`, the offset re-measure, two decisions of Klent's |
+| W10 density and wasted space | **Goal 3** decides, **Goal 5** implements | Goal 3 supplies the per-field verdicts |
+| W11 prove it as the user | **Goal 5**, as its bar | Re-walk the six task costs after each change |
+| W12 prove it visually | **Goal 5**, as its bar | Re-capture and diff against the corpus |
+| W13 textarea resize | **Goal 5** | Measured: **one** control, not thirteen |
+| W14 pointer cursor | **Goal 5**, with row 16 | Corrected: **not** already satisfied, see below |
+| W15 focus ring contrast | **Goal 4** designs, **Goal 5** builds | Three failing surfaces, 1,079 captures |
+| W16 row-level accessible names | **Goal 5**, with W4 | |
+| W17 one unlabelled control, one weak name | **Goal 5** | |
+| W18 one dialog replacing five | **Goal 5**, with W20 | Same work as W20's dialog |
+| W19 codebase cleanup | **Goal 5** | The duplications the audit found |
+| W20 make shared components shared | **Goal 5** | W19's cause; includes W18's dialog |
+| W21 icon scale | **Goal 4** proposes, **Goal 5** wires | |
+| W22 search-box focus indicator | **Goal 4** designs, **Goal 5** builds | With W15, same ring |
+| **W23 sweep as sourcer and bd** | **Goal 1 owns it outright** | **Duplicate resolved.** It is an audit task, so it leaves workstream W and is Goal 1's method rather than a thing Goal 5 does |
+| X1 to X12 hosting and cutover | **Goal 6** | Lifted out of Goal 5 |
+
+**The three duplicates, resolved explicitly.** W23 belongs to Goal 1 and is removed from Goal 5's scope. W21 and W22 are split at the seam that matters: **Goal 4 decides what the icon scale and the focus indicator should be, Goal 5 changes the code.** An audit goal never edits a component.
 
 ## What already exists, so no goal rediscovers it
 
@@ -104,9 +140,22 @@ Search the web for how the design systems already cited in `Audit_V11-Design-Ref
 
 ## Goal 5 — Execute the findings
 
-Implement the verdicts from Goals 1 to 4, together with workstreams W and X, which are already specified.
+Implement the verdicts from Goals 1 to 4 and workstream W's 22 remaining items. **Hosting is Goal 6, not this goal.**
 
-**Order, and it matters.** First the **rank 0 Level A cluster** and **V6 row 5**, the audit's only `Blocks` finding, because they are conformance failures that each take a few lines: the mouse-only sort header, the three `onClick`-on-a-`div` interactions, the twelve routes with no `document.title`, the radio group with no `name`, and the bulk-select header that renders empty at 3 of 20 selected and then selects all 20. Then **W1**, the control height scale, because it touches every other component. Then Goal 2's build list, Goal 3's removals, Goal 4's motion, and W2's combobox.
+**Order, and it matters.** Every item is named, because "workstreams W and X" is not an instruction.
+
+1. **The rank 0 Level A cluster and V6 row 5.** Conformance failures that each take a few lines: the mouse-only sort header, the three `onClick`-on-a-`div` interactions, the twelve routes with no `document.title`, the radio group with no `name`, and the bulk-select header that renders empty at 3 of 20 selected and then selects all 20. **Row 5 ships first and alone**, because it is the only `Blocks` finding and a handful of lines.
+2. **W8a, wiring what already exists.** Five items with no design decision, each a prop or a call the codebase already supports: the `error` prop at some of 149 call sites, `role="alert"` on the 45 unannounced messages, `busy` gating `Table`'s empty row plus the eleven sites that lack it, `useListLink` on the nine bare navigation paths, `useDocumentTitle` on the twelve routes that call nothing. **Cheapest visible progress in the workstream.**
+3. **W1, the control height scale.** Precedes every component below it, because building the select, the checkbox or the date field first means building them to a height that then changes.
+4. **W19 and W20, cleanup and reuse, including W18's dialog.** One dialog in `components/ui/` with focus entry, a Tab cycle, Escape and focus return, retiring the three module copies at 43, 40 and 39 lines; then lift the patterns that exist in one module and are missing from another. W20 is W19's cause, so they land together.
+5. **W4 and W16, the glyphs and the keyboard contracts.** Checkbox and radio glyphs, `indeterminate`, `StarGrade`'s arrow keys, `ItemDrawer`'s missing `name`, the group labels, and the row-level accessible names.
+6. **W2, the select and combobox.** The case Klent named, spec already written.
+7. **Goal 3's verdicts, which is W10.** Removals, sections closed by default, and the density targets.
+8. **Goal 4's designs, which are W15, W21, W22 and W8b.** The focus ring on three failing surfaces, the icon scale wired to the four unused tokens, the quieter text-input indicator, the loading affordance and the error summary.
+9. **W3, W5, W6, W7, W8c, W13, W14, W17.** The date input, the file input, disclosure and the heading wrapper, focus and scrollbars, `TICK_MS`, the one horizontally-resizable textarea, the cursor on the controls that respond, and the unlabelled select.
+10. **W9, the remaining task list**, and Goal 2's build list ordered by value over effort.
+
+**Not in this goal:** W23, which is Goal 1's, and X1 to X12, which are Goal 6's.
 
 **The bar for each change.**
 
@@ -117,3 +166,30 @@ Implement the verdicts from Goals 1 to 4, together with workstreams W and X, whi
 - Commit each item separately, saying what changed **and what you got wrong**. Push to `develop`.
 
 **Standing rules.** Verify in multiple passes and report what each found, including failures. **When you hit an error, fix it: think, read the code, search the web. Never skip an error, never work around one, and never take a simpler path because it happens to pass.** No comments in `.ts`, `.tsx`, `.js`, `.mjs`, `.css`; rationale goes in the commit message or `docs/`. Everything is the local stack at `127.0.0.1:55321`; **never write to production**, and the CI workflow stays disabled. If a measurement contradicts a finding, an earlier claim, or the plan, **the measurement wins and you correct the record**. Keep counts honest, never round up, and correct downward without being asked. Do not stop until the list is done.
+
+---
+
+## Goal 6 — Hosting and cutover
+
+Get it running on a public URL. Separate from Goal 5 because it is infrastructure rather than component code, most of it is Dashboard settings no migration can make, and two of its twelve items are Klent's decisions rather than mine. These are X1 to X12 in the plan, detailed in section 7.28.
+
+**What is already settled, so this does not relitigate it.** The artefact is a **static SPA**: `app/` builds to **41 files, 1.0 MB, largest 212 KB**, in 905ms, with no server-side dependency and only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as configuration, both baked into the bundle. The anon key therefore ships publicly, which is by design because RLS is deny-by-default and `validate.sql` proves it over 35 checks.
+
+**Fly is ruled out on its own documentation**: static files must be packaged as a container image and run on machines, so it means maintaining nginx to serve 41 files. **Vercel is already configured** — `vercel.json` is committed with `outputDirectory: app/dist-redesign-2`, the SPA rewrite `/((?!assets/).*)` without which every deep link 404s, immutable asset caching, and a full header set whose CSP already allows `https://*.supabase.co`, `wss://*.supabase.co` and `accounts.google.com`. **X12 is the only open host question and it is licensing, not capability**: Vercel Hobby is "non-commercial, personal use only" per Vercel's own docs, so this needs Pro at $20 per seat per month, against Cloudflare Pages serving static assets "free and unlimited". If Cloudflare, port the rewrite and headers to `_redirects` and `_headers`, and read their commercial-use terms first, which I have not done.
+
+**The frontend is the easy part. Do the Supabase work in this order.**
+
+1. **X1**, Klent creates the develop project and gives you the ref. This also sidesteps a real blocker rather than solving it: the live project's ledger is broken, ten migrations applied through the MCP connector under generated timestamps against six hand-written repo files, which is why `supabase db push` refuses with `LegacyDbPushMissingLocalError`. A fresh project has nothing to reconcile.
+2. **X2**, apply all **54** migrations. They apply cleanly from scratch in order, which `npm run db:reset` proves on every local run.
+3. **X3**, the settings no migration can make: enable `pg_cron`, add `dash` to Data API → Exposed schemas, restrict Google OAuth to the ventvest.com hosted domain with email/password fallback. **Skip the middle one and every dashboard query returns `PGRST106`**, which is defect QA-001.
+4. **X4**, add the production and preview origins to Supabase Auth redirect URLs and to the Google OAuth authorised origins, or sign-in breaks on the hosted domain.
+5. **X5**, deploy the **11** Edge Functions with their `verify_jwt` settings and secrets, per `supabase/functions/README.md` and `README-agent6.md`. They deploy to Supabase, not the web host, so a frontend-only deploy leaves careers, intake and the Google integration dead.
+6. **X6**, set `CAREERS_PUBLIC_ORIGIN`, since `careers-page` hardcodes `https` because `req.url`'s scheme cannot be trusted behind Supabase's proxy.
+7. **X7**, set the two `VITE_` variables in the host. The client throws at boot if either is missing.
+8. **X8**, **Klent's decision**: what data the hosted instance carries. The **72,917 imported candidate records are real people**. Hosting seed data only is a legitimate answer. Do not import real data on your own judgement.
+9. **X9**, if real data goes up, purge the demo rows first: the `is_test` rows and the three demo staff, who have no `is_test` column and are deleted by hand. Purge order is in `README.md`.
+10. **X10**, verify after deploying rather than before, and make each check prove a different item above: Google sign-in; one dashboard query, which proves `dash` is exposed; a deep link such as `/recruit/candidates/<id>`, which proves the rewrite; a live update, which proves `wss://` passes the CSP; and the public careers page.
+11. **X11**, **ask before enabling anything that builds on push.** The GitHub Actions workflow is disabled at Klent's instruction and **stays disabled**; a host's git integration is a separate mechanism and needs its own yes.
+
+**Standing rules.** Verify each step by exercising it, not by reading a settings page. **When you hit an error, fix it: think about the cause, read the code, search the web, and never skip it or take a simpler path because a shortcut appears to pass.** **Never write to production**, and note that in this goal the new develop project is the intended target while `mebfbbvrqdctamnzvbbs` is not, so confirm the ref before every `--linked` command. Real candidate PII must never reach a document, a commit message or a web search. Commit each item separately saying what changed **and what you got wrong**. Stop and ask on X8 and X11 rather than deciding them.
+
