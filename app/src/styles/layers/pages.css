@@ -113,10 +113,11 @@
   font-size: var(--fs-section);
   font-weight: 700;
   color: var(--text);
-  padding: 10px var(--sp-2);
+  padding: 8px var(--sp-2);
   cursor: pointer;
   text-align: left;
-  min-height: 40px;
+  line-height: 1;
+  min-height: var(--control-h);
 }
 
 .record-section-chevron {

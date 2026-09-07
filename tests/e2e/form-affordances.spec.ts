@@ -203,3 +203,37 @@ test('the requisition form answers a failed submit with one summary, not two cop
   await summary.getByRole('link', { name: 'Title is required.' }).click();
   await expect(page.locator('#req-title')).toBeFocused();
 });
+
+test('W25: no button or single-line field renders taller than 32px', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+
+  const routes = ['/recruit/requisitions/new', '/recruit/candidates', '/sales/deals'];
+  const tall: string[] = [];
+  let measured = 0;
+  const seen = new Map<number, number>();
+
+  for (const route of routes) {
+    await gotoAsSignedIn(page, route);
+    await expect(page.locator('.btn').first()).toBeVisible({ timeout: 25000 });
+    const found = await page.evaluate(() => {
+      const sel =
+        'button.btn, .field input:not([type="checkbox"]):not([type="radio"]), .input, .field-select, .date-field-btn, .record-section-header';
+      return Array.from(document.querySelectorAll(sel))
+        .map((el) => {
+          const r = (el as HTMLElement).getBoundingClientRect();
+          return { h: Math.round(r.height), cls: (el as HTMLElement).className.toString().slice(0, 50) };
+        })
+        .filter((x) => x.h > 0);
+    });
+    for (const item of found) {
+      measured += 1;
+      seen.set(item.h, (seen.get(item.h) ?? 0) + 1);
+      if (item.h > 32) tall.push(`${route} ${item.h}px ${item.cls}`);
+    }
+  }
+
+  const spread = [...seen.entries()].sort((a, b) => a[0] - b[0]).map(([h, n]) => `${h}x${n}`);
+  console.log(`PROBE controlsMeasured=${measured} heights=${spread.join(',')}`);
+  expect(measured).toBeGreaterThan(0);
+  expect(tall, 'every button and single-line field is capped at 32px').toEqual([]);
+});

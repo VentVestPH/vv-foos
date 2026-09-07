@@ -2,9 +2,9 @@ import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../e2e/helpers';
 import { ROUTES, resolveIds, resolvePath } from './routes';
 
-const SCALE = [24, 32, 40, 48];
+const SCALE = [24, 32];
 
-test('buttons and single-line fields sit on the published height scale', async ({ page }) => {
+test('buttons and single-line fields sit at or under the 32px control cap', async ({ page }) => {
   test.setTimeout(0);
   await page.setViewportSize({ width: 1440, height: 900 });
   const ids = await resolveIds();
@@ -21,7 +21,8 @@ test('buttons and single-line fields sit on the published height scale', async (
     await page.waitForTimeout(450);
     const found = await page.evaluate(() => {
       const out: { h: number; name: string; cls: string }[] = [];
-      const sel = 'button.btn, .field input:not([type="checkbox"]):not([type="radio"]), .field select, .input';
+      const sel =
+        'button.btn, .field input:not([type="checkbox"]):not([type="radio"]), .input, .field-select, .field-select-option, .date-field-btn, .record-section-header';
       for (const el of Array.from(document.querySelectorAll(sel))) {
         const e = el as HTMLElement;
         const r = e.getBoundingClientRect();
