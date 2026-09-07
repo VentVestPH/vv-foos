@@ -74,7 +74,7 @@ Reading a PNG through Drive returns **OCR text, not pixels**. That is well suite
 | `Print Resume` | `modules/recruit/candidates/CandidateListPage.tsx:586` | **Build** | 08 and 22 | 2 to 4 h, a print stylesheet over the resume view |
 | `Submit` | `modules/recruit/candidates/CandidateListPage.tsx:588` | **Build** | 08 and 22 | 2 to 3 d. Submits selected candidates to a requisition, writing `applications`. `Add candidate` on the pipeline already does this from the other direction |
 | `More` | `modules/recruit/candidates/CandidateListPage.tsx:590` | **Defer** | 08, 11, 14, 18, 22 | blocked: it is a menu of the other actions, so it follows whatever they become |
-| `Configure columns` | `modules/recruit/candidates/CandidateListPage.tsx:670` | **Build** | gear, OCR cannot see it, but `ats_saved_views(entity, name, filters, columns, sort, is_shared)` is exactly this feature’s store and holds 0 rows | 1 to 2 d. The table was built and never wired |
+| `Configure columns` | `modules/recruit/candidates/CandidateListPage.tsx:670` | **Build** | gear, OCR cannot see it. **The feature is already fully built on the requisition list** (`RequisitionListPage.tsx`: `COLUMN_DEFS` at 94, `visibleCols` at 141, checkboxes at 523, reset at 547, table filtered at 398, persisted at 412, driving the CSV export at 416), and `ats_saved_views(entity, name, filters, columns, sort, is_shared)` is its store | **4 to 6 h: port, do not build.** Corrected downward in Goal 3 from my original 1 to 2 d estimate |
 | `View Resume` | `modules/recruit/candidates/CandidateRecordPage.tsx:256` | **Build** | 08 and 22 | 4 to 6 h. `attachments` and `ResumePreview` both exist; this is wiring |
 | `Print Resume` | `modules/recruit/candidates/CandidateRecordPage.tsx:263` | **Build** | 08 and 22 | 2 to 4 h, a print stylesheet over the resume view |
 | `Submit` | `modules/recruit/candidates/CandidateRecordPage.tsx:265` | **Build** | 08 and 22 | 2 to 3 d. Submits selected candidates to a requisition, writing `applications`. `Add candidate` on the pipeline already does this from the other direction |
@@ -114,7 +114,7 @@ Reading a PNG through Drive returns **OCR text, not pixels**. That is well suite
 | `Delete` | `modules/sales/pages/DealsListPage.tsx:422` | **Build** | **No Taleo evidence is possible**: Deals is a FOOS addition. Justified by symmetry with the other lists, not by the replica | 1 d, shares the same dialog |
 | `New Ticket` | `modules/sales/pages/TicketsListPage.tsx:129` | **Build** | **No Taleo evidence is possible**: Tickets is a FOOS addition. `tickets(subject, company_id, person_id, status, priority, sla_due_at, assignee_id)` is fully shaped and holds 0 rows | 1 to 2 d. A finished table and a list screen with no way to create a row |
 | `More` | `modules/intake/QueueListPage.tsx:114` | **Defer** | No Taleo equivalent: Intake is a FOOS addition | blocked: follows the candidate-list More |
-| `Configure columns` | `modules/intake/QueueListPage.tsx:120` | **Build** | gear, OCR cannot see it, but `ats_saved_views(entity, name, filters, columns, sort, is_shared)` is exactly this feature’s store and holds 0 rows | 1 to 2 d. The table was built and never wired |
+| `Configure columns` | `modules/intake/QueueListPage.tsx:120` | **Build** | gear, OCR cannot see it. **The feature is already fully built on the requisition list** (`RequisitionListPage.tsx`: `COLUMN_DEFS` at 94, `visibleCols` at 141, checkboxes at 523, reset at 547, table filtered at 398, persisted at 412, driving the CSV export at 416), and `ats_saved_views(entity, name, filters, columns, sort, is_shared)` is its store | **4 to 6 h: port, do not build.** Corrected downward in Goal 3 from my original 1 to 2 d estimate |
 
 ### Settings and the unbuilt modules
 
@@ -124,7 +124,7 @@ Reading a PNG through Drive returns **OCR text, not pixels**. That is well suite
 | `Career Section` | `modules/settings/SettingsPage.tsx:29` | **Build** | Taleo’s `Administration` menu | 2 to 3 d. `careers-page`, `careers-apply` and `careers_rate_limit` all exist, so this is the settings surface for a feature already built |
 | `User Accounts` | `modules/settings/SettingsPage.tsx:30` | **Build** | 13 is a real Users module | 2 to 3 d over the `staff` table. `/users` is already admin-only |
 | `Go!` | `pages/ModulePlaceholderPage.tsx:124` | **Build** | 08 and 11, twice on each | 2 h, the search submit |
-| `Configure this list` | `pages/ModulePlaceholderPage.tsx:134` | **Build** | gear, OCR cannot see it; `ats_saved_views` is the store | follows Configure columns |
+| `Configure this list` | `pages/ModulePlaceholderPage.tsx:134` | **Build** | gear, OCR cannot see it; the requisition list already implements it and `ats_saved_views` is the store | follows Configure columns |
 | `Send Email` | `pages/ModulePlaceholderPage.tsx:142` | **Defer** | 11 | blocked: no `employees` table exists |
 | `Onboard` | `pages/ModulePlaceholderPage.tsx:143` | **Defer** | 11 | blocked: no onboarding tables exist |
 | `Assign Course` | `pages/ModulePlaceholderPage.tsx:144` | **Defer** | 11 | blocked: no course tables exist |
@@ -149,6 +149,8 @@ Reading a PNG through Drive returns **OCR text, not pixels**. That is well suite
 
 Each is a finished table with no user-facing path to it. That is workstream V's recurring shape, a mechanism built and never wired, showing up a third time.
 
+**Corrected by Goal 3:** `Configure columns` is a stronger case than that. It is not a table awaiting a UI, it is a **finished UI on one list and absent from two others**, so the work is a port of roughly 4 to 6 hours rather than the 1 to 2 days I first estimated. Detail in the Goal 3 deliverable.
+
 **43 Defer, and 24 of them share two blockers.** Thirteen controls on `ModulePlaceholderPage.tsx` and the related `Onboard`, `Assign Course`, `New Course`, `New Packet` and `Print Forms` wait on schema that **does not exist at all**: I queried `information_schema.tables` for any table matching employee, course, onboard, packet or form and got **nothing**. Eight report-category controls and `Configure report categories` wait on a reporting engine. Six calendar icons wait on a calendar grid and an event store. None of those is a decision anyone can take today, and `SettingsPage.tsx` already says so on screen: "Other Administration areas are not part of the FOOS MVP."
 
 **1 Remove: `Announcements`, `shell/UtilityHeader.tsx:63`.** The utility header is visible in all ten screenshots I read and OCRs identically every time as `Web Support | Administration | Help | Logout`. There is no Announcements control, no announcements feature, and no table that could feed one. It is a text label, so OCR would have caught it. That is a reason a reader can check, which is what the brief asks for before removing anything from the replica.
@@ -172,7 +174,7 @@ Ranked by what a user gets per hour spent, not by size.
 | 11 | `Change status to…` | Status, the enum, and migration 10's triggers all exist | 1 to 2 d |
 | 12 | `New Ticket` | Closes a module that has a finished table and no way to add a row | 1 to 2 d |
 | 13 | `Delete` (4 lists) | One confirm dialog shared four ways; RLS policies and `erasure_log` exist | 1 to 2 d total |
-| 14 | `Configure columns`, `Configure this list` | `ats_saved_views` is waiting for it | 1 to 2 d |
+| 14 | `Configure columns`, `Configure this list` | **Already built on the requisition list**, so this is a port, not a build | 4 to 6 h |
 | 15 | `Advanced Search` | Real on every Taleo screen; `/search` already works | 4 to 6 h |
 | 16 | `Send To` | `requisition_approvers` is waiting for it, and it is the approvals story | 2 to 3 d |
 | 17 | `Submit` | Writes `applications`; the pipeline's `Add candidate` already does the inverse | 2 to 3 d |
