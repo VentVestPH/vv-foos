@@ -125,7 +125,6 @@
   padding: 8px var(--cell-pad);
   border: 1px solid var(--control-border);
   border-radius: var(--radius);
-  resize: vertical;
 }
 
 .template-form-actions {

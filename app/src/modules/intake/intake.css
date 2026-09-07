@@ -173,6 +173,5 @@
   border-radius: var(--radius);
   padding: var(--sp-1);
   box-sizing: border-box;
-  resize: vertical;
 }
 }

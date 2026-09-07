@@ -131,7 +131,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--sp-1) var(--cell-pad);
-  resize: vertical;
 }
 
 .rq-form textarea:focus {
@@ -250,7 +249,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--sp-1) var(--cell-pad);
-  resize: vertical;
 }
 
 .panel-item {
