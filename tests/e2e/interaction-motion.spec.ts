@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, recordSection, signIn } from './helpers';
 
 const CANDIDATE = '/recruit/candidates/b0000000-0000-4000-8000-000000000002';
 
@@ -68,7 +68,7 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
   test('R2 the accordion chevron rotates rather than swapping a glyph', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, CANDIDATE);
-    const section = page.locator('.record-section').first();
+    const section = recordSection(page, 'Candidate Information');
     const chevron = section.locator('.record-section-chevron');
     await expect(chevron).toBeVisible({ timeout: 25000 });
 
@@ -89,7 +89,7 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
   test('R3 the accordion interpolates its height in both directions', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, CANDIDATE);
-    const section = page.locator('.record-section').first();
+    const section = recordSection(page, 'Candidate Information');
     const collapse = section.locator('.record-section-collapse');
     await expect(collapse).toBeVisible({ timeout: 25000 });
 
@@ -174,7 +174,7 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
   test('R3 a collapsed section is inert, so nothing inside it can be reached', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, CANDIDATE);
-    const section = page.locator('.record-section').first();
+    const section = recordSection(page, 'Candidate Information');
     const collapse = section.locator('.record-section-collapse');
     await expect(collapse).toBeVisible({ timeout: 25000 });
 

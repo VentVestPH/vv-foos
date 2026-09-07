@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export const PERSONA_EMAILS = {
   admin: 'demo-admin@ventvest.test',
@@ -28,14 +28,16 @@ export async function gotoAsSignedIn(page: Page, path: string): Promise<void> {
 }
 
 export async function waitForAnimations(page: Page, capMs = 3000): Promise<void> {
-  await page.evaluate(async (cap) => {
-    const running = document.getAnimations();
-    if (running.length === 0) return;
-    await Promise.race([
-      Promise.allSettled(running.map((a) => a.finished)),
-      new Promise((resolve) => setTimeout(resolve, cap)),
-    ]);
-  }, capMs);
+  const deadline = Date.now() + capMs;
+  let quiet = 0;
+  for (;;) {
+    const running = await page.evaluate(
+      () => document.getAnimations().filter((a) => a.playState === 'running').length,
+    );
+    quiet = running === 0 ? quiet + 1 : 0;
+    if (quiet >= 3 || Date.now() > deadline) return;
+    await page.waitForTimeout(80);
+  }
 }
 
 export function recordSection(page: Page, title: string) {
@@ -97,6 +99,29 @@ export async function waitForRealtime(page: Page, timeout = 20000): Promise<bool
     .catch(() => false);
   await page.waitForTimeout(500);
   return joined;
+}
+
+export async function chooseOption(
+  page: Page,
+  box: Locator,
+  optionName: string | RegExp,
+): Promise<void> {
+  await expect(box).toBeVisible({ timeout: 25000 });
+  await box.click();
+  const option = page.getByRole('option', { name: optionName });
+  await expect(option).toBeVisible({ timeout: 25000 });
+  await option.click();
+  await expect(page.getByRole('listbox')).toHaveCount(0, { timeout: 25000 });
+}
+
+export async function optionNames(page: Page, box: Locator): Promise<string[]> {
+  await expect(box).toBeVisible({ timeout: 25000 });
+  await box.click();
+  await expect(page.getByRole('listbox')).toHaveCount(1, { timeout: 25000 });
+  const names = await page.getByRole('option').allInnerTexts();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('listbox')).toHaveCount(0, { timeout: 25000 });
+  return names.map((n) => n.trim());
 }
 
 export async function openFilterRail(page: Page): Promise<void> {

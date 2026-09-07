@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, optionNames, signIn } from './helpers';
 
 const tag = `qa-shared-view-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const SHARED = `${tag} shared`;
@@ -27,9 +27,13 @@ test.describe('Q5: a saved view can be shared with the team', () => {
     await dialog.getByRole('button', { name: 'Save' }).click();
     await expect(dialog).toBeHidden({ timeout: 20000 });
 
-    await expect(page.locator('option', { hasText: `${SHARED} (shared)` })).toHaveCount(1, {
-      timeout: 20000,
-    });
+    await expect
+      .poll(
+        async () =>
+          (await optionNames(page, page.getByRole('combobox', { name: 'Saved views' }))).join('|'),
+        { timeout: 20000 },
+      )
+      .toContain(`${SHARED} (shared)`);
 
     const admin = await clientAs('admin');
     const { data } = await admin
@@ -56,10 +60,9 @@ test.describe('Q5: a saved view can be shared with the team', () => {
     await signIn(page, PERSONA_EMAILS.sourcer);
     await gotoAsSignedIn(page, '/recruit/candidates');
 
-    await expect(page.locator('option', { hasText: `${SHARED} (shared)` })).toHaveCount(1, {
-      timeout: 25000,
-    });
-    await expect(page.locator('option', { hasText: PRIVATE })).toHaveCount(0);
+    const offered = await optionNames(page, page.getByRole('combobox', { name: 'Saved views' }));
+    expect(offered.join('|')).toContain(`${SHARED} (shared)`);
+    expect(offered.join('|')).not.toContain(PRIVATE);
     await context.close();
   });
 
@@ -67,11 +70,11 @@ test.describe('Q5: a saved view can be shared with the team', () => {
     await signIn(page, PERSONA_EMAILS.sourcer);
     await gotoAsSignedIn(page, '/recruit/candidates');
 
-    const select = page.getByLabel('Saved views');
-    await expect(select.locator('option', { hasText: `${SHARED} (shared)` })).toHaveCount(1, {
-      timeout: 25000,
-    });
-    await select.selectOption({ label: `${SHARED} (shared)` });
+    const select = page.getByRole('combobox', { name: 'Saved views' });
+    await expect
+      .poll(async () => (await optionNames(page, select)).join('|'), { timeout: 25000 })
+      .toContain(`${SHARED} (shared)`);
+    await chooseOption(page, select, `${SHARED} (shared)`);
 
     const remove = page.getByRole('button', { name: 'Delete view' });
     await expect(remove).toBeDisabled();

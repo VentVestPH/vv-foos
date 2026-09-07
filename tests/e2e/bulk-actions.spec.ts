@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, signIn } from './helpers';
 
 interface Snapshot {
   person_id: string;
@@ -104,7 +104,7 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     await page.getByRole('button', { name: 'Change Main Status to…' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('Change the main status of 2 candidates');
-    await dialog.getByLabel('Main status').selectOption(target!.id);
+    await chooseOption(page, dialog.getByRole('combobox', { name: 'Main status' }), target!.label);
     await dialog.getByRole('button', { name: /^Set to / }).click();
     await expect(dialog).toBeHidden({ timeout: 20000 });
 

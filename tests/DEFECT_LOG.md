@@ -234,3 +234,51 @@ Error: a header plus one record per visible row; got 0 records for 3 rows
 - **The lesson, and it is the third time this session that this exact reasoning error cost a gate run:** when the cause is "another actor can change this state", the fix is to stop sharing the state, not to read it later. Narrowing a race window is not closing it.
 - **Status:** closed.
 - **Closed date:** 2026-09-07
+
+---
+
+### QA-014: `error-reporting` read zero rows for a message the browser should have written
+
+- **Date found:** 2026-09-07, gate pass 1 of 5 while verifying the W2/W3/W10 batch. Pass 2 of the same run passed the same test on the same tree.
+- **Module/agent:** `tests/e2e/error-reporting.spec.ts:24` "an uncaught error is recorded with its route, and a repeat is not"
+- **Severity:** **Medium.** A false failure, and the mechanism is one the suite has already been bitten by once.
+- **Verbatim:** `Error: expect(received).toBe(expected) // Object.is equality  Expected: 1  Received: 0  Call Log: - Timeout 15000ms exceeded while waiting on the predicate`
+- **What was ruled out, and how.** The other two tests in the same file passed in the same pass, seconds apart, in the same worker, so authentication, RLS and the reporter's insert path all work. `clientAs` throws on a failed sign-in, so the poll was reading as a real admin. `client_errors` was empty afterwards, so nothing arrived late. `dashboard-channel-collision` deletes only rows whose `route` is one of `['/', '/?tab=pipeline', '/?tab=reports']`, so it could not match a row recorded on `/recruit/candidates`, and `error-boundary` deletes only `%dynamically imported module%`.
+- **The remaining candidate, and the reason it is not proven:** `errorReporter.ts:47` records `window.location.pathname + window.location.search`, and the test waits for `.table-wrap` rather than for the URL. If the app were on `/` at that moment, the row would carry `/`, which **is** in the collision spec's list, and the collision spec deletes what it matches. That is QA-010's mechanism arriving through a different door. It is a candidate rather than a cause because nothing captured the URL or the browser console at the moment of failure.
+- **Fix, in two parts, neither of which is a retry.** First, the test now asserts `toHaveURL(/\/recruit\/candidates$/)` before dispatching, so if it is ever somewhere else it says so instead of reporting a bare zero, and the poll's failure message now carries whatever the browser console said. Second, the collision spec's routes are made **run-unique**: it navigates to `/?probe=<pid>-<random>` variants and matches only those, so no other spec's row can ever fall inside its window. That is the CLAUDE.md rule, "fixtures must be run-unique", applied to the route rather than to a row.
+- **Realtime starvation ruled out by the container's own log.** `docker logs --since 40m supabase_realtime_VV-FoOS | grep -c MessagePerSecondRateLimitReached` returns **0** across the whole run, so the two-worker budget held and this is not the live-update starvation class that CLAUDE.md warns about.
+- **One hypothesis refuted from the vendor's own documentation rather than dropped.** The obvious explanation was that the insert went out with the anon key because `gotoAsSignedIn` does a full page load and the session had not been read back from local storage yet. That does not hold for supabase-js v2: the v2 rewrite "forces the library to wait for a valid/invalid session before taking any action", and `auth.getSession` reads the token from local storage without a server round trip unless it is expired. So a request issued moments after load carries the restored JWT rather than the anon key. Sources: https://supabase.com/blog/supabase-js-v2 and https://supabase.com/docs/reference/javascript/auth-getsession. That leaves the wrong-route candidate and a plain insert error, which is what the two diagnostics now distinguish.
+- **Machine contention is part of the picture, and it is recorded rather than used as an excuse.** While this run was going, a second Claude Code session was driving a browser in a different repository, `/Users/klentz/Work/Kappa-Omini-typescript`, with its own Supabase stack. It shares no git tree, no database and no dev server with this project, so it cannot corrupt anything here; what it does is compete for CPU, which widens exactly the timing windows that produced this defect and the 204-node contrast artefact. That argues for sturdier waits, which is what was built, and not for a retry.
+- **A second harness defect found while verifying the fix, and it is the same class as the contrast race in item 25 of the Goal 5 log.** `waitForAnimations` polled until nothing was running, which is one reading. Running `accessibility.spec.ts` alongside three other specs still failed once on a route sweep, because an animation can start in the gap between the check and axe's measurement. It now requires **three consecutive still readings** 80ms apart. The four specs then passed together three times over, 11 of 11 each.
+- **Status:** open until a run reproduces it with the diagnostics in place, or ten consecutive gate passes do not.
+
+---
+
+### QA-015: the timeline fixture teardown deletes 120 rows with an unindexed `LIKE` and times out
+
+- **Date found:** 2026-09-07, gate pass 3 of 5 in the same run as QA-014.
+- **Module/agent:** `tests/e2e/timeline-cap.spec.ts:28` `afterAll`
+- **Severity:** **Medium**, and it compounds. The teardown fails, 120 rows leak, `activities` grows, and the next run's `LIKE` scan is slower than the last.
+- **Verbatim:** `Error: could not remove the timeline fixture: canceling statement due to statement timeout`
+- **Cause:** `.delete().like('subject', '${MARKER}%')` on `activities`, which held **213,819** rows when this failed and has no index on `subject`, so the delete is a full scan. Under the load of a 175-test browser run at two workers it exceeds the statement timeout.
+- **Evidence it leaked:** `select count(*) from activities where subject like 'timeline-cap %'` returned **120** immediately after the failing pass.
+- **Fix:** the seed now uses `.insert(rows).select('id')` and asserts it got all 120 ids; the teardown deletes `.in('id', seededIds)`, which is a primary-key lookup and cannot scan. The verification count reads the same ids.
+- **The lesson:** a teardown that identifies its rows by a text pattern is not just slower than one that keeps its ids, it is a different failure class. Keeping the ids costs one `.select('id')`.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
+
+---
+
+### QA-016: the side-tab count badge fails WCAG 1.4.3 at 4.35:1, and four axe sweeps missed it
+
+- **Date found:** 2026-09-07, gate pass 4 of 5 in the same run as QA-014 and QA-015.
+- **Module/agent:** `app/src/styles/layers/panels.css:170` `.side-tab-count`, seen on the deal record
+- **Severity:** **Medium.** A real conformance failure in the product, not in the harness, and it is the only one of the three failures in that run that was.
+- **Verbatim:** `deal record: color-contrast (serious, 1 node(s)) e.g. .active.side-tab[role="tab"] > .side-tab-count`
+- **Cause, computed rather than eyeballed:** the badge is `color: var(--text-secondary)` on `background: var(--border)`, which is `#5f5f5f` on `#d5d5d5` = **4.35:1**. AA needs 4.5:1. It is 0.15 short, which is exactly the kind of miss that survives a visual review.
+- **Why four earlier sweeps missed it.** The badge only renders on the **active** side tab and only when that tab's count is non-zero, so whether axe sees it depends on which tab is active and what data the run happens to load. It is a data-dependent element, and a route sweep that visits a page once at a fixed viewport can pass ten times and fail the eleventh.
+- **Fix:** `color: var(--text)`, which is `#222222` on the same `#d5d5d5` background = **10.84:1**. The badge stays a quiet grey pill; only the numeral gets darker.
+- **Guard, so it cannot come back:** a new pair in `scripts/check-contrast.mjs`, `['side tab count', '--fo-text', '--fo-border', 4.5]`. The script now reports **35 pairs**, up from 34. A static pair catches this where a route sweep could not, because it does not depend on data.
+- **The lesson:** a token pair that only ever meets on a conditionally-rendered element is invisible to a browser sweep. When axe finds one, the fix is the colour **and** a static pair, or the next data shape hides it again.
+- **Status:** closed.
+- **Closed date:** 2026-09-07

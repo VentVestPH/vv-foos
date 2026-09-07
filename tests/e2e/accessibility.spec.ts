@@ -110,6 +110,8 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
   test('the skip link is the first thing a keyboard reaches', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page, '/recruit/candidates');
+    await expect(page.locator('a.skip-link')).toHaveCount(1, { timeout: 25000 });
+    await expect(page.locator('.table-wrap')).toBeVisible({ timeout: 25000 });
 
     await page.keyboard.press('Tab');
     const focused = await page.evaluate(() => ({

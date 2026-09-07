@@ -345,6 +345,165 @@ Eight icons rendered **14 wide by 16 tall**, distorted, while their source said 
 
 **My own error, and it is a language footgun worth recording.** Inserting the guard into `gate.sh` with `perl -0pi -e 's|...\|\| fail=1|...|'` prepended two lines **above the shebang** instead of replacing the matched line. Perl strips the backslash before its own delimiter, so the `\|\|` I escaped reached the regex engine as `||`, an alternation with an empty branch, which matches the empty string at offset 0. The rule: never use `|` as the `s///` delimiter when the pattern contains `||`. Caught immediately by reading `git diff` rather than assuming the edit landed, and fixed with `s{}{}` and `\Q...\E`.
 
+### 16. W8a, `role="alert"`, and the count was 44 rather than 45
+
+Every error message in the product was rendered as a plain `<p>` or `<span>`, so a screen-reader user got no announcement when a save failed or a field was rejected. Measured by class rather than by eye: **16 `rq-error`, 6 `form-error` and 22 `field-error-text`**, which is **44**, not the 45 the brief carried. Five elements already had `role="alert"`, so the product now has 49.
+
+Two of the 22 are `Input.tsx` and `Select.tsx`, which is the leverage: those two cover every message the `error` prop produces, at all 149 call sites, in two lines.
+
+**One mistake, caught by reading the result rather than trusting the script.** My apply script counted 7 `form-error` where I expected 6, because my measuring grep excluded lines that already had a `role=` while the replace did not. `LoginPage.tsx:91` already announced, and the script gave it `role="alert" role="alert"`, a duplicate attribute. Removed. The lesson is that a count and an edit must be derived from the same predicate.
+
+**And the `error` prop was wired properly rather than just rendered.** `Input` and `Select` now set `aria-invalid` and `aria-describedby` pointing at the message they render, so the control itself carries the invalid state instead of a stray paragraph below it. Before this the prop existed and was passed **0 times in 149 call sites**, which the browser probe confirms rather than infers.
+
+### 17. W10, Goal 3's verdicts, and two of them were already done
+
+**Nine accordions now open closed**, five on the candidate record (`Requisition Summary`, `Contact Log`, `Events`, `Resume Preview`, `History Log / Timeline`) and four on the requisition record (`Attachments`, `Accounts / Company`, `Tracking:`, `Approvals:`). `RecordSection` already took `defaultOpen`, so this is nine props.
+
+**Goal 3 was wrong twice and the code is the authority.**
+
+- It said `Configure columns` is "fully built on the requisition list and dead on the candidate list and the intake queue". The candidate list has a **working** picker: `CandidateFilterRail.tsx:107-125` renders a checkbox per column, `visibleCols` drives the table at `CandidateListPage.tsx:481`, the export at `:517` and the saved view at `:505`. Its gear button even says so: "Column visibility is already available in the Advanced Search panel on this page." Only the intake queue lacked one, which is item 18.
+- It listed `Source` under "keep open", but `CandidateRecordPage.tsx:797` already reads `defaultOpen={false}`. Goal 3 wrote that verdict assuming the section was open. It stays closed, which is also what the height argument wants.
+
+**`current_title` and `current_employer` are off by default rather than deleted.** Goal 3's verdict was "remove", written before it knew the list had a column picker. Deleting them from `COLUMN_DEFS` would also remove them from the picker and from the CSV export, so the default column set now excludes them and the picker still offers them. That is the removal Goal 3 wanted for the default view without destroying a capability, and `current_title` is 4.89% filled rather than 0.
+
+**The star column is narrowed, not dropped**, to `width: 92px`, which is Goal 3's own recommendation for a column that renders a field filled on 334 of 72,917 rows next to one filled on 97.21%.
+
+**`Job code` versus `Job Code` is fixed at the cause.** The picker and the table each carried their own header string for all twelve requisition columns, and one of the twelve had drifted. The table now reads every header from a `COLUMN_HEADER` map derived from `COLUMN_DEFS`, so the two cannot disagree again. The canonical text is the table's, so nothing a user sees changes.
+
+**`Next step` and `Rank` no longer render 42 inputs.** They were an `<Input>` per pipeline row for two columns filled in **6 and 1 of 86,133** applications. Both cells are now read-only text, and one toolbar toggle, `Edit next step and rank`, swaps them to inputs for the recruiter who needs them. That is 42 inputs replaced by 1 control, rather than the 21 per-row buttons a row-detail affordance would have added.
+
+**`Salary currency` is a select**, from the shared list, because a free-text field for a closed set of seven values is what Goal 3 found and 0% filled is what it measured. **`grade_comment` went from `rows={3}` to `rows={6}`**, because it averages 122 characters and reaches 552 and was the smallest input on the page.
+
+**And a duplication found while doing it.** `CURRENCIES` existed twice, `modules/sales/lib.ts:78` and `RequisitionFormPage.tsx:63`, with the same seven values **in different orders**: PHP, USD, AUD, NZD, **SGD, EUR, GBP** in sales and PHP, USD, AUD, NZD, **GBP, EUR, SGD** in recruit. So the same dropdown read differently in two modules. One list now lives in `lib/format.ts` beside `formatMoney`, and both modules import it.
+
+### 18. W10 continued: the intake queue gets the column picker the other two lists already had
+
+Six optional columns behind checkboxes in the Advanced Search panel, the channel icon column always on, following the candidate list's shape exactly. The gear button's message changed from claiming filters were the answer to pointing at the picker.
+
+**The shared look was renamed rather than copied.** `.rq-checkbox-list` and `.rq-checkline` were defined in `recruit.css` and used 13 times inside that module. Copying them into `intake.css` would have been a second definition of the same rule; instead they moved to the `controls` layer as `.checkbox-list` and `.checkline`, and the 13 call sites were renamed. A module-specific override, `.merge-match-list .checkline`, stays in `recruit.css` and still wins, because layer order puts every module rule above the shared layers.
+
+### 19. W6 and Goal 4 section 2: one accordion mechanism, and an easing for leaving
+
+**All six `<details className="fo-advanced-search" open>` are now `RecordSection`.** The modern CSS route was rejected in Goal 4 for two reasons that both still hold: `interpolate-size: allow-keywords` is Chromium-only in 2026, and the `::details-content` technique transitions `height`, which `check-motion.mjs` forbids. `RecordSection` transitions `grid-template-rows`, works in every engine, and is already asserted by workstream R. Measured on the deals rail: `open=168px shut=0px` with `transition-property` containing `grid-template-rows`, and **zero `details` and zero `summary` elements left on any of the six routes**.
+
+Four dead CSS rules went with them, including the `content: '\25b8'` and `'\25be'` triangles that were FOOS's own replacement for the browser marker. Worth recording, because Goal 4's premise that the marker was "a browser glyph" was half wrong: the marker was already hidden and replaced with a text triangle. The real gap was that the triangle did not match the chevron `RecordSection` draws two inches away, and that neither the open nor the close was animated.
+
+**`--ease-exit: cubic-bezier(0.2, 0, 1, 0.9)` is added and used on every closing animation.** Goal 4 named three rules; there are **six**: `motion.css:131` the toast, `:143` the filter rail, `:173` the utility menu, and the three it missed at `:223` the four overlays, `:229` the three modals and `:233` the intake drawer. All six now accelerate away rather than decelerating into nothing.
+
+### 20. W5, W8c and W7: the file input, the number spinners, and one deliberate no
+
+**`FileField`** keeps the real `<input type="file">` in the tab order and the accessibility tree, clipped with `clip-path: inset(50%)` rather than `display: none`, with a `<label>` styled as a button as its visible trigger and the chosen file name rendered in our own markup. The focus ring is drawn on the label through `.file-field-input:focus-visible + .file-field-btn`, using the same two-part ring as every other control. Measured: `name="Upload file" type=file display=block clip=inset(50%)`, the input focusable, the trigger reading `Choose a file`, and the name area reading `No file chosen`.
+
+There is **no APG pattern for a file input**; the contract is the Button pattern plus WCAG 4.1.2 and 2.1.1, which the V7 specification says explicitly rather than implying the APG covers it.
+
+**The number spinners are hidden, which is the audit's own recommendation over building a stepper.** `appearance: textfield` plus the two `-webkit-*-spin-button` pseudo-elements, across all 12 sites. Measured `appearance=textfield` on both reachable inputs. A custom stepper is a real component with its own keyboard contract and 12 call sites do not justify it.
+
+**Scrollbars are deliberately left alone.** Restyling them shrinks the target of a control WCAG 2.5.8 exempts *because* it is a user-agent control, so restyling removes the exemption's own rationale. Recording it here so nobody later reads the absence as an oversight.
+
+### 21. W8b, and the validation messages could never appear
+
+Two things had to be designed rather than wired.
+
+**A loading affordance, because no spinner existed anywhere in `app/src`.** `Button` takes `loading`, which disables it, sets `aria-busy="true"` and renders a `Spinner`. Six primary actions pass it so far. Measured on the sheet-import Fetch button under a delayed route: `aria-busy=true`, disabled, `animation=spinner-rotate iterations=infinite duration=0.9s`.
+
+**That duration needed the guard amended, not bypassed.** `check-motion.mjs` caps every duration at 220ms, and a spinner needs about a second, so `--motion-spin: 900ms` failed the gate immediately: `app/src/styles/tokens.css: 900ms exceeds the 220ms budget`. The budget is about how fast a state change settles, not about a continuous indicator, so the guard now knows the difference: a token named in `CONTINUOUS_TOKENS` is exempt from the cap **and** every use of it must be on an `animation` declaration containing `infinite`. Proven by breaking it: removing `infinite` gives `--motion-spin is only for a continuous indicator, but animation is not infinite`, exit 1. Under `prefers-reduced-motion` the existing global block sets `animation-iteration-count: 1`, so the ring renders static rather than spinning, which is the right outcome and was not designed for.
+
+**The error summary, and the finding underneath it.** `ErrorSummary` follows GOV.UK: a `role="alert"` region at the top of the form, focused when it appears, listing one link per problem, each moving focus to its field. Six forms wire it, with field-level messages on the eight validations that name a field.
+
+**And building it proved the existing validation was unreachable.** Clicking Save on `/sales/companies/new` with an empty name produced **no summary and no message**, because the input carries `required` and the browser blocks submission with its own bubble before `onSubmit` runs. So `setError('Company name is required.')` was dead code, and the message a user actually saw was a browser default, which is the class of thing Klent asked to remove. The three sales forms now carry `noValidate`, which is what GOV.UK does for exactly this reason, and the message is ours. Measured after: the summary appears, `role="alert"`, focused, `#company-name` gets `aria-invalid="true"` and `aria-describedby="company-name-error"`, and the summary link moves focus to the field.
+
+**One test error of mine worth recording, because the app was right and my probe was wrong.** The spinner test held `aria-busy="true"` for over 15 seconds and I first suspected the component. The cause was my `page.route` interception: the fulfilled response carried no `access-control-allow-origin` and no content type, so the browser never delivered it and the promise never settled. `setBusy(false)` was unreachable because the `await` never returned. Fulfilling the preflight and the response faithfully made it pass in 4.1 seconds.
+
+### 22. W2, the select replacement, and four defects my own tests found before a user could
+
+**The props stayed the same, but the interface is now explicit.** The old component extended `SelectHTMLAttributes<HTMLSelectElement>` and spread the rest onto a `<select>`. A `<button role="combobox">` cannot take that spread, because `multiple`, `size` and `autoComplete` are not button attributes and TypeScript says so. Rather than cast it away, I measured what the 54 call sites actually pass: **eight attributes, `options`, `onChange`, `value`, `label`, `placeholder`, `disabled`, `aria-label` and `key`**, and nothing else. The interface lists those plus `error`, `required`, `id`, `name` and `className`, so the replacement compiles at every call site with no edits and the type no longer promises attributes the control cannot honour.
+
+**`onChange` keeps its shape.** Every one of the 54 handlers reads `e.target.value` and nothing else, verified by extracting each handler rather than sampling, so the component emits `{ target: { value, name } }` and the handlers, including the six that cast to a union, compile unchanged.
+
+**The contract is the APG select-only combobox, and it is asserted rather than described.** `tests/e2e/select-combobox.spec.ts` is 11 tests: closed-state ArrowDown opens without changing the value; arrowing moves `aria-activedescendant` only and Enter is what commits; Escape closes without committing and returns focus; Tab commits and moves on; Alt+ArrowUp commits and stays; Home, End, PageUp and PageDown; type-ahead as a single character, an accumulated string and a repeated character cycling; the full ARIA state with exactly one `aria-selected` option; an outside click that commits nothing; a click on an option; the popup inside a 390px viewport; and the 195-option company list bounded at 320px with its own scroll.
+
+**Four defects the spec caught, all mine, none of which a static check could see.**
+
+1. **A stationary cursor stole the active option.** `onPointerEnter` fires when a menu opens *under* an unmoved mouse, so arrowing to `Qualified` and pressing Enter committed whatever happened to be under the pointer. Reproduced as `Expected: "Lead" Received: "Negotiation"`. Fixed by highlighting on `pointermove` instead, which also matches what a user means by hover.
+2. **Closing on any query-string change closed the menu on load.** The deals list rewrites its own `?view=` at 390px, and my effect treated that as a route change. Fixed by watching `location.pathname` only, which is what "close on route change" actually means.
+3. **Closing on ancestor scroll closed a long menu instantly.** Scrolling the active option into view scrolls ancestors too, so opening the 195-option company list closed it in the same frame. Fixed by **repositioning** on scroll and resize rather than closing, which is better behaviour than the rule the specification asked for and removes the whole failure class.
+4. **A test-side one worth recording:** `useId()` produces ids like `:r3:`, so `#:r3:-listbox` is not a parseable CSS selector. `Unexpected token "#" while parsing css selector`. The id is valid HTML and valid for `aria-controls`; only the selector was wrong.
+
+**Five existing specs had to change, and that is the expected cost.** `selectOption()` only works on a native `<select>`, so `bulk-actions`, `email-templates`, `shared-views` (four tests), `crm-deals` and `list-persistence` failed with `Element is not a <select> element` or on `locator('option')` finding nothing. Two helpers now cover it for every future test: `chooseOption(page, box, name)` and `optionNames(page, box)`. Eight tests updated, no assertion weakened: each still asserts the same fact through the new control.
+
+**One observation for the remaining list, corrected downward the same day I wrote it.** The requisition and deal Company selects load **every** company through `fetchAllRows`, and I first wrote that this renders on the order of a thousand options. It does not: `select count(*) from companies` is **195**. The thousand came from misreading the 1,053 in plan section 7.26, which counts attachment-flagged records across four Zoho modules. Type-ahead over 195 options is comfortable, so the finding that survives is the unbounded read rather than the popup size, and it is G5-2 at about two hours rather than a day.
+
+### 23. W3, the date field, and the calendar opened in the wrong place
+
+**Fifteen `input[type="date"]` are now a text field plus a calendar dialog, and zero `type="date"` remain.** The field keeps `YYYY-MM-DD` as its value and its placeholder, takes `inputMode="numeric"`, parses on blur and on Enter, and rejects an impossible date such as `2026-02-31` with its own message and `aria-invalid`, so a recruiter who knows the date never has to open a grid.
+
+The dialog is the APG date-picker: `role="dialog"` with `aria-modal="true"`, a `role="grid"` of `gridcell` days, one `aria-selected`, an `aria-live="polite"` month title, and a trigger whose name becomes `Change date, <the date>`. Keys asserted in the browser: ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Home, End, PageUp, PageDown, Shift+PageUp, Shift+PageDown, Enter, Space and Escape, with focus returning to the trigger on Escape and on commit. Roving `tabindex` rather than `aria-activedescendant`, which is the opposite of the combobox and is what the pattern requires.
+
+**The four `datetime-local` inputs are deliberately unchanged**, and this is a decision rather than an omission. A date-and-time picker is a second component with its own contract, and the four sites are reminder and meeting times where the native control's time spinner is genuinely good. `tests/e2e/helpers.ts` still carries `localDateTimeValue()` for them, which exists because filling a `datetime-local` from `toISOString()` puts the value hours out and fires the reminder sweep early on UTC+8.
+
+**Two defects found by measuring rather than reading.**
+
+- **The calendar opened where browsing had stopped.** After Escape from a session of arrowing, reopening put focus on the last cell visited rather than on the selected date, so ArrowRight then Enter committed `2026-03-15` instead of `2026-03-05`. The trigger now resets the cursor to the field's own value on open.
+- **`--fo-muted` would have failed 1.4.3 on out-of-range days.** It is `#999999`, **2.85:1** on white, and `aria-disabled` on a `<span>` gets no axe exemption, unlike a `disabled` form control. Out-of-range days now use `--text-secondary`, which `check-contrast` already tests at 4.5:1, with a line-through carrying the meaning.
+
+**And one error of mine that was not the component's fault.** My first keyboard assertions expected `4 March 2026` and got `Wednesday, March 4, 2026`, because `toLocaleDateString` follows the browser locale. The assertions now read the focused cell's day number and the dialog title, so they hold in any locale.
+
+### 24. W8a's last two parts, and three sales record pages that could not get back to their list
+
+`busy` now gates four more tables, three on the company record and one on the contact record, from the `loaded` flag each page already kept.
+
+**`useListLink` was doing nothing for the sales module, because nothing read what it wrote.** Two pages used it, the candidate and requisition lists, and only their record pages called `useBackToList`. The three sales record pages had no way back at all: `CompanyRecordPage` had no action bar, and the other two had one without a return control. All three now carry `Back To List`, lifted from the candidate record rather than invented, and the list URL is carried forward by every list-to-record path, which after item 26 is **14** call sites.
+
+### 25. A contrast failure on 204 nodes that was not a colour
+
+The batch's first gate pass failed with
+
+```
+requisitions: color-contrast (serious, 204 node(s)) e.g. tr:nth-child(1) > td:nth-child(2)
+```
+
+which reads like a palette mistake and is not one. 204 nodes is every cell of the requisition table, and nothing in the batch changed a table colour: the diff to `controls.css` adds `.checkline`, `.file-field-*`, `.spinner`, `.error-summary`, `.field-select-*` and the date-picker rules, none of which can match a `td`.
+
+**The cause is `motion.css:276`.** `.table tbody.results-in-a` and `.results-in-b` animate `table-results-in`, which is `opacity: 0.55` to `1` over `--motion-quick`. While that runs, every cell renders at partial opacity and axe reports each one as failing 1.4.3. The suite's `waitForAnimations` took **one snapshot** of `document.getAnimations()` and waited only for those, so an animation that started *after* the snapshot, which is exactly what a second query landing does, ran while axe was measuring.
+
+**Why now.** The requisition rail is a `RecordSection` since W6, so its lazy body and its `grid-template-rows` transition shift the timing, and the company lookup resolving later toggles `results-in` a second time. The race existed before; the batch widened it.
+
+**Fixed in the harness, not the product.** `waitForAnimations` now polls until nothing is in `playState === 'running'`, with the same cap. A 140ms fade from 0.55 is not a conformance failure, and weakening the axe assertion to accommodate a measurement artefact would have been the wrong repair. Verified by running `accessibility.spec.ts` **four consecutive times**, 5 passed each time.
+
+**Recorded as a general lesson**, because it will recur: a one-shot `getAnimations()` wait is not a wait. Anything that measures rendered colour has to poll until the page is still.
+
+### 26. `.rq-error` and `.form-error` were the same rule under two names, in two layers
+
+Found while writing the W9 list, and cheap enough to fix in the same batch. The two declarations were byte-identical:
+
+```
+color: var(--danger);
+font-size: var(--fs-meta);
+margin: 0;
+```
+
+`.rq-error` lived in `recruit.css`, inside the `module.recruit` layer, and was used by `modules/settings/EmailTemplatesCard.tsx` and `pages/GlobalSearchPage.tsx`, so a module layer was styling two things outside its own module. It only worked because CSS is global; a settings rule would have won on layer order, and removing the recruit module would have taken the style with it.
+
+**And they did not behave the same.** `motion.css:247` transitions opacity on `.form-error` and `.field-error-text` but never listed `.rq-error`, so **16 of the 22 page-level error messages appeared instantly while 6 faded in**. One name, one rule, one layer, and now one behaviour: `.form-error` in the `controls` layer, both copies deleted, 16 sites renamed, 0 references to `rq-error` left anywhere.
+
+**Six more navigation paths carry the list URL.** The row click already did after item 24, but clicking the candidate's *name* rather than the row still navigated bare, so "Back To List" lost the filters depending on where in the row you clicked. `CandidateListPage`, `RequisitionListPage` twice, `ContactsListPage`, `CompaniesListPage` and the deals Kanban card's open button now all use `useListLink`. `CandidateListPage` no longer needs `useNavigate` at all.
+
+**Fifteen `.rq-*` rules remain** and are recorded as G5-6 rather than swept: three of them (`.rq-dialog`, `.rq-overlay`, `.rq-dialog-x`) name a dialog that `components/ui/Dialog.tsx` now owns for all three modules, so the names outlive their reason, but renaming them touches markup in every module and belongs in its own commit.
+
+### 27. Three failures in one gate run, only one of them in the product
+
+Run E failed passes 1, 3 and 4, each differently. That is the argument for five passes rather than one, and it is worth writing down which was real.
+
+**QA-016, the only product defect, and it is 0.15 short of AA.** `deal record: color-contrast (serious, 1 node(s)) e.g. .active.side-tab[role="tab"] > .side-tab-count`. The count badge is `--text-secondary` on `--border`, which is `#5f5f5f` on `#d5d5d5` = **4.35:1** against a 4.5:1 requirement. Fixed to `--text`, `#222222`, which is **10.84:1** on the same background, so only the numeral darkens.
+
+**Four earlier axe sweeps missed it, and the reason matters.** The badge renders only on the **active** side tab and only when that tab's count is non-zero, so whether axe sees it depends on which tab is active and what data the run loaded. A route sweep can pass ten times and fail the eleventh. So the fix is the colour **and** a static pair, `['side tab count', '--fo-text', '--fo-border', 4.5]`, because a static pair does not depend on data. `check-contrast` now reports **35 pairs**, up from 34.
+
+**QA-015, a teardown that could not finish.** `could not remove the timeline fixture: canceling statement due to statement timeout`, from `.delete().like('subject', '<marker>%')` on `activities`, which held **213,819** rows with no index on `subject`. It leaked **120** rows, measured directly, and every leak makes the next scan slower. The seed now keeps its ids through `.insert(rows).select('id')` and the teardown deletes `.in('id', seededIds)`, a primary-key lookup that cannot scan. A teardown that finds its rows by text pattern is not a slower version of one that keeps its ids; it is a different failure class.
+
+**QA-014, still open, and recorded as open.** `error-reporting.spec.ts` read 0 rows for a message the browser should have written, then passed on the next pass on the same tree. What was ruled out: the other two tests in the file passed seconds apart in the same worker, so auth, RLS and the insert path work; `clientAs` throws on a failed sign-in, so the poll was reading as a real admin; and neither of the two specs that delete `client_errors` could match a row recorded on `/recruit/candidates`. The remaining candidate is that the app was not on that route when the error fired, because the test waits for `.table-wrap` rather than for the URL, and `/` **is** in the collision spec's delete list. It is a candidate rather than a cause, because nothing captured the URL or the console at the moment of failure. Two changes, neither a retry: the test now asserts its URL before dispatching and reports what the console said, and the collision spec's routes are made run-unique with a `?probe=<pid>-<random>` so no other spec's row can fall in its window.
+
+**And one more instance of the same reasoning error I had already made once this run.** Item 25 fixed `waitForAnimations` to poll until nothing was running. That is still one reading, and running the accessibility spec beside three others failed a route sweep again. It now requires **three consecutive still readings 80ms apart**. Narrowing a race is not closing it, which is the third time that sentence has had to be written in this engagement.
+
 ## What went wrong doing it
 
 **I leaked a test fixture by killing the suite, for the second time this session.** Gate pass 1 reported `FAIL validate.sql` with `ERROR: FAIL 9: people count`, because `people where is_test` was **11** against an expected **10**.
@@ -369,6 +528,14 @@ Recorded in the standing order as a rule, together with a second one it exposed:
 
 **A false alarm I created while chasing it.** Re-running `validate.sql` myself through `docker exec psql -U supabase_admin` produced `ERROR: FAIL 20: client_errors has no INSERT policy scoped to auth.uid()`, which looked like a second defect. It is not: `gate.sh:75` runs the script as `psql "$DATABASE_URL"`, and run that way it exits 0 with **35 PASS and no FAIL**. Comparing two runs made under different roles invented a defect that does not exist.
 
+### 28. One message for two faults, found by reading the component after shipping it
+
+`DateField` reported `Use the format YYYY-MM-DD` for **both** an impossible date and a well-formed date outside the field's `min` and `max`. On `/?tab=reports` the range fields carry real bounds, so typing `2099-01-01` into the start field told the user their format was wrong when their format was right. That is worse than silence, because it sends them to fix the thing that is already correct.
+
+The invalid state is now `'format' | 'range' | null`, and the range message names its bounds: `Pick a date between <min> and <max>.`, with the one-sided forms when only one bound exists. The spec asserts each fault produces its own message, so a single message covering both fails.
+
+**Why it is a separate commit.** Gate F verified the batch before this line existed. A commit whose message claims five clean passes has to mean five passes over the tree that commit contains, so this one gets its own run rather than borrowing F's.
+
 ## Gate results
 
 Reported as they happened rather than as a summary.
@@ -379,14 +546,21 @@ Reported as they happened rather than as a summary.
 | | 2, 3, 4, 5 | **all clean, 20 of 20 each**, `browser 153 passed`, `validate.sql 35 check(s) pass` |
 | **B**, items 3, 4 and 5 | 1 | clean, 20 of 20 |
 | | 2 | **FAIL `attachments`**, `16 client_errors row(s) present`, all reading `StubPanel is not defined`. Caused by editing `app/src` mid-run |
-| | 3 | **clean, 20 of 20** after deleting the 16 rows, which is also the proof the errors were transient rather than a defect in the change |
-| | 4, 5 | running at the time of writing |
+| | 3, 4, 5 | **clean, 20 of 20 each** after deleting the 16 rows, which is also the proof the errors were transient rather than a defect in the change |
+| **C**, the full batch including items 6 and 7 | 1 to 5 | **FAIL `browser`** in all five, the same test each time: `accessibility.spec.ts:63`, `deals: nested-interactive (serious, 2 node(s))`. Item 8 above |
+| **C2**, the same batch with `role="group"` on the card | 1 to 5 | **5 clean passes, 100 checks, 0 failures** |
+| **D**, item 15, the icon scale and the two motion gaps | 1 to 5 | **5 clean passes, 21 of 21 each**, the 21st being the new `icons` check |
+| **E**, items 16 to 26, the whole remaining batch | 1 | **FAIL `browser`**, `error-reporting.spec.ts` read 0 rows for a message the browser should have written. QA-014 |
+| | 2 | **clean**, the same test on the same tree |
+| | 3 | **FAIL `browser`**, `timeline-cap.spec.ts` teardown: `canceling statement due to statement timeout`, and it leaked **120** `activities` rows. QA-015 |
+| | 4 | **FAIL `browser`**, `deal record: color-contrast (serious, 1 node(s)) .side-tab-count`. QA-016, and the only product defect of the three |
+| | 5 | stopped deliberately, with Playwright idle, once three defects were identified. Continuing would have leaked another 120 rows a pass |
+| **F**, the same batch with QA-014, QA-015 and QA-016 fixed | 1 to 5 | see below |
 
-| **C**, the full batch including items 6 and 7 | 1, 2, 3 | **FAIL `browser`** in all three, the same test each time: `accessibility.spec.ts:63`, `deals: nested-interactive (serious, 2 node(s))`. Item 8 above |
-| | 4, 5 | running at the time of writing, and expected to fail the same way |
-
-**Every failure here is recorded rather than discarded, and all three were mine.** Each was a real failure of a real check on a real condition, and the gate was right to fail every time.
+**Every failure here is recorded rather than discarded, and all but one were mine.** Each was a real failure of a real check on a real condition, and the gate was right to fail every time.
 
 - Run **A** gives **four consecutive clean passes** on items 1 and 2, with pass 1 failing on a fixture I had leaked.
 - Run **B** gives **four clean passes** on items 3 to 5, with pass 2 failing because I edited source mid-run.
-- Run **C** is a **genuine, reproducible product failure** that three consecutive passes agreed on, and the only one of the three that was a defect in the change rather than in my process. It is the answer to why the bar is five passes and not one: a single run would have caught this too, but three identical failures are what turned "a flake" into "a diagnosis" without my having to guess.
+- Run **C** is a **genuine, reproducible product failure** that five consecutive passes agreed on, and the only failure so far that was a defect in the change rather than in my process. **C2** is the same batch after the fix, clean five times. It is the answer to why the bar is five passes and not one: a single run would have caught this too, but five identical failures are what turned "a flake" into "a diagnosis" without my having to guess.
+- Run **D** is clean five times over.
+- Run **E** is the interesting one, and it is honest to say it is **not five clean passes**. It failed three times out of four run, each differently, and **one of the three is in the product**: `.side-tab-count` at 4.35:1 against a 4.5:1 requirement (QA-016). The other two are the harness: a spec that reads a row without first proving it is on the route it thinks it is (QA-014), and a teardown that deletes 120 rows with an unindexed `LIKE` on a 213,819-row table (QA-015). All three are logged in `tests/DEFECT_LOG.md`. **The 5-of-5 claim belongs to run F, not to E**, and run E is recorded exactly as it happened. Item 27 has the detail.

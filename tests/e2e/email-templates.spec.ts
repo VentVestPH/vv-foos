@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, signIn } from './helpers';
 
 const tag = `qa-tmpl-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const SEEDED_CANDIDATE = 'b0000000-0000-4000-8000-000000000002';
@@ -40,7 +40,7 @@ test.describe('Q4: email templates', () => {
     await page.getByRole('button', { name: 'Send Email' }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Send email' });
     await expect(dialog).toBeVisible({ timeout: 20000 });
-    await dialog.getByLabel('Template').selectOption({ label: `${tag} screen invite` });
+    await chooseOption(page, dialog.getByRole('combobox', { name: 'Template' }), `${tag} screen invite`);
 
     const first = name.split(/\s+/)[0] ?? '';
     await expect(dialog.getByLabel('Subject')).toHaveValue(`Screening call, ${first}`);

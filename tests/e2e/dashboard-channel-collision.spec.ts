@@ -8,16 +8,23 @@ test.describe('the dashboard survives being remounted', () => {
   }) => {
     test.setTimeout(120000);
     const admin = await clientAs('admin');
+    const probe = `chan${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
     const startedAt = new Date().toISOString();
     const pageErrors: string[] = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
     await signIn(page, PERSONA_EMAILS.admin);
-    await gotoAsSignedIn(page, '/');
+    await gotoAsSignedIn(page, `/?probe=${probe}`);
     await waitForRealtime(page);
 
-    const tabs = ['/?tab=pipeline', '/', '/?tab=reports', '/?tab=pipeline', '/'];
-    const ownRoutes = ['/', '/?tab=pipeline', '/?tab=reports'];
+    const tabs = [
+      `/?tab=pipeline&probe=${probe}`,
+      `/?probe=${probe}`,
+      `/?tab=reports&probe=${probe}`,
+      `/?tab=pipeline&probe=${probe}`,
+      `/?probe=${probe}`,
+    ];
+    const ownRoutes = tabs.filter((t, i) => tabs.indexOf(t) === i);
     for (let round = 0; round < 4; round += 1) {
       for (const tab of tabs) {
         await page.goto(tab);

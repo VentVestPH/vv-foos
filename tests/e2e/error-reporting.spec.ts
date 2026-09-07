@@ -23,9 +23,15 @@ async function rowsFor(message: string) {
 test.describe('O3: a production failure leaves a record', () => {
   test('an uncaught error is recorded with its route, and a repeat is not', async ({ page }) => {
     const message = `${tag} uncaught`;
+    const noise: string[] = [];
+    page.on('console', (m) => {
+      if (m.type() === 'warning' || m.type() === 'error') noise.push(m.text().slice(0, 200));
+    });
     await signIn(page, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page, '/recruit/candidates');
     await expect(page.locator('.table-wrap').first()).toBeVisible({ timeout: 25000 });
+    await expect(page, 'the reporter records window.location, so the test must be on that route')
+      .toHaveURL(/\/recruit\/candidates$/);
 
     await page.evaluate((text) => {
       for (let i = 0; i < 5; i += 1) {
@@ -33,7 +39,12 @@ test.describe('O3: a production failure leaves a record', () => {
       }
     }, message);
 
-    await expect.poll(async () => (await rowsFor(message)).length, { timeout: 15000 }).toBe(1);
+    await expect
+      .poll(async () => (await rowsFor(message)).length, {
+        timeout: 15000,
+        message: `browser console said: ${noise.join(' | ') || '(nothing)'}`,
+      })
+      .toBe(1);
 
     const [row] = await rowsFor(message);
     expect(row?.origin).toBe('window.error');

@@ -179,14 +179,23 @@ test('pass 3: walk the real tasks as their user', async ({ page }) => {
     if ((await titleField.count()) > 0) {
       await type(page, titleField, `Zaudit server error ${RUN}`);
     }
-    const requiredNow = page.locator('input[required], select[required], textarea[required]');
+    const requiredNow = page.locator(
+      'input[required], textarea[required], [role="combobox"][aria-required="true"]',
+    );
     const requiredCount = await requiredNow.count();
     for (let i = 0; i < requiredCount; i += 1) {
       const field = requiredNow.nth(i);
-      const kind = await field.evaluate((n) => `${n.tagName.toLowerCase()}:${(n as HTMLInputElement).type ?? ''}`);
+      const kind = await field.evaluate((n) => {
+        const el = n as HTMLElement;
+        if (el.getAttribute('role') === 'combobox') return 'combobox';
+        if (el.getAttribute('placeholder') === 'YYYY-MM-DD') return 'date';
+        return `${el.tagName.toLowerCase()}:${(el as HTMLInputElement).type ?? ''}`;
+      });
       try {
-        if (kind.startsWith('select')) await field.selectOption({ index: 1 });
-        else if (kind.includes('date')) await field.fill('2026-09-04');
+        if (kind === 'combobox') {
+          await click(page, field, 'open a required dropdown');
+          await click(page, page.getByRole('option').nth(1), 'pick the first real option');
+        } else if (kind === 'date') await field.fill('2026-09-04');
         else if (kind.includes('number')) await field.fill('1');
         else await field.fill(`Zaudit ${i}`);
       } catch {

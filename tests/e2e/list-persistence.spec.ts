@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, optionNames, signIn } from './helpers';
 
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
@@ -104,12 +104,11 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
     await signIn(page2, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page2, '/recruit/candidates');
 
-    const savedViewSelect = page2.locator('select').filter({ hasText: VIEW_NAME });
-    await expect(savedViewSelect, 'the saved view should be offered in a new session').toHaveCount(
-      1,
-      { timeout: 25000 },
-    );
-    await expect(savedViewSelect.locator('option', { hasText: VIEW_NAME })).toHaveCount(1);
+    const savedViewSelect = page2.getByRole('combobox', { name: 'Saved views' });
+    await expect
+      .poll(async () => (await optionNames(page2, savedViewSelect)).join('|'), { timeout: 25000 })
+      .toContain(VIEW_NAME);
+    expect((await optionNames(page2, savedViewSelect)).join('|')).toContain(VIEW_NAME);
     await second.close();
   });
 
@@ -128,7 +127,9 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
     await signIn(page, PERSONA_EMAILS.sourcer);
     await gotoAsSignedIn(page, '/recruit/candidates');
     await openFilterRail(page);
-    await expect(page.locator('option', { hasText: VIEW_NAME })).toHaveCount(0);
+    expect(
+      (await optionNames(page, page.getByRole('combobox', { name: 'Saved views' }))).join('|'),
+    ).not.toContain(VIEW_NAME);
     await context.close();
   });
 

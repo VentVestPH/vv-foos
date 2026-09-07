@@ -10,6 +10,8 @@ const SEEDED_HISTORY = 120;
 test.describe('T2: the activity timeline is capped', () => {
   test.describe.configure({ mode: 'serial' });
 
+  let seededIds: string[] = [];
+
   test.beforeAll(async () => {
     const admin = await clientAs('admin');
     const rows = Array.from({ length: SEEDED_HISTORY }, (_, i) => ({
@@ -19,18 +21,22 @@ test.describe('T2: the activity timeline is capped', () => {
       deal_id: DEAL,
       occurred_at: new Date(Date.now() - i * 60_000).toISOString(),
     }));
-    const { error } = await admin.from('activities').insert(rows);
+    const { data, error } = await admin.from('activities').insert(rows).select('id');
     if (error) throw new Error(`could not seed the timeline fixture: ${error.message}`);
+    seededIds = (data ?? []).map((r) => r.id);
+    if (seededIds.length !== SEEDED_HISTORY) {
+      throw new Error(`seeded ${seededIds.length} timeline rows, expected ${SEEDED_HISTORY}`);
+    }
   });
 
   test.afterAll(async () => {
     const admin = await clientAs('admin');
-    const { error } = await admin.from('activities').delete().like('subject', `${MARKER}%`);
+    const { error } = await admin.from('activities').delete().in('id', seededIds);
     if (error) throw new Error(`could not remove the timeline fixture: ${error.message}`);
     const { count } = await admin
       .from('activities')
       .select('id', { count: 'exact', head: true })
-      .like('subject', `${MARKER}%`);
+      .in('id', seededIds);
     if ((count ?? 0) > 0) {
       throw new Error(`${count} timeline fixture row(s) survived teardown`);
     }

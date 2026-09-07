@@ -26,9 +26,9 @@ test.describe('CRM deals', () => {
     await expect(page.locator('.table-wrap table')).toBeVisible({ timeout: 15000 });
 
     await openFilterRail(page);
-    await expect(page.locator('.filter-rail select').filter({ hasText: /negotiation/i })).toHaveValue(
-      'negotiation',
-    );
+    await expect(
+      page.locator('.filter-rail').getByRole('combobox', { name: 'Stage' }),
+    ).toContainText(/negotiation/i);
 
     const dataRows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
     const count = await dataRows.count();
