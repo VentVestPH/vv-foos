@@ -267,15 +267,12 @@ export function CandidateListPage() {
   );
 
   const exportFilteredRows = useCallback(async () => {
-    let matched = total;
-    if (matched === null) {
-      const { count, error: countErr } = await applyWhere(candidateCountQuery());
-      if (countErr) {
-        setError(countErr.message);
-        return [];
-      }
-      matched = count ?? 0;
+    const { count, error: countErr } = await applyWhere(candidateCountQuery());
+    if (countErr) {
+      setError(countErr.message);
+      return [];
     }
+    const matched = count ?? 0;
     if (matched > EXPORT_ROW_CAP) {
       setError(
         `That filter matches ${matched.toLocaleString()} candidates, more than the ${EXPORT_ROW_CAP.toLocaleString()} an in-browser export can build. Narrow the filter and try again.`,
@@ -328,7 +325,7 @@ export function CandidateListPage() {
 
     setError(null);
     return buildCandidateRows({ rows: collected, apps: exportApps, reqCode: exportReqCode });
-  }, [applyFilters, applyWhere, total]);
+  }, [applyFilters, applyWhere]);
 
   const rows = useMemo<CandRow[]>(
     () => buildCandidateRows({ rows: profiles, apps, reqCode }),

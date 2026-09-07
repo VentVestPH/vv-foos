@@ -15,6 +15,14 @@ function activeKey(page: Page) {
   );
 }
 
+function edgeRowKey(page: Page, edge: 'first' | 'last') {
+  return page.evaluate((which: string) => {
+    const all = Array.from(document.querySelectorAll('.table-wrap tbody tr[data-row-key]'));
+    const row = which === 'last' ? all[all.length - 1] : all[0];
+    return row ? row.getAttribute('data-row-key') : null;
+  }, edge);
+}
+
 function neighbourOfActive(page: Page, offset: number) {
   return page.evaluate((step: number) => {
     const active = (document.activeElement as HTMLElement | null)?.closest('tr');
@@ -72,16 +80,13 @@ test.describe('Q6: the lists are usable from the keyboard', () => {
 
   test('End and Home jump to the last and first row', async ({ page }) => {
     const rows = await openCandidates(page);
-    const count = await rows.count();
-    expect(count).toBeGreaterThan(1);
-    const last = await rows.nth(count - 1).getAttribute('data-row-key');
-    const first = await rows.nth(0).getAttribute('data-row-key');
+    expect(await rows.count()).toBeGreaterThan(1);
 
     await rows.nth(0).focus();
     await page.keyboard.press('End');
-    expect(await activeKey(page)).toBe(last);
+    expect(await activeKey(page)).toBe(await edgeRowKey(page, 'last'));
     await page.keyboard.press('Home');
-    expect(await activeKey(page)).toBe(first);
+    expect(await activeKey(page)).toBe(await edgeRowKey(page, 'first'));
   });
 
   test('space selects the focused row without scrolling the page', async ({ page }) => {

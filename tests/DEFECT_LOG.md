@@ -185,3 +185,38 @@ Error: expect(received).toBe(expected)
 - **The general lesson:** a spec that reads state, acts, then asserts against the state it read is racing anything that can change that state. On a page subscribed to realtime with 72,917 rows and a suite at two workers, that is a race it will lose eventually.
 - **Status:** closed.
 - **Closed date:** 2026-09-07
+
+---
+
+### QA-012: the candidate CSV export trusted a cached total and exported nothing
+
+- **Date found:** 2026-09-07, in gate pass 2 of 6 while verifying W14. Fixed the same day.
+- **Module/agent:** `app/src/modules/recruit/candidates/CandidateListPage.tsx`, `exportFilteredRows`; surfaced by `tests/e2e/list-persistence.spec.ts:135` "2.11 the CSV export matches the filtered set on screen"
+- **Severity:** **High.** A user narrows a filter to a handful of candidates, clicks Export CSV, and gets an **empty file** plus an error saying the filter matches more rows than an in-browser export can build. Wrong data with a misleading explanation, and it is a product defect rather than a test artefact.
+- **Actual, verbatim:**
+
+```
+Error: a header plus one record per visible row; got 0 records for 3 rows
+  at tests/e2e/list-persistence.spec.ts:200
+```
+
+- **Cause.** `exportFilteredRows` opened with `let matched = total;` and only ran its own count when `total` was `null`. `total` is maintained by a **separate** `refreshCount` callback with its own `useLatestOnly` guard, so the row list can be filtered and painted before the count catches up. In that window `total` still held the unfiltered **72,917**, which exceeds `EXPORT_ROW_CAP`, so the function called `setError(...)` and returned `[]`. `downloadCsv` then wrote a file with no rows and no header, which is why the record count was 0 rather than 1.
+- **Why the row count and the total can disagree.** They are two independent queries against the same filter. Nothing sequences them, and the list renders as soon as the rows arrive. This is the same shape as QA-011: state read at one moment used to decide something at another.
+- **Fix:** `exportFilteredRows` now **always counts the filter it is about to export** rather than consulting `total`. One extra `head: true` count per export, in exchange for the export never disagreeing with the filter it was asked for. The `total` dependency left the `useCallback` array with it.
+- **Evidence the fix holds:** **6 of 6 runs** of `list-keyboard.spec.ts` and `list-persistence.spec.ts` together, having failed in the gate immediately before.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
+
+---
+
+### QA-013: `list-keyboard`'s End and Home test had the same snapshot race as QA-011
+
+- **Date found:** 2026-09-07, gate pass 2 of 6, immediately after QA-011 was fixed.
+- **Module/agent:** `tests/e2e/list-keyboard.spec.ts:73` "End and Home jump to the last and first row"
+- **Severity:** **Low**, a false failure only, but it is recorded because **my QA-011 fix was incomplete**: I rewrote the sibling test at line 38 and left this one holding the identical race.
+- **Cause:** it captured `first` and `last` from `rows.nth(0)` and `rows.nth(count - 1)` before pressing the keys, so a realtime reload between capture and keypress moved the rows underneath it.
+- **Fix:** a new `edgeRowKey(page, 'first' | 'last')` helper reads the edge row from the live DOM at assertion time, matching the `neighbourOfActive` helper QA-011 introduced.
+- **Evidence:** 6 of 6 runs.
+- **The lesson, and it is about how I fixed QA-011:** when a defect is a pattern rather than a line, fixing the instance that failed is not fixing the defect. I should have grepped the file for every other assertion built the same way before calling it done, and the gate had to tell me twice.
+- **Status:** closed.
+- **Closed date:** 2026-09-07
