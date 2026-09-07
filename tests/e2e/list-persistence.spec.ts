@@ -5,7 +5,8 @@ import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, optionNames, signIn } f
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
-const VIEW_NAME = `QA Saved View ${RUN}`;
+const VIEW_NAME = `QA Saved View ${RUN} recruiter`;
+const SOURCER_VIEW_NAME = `QA Saved View ${RUN} sourcer`;
 const PENDING_NAME = '…';
 
 
@@ -114,22 +115,40 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
 
   test('2.9 another staff member does not see that saved view', async ({ browser }) => {
     const admin = await apiAs(PERSONA_EMAILS.admin);
-    const { error } = await admin.from('ats_saved_views').insert({
-      name: VIEW_NAME,
-      entity: 'candidate',
-      staff_id: 'a0000000-0000-4000-8000-000000000002',
-      filters: {},
-    });
-    expect(error).toBeNull();
+    const { error } = await admin.from('ats_saved_views').insert([
+      {
+        name: VIEW_NAME,
+        entity: 'candidate',
+        staff_id: 'a0000000-0000-4000-8000-000000000002',
+        filters: {},
+      },
+      {
+        name: SOURCER_VIEW_NAME,
+        entity: 'candidate',
+        staff_id: 'a0000000-0000-4000-8000-000000000003',
+        filters: {},
+      },
+    ]);
+    expect(error, error?.message).toBeNull();
 
     const context = await browser.newContext();
     const page = await context.newPage();
     await signIn(page, PERSONA_EMAILS.sourcer);
     await gotoAsSignedIn(page, '/recruit/candidates');
     await openFilterRail(page);
-    expect(
-      (await optionNames(page, page.getByRole('combobox', { name: 'Saved views' }))).join('|'),
-    ).not.toContain(VIEW_NAME);
+
+    const select = page.getByRole('combobox', { name: 'Saved views' });
+    let offered = '';
+    await expect
+      .poll(
+        async () => {
+          offered = (await optionNames(page, select)).join('|');
+          return offered;
+        },
+        { timeout: 25000 },
+      )
+      .toContain(SOURCER_VIEW_NAME);
+    expect(offered).not.toContain(VIEW_NAME);
     await context.close();
   });
 

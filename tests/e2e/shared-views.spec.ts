@@ -3,8 +3,19 @@ import { clientAs } from '../env';
 import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, optionNames, signIn } from './helpers';
 
 const tag = `qa-shared-view-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+const UI_SHARED = `${tag} ui shared`;
 const SHARED = `${tag} shared`;
 const PRIVATE = `${tag} private`;
+const RECRUITER_ID = 'a0000000-0000-4000-8000-000000000002';
+
+test.beforeAll(async () => {
+  const admin = await clientAs('admin');
+  const { error } = await admin.from('ats_saved_views').insert([
+    { name: SHARED, entity: 'candidate', staff_id: RECRUITER_ID, filters: {}, is_shared: true },
+    { name: PRIVATE, entity: 'candidate', staff_id: RECRUITER_ID, filters: {}, is_shared: false },
+  ]);
+  if (error) throw new Error(`could not seed the saved views: ${error.message}`);
+});
 
 test.afterAll(async () => {
   const admin = await clientAs('admin');
@@ -22,7 +33,7 @@ test.describe('Q5: a saved view can be shared with the team', () => {
 
     await page.getByRole('button', { name: 'Save view' }).click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('View name').fill(SHARED);
+    await dialog.getByLabel('View name').fill(UI_SHARED);
     await dialog.getByRole('checkbox', { name: 'Share with the team' }).check();
     await dialog.getByRole('button', { name: 'Save' }).click();
     await expect(dialog).toBeHidden({ timeout: 20000 });
@@ -33,36 +44,35 @@ test.describe('Q5: a saved view can be shared with the team', () => {
           (await optionNames(page, page.getByRole('combobox', { name: 'Saved views' }))).join('|'),
         { timeout: 20000 },
       )
-      .toContain(`${SHARED} (shared)`);
+      .toContain(`${UI_SHARED} (shared)`);
 
     const admin = await clientAs('admin');
     const { data } = await admin
       .from('ats_saved_views')
       .select('name, is_shared, staff_id')
-      .eq('name', SHARED)
+      .eq('name', UI_SHARED)
       .single();
     expect(data?.is_shared).toBe(true);
   });
 
   test('another staff member sees the shared view and not the private one', async ({ browser }) => {
-    const admin = await clientAs('admin');
-    const owner = 'a0000000-0000-4000-8000-000000000002';
-    const rows = await admin
-      .from('ats_saved_views')
-      .insert([
-        { name: PRIVATE, entity: 'candidate', staff_id: owner, filters: {}, is_shared: false },
-      ])
-      .select('id');
-    expect(rows.error, rows.error?.message).toBeNull();
-
     const context = await browser.newContext();
     const page = await context.newPage();
     await signIn(page, PERSONA_EMAILS.sourcer);
     await gotoAsSignedIn(page, '/recruit/candidates');
 
-    const offered = await optionNames(page, page.getByRole('combobox', { name: 'Saved views' }));
-    expect(offered.join('|')).toContain(`${SHARED} (shared)`);
-    expect(offered.join('|')).not.toContain(PRIVATE);
+    const select = page.getByRole('combobox', { name: 'Saved views' });
+    let offered = '';
+    await expect
+      .poll(
+        async () => {
+          offered = (await optionNames(page, select)).join('|');
+          return offered;
+        },
+        { timeout: 25000 },
+      )
+      .toContain(`${SHARED} (shared)`);
+    expect(offered).not.toContain(PRIVATE);
     await context.close();
   });
 
