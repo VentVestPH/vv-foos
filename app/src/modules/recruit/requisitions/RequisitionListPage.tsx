@@ -141,6 +141,7 @@ export function RequisitionListPage() {
   const [visibleCols, setVisibleCols] = useState<string[]>(ALL_COLUMN_KEYS);
 
   const [reqs, setReqs] = useState<RequisitionListRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -190,6 +191,8 @@ export function RequisitionListPage() {
       setError(null);
     } catch (e) {
       setError(errMsg(e));
+    } finally {
+      if (isCurrent()) setLoading(false);
     }
   }, [applyReqFilters, page, beginLoad]);
 
@@ -588,6 +591,7 @@ export function RequisitionListPage() {
         columns={columns}
         rows={pager.pageRows}
         rowKey={(r) => r.id}
+        busy={loading}
         sortKey={sort?.key ?? null}
         sortDir={sort?.dir ?? 'asc'}
         onSortChange={(key, dir) => setSort({ key, dir })}

@@ -97,6 +97,7 @@ export function CandidateListPage() {
   const [visibleCols, setVisibleCols] = useState<string[]>(ALL_COLUMN_KEYS);
 
   const [profiles, setProfiles] = useState<CandidateListRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [apps, setApps] = useState<Application[]>([]);
   const [reqs, setReqs] = useState<Requisition[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -195,6 +196,8 @@ export function CandidateListPage() {
       setError(null);
     } catch (e) {
       setError(errMsg(e));
+    } finally {
+      if (isCurrent()) setLoading(false);
     }
   }, [applyFilters, page, beginLoad]);
 
@@ -605,6 +608,7 @@ export function CandidateListPage() {
         columns={columns}
         rows={pager.pageRows}
         rowKey={(r) => r.id}
+        busy={loading}
         sortKey={sort?.key ?? null}
         sortDir={sort?.dir ?? 'asc'}
         onSortChange={(key, dir) => setSort({ key, dir })}

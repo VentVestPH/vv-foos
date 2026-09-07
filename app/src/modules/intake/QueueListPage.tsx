@@ -203,7 +203,7 @@ export function QueueListPage() {
         rows={pager.pageRows}
         rowKey={(r) => r.id}
         onRowClick={(r) => setSelectedId(r.id)}
-        emptyText={loading ? 'Loading…' : 'Nothing in the queue.'}
+        emptyText="Nothing in the queue."
       />
 
       <Pager

@@ -290,7 +290,7 @@ export function ContactsListPage() {
         sortDir={sort?.dir ?? 'asc'}
         onSortChange={(key, dir) => setSort({ key, dir })}
         onRowClick={(r) => navigate(`/sales/contacts/${r.profile.person_id}`)}
-        emptyText={loading ? 'Loading…' : "No contacts match."}
+        emptyText="No contacts match."
       />
 
       <Pager

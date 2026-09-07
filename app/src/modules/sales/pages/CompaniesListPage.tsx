@@ -306,7 +306,7 @@ export function CompaniesListPage() {
         sortDir={sort?.dir ?? 'asc'}
         onSortChange={(key, dir) => setSort({ key, dir })}
         onRowClick={(c) => navigate(`/sales/companies/${c.id}`)}
-        emptyText={loading ? 'Loading…' : "No companies match."}
+        emptyText="No companies match."
       />
 
       <Pager

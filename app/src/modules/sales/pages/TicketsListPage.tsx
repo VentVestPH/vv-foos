@@ -150,7 +150,7 @@ export function TicketsListPage() {
         sortKey={sort?.key ?? null}
         sortDir={sort?.dir ?? 'asc'}
         onSortChange={(key, dir) => setSort({ key, dir })}
-        emptyText={loading ? 'Loading…' : "No tickets. Ticket workflows arrive with the CS module."}
+        emptyText="No tickets. Ticket workflows arrive with the CS module."
       />
 
       <Pager

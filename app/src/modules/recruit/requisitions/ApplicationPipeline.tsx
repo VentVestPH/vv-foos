@@ -110,6 +110,7 @@ export function ApplicationPipeline({
   const [view, setView] = useState<'table' | 'kanban'>('table');
 
   const [viewRows, setViewRows] = useState<PipelineViewRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<StageSummaryRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -176,6 +177,8 @@ export function ApplicationPipeline({
       setError(null);
     } catch (e) {
       setError(errMsg(e));
+    } finally {
+      if (isCurrent()) setLoading(false);
     }
   }, [requisition.id, view, mobile, page, sort, beginLoad]);
 
@@ -602,6 +605,7 @@ export function ApplicationPipeline({
             columns={columns}
             rows={rows}
             rowKey={(r) => r.id}
+            busy={loading}
             onRowClick={(r) => void openCandidate(r)}
             emptyText="No applications yet."
             sortKey={sort?.key ?? null}
