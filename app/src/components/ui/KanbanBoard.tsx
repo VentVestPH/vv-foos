@@ -206,7 +206,12 @@ export function KanbanBoard({
       <p className="visually-hidden" role="status" aria-live="polite">
         {announcement}
       </p>
-      <div className="kanban">
+      <div
+        className="kanban"
+        role="group"
+        aria-label="Stage board, scrollable"
+        tabIndex={0}
+      >
         {stages.map((stage) => (
           <Column
             key={stage.key}

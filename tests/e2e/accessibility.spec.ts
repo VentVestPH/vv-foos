@@ -62,6 +62,7 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
 
   test('no serious or critical violation on any signed-in screen route', async ({ page }) => {
     test.setTimeout(20000 + ROUTES.length * 8000);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await signIn(page, PERSONA_EMAILS.admin);
     const found: string[] = [];
     for (const [name, path] of ROUTES) {
@@ -75,6 +76,7 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
 
   test('no serious or critical violation on the CRM record pages', async ({ page }) => {
     test.setTimeout(60000);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await signIn(page, PERSONA_EMAILS.admin);
     const found: string[] = [];
     for (const [name, recordPath] of [
@@ -92,6 +94,7 @@ test.describe('L12: axe runs against real routes, not token pairs', () => {
 
   test('no serious or critical violation on the ATS record pages', async ({ page }) => {
     test.setTimeout(60000);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await signIn(page, PERSONA_EMAILS.admin);
     const found: string[] = [];
     for (const [name, listPath] of [
