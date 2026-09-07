@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useListLink } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
@@ -29,7 +29,7 @@ import {
   fmtDate,
 } from '../lib';
 import {
-  ALL_COLUMN_KEYS,
+  DEFAULT_COLUMN_KEYS,
   COLUMN_DEFS,
   EMPTY_FILTERS,
   buildCandidateRows,
@@ -73,7 +73,6 @@ function likeLiteral(value: string): string {
 
 export function CandidateListPage() {
   const openRecord = useListLink();
-  const navigate = useNavigate();
   const role = useRole();
   const { staff } = useSession();
   const mobile = useIsMobile();
@@ -94,7 +93,7 @@ export function CandidateListPage() {
     dateTo: params.get('date_to') ?? '',
   }));
   const [sort, setSort] = useState<SortState | null>(null);
-  const [visibleCols, setVisibleCols] = useState<string[]>(ALL_COLUMN_KEYS);
+  const [visibleCols, setVisibleCols] = useState<string[]>(DEFAULT_COLUMN_KEYS);
 
   const [profiles, setProfiles] = useState<CandidateListRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -366,7 +365,7 @@ export function CandidateListPage() {
             className="link-btn"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/recruit/candidates/${r.id}`);
+              openRecord(`/recruit/candidates/${r.id}`);
             }}
           >
             {r.name}
@@ -406,6 +405,7 @@ export function CandidateListPage() {
       },
       {
         key: 'star_grade',
+        width: '92px',
         header: 'Grade',
         sortable: true,
         sortValue: (r) => r.star_grade ?? 0,
@@ -479,7 +479,7 @@ export function CandidateListPage() {
       },
     ];
     return [flagCol, ...defs.filter((c) => visibleCols.includes(c.key))];
-  }, [visibleCols, profiles, canGrade, updateGrade, navigate]);
+  }, [visibleCols, profiles, canGrade, updateGrade, openRecord]);
 
   const pageCount =
     total === null
@@ -570,7 +570,7 @@ export function CandidateListPage() {
       }
     >
       {(error || savedViews.error) && (
-        <p className="rq-error">{error ?? savedViews.error}</p>
+        <p className="form-error" role="alert">{error ?? savedViews.error}</p>
       )}
 
       <div className="record-action-bar fo-list-action-bar">

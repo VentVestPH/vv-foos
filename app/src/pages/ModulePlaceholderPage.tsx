@@ -5,6 +5,7 @@ import {
   Lock as LockIcon,
   Settings,
 } from 'lucide-react';
+import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
 import { PlaceholderAction, usePlaceholder } from '../shell/Placeholder';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -151,9 +152,12 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
             <PlaceholderAction label="Delete" />
             <PlaceholderAction label="New Packet" />
             <PlaceholderAction label="Print Forms" />
-            <select aria-label="Filter" disabled defaultValue="all">
-              <option value="all">- All -</option>
-            </select>
+            <Select
+              aria-label="Filter"
+              disabled
+              value="all"
+              options={[{ value: 'all', label: '- All -' }]}
+            />
           </>
         )}
         {module === 'users' && (

@@ -85,6 +85,12 @@ export const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
 
 export const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
+const OFF_BY_DEFAULT_COLUMN_KEYS = ['current_title', 'current_employer'];
+
+export const DEFAULT_COLUMN_KEYS = ALL_COLUMN_KEYS.filter(
+  (k) => !OFF_BY_DEFAULT_COLUMN_KEYS.includes(k),
+);
+
 export interface CandidateRowInput {
   rows: CandidateListRow[];
   apps: Application[];

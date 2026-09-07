@@ -4,10 +4,12 @@ import { useRole } from '../../../auth/SessionProvider';
 import type { ApproverType, TablesInsert } from '../../../lib/database.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordSection } from '../../../components/ui/RecordPage';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon } from 'lucide-react';
+import { CURRENCIES } from '../../../lib/format';
 import { supabase } from '../../../lib/supabase';
 import { type ApproverRow, errMsg, todayIso } from '../lib';
 import { useLookups } from '../hooks';
@@ -60,7 +62,6 @@ interface ApproverDraft {
 const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship'];
 const BUDGET_STATUSES = ['Approved', 'Pending', 'Not budgeted'];
 const REASONS = ['New position', 'Replacement', 'Expansion', 'Other'];
-const CURRENCIES = ['PHP', 'USD', 'AUD', 'NZD', 'GBP', 'EUR', 'SGD'];
 
 export function RequisitionFormPage() {
   const { id } = useParams();
@@ -298,16 +299,16 @@ export function RequisitionFormPage() {
       >
         {actionButtons}
 
-        {error && <p className="rq-error">{error}</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
 
         <RecordSection title="Requisition Owner(s):">
           <div className="field">
             <span className="field-label">
               <span className="field-required">*</span> Requisition Owners
             </span>
-            <div className="rq-checkbox-list">
+            <div className="checkbox-list">
               {lookups.staff.map((s) => (
-                <label key={s.id} className="rq-checkline">
+                <label key={s.id} className="checkline">
                   <input
                     type="checkbox"
                     checked={ownerIds.includes(s.id)}
@@ -388,9 +389,8 @@ export function RequisitionFormPage() {
                 onChange={(e) => set('replacement_for', e.target.value)}
               />
             )}
-            <Input
+            <DateField
               label="Opened date"
-              type="date"
               value={form.opened_date}
               onChange={(e) => set('opened_date', e.target.value)}
             />
@@ -422,7 +422,7 @@ export function RequisitionFormPage() {
           </div>
 
           <div className="rq-form-grid">
-            <label className="rq-checkline">
+            <label className="checkline">
               <input
                 type="checkbox"
                 checked={form.is_published}
@@ -430,7 +430,7 @@ export function RequisitionFormPage() {
               />
               Publish to careers page
             </label>
-            <label className="rq-checkline">
+            <label className="checkline">
               <input
                 type="checkbox"
                 checked={form.is_test}
@@ -523,7 +523,7 @@ export function RequisitionFormPage() {
           </div>
         </RecordSection>
 
-        {error && <p className="rq-error">{error}</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
 
         {actionButtons}
       </form>

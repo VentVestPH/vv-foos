@@ -67,7 +67,7 @@ export function EmailTemplatesCard() {
         recipient when the email is sent: {TEMPLATE_PLACEHOLDERS.map((p) => `{{${p}}}`).join(', ')}.
       </p>
 
-      {error && <p className="rq-error">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
 
       <ul className="template-list">
         {templates.map((t) => (
@@ -120,7 +120,7 @@ export function EmailTemplatesCard() {
             />
           </div>
           {unknown.length > 0 && (
-            <span className="field-error-text">
+            <span className="field-error-text" role="alert">
               Unknown placeholder{unknown.length === 1 ? '' : 's'}: {unknown.join(', ')}. It will be
               sent as written.
             </span>

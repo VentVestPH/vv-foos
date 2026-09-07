@@ -27,6 +27,7 @@ supabase/functions/**/node_modules/
 
 # Playwright run artifacts (traces, screenshots, error contexts)
 tests/test-results/
+test-results/
 tests/playwright-report/
 
 # Zoho export files: real candidate and customer PII. Never committed.

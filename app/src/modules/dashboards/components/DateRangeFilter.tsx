@@ -1,5 +1,5 @@
 import { Select } from '../../../components/ui/Select';
-import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import type { DateRange, DateRangePreset } from '../lib';
 import { rangeForPreset } from '../lib';
 
@@ -30,16 +30,14 @@ export function DateRangeFilter({
       />
       {range.preset === 'custom' && (
         <>
-          <Input
-            type="date"
+          <DateField
             aria-label="Range start"
             value={range.from}
             max={range.to}
             onChange={(e) => onChange({ ...range, from: e.target.value })}
           />
           <span>to</span>
-          <Input
-            type="date"
+          <DateField
             aria-label="Range end"
             value={range.to}
             min={range.from}

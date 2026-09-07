@@ -123,6 +123,7 @@ export function ApplicationPipeline({
   const [promoteCompanyId, setPromoteCompanyId] = useState('');
   const [promoteMsg, setPromoteMsg] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [editRowFields, setEditRowFields] = useState(false);
 
   useEffect(() => {
     if (addSignal) setAdding(true);
@@ -405,7 +406,7 @@ export function ApplicationPipeline({
         key: 'next_step',
         header: 'Next step',
         render: (r) =>
-          canEdit ? (
+          canEdit && editRowFields ? (
             <span className="next-step-input" onClick={(e) => e.stopPropagation()}>
               <Input
                 key={`${r.id}-${r.next_step}`}
@@ -448,7 +449,7 @@ export function ApplicationPipeline({
         sortable: true,
         sortValue: (r) => r.rank ?? 9999,
         render: (r) =>
-          canEdit ? (
+          canEdit && editRowFields ? (
             <span className="rank-input" onClick={(e) => e.stopPropagation()}>
               <Input
                 key={`${r.id}-${r.rank ?? ''}`}
@@ -482,7 +483,7 @@ export function ApplicationPipeline({
         render: (r) => <CappedCell text={r.rejection_reason} />,
       },
     ],
-    [canEdit, openCandidate, toggleShortlist, setRank, setNextStep],
+    [canEdit, editRowFields, openCandidate, toggleShortlist, setRank, setNextStep],
   );
 
   const kanbanCards = useMemo(
@@ -542,6 +543,16 @@ export function ApplicationPipeline({
             Add candidate
           </Button>
         )}
+        {canEdit && (
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-pressed={editRowFields}
+            onClick={() => setEditRowFields((v) => !v)}
+          >
+            {editRowFields ? 'Done editing' : 'Edit next step and rank'}
+          </Button>
+        )}
         <Button
           size="sm"
           disabled={rows.length === 0}
@@ -579,7 +590,7 @@ export function ApplicationPipeline({
         )}
       </div>
 
-      {error && <p className="rq-error">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
 
       {showKanban ? (
         <KanbanBoard

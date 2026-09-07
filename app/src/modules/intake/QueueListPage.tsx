@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { ListPage } from '../../components/ui/ListPage';
+import { RecordSection } from '../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../components/ui/Table';
 import { Pager, usePagination } from '../../components/ui/Pager';
 import { PlaceholderAction, usePlaceholder } from '../../shell/Placeholder';
@@ -17,6 +18,17 @@ import {
 } from './lib';
 import { ItemDrawer } from './components/ItemDrawer';
 
+const QUEUE_COLUMN_DEFS = [
+  { key: 'full_name', header: 'Name' },
+  { key: 'headline', header: 'Headline / role' },
+  { key: 'target_type', header: 'Target' },
+  { key: 'batch_label', header: 'Batch' },
+  { key: 'status', header: 'Status' },
+  { key: 'created_at', header: 'Received' },
+];
+
+const QUEUE_ALL_COLUMN_KEYS = QUEUE_COLUMN_DEFS.map((c) => c.key);
+
 export function QueueListPage() {
   const { show } = usePlaceholder();
   const [search, setSearch] = useState('');
@@ -25,6 +37,7 @@ export function QueueListPage() {
   const [status, setStatus] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [visibleCols, setVisibleCols] = useState<string[]>(QUEUE_ALL_COLUMN_KEYS);
 
   const { items, loading, reload } = useIntakeQueue({
     channel: channel || undefined,
@@ -47,8 +60,7 @@ export function QueueListPage() {
     });
   }, [items, search]);
 
-  const columns: TableColumn<IntakeItem>[] = [
-    {
+  const channelColumn: TableColumn<IntakeItem> = {
       key: 'channel',
       header: '',
       width: '36px',
@@ -60,7 +72,9 @@ export function QueueListPage() {
           </span>
         );
       },
-    },
+  };
+
+  const optionalColumns: TableColumn<IntakeItem>[] = [
     { key: 'full_name', header: 'Name', sortable: true },
     {
       key: 'headline',
@@ -92,6 +106,11 @@ export function QueueListPage() {
     },
   ];
 
+  const columns: TableColumn<IntakeItem>[] = [
+    channelColumn,
+    ...optionalColumns.filter((c) => visibleCols.includes(c.key)),
+  ];
+
   const pager = usePagination(filtered);
 
   return (
@@ -118,7 +137,7 @@ export function QueueListPage() {
             onClick={() =>
               show(
                 'Configure columns',
-                'Channel/Target/Status filters are already available in the Advanced Search panel on this page.',
+                'Column visibility is already available in the Advanced Search panel on this page.',
               )
             }
           >
@@ -127,8 +146,7 @@ export function QueueListPage() {
         </>
       }
       filterRail={
-        <details className="fo-advanced-search" open>
-          <summary>Advanced Search</summary>
+        <RecordSection title="Advanced Search">
           <div className="fo-advanced-search-body">
             <Select
               label="Channel"
@@ -166,6 +184,27 @@ export function QueueListPage() {
                 { value: 'rejected', label: 'Rejected' },
               ]}
             />
+            <div className="field">
+              <span className="field-label">Columns</span>
+              <div className="checkbox-list">
+                {QUEUE_COLUMN_DEFS.map((c) => (
+                  <label key={c.key} className="checkline">
+                    <input
+                      type="checkbox"
+                      checked={visibleCols.includes(c.key)}
+                      onChange={(e) =>
+                        setVisibleCols(
+                          e.target.checked
+                            ? [...visibleCols, c.key]
+                            : visibleCols.filter((k) => k !== c.key),
+                        )
+                      }
+                    />
+                    {c.header}
+                  </label>
+                ))}
+              </div>
+            </div>
             <label className="intake-showall-toggle">
               <input
                 type="checkbox"
@@ -175,7 +214,7 @@ export function QueueListPage() {
               Show imported &amp; rejected
             </label>
           </div>
-        </details>
+        </RecordSection>
       }
       exportRows={filtered}
       exportColumns={[

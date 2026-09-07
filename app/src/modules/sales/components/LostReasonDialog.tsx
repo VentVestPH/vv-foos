@@ -42,7 +42,7 @@ export function LostReasonDialog({
         aria-label="Lost reason"
         autoFocus
       />
-      {error && <span className="field-error-text">{error}</span>}
+      {error && <span className="field-error-text" role="alert">{error}</span>}
       <div className="sales-modal-actions">
         <Button onClick={onCancel}>Cancel</Button>
         <Button variant="danger" onClick={submit}>

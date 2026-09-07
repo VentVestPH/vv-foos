@@ -1,16 +1,18 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
+import { CURRENCIES } from '../../../lib/format';
 import { useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage } from '../../../components/ui/RecordPage';
+import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSummary';
 import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { useCompanyOptions, useStaffList } from '../hooks';
 import {
   personName,
-  CURRENCIES,
   type ContactProfile,
   type Person,
 } from '../lib';
@@ -37,6 +39,7 @@ export function DealNewPage() {
     { value: string; label: string }[]
   >([]);
   const [error, setError] = useState<string | null>(null);
+  const [problems, setProblems] = useState<FieldError[]>([]);
   const [saving, setSaving] = useState(false);
 
   const resetForm = () => {
@@ -96,14 +99,11 @@ export function DealNewPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Deal name is required.');
-      return;
-    }
-    if (!companyId) {
-      setError('Company is required.');
-      return;
-    }
+    const found: FieldError[] = [];
+    if (!name.trim()) found.push({ field: 'deal-name', message: 'Deal name is required.' });
+    if (!companyId) found.push({ field: 'deal-company', message: 'Company is required.' });
+    setProblems(found);
+    if (found.length > 0) return;
     setSaving(true);
     setError(null);
     const { data, error: insertError } = await supabase
@@ -132,20 +132,24 @@ export function DealNewPage() {
 
   return (
     <RecordPage title="Deals: New Deal" icon={<BriefcaseIcon size={40} />}>
-      <form className="sales-form" onSubmit={submit}>
+      <form className="sales-form" noValidate onSubmit={submit}>
         <div className="sales-form-grid">
           <div className="sales-span-2">
             <Input
+              id="deal-name"
               label="Name"
               required
               value={name}
+              error={problems.find((p) => p.field === 'deal-name')?.message}
               onChange={(e) => setName(e.target.value)}
               autoFocus
             />
           </div>
           <Select
+            id="deal-company"
             label="Company"
             required
+            error={problems.find((p) => p.field === 'deal-company')?.message}
             options={companyOptions}
             placeholder="Pick a company"
             value={companyId}
@@ -192,9 +196,8 @@ export function DealNewPage() {
             value={probability}
             onChange={(e) => setProbability(e.target.value)}
           />
-          <Input
+          <DateField
             label="Expected close"
-            type="date"
             value={expectedClose}
             onChange={(e) => setExpectedClose(e.target.value)}
           />
@@ -207,9 +210,10 @@ export function DealNewPage() {
             Test record (excluded from CSV exports)
           </label>
         </div>
-        {error && <div className="form-error">{error}</div>}
+        <ErrorSummary errors={problems} />
+        {error && <div className="form-error" role="alert">{error}</div>}
         <div className="sales-form-actions">
-          <Button variant="primary" type="submit" disabled={saving}>
+          <Button variant="primary" type="submit" loading={saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
           <Button onClick={() => navigate('/sales/deals')}>Cancel</Button>

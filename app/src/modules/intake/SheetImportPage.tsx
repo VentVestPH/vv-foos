@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
+import { ErrorSummary, type FieldError } from '../../components/ui/ErrorSummary';
 import { Inbox as InboxIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -44,6 +45,7 @@ export function SheetImportPage() {
   const [batchLabel, setBatchLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [problems, setProblems] = useState<FieldError[]>([]);
   const [fetched, setFetched] = useState<FetchResult | null>(null);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [templates, setTemplates] = useState<MappingTemplate[]>([]);
@@ -63,17 +65,29 @@ export function SheetImportPage() {
 
   async function doFetch() {
     if (!url.trim()) {
-      setError('Enter a Google Sheet URL or a hosted .xlsx/.csv URL.');
+      setProblems([
+        { field: 'sheet-url', message: 'Enter a Google Sheet URL or a hosted .xlsx/.csv URL.' },
+      ]);
       return;
     }
+    setProblems([]);
     setBusy(true);
     setError(null);
     const { data, error: err } = await supabase.functions.invoke('intake-sheet-fetch', {
       body: { url: url.trim() },
     });
     setBusy(false);
-    if (err || data?.error) {
-      setError(data?.error ?? err?.message ?? 'Could not fetch the sheet.');
+    const shaped =
+      data !== null &&
+      typeof data === 'object' &&
+      Array.isArray((data as FetchResult).columns) &&
+      Array.isArray((data as FetchResult).rows);
+    if (err || data?.error || !shaped) {
+      setError(
+        data?.error ??
+          err?.message ??
+          'Could not read that sheet. The fetch returned an unexpected response.',
+      );
       return;
     }
     setFetched(data as FetchResult);
@@ -92,14 +106,15 @@ export function SheetImportPage() {
 
   async function goToPreview() {
     if (!fetched) return;
+    const found: FieldError[] = [];
     if (!batchLabel.trim()) {
-      setError('A batch label is required.');
-      return;
+      found.push({ field: 'sheet-batch-label', message: 'A batch label is required.' });
     }
     if (!columnMap.name && !columnMap.email) {
-      setError('Map at least a name or email column before continuing.');
-      return;
+      found.push({ message: 'Map at least a name or email column before continuing.' });
     }
+    setProblems(found);
+    if (found.length > 0) return;
     setError(null);
     setStep('preview');
     setCheckingDedup(true);
@@ -135,11 +150,13 @@ export function SheetImportPage() {
       },
     });
     setBusy(false);
-    if (err || data?.error) {
-      setError(data?.error ?? err?.message ?? 'Import failed.');
+    if (err || data?.error || data === null || typeof data !== 'object') {
+      setError(
+        data?.error ?? err?.message ?? 'Import failed. The commit returned an unexpected response.',
+      );
       return;
     }
-    setCreated(data.created ?? 0);
+    setCreated(typeof data.created === 'number' ? data.created : 0);
     setStep('done');
   }
 
@@ -203,9 +220,9 @@ export function SheetImportPage() {
               </tbody>
             </table>
           </div>
-          {error && <p className="field-error-text">{error}</p>}
+          {error && <p className="field-error-text" role="alert">{error}</p>}
           <div className="intake-form-actions">
-            <Button variant="primary" onClick={commit} disabled={busy || checkingDedup}>
+            <Button variant="primary" onClick={commit} loading={busy} disabled={checkingDedup}>
               Import all {fetched.rows.length} rows
             </Button>
             <Button onClick={() => setStep('mapping')} disabled={busy}>
@@ -228,6 +245,7 @@ export function SheetImportPage() {
         </div>
 
         <RecordSection title="Column Mapping:">
+          <ErrorSummary errors={problems} />
           <p className="text-secondary">
             Sample of {fetched.rows.length} row(s). Unmapped columns stay in the raw payload.
           </p>
@@ -253,8 +271,10 @@ export function SheetImportPage() {
             ]}
           />
           <Input
+            id="sheet-batch-label"
             label="Batch label"
             required
+            error={problems.find((p) => p.field === 'sheet-batch-label')?.message}
             value={batchLabel}
             onChange={(e) => setBatchLabel(e.target.value)}
             placeholder="Q3 partner list import"
@@ -278,9 +298,9 @@ export function SheetImportPage() {
             placeholder="e.g. Google Sheet — partner contacts"
           />
 
-          {error && <p className="field-error-text">{error}</p>}
+          {error && <p className="field-error-text" role="alert">{error}</p>}
           <div className="intake-form-actions">
-            <Button variant="primary" onClick={goToPreview} disabled={busy}>
+            <Button variant="primary" onClick={goToPreview} loading={busy}>
               Continue to preview
             </Button>
             <Button onClick={() => navigate('/intake')}>Cancel</Button>
@@ -322,17 +342,20 @@ export function SheetImportPage() {
         <h1>Intake: Import a Sheet</h1>
       </div>
       <RecordSection title="Sheet Source:">
+        <ErrorSummary errors={problems} />
         <p className="text-secondary">A Google Sheet URL (any sharing link) or a hosted .xlsx/.csv URL.</p>
         <Input
+          id="sheet-url"
           label="Sheet URL"
           required
+          error={problems.find((p) => p.field === 'sheet-url')?.message}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://docs.google.com/spreadsheets/d/…"
         />
-        {error && <p className="field-error-text">{error}</p>}
+        {error && <p className="field-error-text" role="alert">{error}</p>}
         <div className="intake-form-actions">
-          <Button variant="primary" onClick={doFetch} disabled={busy}>
+          <Button variant="primary" onClick={doFetch} loading={busy}>
             Fetch
           </Button>
           <Button onClick={() => navigate('/intake')}>Cancel</Button>

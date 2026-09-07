@@ -14,6 +14,7 @@ const PAIRS = [
   ['logout label', '#ffffff', '--fo-logout', 4.5],
   ['danger on surface', '--fo-danger', '--fo-surface', 4.5],
   ['secondary text on surface', '--fo-text-secondary', '--fo-surface', 4.5],
+  ['side tab count', '--fo-text', '--fo-border', 4.5],
   ['body on zebra row', '--fo-text', '--fo-row-alt', 4.5],
   ['body on hover row', '--fo-text', '--fo-row-hover', 4.5],
   ['control border', '--fo-control-border', '--fo-surface', 3.0],

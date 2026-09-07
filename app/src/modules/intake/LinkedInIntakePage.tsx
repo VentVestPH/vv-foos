@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
+import { ErrorSummary, type FieldError } from '../../components/ui/ErrorSummary';
 import { useSession } from '../../auth/SessionProvider';
 import { supabase } from '../../lib/supabase';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -27,6 +28,7 @@ export function LinkedInIntakePage() {
   >([]);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [problems, setProblems] = useState<FieldError[]>([]);
   const [busy, setBusy] = useState(false);
 
   const [name, setName] = useState('');
@@ -45,14 +47,18 @@ export function LinkedInIntakePage() {
 
   async function stageBatch() {
     const list = parseUrls();
+    const found: FieldError[] = [];
     if (list.length === 0) {
-      setError('Paste at least one LinkedIn URL.');
-      return;
+      found.push({ field: 'li-urls', message: 'Paste at least one LinkedIn URL.' });
     }
     if (!batchLabel.trim()) {
-      setError('A batch label is required (e.g. "VVPH-3 Melbourne week 28").');
-      return;
+      found.push({
+        field: 'li-batch-label',
+        message: 'A batch label is required (e.g. "VVPH-3 Melbourne week 28").',
+      });
     }
+    setProblems(found);
+    if (found.length > 0) return;
     setBusy(true);
     setError(null);
     const rows = list.map((url) => ({
@@ -184,7 +190,7 @@ export function LinkedInIntakePage() {
               />
             </>
           )}
-          {error && <p className="field-error-text">{error}</p>}
+          {error && <p className="field-error-text" role="alert">{error}</p>}
           <div className="intake-form-actions">
             <Button variant="primary" onClick={saveCurrentAndNext} disabled={busy}>
               {index + 1 < created.length ? 'Save & next' : 'Save & finish'}
@@ -198,7 +204,7 @@ export function LinkedInIntakePage() {
 
   const actionButtons = (
     <div className="intake-form-actions">
-      <Button variant="primary" onClick={stageBatch} disabled={busy}>
+      <Button variant="primary" onClick={stageBatch} loading={busy}>
         Save &amp; Continue
       </Button>
       <Button onClick={() => navigate('/intake')}>Cancel</Button>
@@ -227,6 +233,7 @@ export function LinkedInIntakePage() {
       {actionButtons}
 
       <RecordSection title="Batch Details:">
+        <ErrorSummary errors={problems} />
         <p className="text-secondary">
           One URL per line (or comma-separated). Each becomes one intake item under the batch label below.
         </p>
@@ -244,8 +251,10 @@ export function LinkedInIntakePage() {
           />
         </div>
         <Input
+          id="li-batch-label"
           label="Batch label"
           required
+          error={problems.find((p) => p.field === 'li-batch-label')?.message}
           value={batchLabel}
           onChange={(e) => setBatchLabel(e.target.value)}
           placeholder="VVPH-3 Melbourne week 28"
@@ -259,7 +268,7 @@ export function LinkedInIntakePage() {
             { value: 'contact', label: 'Contact (no grading)' },
           ]}
         />
-        {error && <p className="field-error-text">{error}</p>}
+        {error && <p className="field-error-text" role="alert">{error}</p>}
       </RecordSection>
 
       {actionButtons}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useBackToList, useListLink } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
 import { useRole } from '../../../auth/SessionProvider';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { Handshake as HandshakeIcon } from 'lucide-react';
+import { CircleArrowUp, Handshake as HandshakeIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { useStaffList } from '../hooks';
 import {
@@ -36,7 +37,6 @@ interface RequisitionLite {
 
 export function CompanyRecordPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const role = useRole();
   const { record } = useRecentlyViewed();
   const { staffName } = useStaffList();
@@ -46,6 +46,8 @@ export function CompanyRecordPage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [requisitions, setRequisitions] = useState<RequisitionLite[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const backToList = useBackToList('/sales/companies');
+  const openRecord = useListLink();
 
   const canSeeRequisitions = role === 'admin' || role === 'recruiter';
 
@@ -192,6 +194,18 @@ export function CompanyRecordPage() {
     <RecordPage
       title={company.name}
       icon={<HandshakeIcon size={40} />}
+      actionBar={
+        <>
+          <button
+            type="button"
+            className="link-btn fo-back-to-list"
+            onClick={backToList}
+          >
+            <CircleArrowUp size={20} aria-hidden="true" />
+            Back To List
+          </button>
+        </>
+      }
       titleExtras={
         <span className="sales-badges">
           {company.types.map((t) => (
@@ -226,20 +240,22 @@ export function CompanyRecordPage() {
 
       <RecordSection title={`Contacts (${contacts.length})`}>
         <Table
+          busy={!loaded}
           columns={contactColumns}
           rows={contacts}
           rowKey={(r) => r.profile.person_id}
-          onRowClick={(r) => navigate(`/sales/contacts/${r.profile.person_id}`)}
+          onRowClick={(r) => openRecord(`/sales/contacts/${r.profile.person_id}`)}
           emptyText="No contacts at this company yet."
         />
       </RecordSection>
 
       <RecordSection title={`Open deals (${openDeals.length})`}>
         <Table
+          busy={!loaded}
           columns={dealColumns}
           rows={openDeals}
           rowKey={(d) => d.id}
-          onRowClick={(d) => navigate(`/sales/deals/${d.id}`)}
+          onRowClick={(d) => openRecord(`/sales/deals/${d.id}`)}
           emptyText="No open deals."
         />
         {closedDeals.length > 0 && (

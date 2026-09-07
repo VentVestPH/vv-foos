@@ -69,7 +69,7 @@ export function CandidateEraseDialog({ person, onClose, onErased }: CandidateEra
         value={confirmation}
         onChange={(e) => setConfirmation(e.target.value)}
       />
-      {error && <span className="field-error-text">{error}</span>}
+      {error && <span className="field-error-text" role="alert">{error}</span>}
     </Dialog>
   );
 }

@@ -126,7 +126,7 @@ export function CandidateMergeDialog({ survivor, onClose, onMerged }: CandidateM
           <ul className="merge-match-list">
             {matches.map((match) => (
               <li key={match.id}>
-                <label className="rq-checkline">
+                <label className="checkline">
                   <input
                     type="radio"
                     name="merge-duplicate"
@@ -171,7 +171,7 @@ export function CandidateMergeDialog({ survivor, onClose, onMerged }: CandidateM
         </table>
       )}
 
-      {error && <span className="field-error-text">{error}</span>}
+      {error && <span className="field-error-text" role="alert">{error}</span>}
     </Dialog>
   );
 }

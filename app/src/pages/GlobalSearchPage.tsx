@@ -261,7 +261,7 @@ export function GlobalSearchPage() {
         </button>
       </form>
 
-      {error && <p className="rq-error">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
       {term.length > 0 && term.length < 2 && (
         <p className="text-secondary">Type at least two characters.</p>
       )}

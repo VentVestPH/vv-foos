@@ -1,5 +1,6 @@
 import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
+import { RecordSection } from '../../../components/ui/RecordPage';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import type { Lookups } from '../hooks';
 import type { SortState } from '../lib';
@@ -31,8 +32,7 @@ export function CandidateFilterRail({
   setVisibleCols,
 }: CandidateFilterRailProps) {
   return (
-    <details className="fo-advanced-search" open>
-      <summary>Advanced Search</summary>
+    <RecordSection title="Advanced Search">
       <div className="fo-advanced-search-body">
       <Select
         label="Status"
@@ -68,15 +68,13 @@ export function CandidateFilterRail({
         value={filters.sourcerId}
         onChange={(e) => setFilters({ ...filters, sourcerId: e.target.value })}
       />
-      <Input
+      <DateField
         label="Initial date from"
-        type="date"
         value={filters.dateFrom}
         onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
       />
-      <Input
+      <DateField
         label="Initial date to"
-        type="date"
         value={filters.dateTo}
         onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
       />
@@ -106,9 +104,9 @@ export function CandidateFilterRail({
       )}
       <div className="field">
         <span className="field-label">Columns</span>
-        <div className="rq-checkbox-list">
+        <div className="checkbox-list">
           {COLUMN_DEFS.map((c) => (
-            <label key={c.key} className="rq-checkline">
+            <label key={c.key} className="checkline">
               <input
                 type="checkbox"
                 checked={visibleCols.includes(c.key)}
@@ -137,6 +135,6 @@ export function CandidateFilterRail({
         Clear filters
       </Button>
       </div>
-    </details>
+    </RecordSection>
   );
 }

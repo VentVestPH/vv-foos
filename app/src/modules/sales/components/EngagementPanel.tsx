@@ -4,6 +4,7 @@ import { useSession } from '../../../auth/SessionProvider';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { SidePanelTabs } from '../../../components/ui/SidePanelTabs';
 import { Timeline, type TimelineItem } from '../../../components/ui/Timeline';
@@ -449,9 +450,8 @@ export function EngagementPanel({
           )}
           {quickAdd === 'task' && (
             <>
-              <Input
+              <DateField
                 label="Due date"
-                type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
@@ -472,7 +472,7 @@ export function EngagementPanel({
               onChange={(e) => setRemindAt(e.target.value)}
             />
           )}
-          {saveError && <span className="field-error-text">{saveError}</span>}
+          {saveError && <span className="field-error-text" role="alert">{saveError}</span>}
           <div className="sales-modal-actions">
             <Button onClick={() => setQuickAdd(null)}>Cancel</Button>
             <Button variant="primary" onClick={submitQuickAdd}>

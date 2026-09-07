@@ -7,6 +7,8 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
+import { useListLink } from '../../../lib/listReturn';
+import { RecordSection } from '../../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
@@ -60,6 +62,7 @@ type ContactQuery = ReturnType<typeof contactBaseQuery>;
 export function ContactsListPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const openRecord = useListLink();
   const canEdit = useCanEditCrm();
   const { companyName, companyOptions } = useCompanyOptions();
   const [params] = useSearchParams();
@@ -135,7 +138,7 @@ export function ContactsListPage() {
             className="link-btn"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/sales/contacts/${r.profile.person_id}`);
+              openRecord(`/sales/contacts/${r.profile.person_id}`);
             }}
           >
             <strong>{personName(r.person)}</strong>
@@ -240,8 +243,7 @@ export function ContactsListPage() {
         ) : undefined
       }
       filterRail={
-        <details className="fo-advanced-search" open>
-          <summary>Advanced Search</summary>
+        <RecordSection title="Advanced Search">
           <div className="fo-advanced-search-body">
             <Select
               label="Company"
@@ -251,7 +253,7 @@ export function ContactsListPage() {
               onChange={(e) => setCompanyFilter(e.target.value)}
             />
           </div>
-        </details>
+        </RecordSection>
       }
       exportRows={exportContactRows}
       exportCount={total}
@@ -287,7 +289,7 @@ export function ContactsListPage() {
         sortKey={sort?.key ?? null}
         sortDir={sort?.dir ?? 'asc'}
         onSortChange={(key, dir) => setSort({ key, dir })}
-        onRowClick={(r) => navigate(`/sales/contacts/${r.profile.person_id}`)}
+        onRowClick={(r) => openRecord(`/sales/contacts/${r.profile.person_id}`)}
         emptyText="No contacts match."
       />
 

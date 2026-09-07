@@ -7,6 +7,8 @@ import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
+import { useListLink } from '../../../lib/listReturn';
+import { RecordSection } from '../../../components/ui/RecordPage';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
@@ -53,6 +55,7 @@ type ViewMode = 'kanban' | 'table';
 
 export function DealsListPage() {
   const navigate = useNavigate();
+  const openRecord = useListLink();
   const canEdit = useCanEditCrm();
   const { staffName, staffOptions } = useStaffList();
   const { companyName } = useCompanyOptions();
@@ -218,7 +221,7 @@ export function DealsListPage() {
             <button
               type="button"
               className="sales-kanban-card-open"
-              onClick={() => navigate(`/sales/deals/${d.id}`)}
+              onClick={() => openRecord(`/sales/deals/${d.id}`)}
             >
               {d.display_code}
             </button>
@@ -396,8 +399,7 @@ export function DealsListPage() {
           </span>
         }
         filterRail={
-          <details className="fo-advanced-search" open>
-            <summary>Advanced Search</summary>
+          <RecordSection title="Advanced Search">
             <div className="fo-advanced-search-body">
               <Select
                 label="Stage"
@@ -417,7 +419,7 @@ export function DealsListPage() {
                 onChange={(e) => setOwnerFilter(e.target.value)}
               />
             </div>
-          </details>
+          </RecordSection>
         }
         exportRows={exportDealRows}
         exportCount={total}
@@ -441,7 +443,7 @@ export function DealsListPage() {
           />
         )}
 
-        {moveError && <div className="form-error">{moveError}</div>}
+        {moveError && <div className="form-error" role="alert">{moveError}</div>}
         {view === 'kanban' ? (
           <KanbanBoard
             stages={DEAL_STAGES.map((s) => ({ key: s, label: stageLabel(s) }))}
@@ -458,7 +460,7 @@ export function DealsListPage() {
             sortKey={sort?.key ?? null}
             sortDir={sort?.dir ?? 'asc'}
             onSortChange={(key, dir) => setSort({ key, dir })}
-            onRowClick={(d) => navigate(`/sales/deals/${d.id}`)}
+            onRowClick={(d) => openRecord(`/sales/deals/${d.id}`)}
             emptyText="No deals match."
           />
         )}

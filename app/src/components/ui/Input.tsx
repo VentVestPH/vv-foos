@@ -2,7 +2,7 @@ import { forwardRef, useId, type InputHTMLAttributes } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  error?: string;
+  error?: string | undefined;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
@@ -11,6 +11,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 ) {
   const autoId = useId();
   const inputId = id ?? autoId;
+  const errorId = `${inputId}-error`;
 
   if (!label && !error) {
     return <input ref={ref} id={inputId} className="input" required={required} {...rest} />;
@@ -24,8 +25,19 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           {required && <span className="field-required"> *</span>}
         </label>
       )}
-      <input ref={ref} id={inputId} required={required} {...rest} />
-      {error && <span className="field-error-text">{error}</span>}
+      <input
+        ref={ref}
+        id={inputId}
+        required={required}
+        aria-invalid={error === undefined ? undefined : true}
+        aria-describedby={error === undefined ? undefined : errorId}
+        {...rest}
+      />
+      {error !== undefined && (
+        <span className="field-error-text" role="alert" id={errorId}>
+          {error}
+        </span>
+      )}
     </div>
   );
 });

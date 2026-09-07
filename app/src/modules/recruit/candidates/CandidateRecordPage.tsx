@@ -4,6 +4,7 @@ import { useBackToList } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
@@ -27,6 +28,7 @@ import {
   TasksPanel,
   useEngagement,
 } from '../components/engagement';
+import { CURRENCIES } from '../../../lib/format';
 import { supabase } from '../../../lib/supabase';
 import { type Application, type CandidateProfile, type Person, type Requisition, errMsg, fmtDate, personEducation, personEmails, personExperience, personName, personPhones } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
@@ -147,7 +149,7 @@ export function CandidateRecordPage() {
 
   if (!person) {
     return error ? (
-      <p className="rq-error">{error}</p>
+      <p className="form-error" role="alert">{error}</p>
     ) : (
       <p className="text-secondary">Loading…</p>
     );
@@ -318,9 +320,9 @@ export function CandidateRecordPage() {
           Do not contact — outreach to this person is blocked.
         </div>
       )}
-      {error && <p className="rq-error">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
 
-      <RecordSection title="Requisition Summary">
+      <RecordSection title="Requisition Summary" defaultOpen={false}>
         {apps.length === 0 && (
           <p className="text-secondary">No applications yet.</p>
         )}
@@ -482,9 +484,8 @@ export function CandidateRecordPage() {
         <div className="info-grid info-grid-form">
           {profile && draft && (
             <>
-              <Input
+              <DateField
                 label="Initial date"
-                type="date"
                 value={draft.initial_date}
                 disabled={!canEditProfile}
                 onChange={(e) => setDraft({ ...draft, initial_date: e.target.value })}
@@ -506,7 +507,7 @@ export function CandidateRecordPage() {
                 </label>
                 <textarea
                   id="grade-comment"
-                  rows={3}
+                  rows={6}
                   value={draft.grade_comment}
                   disabled={!canGrade}
                   onChange={(e) =>
@@ -552,9 +553,10 @@ export function CandidateRecordPage() {
                   setDraft({ ...draft, current_salary: e.target.value })
                 }
               />
-              <Input
+              <Select
                 label="Salary currency"
-                placeholder="e.g. PHP, USD"
+                placeholder="Not set"
+                options={CURRENCIES.map((c) => ({ value: c, label: c }))}
                 value={draft.salary_currency}
                 disabled={!canEditProfile}
                 onChange={(e) =>
@@ -567,7 +569,7 @@ export function CandidateRecordPage() {
                 disabled={!canEditProfile}
                 onChange={(e) => setDraft({ ...draft, salary_flag: e.target.value })}
               />
-              <label className="rq-checkline">
+              <label className="checkline">
                 <input
                   type="checkbox"
                   checked={draft.do_not_contact}
@@ -717,7 +719,7 @@ export function CandidateRecordPage() {
         />
       </RecordSection>
 
-      <RecordSection title="Resume Preview" defaultOpen={resumes.length > 0}>
+      <RecordSection title="Resume Preview" defaultOpen={false}>
         {resumes.length > 0 ? (
           <ResumePreview attachment={resumes[0]} />
         ) : (
@@ -834,7 +836,7 @@ export function CandidateRecordPage() {
         </dl>
       </RecordSection>
 
-      <RecordSection title="Contact Log">
+      <RecordSection title="Contact Log" defaultOpen={false}>
         <SidePanelTabs
           tabs={[
             {
@@ -901,7 +903,7 @@ export function CandidateRecordPage() {
         />
       </RecordSection>
 
-      <RecordSection title="Events" defaultOpen={events.length > 0}>
+      <RecordSection title="Events" defaultOpen={false}>
         <EventsPanel items={events} />
       </RecordSection>
 
@@ -927,11 +929,11 @@ export function CandidateRecordPage() {
         <StatusHistory changes={activities.filter((a) => a.kind === 'status_change')} />
       </RecordSection>
 
-      <RecordSection title="History Log / Timeline">
+      <RecordSection title="History Log / Timeline" defaultOpen={false}>
         <Timeline items={timelineItems} />
       </RecordSection>
 
-      {engagement.error && <p className="rq-error">{engagement.error}</p>}
+      {engagement.error && <p className="form-error" role="alert">{engagement.error}</p>}
 
       <CandidateOutreachDialogs outreach={outreach} person={person} />
 

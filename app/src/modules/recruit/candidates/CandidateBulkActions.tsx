@@ -214,7 +214,7 @@ export function CandidateBulkActions({
             same as editing them one at a time.
           </p>
           <BulkNameList recipients={recipients} />
-          {error && <span className="field-error-text">{error}</span>}
+          {error && <span className="field-error-text" role="alert">{error}</span>}
         </Dialog>
       )}
 
@@ -241,8 +241,8 @@ export function CandidateBulkActions({
         >
           <div className="field">
             <span className="field-label">Mark as</span>
-            <div className="rq-checkbox-list">
-              <label className="rq-checkline">
+            <div className="checkbox-list">
+              <label className="checkline">
                 <input
                   type="radio"
                   name="bulk-flag"
@@ -251,7 +251,7 @@ export function CandidateBulkActions({
                 />
                 Do not contact
               </label>
-              <label className="rq-checkline">
+              <label className="checkline">
                 <input
                   type="radio"
                   name="bulk-flag"
@@ -263,7 +263,7 @@ export function CandidateBulkActions({
             </div>
           </div>
           <BulkNameList recipients={recipients} />
-          {error && <span className="field-error-text">{error}</span>}
+          {error && <span className="field-error-text" role="alert">{error}</span>}
         </Dialog>
       )}
 
@@ -344,7 +344,7 @@ export function CandidateBulkActions({
             </div>
           )}
           {outcome && <p className="text-secondary">{outcome}</p>}
-          {error && <span className="field-error-text">{error}</span>}
+          {error && <span className="field-error-text" role="alert">{error}</span>}
         </Dialog>
       )}
     </>

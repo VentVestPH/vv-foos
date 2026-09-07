@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage } from '../../../components/ui/RecordPage';
+import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSummary';
 import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useStaffList } from '../hooks';
 import type { CompanyType } from '../../../lib/database.types';
@@ -29,6 +30,7 @@ export function CompanyNewPage() {
   const [ownerId, setOwnerId] = useState<string>(staff?.id ?? '');
   const [isTest, setIsTest] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [problems, setProblems] = useState<FieldError[]>([]);
   const [saving, setSaving] = useState(false);
 
   const resetForm = () => {
@@ -42,6 +44,7 @@ export function CompanyNewPage() {
     setOwnerId(staff?.id ?? '');
     setIsTest(false);
     setError(null);
+    setProblems([]);
   };
 
   const toggleType = (t: CompanyType) => {
@@ -53,9 +56,10 @@ export function CompanyNewPage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Company name is required.');
+      setProblems([{ field: 'company-name', message: 'Company name is required.' }]);
       return;
     }
+    setProblems([]);
     setSaving(true);
     setError(null);
     const { data, error: insertError } = await supabase
@@ -83,13 +87,16 @@ export function CompanyNewPage() {
 
   return (
     <RecordPage title="Accounts: New Account" icon={<HandshakeIcon size={40} />}>
-      <form className="sales-form" onSubmit={submit}>
+      <form className="sales-form" noValidate onSubmit={submit}>
+        <ErrorSummary errors={problems} />
         <div className="sales-form-grid">
           <div className="sales-span-2">
             <Input
+              id="company-name"
               label="Name"
               required
               value={name}
+              error={problems.find((p) => p.field === 'company-name')?.message}
               onChange={(e) => setName(e.target.value)}
               autoFocus
             />
@@ -151,9 +158,9 @@ export function CompanyNewPage() {
             Test record (excluded from CSV exports)
           </label>
         </div>
-        {error && <div className="form-error">{error}</div>}
+        {error && <div className="form-error" role="alert">{error}</div>}
         <div className="sales-form-actions">
-          <Button variant="primary" type="submit" disabled={saving}>
+          <Button variant="primary" type="submit" loading={saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
           <Button onClick={() => navigate('/sales/companies')}>Cancel</Button>

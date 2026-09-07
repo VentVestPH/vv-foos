@@ -1,5 +1,7 @@
 export const EMPTY_CELL = '—';
 
+export const CURRENCIES = ['PHP', 'USD', 'AUD', 'NZD', 'SGD', 'EUR', 'GBP'];
+
 const DATE_PARTS: Intl.DateTimeFormatOptions = {
   year: 'numeric',
   month: 'short',

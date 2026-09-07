@@ -4,8 +4,10 @@ import { supabase } from '../../../lib/supabase';
 import { useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage } from '../../../components/ui/RecordPage';
+import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSummary';
 import { Contact as ContactCardIcon } from 'lucide-react';
 import { useCompanyOptions } from '../hooks';
 import { normalizeEmail, personName, todayISO, type Person } from '../lib';
@@ -33,6 +35,7 @@ export function ContactNewPage() {
   const [matches, setMatches] = useState<DedupMatch[]>([]);
   const [checkedEmail, setCheckedEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [problems, setProblems] = useState<FieldError[]>([]);
   const [saving, setSaving] = useState(false);
 
   const resetForm = () => {
@@ -103,9 +106,12 @@ export function ContactNewPage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!firstName.trim() && !lastName.trim()) {
-      setError('A first or last name is required.');
+      setProblems([
+        { field: 'contact-first-name', message: 'A first or last name is required.' },
+      ]);
       return;
     }
+    setProblems([]);
     setSaving(true);
     setError(null);
     const normalized = normalizeEmail(email);
@@ -139,11 +145,13 @@ export function ContactNewPage() {
 
   return (
     <RecordPage title="Contacts: New Contact" icon={<ContactCardIcon size={40} />}>
-      <form className="sales-form" onSubmit={submit}>
+      <form className="sales-form" noValidate onSubmit={submit}>
         <div className="sales-form-grid">
           <Input
+            id="contact-first-name"
             label="First name"
             value={firstName}
+            error={problems.find((p) => p.field === 'contact-first-name')?.message}
             onChange={(e) => setFirstName(e.target.value)}
             autoFocus
           />
@@ -176,9 +184,8 @@ export function ContactNewPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <Input
+          <DateField
             label="Contact since"
-            type="date"
             value={sinceDate}
             onChange={(e) => setSinceDate(e.target.value)}
           />
@@ -239,9 +246,10 @@ export function ContactNewPage() {
           </div>
         )}
 
-        {error && <div className="form-error">{error}</div>}
+        <ErrorSummary errors={problems} />
+        {error && <div className="form-error" role="alert">{error}</div>}
         <div className="sales-form-actions">
-          <Button variant="primary" type="submit" disabled={saving}>
+          <Button variant="primary" type="submit" loading={saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
           <Button onClick={() => navigate('/sales/contacts')}>Cancel</Button>

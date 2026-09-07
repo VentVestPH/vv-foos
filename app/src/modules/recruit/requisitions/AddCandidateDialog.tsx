@@ -103,7 +103,7 @@ export function AddCandidateDialog({
         placeholder="Name, title, employer…"
         autoFocus
       />
-      {error && <p className="rq-error">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
       <div className="panel-stack">
         {matches.map((prof) => {
           return (

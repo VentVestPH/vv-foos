@@ -4,6 +4,7 @@ import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MAX_MS = 220;
+const CONTINUOUS_TOKENS = ['--motion-spin'];
 const FORBIDDEN_PROPS = ['width', 'height', 'top', 'left'];
 const SHELL_SELECTORS = [
   '.fo-utility-header',
@@ -30,7 +31,18 @@ for (const file of files) {
   const css = readFileSync(file, 'utf8');
   if (css.includes('prefers-reduced-motion')) hasReducedMotion = true;
 
-  for (const m of css.matchAll(/(\d+(?:\.\d+)?)(ms|s)\b/g)) {
+  let scan = css;
+  for (const token of CONTINUOUS_TOKENS) {
+    scan = scan.replace(new RegExp(`${token}\\s*:[^;]*;`, 'g'), `${token}:;`);
+    const use = new RegExp(`([a-z-]+)\\s*:\\s*([^;]*var\\(${token}\\)[^;]*);`, 'g');
+    for (const m of css.matchAll(use)) {
+      if (!/\binfinite\b/.test(m[2])) {
+        problems.push(`${file}: ${token} is only for a continuous indicator, but ${m[1]} is not infinite`);
+      }
+    }
+  }
+
+  for (const m of scan.matchAll(/(\d+(?:\.\d+)?)(ms|s)\b/g)) {
     const ms = m[2] === 's' ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
     if (ms > 0.02) durations += 1;
     if (ms > MAX_MS) problems.push(`${file}: ${m[0]} exceeds the ${MAX_MS}ms budget`);

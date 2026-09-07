@@ -75,8 +75,6 @@ export function fmtMoney(
   return formatMoney(value, currency);
 }
 
-export const CURRENCIES = ['PHP', 'USD', 'AUD', 'NZD', 'SGD', 'EUR', 'GBP'];
-
 export const TASK_PRIORITIES = ['low', 'normal', 'high'];
 
 export function stageLabel(stage: string): string {

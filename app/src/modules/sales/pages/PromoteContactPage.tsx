@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { useCanEditCrm, useCompanyOptions } from '../hooks';
@@ -133,15 +134,14 @@ export function PromoteContactPage() {
             onChange={(e) => setTitle(e.target.value)}
             disabled={!canEdit}
           />
-          <Input
+          <DateField
             label="Contact since (hire date)"
-            type="date"
             value={sinceDate}
             onChange={(e) => setSinceDate(e.target.value)}
             disabled={!canEdit}
           />
         </div>
-        {error && <div className="form-error">{error}</div>}
+        {error && <div className="form-error" role="alert">{error}</div>}
         <div className="sales-form-actions">
           <Button onClick={() => navigate('/sales/contacts')}>
             Not now

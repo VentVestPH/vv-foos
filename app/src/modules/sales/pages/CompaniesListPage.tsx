@@ -8,6 +8,8 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
+import { useListLink } from '../../../lib/listReturn';
+import { RecordSection } from '../../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
@@ -54,6 +56,7 @@ const TYPE_OPTIONS = [
 export function CompaniesListPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const openRecord = useListLink();
   const canEdit = useCanEditCrm();
   const { staffName, staffOptions } = useStaffList();
 
@@ -131,7 +134,7 @@ export function CompaniesListPage() {
             className="link-btn"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/sales/companies/${c.id}`);
+              openRecord(`/sales/companies/${c.id}`);
             }}
           >
             {c.name}
@@ -250,8 +253,7 @@ export function CompaniesListPage() {
         ) : undefined
       }
       filterRail={
-        <details className="fo-advanced-search" open>
-          <summary>Advanced Search</summary>
+        <RecordSection title="Advanced Search">
           <div className="fo-advanced-search-body">
             <Select
               label="Type"
@@ -274,7 +276,7 @@ export function CompaniesListPage() {
               placeholder="City, state, country"
             />
           </div>
-        </details>
+        </RecordSection>
       }
       exportRows={exportCompanyRows}
       exportCount={total}
@@ -304,7 +306,7 @@ export function CompaniesListPage() {
         sortKey={sort?.key ?? null}
         sortDir={sort?.dir ?? 'asc'}
         onSortChange={(key, dir) => setSort({ key, dir })}
-        onRowClick={(c) => navigate(`/sales/companies/${c.id}`)}
+        onRowClick={(c) => openRecord(`/sales/companies/${c.id}`)}
         emptyText="No companies match."
       />
 

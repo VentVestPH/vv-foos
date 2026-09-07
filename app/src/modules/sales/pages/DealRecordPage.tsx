@@ -1,21 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useBackToList } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
+import { CURRENCIES } from '../../../lib/format';
 import { DEAL_STAGES, type DealStage } from '../../../lib/database.types';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
-import { Briefcase as BriefcaseIcon } from 'lucide-react';
+import { CircleArrowUp, Briefcase as BriefcaseIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { LostReasonDialog } from '../components/LostReasonDialog';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
 import {
   personName,
   stageLabel,
-  CURRENCIES,
   type ContactProfile,
   type Deal,
   type Person,
@@ -23,6 +25,7 @@ import {
 
 export function DealRecordPage() {
   const { id } = useParams<{ id: string }>();
+  const backToList = useBackToList('/sales/deals');
   const navigate = useNavigate();
   const canEdit = useCanEditCrm();
   const { record } = useRecentlyViewed();
@@ -213,8 +216,16 @@ export function DealRecordPage() {
         </span>
       }
       actionBar={
-        canEdit ? (
-          <>
+        <>
+          <button
+            type="button"
+            className="link-btn fo-back-to-list"
+            onClick={backToList}
+          >
+            <CircleArrowUp size={20} aria-hidden="true" />
+            Back To List
+          </button>
+          {canEdit && (
             <Button
               variant="primary"
               size="sm"
@@ -223,11 +234,11 @@ export function DealRecordPage() {
             >
               {saving ? 'Saving…' : 'Save changes'}
             </Button>
-            {saveError && (
-              <span className="field-error-text">{saveError}</span>
-            )}
-          </>
-        ) : undefined
+          )}
+          {canEdit && saveError !== null && (
+            <span className="field-error-text" role="alert">{saveError}</span>
+          )}
+        </>
       }
     >
       <RecordSection title="Deal details">
@@ -305,9 +316,8 @@ export function DealRecordPage() {
             onChange={(e) => setProbability(e.target.value)}
             disabled={!canEdit}
           />
-          <Input
+          <DateField
             label="Expected close"
-            type="date"
             value={expectedClose}
             onChange={(e) => setExpectedClose(e.target.value)}
             disabled={!canEdit}

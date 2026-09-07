@@ -215,7 +215,7 @@ export function RequisitionRecordPage() {
 
   if (!req) {
     return error ? (
-      <p className="rq-error">{error}</p>
+      <p className="form-error" role="alert">{error}</p>
     ) : (
       <p className="text-secondary">Loading…</p>
     );
@@ -309,7 +309,7 @@ export function RequisitionRecordPage() {
       }
       actionBar={actionBarContent}
     >
-      {error && <p className="rq-error">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
 
       <div className="fo-next-steps">
         <span className="fo-next-steps-label">Next Steps:</span>
@@ -380,7 +380,7 @@ export function RequisitionRecordPage() {
         )}
       </RecordSection>
 
-      <RecordSection title="Attachments">
+      <RecordSection title="Attachments" defaultOpen={false}>
         <AttachmentsPanel
           items={engagement.attachments}
           parent={{ type: 'requisition', id: req.id }}
@@ -389,7 +389,7 @@ export function RequisitionRecordPage() {
         />
       </RecordSection>
 
-      <RecordSection title="Accounts / Company">
+      <RecordSection title="Accounts / Company" defaultOpen={false}>
         {company ? (
           <dl className="info-grid">
             <div className="info-item">
@@ -451,10 +451,10 @@ export function RequisitionRecordPage() {
 
       <RecordSection title="History Log / Timeline" defaultOpen={false}>
         <Timeline items={timelineItems} />
-        {engagement.error && <p className="rq-error">{engagement.error}</p>}
+        {engagement.error && <p className="form-error" role="alert">{engagement.error}</p>}
       </RecordSection>
 
-      <RecordSection title="Tracking:">
+      <RecordSection title="Tracking:" defaultOpen={false}>
         <dl className="info-grid">
           <div className="info-item">
             <dt>Last updated</dt>
@@ -471,7 +471,7 @@ export function RequisitionRecordPage() {
         </dl>
       </RecordSection>
 
-      <RecordSection title="Approvals:">
+      <RecordSection title="Approvals:" defaultOpen={false}>
         {approvers.length === 0 && (
           <p className="text-secondary">No approvers configured.</p>
         )}

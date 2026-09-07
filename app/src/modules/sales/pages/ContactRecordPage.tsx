@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useBackToList, useListLink } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { Table } from '../../../components/ui/Table';
-import { Contact as ContactCardIcon } from 'lucide-react';
+import { CircleArrowUp, Contact as ContactCardIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { Modal } from '../components/Modal';
 import { useCanEditCrm, useCompanyOptions } from '../hooks';
@@ -28,7 +30,6 @@ import { EMPTY_CELL } from '../../../lib/format';
 
 export function ContactRecordPage() {
   const { personId } = useParams<{ personId: string }>();
-  const navigate = useNavigate();
   const canEdit = useCanEditCrm();
   const { record } = useRecentlyViewed();
   const { companyName, companyOptions } = useCompanyOptions();
@@ -37,6 +38,8 @@ export function ContactRecordPage() {
   const [profile, setProfile] = useState<ContactProfile | null>(null);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const backToList = useBackToList('/sales/contacts');
+  const openRecord = useListLink();
 
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -222,6 +225,14 @@ export function ContactRecordPage() {
       }
       actionBar={
         <>
+          <button
+            type="button"
+            className="link-btn fo-back-to-list"
+            onClick={backToList}
+          >
+            <CircleArrowUp size={20} aria-hidden="true" />
+            Back To List
+          </button>
           <Button
             size="sm"
             disabled={emails.length === 0}
@@ -327,7 +338,7 @@ export function ContactRecordPage() {
             ]}
             rows={deals}
             rowKey={(d) => d.id}
-            onRowClick={(d) => navigate(`/sales/deals/${d.id}`)}
+            onRowClick={(d) => openRecord(`/sales/deals/${d.id}`)}
           />
         </RecordSection>
       )}
@@ -360,7 +371,7 @@ export function ContactRecordPage() {
           <p className="text-secondary">
             Sends through your own connected Gmail account — appears in your Sent folder.
           </p>
-          {emailError && <span className="field-error-text">{emailError}</span>}
+          {emailError && <span className="field-error-text" role="alert">{emailError}</span>}
           <div className="sales-modal-actions">
             <Button onClick={() => setShowSendEmail(false)}>Cancel</Button>
             <Button variant="primary" onClick={() => void submitSendEmail()} disabled={emailBusy}>
@@ -410,7 +421,7 @@ export function ContactRecordPage() {
                 Creates a real Calendar event with a Google Meet link, inviting{' '}
                 {emails[0]?.address ?? 'this contact'}.
               </p>
-              {meetingError && <span className="field-error-text">{meetingError}</span>}
+              {meetingError && <span className="field-error-text" role="alert">{meetingError}</span>}
               <div className="sales-modal-actions">
                 <Button onClick={() => setShowSchedule(false)}>Cancel</Button>
                 <Button variant="primary" onClick={() => void submitSchedule()} disabled={meetingBusy}>
@@ -436,9 +447,8 @@ export function ContactRecordPage() {
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
           />
-          <Input
+          <DateField
             label="Contact since"
-            type="date"
             value={editSince}
             onChange={(e) => setEditSince(e.target.value)}
           />
@@ -450,7 +460,7 @@ export function ContactRecordPage() {
             />
             Primary contact for the company
           </label>
-          {saveError && <span className="field-error-text">{saveError}</span>}
+          {saveError && <span className="field-error-text" role="alert">{saveError}</span>}
           <div className="sales-modal-actions">
             <Button onClick={() => setEditing(false)}>Cancel</Button>
             <Button variant="primary" onClick={saveProfile}>

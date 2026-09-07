@@ -60,7 +60,7 @@ export function CandidateOutreachDialogs({ outreach, person }: CandidateOutreach
           <p className="text-secondary">
             Sends through your own connected Gmail account — appears in your Sent folder.
           </p>
-          {outreach.emailError && <span className="field-error-text">{outreach.emailError}</span>}
+          {outreach.emailError && <span className="field-error-text" role="alert">{outreach.emailError}</span>}
         </Dialog>
       )}
 
@@ -114,7 +114,7 @@ export function CandidateOutreachDialogs({ outreach, person }: CandidateOutreach
                 Creates a real Calendar event with a Google Meet link, inviting{' '}
                 {personEmails(person)[0]?.address ?? 'this person'}.
               </p>
-              {outreach.meetingError && <span className="field-error-text">{outreach.meetingError}</span>}
+              {outreach.meetingError && <span className="field-error-text" role="alert">{outreach.meetingError}</span>}
             </>
           )}
         </Dialog>

@@ -91,7 +91,7 @@ export function DataExportCard() {
         72,917 rows over 73 requests and about 20 seconds.
       </p>
 
-      {error && <p className="form-error">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
       {done && <p className="settings-export-done">{done}</p>}
 
       <table className="table settings-export-table">

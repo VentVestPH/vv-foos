@@ -5,10 +5,12 @@ import { useRole, useSession } from '../../../auth/SessionProvider';
 import { REQUISITION_STATUSES } from '../../../lib/database.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { UnviewedBadge } from '../../../components/ui/UnviewedBadge';
 import { ListPage } from '../../../components/ui/ListPage';
+import { RecordSection } from '../../../components/ui/RecordPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
@@ -92,7 +94,7 @@ interface ReqRow extends Record<string, unknown> {
 }
 
 const COLUMN_DEFS: { key: keyof ReqRow & string; header: string }[] = [
-  { key: 'job_code', header: 'Job code' },
+  { key: 'job_code', header: 'Job Code' },
   { key: 'display_code', header: 'ID' },
   { key: 'title', header: 'Title' },
   { key: 'applications', header: 'Candidates' },
@@ -107,6 +109,10 @@ const COLUMN_DEFS: { key: keyof ReqRow & string; header: string }[] = [
 ];
 
 const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
+
+const COLUMN_HEADER: Record<string, string> = Object.fromEntries(
+  COLUMN_DEFS.map((c) => [c.key, c.header]),
+);
 
 
 const REQ_LIST_EVENTS = [
@@ -314,11 +320,11 @@ export function RequisitionListPage() {
 
   const columns = useMemo<TableColumn<ReqRow>[]>(() => {
     const defs: TableColumn<ReqRow>[] = [
-      { key: 'job_code', header: 'Job Code', sortable: true },
-      { key: 'display_code', header: 'ID', sortable: true },
+      { key: 'job_code', header: COLUMN_HEADER.job_code, sortable: true },
+      { key: 'display_code', header: COLUMN_HEADER.display_code, sortable: true },
       {
         key: 'title',
-        header: 'Title',
+        header: COLUMN_HEADER.title,
         sortable: true,
         render: (r) => (
           <button
@@ -326,7 +332,7 @@ export function RequisitionListPage() {
             className="link-btn"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/recruit/requisitions/${r.id}`);
+              openRecord(`/recruit/requisitions/${r.id}`);
             }}
           >
             {r.title}
@@ -335,7 +341,7 @@ export function RequisitionListPage() {
       },
       {
         key: 'applications',
-        header: 'Candidates',
+        header: COLUMN_HEADER.applications,
         sortable: true,
         sortValue: (r) => r.applications,
         render: (r) => (
@@ -347,25 +353,25 @@ export function RequisitionListPage() {
       },
       {
         key: 'updated_at',
-        header: 'Last updated',
+        header: COLUMN_HEADER.updated_at,
         sortable: true,
         render: (r) => fmtDate(r.updated_at),
       },
-      { key: 'location', header: 'Location', sortable: true },
+      { key: 'location', header: COLUMN_HEADER.location, sortable: true },
       {
         key: 'status',
-        header: 'Status',
+        header: COLUMN_HEADER.status,
         sortable: true,
         render: (r) => <StatusBadge status={r.status} />,
       },
       {
         key: 'owners',
-        header: 'Requisition Owners',
+        header: COLUMN_HEADER.owners,
         render: (r) => <CappedCell text={r.owners} />,
       },
       {
         key: 'unviewed',
-        header: 'Next Steps',
+        header: COLUMN_HEADER.unviewed,
         sortable: true,
         sortValue: (r) => r.unviewed,
         render: (r) => (
@@ -376,7 +382,7 @@ export function RequisitionListPage() {
               className="link-btn"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/recruit/requisitions/${r.id}`);
+                openRecord(`/recruit/requisitions/${r.id}`);
               }}
             >
               Candidates ({r.applications})
@@ -384,22 +390,22 @@ export function RequisitionListPage() {
           </span>
         ),
       },
-      { key: 'company', header: 'Company', sortable: true },
+      { key: 'company', header: COLUMN_HEADER.company, sortable: true },
       {
         key: 'num_openings',
-        header: 'Openings',
+        header: COLUMN_HEADER.num_openings,
         sortable: true,
         sortValue: (r) => r.num_openings,
       },
       {
         key: 'opened_date',
-        header: 'Opened',
+        header: COLUMN_HEADER.opened_date,
         sortable: true,
         render: (r) => fmtDate(r.opened_date),
       },
     ];
     return defs.filter((c) => visibleCols.includes(c.key));
-  }, [visibleCols, navigate]);
+  }, [visibleCols, openRecord]);
 
   const currentState = useCallback(
     (): ViewState => ({
@@ -451,8 +457,7 @@ export function RequisitionListPage() {
       exportColumns={exportColumns}
       exportFilename="requisitions.csv"
       filterRail={
-        <details className="fo-advanced-search" open>
-          <summary>Advanced Search</summary>
+        <RecordSection title="Advanced Search">
           <div className="fo-advanced-search-body">
             <Select
               label="Status"
@@ -484,15 +489,13 @@ export function RequisitionListPage() {
               onChange={(e) => setFilters({ ...filters, location: e.target.value })}
               placeholder="Contains…"
             />
-            <Input
+            <DateField
               label="Opened from"
-              type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
             />
-            <Input
+            <DateField
               label="Opened to"
-              type="date"
               value={filters.dateTo}
               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
             />
@@ -522,9 +525,9 @@ export function RequisitionListPage() {
             )}
             <div className="field">
               <span className="field-label">Columns</span>
-              <div className="rq-checkbox-list">
+              <div className="checkbox-list">
                 {COLUMN_DEFS.map((c) => (
-                  <label key={c.key} className="rq-checkline">
+                  <label key={c.key} className="checkline">
                     <input
                       type="checkbox"
                       checked={visibleCols.includes(c.key)}
@@ -553,11 +556,11 @@ export function RequisitionListPage() {
               Clear filters
             </Button>
           </div>
-        </details>
+        </RecordSection>
       }
     >
       {(error || savedViews.error) && (
-        <p className="rq-error">{error ?? savedViews.error}</p>
+        <p className="form-error" role="alert">{error ?? savedViews.error}</p>
       )}
 
       {canBulk && (

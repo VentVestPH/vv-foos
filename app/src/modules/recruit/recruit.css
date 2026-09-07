@@ -90,12 +90,6 @@
   font-weight: 600;
 }
 
-.rq-error {
-  color: var(--danger);
-  font-size: var(--fs-meta);
-  margin: 0;
-}
-
 .saved-views {
   display: flex;
   align-items: center;
@@ -136,24 +130,6 @@
 .rq-form textarea:focus {
   outline: 2px solid var(--primary);
   outline-offset: -1px;
-}
-
-.rq-checkline {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  font-size: var(--fs-body);
-}
-
-.rq-checkbox-list {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  max-height: 180px;
-  overflow-y: auto;
-  padding: var(--sp-1);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-half);
 }
 
 .rq-approver-row {
@@ -523,12 +499,12 @@
   border-bottom: none;
 }
 
-.merge-match-list .rq-checkline {
+.merge-match-list .checkline {
   align-items: flex-start;
   padding: 6px 0;
 }
 
-.merge-match-list .rq-checkline > span {
+.merge-match-list .checkline > span {
   display: flex;
   flex-direction: column;
   gap: 2px;

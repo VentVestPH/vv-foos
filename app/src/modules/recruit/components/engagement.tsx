@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
+import { FileField } from '../../../components/ui/FileField';
+import { Spinner } from '../../../components/ui/Spinner';
 import { Badge } from '../../../components/ui/Badge';
 import type {
   ActivityKind,
@@ -348,9 +351,8 @@ export function TasksPanel({ items, allowCreate, onCreate, onToggle }: TasksPane
             placeholder="Subject"
             required
           />
-          <Input
+          <DateField
             label="Due date"
-            type="date"
             value={due}
             onChange={(e) => setDue(e.target.value)}
           />
@@ -365,7 +367,7 @@ export function TasksPanel({ items, allowCreate, onCreate, onToggle }: TasksPane
       {items.map((t) => (
         <div key={t.id} className="panel-item">
           <div className="panel-item-head">
-            <label className="rq-checkline">
+            <label className="checkline">
               <input
                 type="checkbox"
                 checked={t.status === 'done'}
@@ -522,20 +524,21 @@ export function AttachmentsPanel({
               onChange={(e) => setKind(e.target.value as AttachmentKind)}
             />
           )}
-          <input
-            ref={fileRef}
-            type="file"
-            aria-label={fixedKind === 'resume' ? 'Upload resume' : 'Upload file'}
+          <FileField
+            inputRef={fileRef}
+            label={fixedKind === 'resume' ? 'Upload resume' : 'Upload file'}
+            buttonLabel={fixedKind === 'resume' ? 'Choose a resume' : 'Choose a file'}
             disabled={busy}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void upload(file);
-            }}
+            onFile={(file) => void upload(file)}
           />
-          {busy && <span className="text-secondary">Uploading…</span>}
+          {busy && (
+            <span className="text-secondary">
+              <Spinner label="Uploading" /> Uploading…
+            </span>
+          )}
         </div>
       )}
-      {error && <p className="rq-error">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
       {items.length === 0 && (
         <p className="text-secondary">
           {fixedKind === 'resume' ? 'No resumes yet.' : 'No files yet.'}
@@ -596,7 +599,7 @@ export function ResumePreview({ attachment }: { attachment: Attachment }) {
     );
   }
   if (failed) {
-    return <p className="rq-error">Could not load this resume preview.</p>;
+    return <p className="form-error" role="alert">Could not load this resume preview.</p>;
   }
   if (!url) return <p className="text-secondary">Loading resume preview…</p>;
   return <iframe className="resume-preview" src={url} title="Resume preview" />;

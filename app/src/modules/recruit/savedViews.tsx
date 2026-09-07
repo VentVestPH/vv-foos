@@ -181,7 +181,7 @@ export function SavedViewsControl({
             required
             autoFocus
           />
-          <label className="rq-checkline">
+          <label className="checkline">
             <input
               type="checkbox"
               checked={shared}

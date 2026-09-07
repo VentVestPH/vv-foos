@@ -246,7 +246,7 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
         </RecordSection>
       )}
 
-      {error && <p className="field-error-text">{error}</p>}
+      {error && <p className="field-error-text" role="alert">{error}</p>}
 
       {!isReadOnly(item) && item.status !== 'imported' && item.status !== 'rejected' && (
         <div className="intake-drawer-actions">
