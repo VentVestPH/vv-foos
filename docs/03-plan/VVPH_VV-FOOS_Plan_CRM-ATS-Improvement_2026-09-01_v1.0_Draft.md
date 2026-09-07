@@ -485,7 +485,7 @@ One picture of what is done, what remains, and which goal does it. **227 of 264 
 | :---- | ----: | :---- | :---- |
 | Workstreams **A to V** | 230 | done | **227 done.** Everything through the component audit |
 | ↳ still open inside them | **3** | **Klent** | E half, B half, A1, T1. All parked, each needs an account, a credential or a decision from a person. Nothing technical blocks them |
-| Workstream **W** | 22 | **Goal 5** | **started 2026-09-07.** W4's five conformance items and the Level A cluster are done; W8a's `busy` and `useDocumentTitle` are done; W20's `emptyText` lift is done. Detail and per-item state in `docs/12-full-audit/VVPH_VV-FOOS_Log_Goal-5-Execution` |
+| Workstream **W** | 23 | **Goal 5** | **started 2026-09-07.** W24 added 2026-09-07 from Klent's login-flash report, diagnosed and scheduled after Goal 6. W4's five conformance items and the Level A cluster are done; W8a's `busy` and `useDocumentTitle` are done; W20's `emptyText` lift is done. Detail and per-item state in `docs/12-full-audit/VVPH_VV-FOOS_Log_Goal-5-Execution` |
 | Workstream **X** | 12 | **Goal 6** | 0 started. Hosting and cutover. X8 and X11 are Klent's decisions, not mine |
 | **total** | **264** | | **227 done, 37 remaining** |
 

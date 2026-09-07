@@ -136,6 +136,57 @@ So the accessibility fix introduced an accessibility defect. The lesson is not "
 
 Fixed by giving the card `role="group"`, which the ARIA specification permits interactive descendants inside, applied after the `{...attributes}` spread so it overrides dnd-kit's role. The card keeps its `tabIndex`, its `aria-label` position announcement and its `aria-describedby` pointing at the keyboard help, so the hand-written drag is unaffected.
 
+### 9. W14 and V6 row 16, the contradiction Klent was actually seeing
+
+Klent: "make sure clickable links or buttons use cursor pointer."
+
+The cause was a lie in the markup, not a missing cursor rule. **Every one of those controls already sets `cursor: pointer` on its own class**: `.fo-utility-link`, `.fo-qs-advanced-link`, `.fo-gear-btn`, `.fo-cal-view-btn`, `.fo-sidebar-collapse-btn` and `.btn` all do. The single rule overriding them was `states.css:33`, `[aria-disabled='true'] { opacity: 0.72; cursor: default; }`, and **17 controls claimed `aria-disabled` while carrying an `onClick` that always responds**. `PlaceholderAction` defaulted `ariaDisabled` to `true` and rendered `onClick={() => show(label, detail)}` in the same element.
+
+So a user hovered a button that opens a dialog and saw a dead cursor at 72% opacity, and a screen-reader user was told the control was unavailable when it was not. That is one defect wearing two faces, which is why V6 row 16 and W14 are the same item.
+
+**Fixed by removing the false claim rather than by overriding the cursor.** Eleven bare `aria-disabled` attributes are gone, `PlaceholderAction` no longer sets one and its `ariaDisabled` prop is retired, and the muted look survives on a new `.is-placeholder` class that carries the opacity and nothing else. The cursor then comes back on its own from each control's existing rule, which is the tell that the cursor was never the problem.
+
+**One `aria-disabled` deliberately stays**, at `DashboardPage.tsx:105`: `<input type="checkbox" disabled aria-disabled="true" />`. That control is genuinely disabled, so the claim is true and `cursor: default` is correct for it. V6 row 16 said "all but one carry `aria-disabled` while responding to clicks" and that one is this.
+
+Measured across all 31 routes afterwards:
+
+```
+PROBE respondingPlaceholders=359 notPointer=0 falselyDisabled=0
+```
+
+359 is instances rather than distinct controls: the shell's placeholders render on every route, which is also why this was so visible. Goal 2 counted the distinct set at 77.
+
+### 10. Removing the false `aria-disabled` uncovered a real contrast failure it had been hiding
+
+The best finding in this goal, and it only appeared because the gate re-ran. Two passes failed identically:
+
+```
+FAIL browser
+  accessibility.spec.ts  no serious or critical violation on any signed-in screen route
+  home: color-contrast (serious, 6 node(s)) e.g. .fo-qs-advanced-link.is-placeholder
+  requisition new: color-contrast (serious, 10 node(s))
+  candidate record: color-contrast (serious, 10 node(s))
+  ... on 14 routes
+```
+
+**axe exempts disabled controls from WCAG 1.4.3.** So for as long as those 17 controls claimed `aria-disabled="true"`, axe skipped their contrast, and `opacity: 0.72` was never checked. Taking the false claim away did not create a failure; it **revealed one that had been there all along**, on 359 control instances across every route in the product.
+
+And the muted look cannot be rescued by tuning the number. Computed against the WCAG relative-luminance formula, for `--fo-link` `#1b6fc9` on white:
+
+| opacity | effective colour | ratio | 4.5:1 |
+| ----: | :---- | ----: | :---- |
+| 0.72 | `#5b97d8` | 3.06:1 | fail |
+| 0.80 | `#498cd4` | 3.51:1 | fail |
+| 0.85 | `#3d85d1` | 3.84:1 | fail |
+| 0.90 | `#327dce` | 4.23:1 | fail |
+| **1.00** | `#1b6fc9` | **5.04:1** | **pass** |
+
+**No opacity below 1.0 passes.** `opacity` is the wrong instrument for a de-emphasis, because it blends toward whatever is behind it and takes the contrast ratio down with it.
+
+So `.is-placeholder` now carries **no visual change at all**. The class stays as a marker for the tests, the controls look and behave like the working controls they are, and clicking one still opens the explanatory dialog that `shell/Placeholder.tsx` exists to show. That is also the honest design: Goal 2 assigned **33 of these controls a Build verdict**, so styling them as second-class was scaffolding for a state the product is leaving.
+
+**The wider lesson, and it applies to every `aria-disabled` in any codebase.** A false disabled claim is not one defect, it is a suppressor: it hid a cursor bug, an announcement bug and a contrast failure at once, and the contrast failure was invisible to the accessibility suite that runs on every commit.
+
 ## What went wrong doing it
 
 **I leaked a test fixture by killing the suite, for the second time this session.** Gate pass 1 reported `FAIL validate.sql` with `ERROR: FAIL 9: people count`, because `people where is_test` was **11** against an expected **10**.

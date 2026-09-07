@@ -26,10 +26,9 @@ export function CalendarViewIcons() {
         <button
           key={key}
           type="button"
-          className="fo-cal-view-btn"
+          className="fo-cal-view-btn is-placeholder"
           aria-label={label}
           title={label}
-          aria-disabled
           onClick={() => show(label)}
         >
           <Icon size={16} aria-hidden="true" />

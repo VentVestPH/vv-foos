@@ -65,9 +65,8 @@ function MyViewTab() {
 
       <button
         type="button"
-        className="fo-gear-btn"
+        className="fo-gear-btn is-placeholder"
         aria-label="Dashboard settings"
-        aria-disabled
         onClick={() => show('Dashboard settings')}
       >
         {}
@@ -207,9 +206,8 @@ function PlaceholderActionGear() {
   return (
     <button
       type="button"
-      className="fo-gear-btn fo-report-tab-gear"
+      className="fo-gear-btn fo-report-tab-gear is-placeholder"
       aria-label="Configure report categories"
-      aria-disabled
       onClick={() => show('Configure report categories')}
     >
       <GearIcon size={16} />

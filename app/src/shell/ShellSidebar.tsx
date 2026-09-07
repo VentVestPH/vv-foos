@@ -96,7 +96,7 @@ export function ShellSidebar() {
           </div>
           <button
             type="button"
-            className="fo-qs-advanced-link"
+            className="fo-qs-advanced-link is-placeholder"
             onClick={() =>
               navigate(keywords.trim() ? `/search?q=${encodeURIComponent(keywords.trim())}` : '/search')
             }
@@ -105,8 +105,7 @@ export function ShellSidebar() {
           </button>
           <button
             type="button"
-            className="fo-qs-advanced-link"
-            aria-disabled
+            className="fo-qs-advanced-link is-placeholder"
             onClick={() => show('Advanced Search')}
           >
             Advanced Search
@@ -147,10 +146,9 @@ export function ShellSidebar() {
           <span className="fo-sidebar-panel-title">Recently Viewed</span>
           <button
             type="button"
-            className="fo-sidebar-collapse-btn"
+            className="fo-sidebar-collapse-btn is-placeholder"
             aria-label="Configure Recently Viewed"
             title="Configure"
-            aria-disabled
             onClick={() => show('Recently Viewed settings')}
           >
             <GearIcon size={14} />

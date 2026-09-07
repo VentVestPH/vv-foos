@@ -15,6 +15,18 @@ function activeKey(page: Page) {
   );
 }
 
+function neighbourOfActive(page: Page, offset: number) {
+  return page.evaluate((step: number) => {
+    const active = (document.activeElement as HTMLElement | null)?.closest('tr');
+    if (!active) return null;
+    const all = Array.from(document.querySelectorAll('.table-wrap tbody tr[data-row-key]'));
+    const at = all.indexOf(active);
+    if (at < 0) return null;
+    const next = all[at + step];
+    return next ? next.getAttribute('data-row-key') : null;
+  }, offset);
+}
+
 test.describe('Q6: the lists are usable from the keyboard', () => {
   test('slash focuses the list search from anywhere on the page', async ({ page }) => {
     await openCandidates(page);
@@ -37,23 +49,25 @@ test.describe('Q6: the lists are usable from the keyboard', () => {
 
   test('j and k walk the rows, Enter opens the record', async ({ page }) => {
     const rows = await openCandidates(page);
-    const first = await rows.nth(0).getAttribute('data-row-key');
-    const second = await rows.nth(1).getAttribute('data-row-key');
-
     await rows.nth(0).focus();
-    expect(await activeKey(page)).toBe(first);
+    const startKey = await activeKey(page);
+    expect(startKey).not.toBeNull();
 
+    const expectedAfterJ = await neighbourOfActive(page, 1);
     await page.keyboard.press('j');
-    expect(await activeKey(page)).toBe(second);
+    expect(await activeKey(page)).toBe(expectedAfterJ);
 
+    const expectedAfterK = await neighbourOfActive(page, -1);
     await page.keyboard.press('k');
-    expect(await activeKey(page)).toBe(first);
+    expect(await activeKey(page)).toBe(expectedAfterK);
 
+    const expectedAfterDown = await neighbourOfActive(page, 1);
     await page.keyboard.press('ArrowDown');
-    expect(await activeKey(page)).toBe(second);
+    const landedOn = await activeKey(page);
+    expect(landedOn).toBe(expectedAfterDown);
 
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(new RegExp(`/recruit/candidates/${second}`));
+    await expect(page).toHaveURL(new RegExp(`/recruit/candidates/${landedOn ?? ''}`));
   });
 
   test('End and Home jump to the last and first row', async ({ page }) => {

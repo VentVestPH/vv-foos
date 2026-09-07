@@ -158,3 +158,30 @@ Error: the dashboard reported a client error while switching tabs
 - **The general lesson, and it is already in `CLAUDE.md`:** "Fixtures must be run-unique. Cleanup by a shared prefix means two specs delete each other's rows." Cleaning up by **time window** is a weaker version of the same mistake, because the window belongs to no one. A spec that asserts a table is empty must still scope that assertion to rows it could have caused.
 - **Status:** closed.
 - **Closed date:** 2026-09-07
+
+---
+
+### QA-011: `list-keyboard` asserted a row order it had captured before the list could reload
+
+- **Date found:** 2026-09-07, in gate pass 5 of 5 while verifying W14. Fixed the same day.
+- **Module/agent:** `tests/e2e/list-keyboard.spec.ts:38` "j and k walk the rows, Enter opens the record"
+- **Severity:** **Medium.** A false failure, and it had been chased once before without being logged: QA-009 records itself as found "while chasing the `list-keyboard` intermittent", so this is that intermittent, finally attributed.
+- **Steps to reproduce:** the full browser suite at two workers. It does not reproduce in isolation: **8 of 8 runs of the spec alone passed** on the tree that had just failed it in the gate.
+- **Expected:** pressing `j` moves to the next row.
+- **Actual, verbatim:**
+
+```
+Error: expect(received).toBe(expected)
+  Expected: "80efe836-95d3-5714-9699-a242b61a641a"
+  Received: "91ea1134-1092-5936-9d77-9fa3ee539e13"
+  45 |     await page.keyboard.press('j');
+> 46 |     expect(await activeKey(page)).toBe(second);
+```
+
+- **Cause, and the received value is what names it.** The received key is **a third row**, neither the captured first nor the captured second. So the keypress worked and the *list* had changed: the spec read `rows.nth(0)` and `rows.nth(1)` up front, then pressed a key, and between those two moments another worker's fixture write to `candidate_profiles` fired a realtime change, the candidate list reloaded, and the rows shifted. The spec was asserting a snapshot rather than the behaviour.
+- **Why it is not the `Table` keyboard guard added in the same commit.** That guard can only decide *whether* `onRowKeyDown` runs. Had it wrongly blocked `j`, the active row would have stayed on the captured **first** key, and the failure would read `Received: <first>`. A third key cannot be produced by the guard, and 8 isolated runs agreed.
+- **Fix:** assert movement **relative to the live DOM** instead of to a snapshot. A new `neighbourOfActive(page, offset)` helper reads the currently focused row, finds its neighbour in the DOM at that instant, and the assertion compares against that. The final `Enter` now navigates to whichever row it actually landed on. This tests the contract, "j moves to the next row", and is immune to the list reloading underneath it.
+- **Evidence the fix holds:** **6 of 6 runs** of the rewritten spec. It is a stronger assertion than the one it replaces, not a looser one: the previous version could pass while `j` moved to the wrong row, provided the list had not reloaded.
+- **The general lesson:** a spec that reads state, acts, then asserts against the state it read is racing anything that can change that state. On a page subscribed to realtime with 72,917 rows and a suite at two workers, that is a race it will lose eventually.
+- **Status:** closed.
+- **Closed date:** 2026-09-07

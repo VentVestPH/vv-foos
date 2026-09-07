@@ -130,9 +130,8 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
       {}
       <button
         type="button"
-        className="fo-gear-btn"
+        className="fo-gear-btn is-placeholder"
         aria-label="Configure this list"
-        aria-disabled
         onClick={() => show('Configure this list')}
       >
         <Settings size={16} aria-hidden="true" />

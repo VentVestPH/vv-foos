@@ -456,7 +456,6 @@ export function RequisitionFormPage() {
                     size="sm"
                     variant="ghost"
                     className="rq-editor-toolbar-btn"
-                    ariaDisabled
                   />
                 ),
               )}

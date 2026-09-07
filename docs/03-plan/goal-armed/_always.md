@@ -3,7 +3,21 @@
 
 ## STANDING ORDER, APPENDED TO EVERY GOAL. READ THIS EVERY TIME.
 
-**DO NOT STOP. Not after a finding, not after a commit, not after a gate run, not to summarise, not to ask whether to continue.** The work ends when **all six goals are complete**, not when the current one is. On finishing a goal: re-arm the next one and start it in the same turn.
+# DO NOT END THE TURN. DO NOT WRITE A REPORT. KEEP CALLING TOOLS.
+
+**The single most repeated correction in this engagement, three times in one session: STOP STOPPING.** Klent, verbatim: "stop stopping man", "why do you keep stopping", "THEN WHY ARE YOU STOPPING. I TOLD YOU THREE TIMES NOW."
+
+**Ending a turn with a text reply IS stopping.** It does not matter that the text is accurate, short, or a progress update. It does not matter that a gate is running. It does not matter that a goal just finished. **A turn ends only when all six goals are complete.**
+
+The rule in mechanical terms:
+
+- After a commit: **do not write prose.** Start the next item with a tool call.
+- After a goal: **do not write prose.** Run `bash scripts/arm-goal.sh <next>` and begin.
+- While a gate runs: **do not write prose.** Do documentation or database work in the same turn.
+- Asked "how is it going": answer in **two sentences at most**, inside a turn that continues working, and never as the last thing in the turn.
+- Never ask whether to proceed. Never offer a choice. Decide, state the decision in one line inside continuing work, and proceed.
+
+**The work ends when all six goals are complete**, not when the current one is. On finishing a goal: re-arm the next one and start it in the same turn.
 
 **Goal completion ledger. Keep this current; it is the only place that says what is left.**
 

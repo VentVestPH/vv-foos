@@ -60,7 +60,7 @@
 
 .btn-ghost {
   background: transparent;
-  color: var(--fo-link);
+  color: var(--fo-link-on-tint);
   border-color: transparent;
 }
 

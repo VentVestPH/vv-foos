@@ -56,17 +56,16 @@ export function UtilityHeader() {
         <BookmarkToggle />
         <button
           type="button"
-          className="fo-utility-icon"
+          className="fo-utility-icon is-placeholder"
           aria-label="Announcements"
           title="Announcements"
-          aria-disabled
           onClick={() => show('Announcements')}
         >
           <MegaphoneIcon />
         </button>
         <button
           type="button"
-          className="fo-utility-icon"
+          className="fo-utility-icon is-placeholder"
           aria-label="Settings"
           title="Settings"
           onClick={() => (window.location.href = '/settings')}
@@ -75,7 +74,7 @@ export function UtilityHeader() {
         </button>
         <button
           type="button"
-          className="fo-utility-icon"
+          className="fo-utility-icon is-placeholder"
           aria-label="Reports"
           title="Reports"
           onClick={() => (window.location.href = '/?tab=reports')}
@@ -85,8 +84,7 @@ export function UtilityHeader() {
 
         <button
           type="button"
-          className="fo-utility-link"
-          aria-disabled
+          className="fo-utility-link is-placeholder"
           onClick={() => show('Web Support')}
         >
           Web Support
@@ -95,7 +93,7 @@ export function UtilityHeader() {
         <div className="fo-utility-menu-wrap" ref={adminRef}>
           <button
             type="button"
-            className="fo-utility-link"
+            className="fo-utility-link is-placeholder"
             aria-haspopup="menu"
             aria-expanded={adminOpen}
             onClick={() => (adminOpen ? admin.requestClose() : setAdminOpen(true))}
@@ -108,14 +106,13 @@ export function UtilityHeader() {
               data-closing={admin.closing ? 'true' : undefined}
               role="menu"
             >
-              <a className="fo-utility-menu-item" href="/settings" role="menuitem">
+              <a className="fo-utility-menu-item is-placeholder" href="/settings" role="menuitem">
                 Settings
               </a>
               <button
                 type="button"
-                className="fo-utility-menu-item"
+                className="fo-utility-menu-item is-placeholder"
                 role="menuitem"
-                aria-disabled
                 onClick={() => {
                   setAdminOpen(false);
                   show('Administration', 'General configuration is not part of the FOOS MVP.');
@@ -125,9 +122,8 @@ export function UtilityHeader() {
               </button>
               <button
                 type="button"
-                className="fo-utility-menu-item"
+                className="fo-utility-menu-item is-placeholder"
                 role="menuitem"
-                aria-disabled
                 onClick={() => {
                   setAdminOpen(false);
                   show('Administration', 'Career Section administration is not part of the FOOS MVP.');
@@ -142,7 +138,7 @@ export function UtilityHeader() {
         <div className="fo-utility-menu-wrap" ref={helpRef}>
           <button
             type="button"
-            className="fo-utility-link"
+            className="fo-utility-link is-placeholder"
             aria-haspopup="menu"
             aria-expanded={helpOpen}
             onClick={() => (helpOpen ? help.requestClose() : setHelpOpen(true))}
@@ -155,14 +151,13 @@ export function UtilityHeader() {
               data-closing={help.closing ? 'true' : undefined}
               role="menu"
             >
-              <div className="fo-utility-menu-item" style={{ cursor: 'default' }}>
+              <div className="fo-utility-menu-item is-placeholder" style={{ cursor: 'default' }}>
                 Signed in as {staff?.full_name ?? 'Account'}
               </div>
               <button
                 type="button"
-                className="fo-utility-menu-item"
+                className="fo-utility-menu-item is-placeholder"
                 role="menuitem"
-                aria-disabled
                 onClick={() => {
                   setHelpOpen(false);
                   show('Help');

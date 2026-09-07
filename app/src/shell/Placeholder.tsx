@@ -94,7 +94,6 @@ export function PlaceholderAction({
   caret = false,
   className,
 
-  ariaDisabled = true,
 }: {
   label: string;
   detail?: string;
@@ -102,7 +101,6 @@ export function PlaceholderAction({
   size?: 'sm' | 'md';
   caret?: boolean;
   className?: string;
-  ariaDisabled?: boolean;
 }) {
   const { show } = usePlaceholder();
   const classes = [
@@ -110,6 +108,7 @@ export function PlaceholderAction({
     `btn-${variant}`,
     size === 'sm' ? 'btn-sm' : '',
     caret ? 'btn-caret' : '',
+    'is-placeholder',
     className ?? '',
   ]
     .filter(Boolean)
@@ -118,7 +117,6 @@ export function PlaceholderAction({
     <button
       type="button"
       className={classes}
-      aria-disabled={ariaDisabled || undefined}
       onClick={() => show(label, detail)}
     >
       {label}

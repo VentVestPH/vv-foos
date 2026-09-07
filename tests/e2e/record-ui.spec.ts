@@ -69,7 +69,14 @@ test.describe('Record and list UI criteria', () => {
   test('3.8 the tickets list is read-only, with no working mutation control', async ({ page }) => {
     await gotoAsSignedIn(page, '/sales/tickets');
     await expect(page.getByRole('heading', { name: /^Tickets/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New Ticket', exact: true })).toBeDisabled();
+    const newTicket = page.getByRole('button', { name: 'New Ticket', exact: true });
+    await expect(newTicket).toBeVisible();
+    await newTicket.click();
+    await expect(page.locator('.fo-placeholder-modal')).toContainText(
+      /not available in the current FOOS MVP/i,
+    );
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
     await expect(page.locator('.table-wrap input:not([disabled]), .table-wrap select:not([disabled])')).toHaveCount(0);
     await expect(page.locator('.table-wrap tbody')).toContainText(/No tickets/i);
   });

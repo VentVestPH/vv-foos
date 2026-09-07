@@ -4,7 +4,7 @@
 ROOT="${CLAUDE_PROJECT_DIR:-.}"
 ARMED="$ROOT/.claude/goal-armed.md"
 STAMP="$ROOT/.claude/.goal-reminder-stamp"
-EVERY="${FOOS_REMINDER_SECONDS:-480}"
+EVERY="${FOOS_REMINDER_SECONDS:-120}"
 
 [ -s "$ARMED" ] || exit 0
 
