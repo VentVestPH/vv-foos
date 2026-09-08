@@ -112,13 +112,15 @@ export interface Threshold {
   days: number;
 }
 
-export type DateRangePreset = '7' | '30' | '90' | 'quarter' | 'custom';
+export type DateRangePreset = 'all' | '7' | '30' | '90' | 'quarter' | 'custom';
 
 export interface DateRange {
   preset: DateRangePreset;
   from: string;
   to: string;
 }
+
+const ALL_TIME_FROM = '1970-01-01';
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -131,6 +133,9 @@ export function rangeForPreset(
 ): DateRange {
   const today = new Date();
   const to = isoDate(today);
+  if (preset === 'all') {
+    return { preset, from: ALL_TIME_FROM, to };
+  }
   if (preset === 'custom') {
     return {
       preset,
@@ -145,7 +150,7 @@ export function rangeForPreset(
   return { preset, from: isoDate(new Date(today.getTime() - days * 86400000)), to };
 }
 
-export const DEFAULT_RANGE: DateRange = rangeForPreset('30');
+export const DEFAULT_RANGE: DateRange = rangeForPreset('all');
 
 export function exportFilename(
   dashboard: string,

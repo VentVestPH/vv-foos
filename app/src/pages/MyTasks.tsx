@@ -4,8 +4,10 @@ import { realtimeChannel } from '../lib/realtimeChannel';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../auth/SessionProvider';
 import { Button } from '../components/ui/Button';
+import { Skeleton } from '../components/ui/Skeleton';
 import { relatedHref, relatedLabel } from '../lib/relatedLink';
 import { useBackstopRefresh } from '../lib/useBackstopRefresh';
+import { useMinimumVisible } from '../hooks/useMinimumVisible';
 
 interface Task {
   id: string;
@@ -40,6 +42,7 @@ export function MyTasks() {
   const [rows, setRows] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
+  const showSkeleton = useMinimumVisible(loading);
 
   const load = useCallback(async () => {
     if (!staff?.id) return;
@@ -97,8 +100,8 @@ export function MyTasks() {
       <p className="visually-hidden" role="status" aria-live="polite">
         {status}
       </p>
-      {loading ? (
-        <p>Loading tasks...</p>
+      {showSkeleton ? (
+        <Skeleton rows={5} />
       ) : rows.length === 0 ? (
         <p>Task list is empty.</p>
       ) : (

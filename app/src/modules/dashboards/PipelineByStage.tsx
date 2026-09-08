@@ -56,20 +56,21 @@ export function PipelineByStage({ range }: { range: DateRange }) {
       <Widget
         title="ATS pipeline by stage"
         lastRefreshed={refreshed}
+        loading={refreshed === null}
+        excludesTestRecords
         exportRows={atsCounts}
         exportFilename={exportFilename('pipeline-by-stage', 'ats', range)}
       >
         <BarList items={atsCounts} />
         <p className="dash-widget-note">
-          Stage bars aren't clickable yet — no application-level list view
-          exists in the app today (candidate and requisition lists don't
-          filter by application stage). Open a requisition's pipeline board
-          to see individual applications at a stage.
+          Open a requisition to see its applications at each stage.
         </p>
       </Widget>
       <Widget
         title="CRM pipeline by stage"
         lastRefreshed={refreshed}
+        loading={refreshed === null}
+        excludesTestRecords
         exportRows={crmCounts}
         exportFilename={exportFilename('pipeline-by-stage', 'crm', range)}
       >

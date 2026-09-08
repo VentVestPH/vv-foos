@@ -1,14 +1,17 @@
+import { useEffect, useState } from 'react';
 import {
   BookOpen as BookIcon,
   ClipboardCheck as ChecklistPersonIcon,
   IdCard as IdBadgeIcon,
   Lock as LockIcon,
-  Settings,
 } from 'lucide-react';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
-import { PlaceholderAction, usePlaceholder } from '../shell/Placeholder';
+import { PlaceholderAction } from '../shell/Placeholder';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { supabase } from '../lib/supabase';
+import { EMPTY_CELL } from '../lib/format';
+import type { StaffRole } from '../lib/database.types';
 
 type ModuleKey = 'employees' | 'onboard' | 'users' | 'courses';
 
@@ -21,23 +24,23 @@ const MODULES: Record<
   }
 > = {
   employees: {
-    icon: <IdBadgeIcon size={40} />,
+    icon: <IdBadgeIcon size={32} />,
     title: 'Employees: Home',
     description:
       'Employees are all the people employed by the company and can be managed by Front Office OS.',
   },
   onboard: {
-    icon: <ChecklistPersonIcon size={40} />,
+    icon: <ChecklistPersonIcon size={32} />,
     title: 'Onboard/Offboard: Home',
   },
   users: {
-    icon: <LockIcon size={40} />,
+    icon: <LockIcon size={32} />,
     title: 'Users: Home',
     description:
       'Users are all the people with access to your Front Office OS system including hiring managers, recruiters, interviewers, staffing agencies, etc.',
   },
   courses: {
-    icon: <BookIcon size={40} />,
+    icon: <BookIcon size={32} />,
     title: 'Courses: Home',
     description:
       'Courses represent training programs you want to assign and track in Front Office OS.',
@@ -65,19 +68,81 @@ function EmployeesTable() {
   );
 }
 
+interface StaffRow {
+  id: string;
+  full_name: string;
+  email: string;
+  role: StaffRole;
+  title: string | null;
+  manager_id: string | null;
+  is_active: boolean;
+}
+
+const ROLE_LABELS: Record<StaffRole, string> = {
+  admin: 'Administrator',
+  recruiter: 'Recruiter',
+  sourcer: 'Sourcer',
+  bd: 'Business Development',
+};
+
 function UsersTable() {
+  const [rows, setRows] = useState<StaffRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void supabase
+      .from('staff')
+      .select('id, full_name, email, role, title, manager_id, is_active')
+      .order('full_name')
+      .then(({ data }) => {
+        if (cancelled) return;
+        setRows((data ?? []) as StaffRow[]);
+        setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const nameById = new Map(rows.map((r) => [r.id, r.full_name]));
+
   return (
     <Table
       columns={[
-        { key: 'name', header: 'Name' },
-        { key: 'title', header: 'Title' },
-        { key: 'role', header: 'Role' },
-        { key: 'last_login', header: 'Last login', sortable: true },
-        { key: 'location', header: 'Location' },
-        { key: 'manager', header: 'Manager' },
+        { key: 'full_name', header: 'Name', sortable: true },
+        { key: 'email', header: 'Email' },
+        {
+          key: 'title',
+          header: 'Title',
+          render: (r: StaffRow) => r.title || EMPTY_CELL,
+        },
+        {
+          key: 'role',
+          header: 'Role',
+          sortable: true,
+          sortValue: (r: StaffRow) => ROLE_LABELS[r.role],
+          render: (r: StaffRow) => ROLE_LABELS[r.role],
+        },
+        {
+          key: 'manager',
+          header: 'Manager',
+          sortValue: (r: StaffRow) =>
+            r.manager_id ? nameById.get(r.manager_id) ?? '' : '',
+          render: (r: StaffRow) =>
+            (r.manager_id ? nameById.get(r.manager_id) : null) ?? EMPTY_CELL,
+        },
+        {
+          key: 'is_active',
+          header: 'Status',
+          sortable: true,
+          sortValue: (r: StaffRow) => (r.is_active ? 'Active' : 'Inactive'),
+          render: (r: StaffRow) => (r.is_active ? 'Active' : 'Inactive'),
+        },
       ]}
-      rows={[]}
-      rowKey={(r: { name: string }) => r.name}
+      rows={rows}
+      rowKey={(r: StaffRow) => r.id}
+      busy={!loaded}
       selectable
       emptyText="There are currently no users in your Front Office OS system."
     />
@@ -102,7 +167,6 @@ function CoursesTable() {
 }
 
 export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
-  const { show } = usePlaceholder();
   const config = MODULES[module];
   useDocumentTitle(config.title);
 
@@ -123,19 +187,15 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
       {module !== 'onboard' && (
         <div className="fo-search-row">
           <span className="fo-search-label">Search:</span>
-          <input type="text" aria-label={`Search ${config.title}`} disabled />
-          <PlaceholderAction label="Go!" size="sm" className="fo-go-btn" />
+          <input
+            type="text"
+            aria-label={`Search ${config.title}`}
+            title="Searching is not available yet"
+            disabled
+          />
+          <PlaceholderAction label="Search" size="sm" className="fo-go-btn" />
         </div>
       )}
-
-      <button
-        type="button"
-        className="fo-gear-btn is-placeholder"
-        aria-label="Configure this list"
-        onClick={() => show('Configure this list')}
-      >
-        <Settings size={16} aria-hidden="true" />
-      </button>
 
       <div className="list-page-toolbar">
         {module === 'employees' && (
@@ -174,8 +234,7 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
       {module === 'courses' && <CoursesTable />}
       {module === 'onboard' && (
         <p className="fo-module-placeholder-note">
-          No onboarding or offboarding packets yet. This module isn't built in the
-          current FOOS MVP. The page shell is in place so it is ready when it is.
+          Onboarding is not available yet.
         </p>
       )}
     </div>

@@ -62,6 +62,8 @@ export function TimeInStage({ range }: { range: DateRange }) {
       <Widget
         title="Time in stage — applications"
         lastRefreshed={refreshed}
+        loading={refreshed === null}
+        excludesTestRecords
         exportRows={avgByStage(apps)}
         exportFilename={exportFilename('time-in-stage', 'applications', range)}
       >
@@ -78,15 +80,13 @@ export function TimeInStage({ range }: { range: DateRange }) {
       <Widget
         title="Time in stage — requisitions"
         lastRefreshed={refreshed}
+        loading={refreshed === null}
+        excludesTestRecords
         exportRows={avgByStage(reqs)}
         exportFilename={exportFilename('time-in-stage', 'requisitions', range)}
       >
         <BarList items={avgByStage(reqs)} />
-        <p className="dash-widget-note">
-          Refreshed every 15 minutes by a scheduled job (audit_log is
-          admin-read only, so this is pre-aggregated server-side rather than
-          queried live — see the brief's mv_stage_durations exception).
-        </p>
+        <p className="dash-widget-note">Updated every 15 minutes.</p>
       </Widget>
     </div>
   );

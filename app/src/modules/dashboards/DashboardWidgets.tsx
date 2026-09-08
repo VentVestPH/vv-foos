@@ -10,37 +10,77 @@ import { StaffActivity } from './StaffActivity';
 import { RequisitionAging } from './RequisitionAging';
 import { ExperimentMetrics } from './ExperimentMetrics';
 
-export function DashboardWidgetsPanel() {
+const BASE_SECTIONS = [
+  'Pipeline by Stage',
+  'Requisition Aging',
+  'Recruiter/Sourcer Activity',
+  'Time in Stage',
+  'Source Effectiveness',
+];
+
+const ADMIN_SECTION = 'Experiment Metrics';
+
+export function useDashboardWidgetSections(): string[] {
   const isAdmin = useIsAdmin();
-  const [range, setRange] = useState<DateRange>(DEFAULT_RANGE);
+  return isAdmin ? [...BASE_SECTIONS, ADMIN_SECTION] : BASE_SECTIONS;
+}
+
+interface DashboardWidgetsPanelProps {
+  isSectionHidden?: (title: string) => boolean;
+  range?: DateRange;
+  onRangeChange?: (next: DateRange) => void;
+}
+
+export function DashboardWidgetsPanel({
+  isSectionHidden,
+  range: controlledRange,
+  onRangeChange,
+}: DashboardWidgetsPanelProps = {}) {
+  const isAdmin = useIsAdmin();
+  const [ownRange, setOwnRange] = useState<DateRange>(DEFAULT_RANGE);
+  const range = controlledRange ?? ownRange;
+  const ownsFilter = controlledRange === undefined;
+  const visible = (title: string) => !isSectionHidden?.(title);
 
   return (
     <div className="dash-widgets-panel">
-      <div className="dash-home-head">
-        <DateRangeFilter range={range} onChange={setRange} />
-      </div>
+      {ownsFilter && (
+        <div className="dash-home-head">
+          <DateRangeFilter range={range} onChange={onRangeChange ?? setOwnRange} />
+        </div>
+      )}
 
-      <RecordSection title="Pipeline by Stage" defaultOpen>
-        <PipelineByStage range={range} />
-      </RecordSection>
+      {visible('Pipeline by Stage') && (
+        <RecordSection title="Pipeline by Stage" defaultOpen>
+          <PipelineByStage range={range} />
+        </RecordSection>
+      )}
 
-      <RecordSection title="Requisition Aging" defaultOpen={false}>
-        <RequisitionAging range={range} />
-      </RecordSection>
+      {visible('Requisition Aging') && (
+        <RecordSection title="Requisition Aging" defaultOpen={false}>
+          <RequisitionAging range={range} />
+        </RecordSection>
+      )}
 
-      <RecordSection title="Recruiter/Sourcer Activity" defaultOpen={false}>
-        <StaffActivity range={range} />
-      </RecordSection>
+      {visible('Recruiter/Sourcer Activity') && (
+        <RecordSection title="Recruiter/Sourcer Activity" defaultOpen={false}>
+          <StaffActivity range={range} />
+        </RecordSection>
+      )}
 
-      <RecordSection title="Time in Stage" defaultOpen={false}>
-        <TimeInStage range={range} />
-      </RecordSection>
+      {visible('Time in Stage') && (
+        <RecordSection title="Time in Stage" defaultOpen={false}>
+          <TimeInStage range={range} />
+        </RecordSection>
+      )}
 
-      <RecordSection title="Source Effectiveness" defaultOpen={false}>
-        <SourceEffectiveness range={range} />
-      </RecordSection>
+      {visible('Source Effectiveness') && (
+        <RecordSection title="Source Effectiveness" defaultOpen={false}>
+          <SourceEffectiveness range={range} />
+        </RecordSection>
+      )}
 
-      {isAdmin && (
+      {isAdmin && visible(ADMIN_SECTION) && (
         <RecordSection title="Experiment Metrics" defaultOpen={false}>
           <ExperimentMetrics range={range} />
         </RecordSection>

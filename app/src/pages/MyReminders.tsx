@@ -4,8 +4,10 @@ import { realtimeChannel } from '../lib/realtimeChannel';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../auth/SessionProvider';
 import { Button } from '../components/ui/Button';
+import { Skeleton } from '../components/ui/Skeleton';
 import { relatedHref, relatedLabel } from '../lib/relatedLink';
 import { useBackstopRefresh } from '../lib/useBackstopRefresh';
+import { useMinimumVisible } from '../hooks/useMinimumVisible';
 
 interface Reminder {
   id: string;
@@ -46,6 +48,7 @@ export function MyReminders() {
   const [rows, setRows] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
+  const showSkeleton = useMinimumVisible(loading);
 
   const load = useCallback(async () => {
     if (!staff?.id) return;
@@ -134,8 +137,8 @@ export function MyReminders() {
       <p className="visually-hidden" role="status" aria-live="polite">
         {status}
       </p>
-      {loading ? (
-        <p>Loading reminders...</p>
+      {showSkeleton ? (
+        <Skeleton rows={4} />
       ) : rows.length === 0 ? (
         <p>No reminders due or upcoming.</p>
       ) : (

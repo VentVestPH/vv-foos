@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { dashDb } from './db';
 import { Widget } from './components/Widget';
 import { BarList } from './components/BarList';
@@ -14,6 +15,7 @@ import {
 } from './lib';
 
 export function SourceEffectiveness({ range }: { range: DateRange }) {
+  const navigate = useNavigate();
   const [intake, setIntake] = useState<SourceEffectivenessRow[]>([]);
   const [ats, setAts] = useState<AtsFunnelRow[]>([]);
   const [refreshed, setRefreshed] = useState<Date | null>(null);
@@ -55,23 +57,25 @@ export function SourceEffectiveness({ range }: { range: DateRange }) {
       <Widget
         title="Intake volume by channel"
         lastRefreshed={refreshed}
+        loading={refreshed === null}
+        excludesTestRecords
         exportRows={byChannel}
         exportFilename={exportFilename('source-effectiveness', 'by-channel', range)}
       >
         <KpiRow>
           <KpiCard label="Reached hire/won" value={fmtPct(overallConversion)} />
         </KpiRow>
-        <BarList items={byChannel} />
-        <p className="dash-widget-note">
-          Channel bars aren't clickable — the intake queue page filters by
-          channel through local component state, not a published URL
-          contract yet. Add `useSearchParams` support there (same pattern as
-          `/recruit/requisitions`) to wire this up.
-        </p>
+        <BarList
+          items={byChannel}
+          onBarClick={(channel) => navigate(`/intake?channel=${channel}`)}
+        />
+        <p className="dash-widget-note">Pick a channel to open its intake queue.</p>
       </Widget>
       <Widget
         title="Applications by named source"
         lastRefreshed={refreshed}
+        loading={refreshed === null}
+        excludesTestRecords
         exportRows={bySource}
         exportFilename={exportFilename('source-effectiveness', 'by-source', range)}
       >
@@ -80,10 +84,8 @@ export function SourceEffectiveness({ range }: { range: DateRange }) {
         </KpiRow>
         <BarList items={bySource} />
         <p className="dash-widget-note">
-          Named-source bars aren't clickable — /recruit/candidates filters by
-          source_id (a uuid), and this view only carries the resolved name.
-          Use the intake-channel lens above for drill-through, or add
-          source_id to the export for a manual lookup.
+          Use the channel panel to open the intake queue, or filter the candidate list by
+          source.
         </p>
       </Widget>
     </div>

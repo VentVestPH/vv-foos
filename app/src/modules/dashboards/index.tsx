@@ -1,3 +1,3 @@
 import './dashboards.css';
 
-export { DashboardWidgetsPanel } from './DashboardWidgets';
+export { DashboardWidgetsPanel, useDashboardWidgetSections } from './DashboardWidgets';

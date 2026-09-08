@@ -113,6 +113,7 @@ export function ExperimentMetrics({ range }: { range: DateRange }) {
     <Widget
       title="Experiment metrics (admin only)"
       lastRefreshed={refreshed}
+        loading={refreshed === null}
       exportRows={rows as unknown as Record<string, unknown>[]}
       exportFilename={exportFilename('experiment-metrics', 'weekly', range)}
     >

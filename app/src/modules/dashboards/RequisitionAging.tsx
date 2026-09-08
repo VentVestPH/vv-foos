@@ -78,6 +78,8 @@ export function RequisitionAging({ range }: { range: DateRange }) {
     <Widget
       title="Requisition aging"
       lastRefreshed={refreshed}
+        loading={refreshed === null}
+      excludesTestRecords
       exportRows={open as unknown as Record<string, unknown>[]}
       exportFilename={exportFilename('requisition-aging', 'requisitions', range)}
     >

@@ -6,32 +6,36 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
-import { usePlaceholder } from '../shell/Placeholder';
+import { type CalendarView, VIEW_LABELS } from './calendarData';
 
-const VIEWS = [
-  { key: 'day', label: 'Day view', Icon: CalendarDays },
-  { key: 'week', label: '7-day view', Icon: CalendarRange },
-  { key: 'month', label: '31-day view', Icon: LayoutGrid },
-  { key: 'person', label: 'Person view', Icon: UserRound },
-  { key: 'group', label: 'Group view', Icon: Users },
-  { key: 'agenda', label: 'Agenda view', Icon: AlignJustify },
+const VIEWS: { key: CalendarView; Icon: typeof CalendarDays }[] = [
+  { key: 'day', Icon: CalendarDays },
+  { key: 'week', Icon: CalendarRange },
+  { key: 'month', Icon: LayoutGrid },
+  { key: 'person', Icon: UserRound },
+  { key: 'group', Icon: Users },
+  { key: 'agenda', Icon: AlignJustify },
 ];
 
-export function CalendarViewIcons() {
-  const { show } = usePlaceholder();
+interface CalendarViewIconsProps {
+  view: CalendarView;
+  onChange: (view: CalendarView) => void;
+}
 
+export function CalendarViewIcons({ view, onChange }: CalendarViewIconsProps) {
   return (
-    <span className="fo-cal-views">
-      {VIEWS.map(({ key, label, Icon }) => (
+    <span className="fo-cal-views" role="group" aria-label="Calendar view">
+      {VIEWS.map(({ key, Icon }) => (
         <button
           key={key}
           type="button"
-          className="fo-cal-view-btn is-placeholder"
-          aria-label={label}
-          title={label}
-          onClick={() => show(label)}
+          className="fo-icon-btn fo-cal-view-btn"
+          aria-label={VIEW_LABELS[key]}
+          aria-pressed={view === key}
+          title={VIEW_LABELS[key]}
+          onClick={() => onChange(key)}
         >
-          <Icon size={16} aria-hidden="true" />
+          <Icon size={24} aria-hidden="true" />
         </button>
       ))}
     </span>

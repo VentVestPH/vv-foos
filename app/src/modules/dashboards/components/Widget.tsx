@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { ErrorBoundary } from '../../../components/ui/ErrorBoundary';
+import { Skeleton } from '../../../components/ui/Skeleton';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { downloadCsv } from '../../../lib/csv';
 
 export function Widget({
@@ -8,22 +10,38 @@ export function Widget({
   lastRefreshed,
   exportRows,
   exportFilename,
+  excludesTestRecords = false,
+  loading = false,
+  kpis = 2,
+  bars = 5,
   children,
 }: {
   title: string;
   lastRefreshed: Date | null;
   exportRows?: Record<string, unknown>[];
   exportFilename?: string;
+  excludesTestRecords?: boolean;
+  loading?: boolean;
+  kpis?: number;
+  bars?: number;
   children: ReactNode;
 }) {
+  const showSkeleton = useMinimumVisible(loading);
   return (
     <section className="dash-widget">
       <header className="dash-widget-head">
         <h3>{title}</h3>
         <div className="dash-widget-actions">
-          {lastRefreshed && (
+          {excludesTestRecords && (
+            <span className="dash-widget-scope">Excludes test records</span>
+          )}
+          {lastRefreshed && !showSkeleton && (
             <span className="dash-widget-refreshed">
-              Updated {lastRefreshed.toLocaleTimeString()}
+              Updated{' '}
+              {lastRefreshed.toLocaleTimeString(undefined, {
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
             </span>
           )}
           {exportRows && (
@@ -37,7 +55,16 @@ export function Widget({
           )}
         </div>
       </header>
-      <ErrorBoundary label={title}>{children}</ErrorBoundary>
+      <ErrorBoundary label={title}>
+        {showSkeleton ? (
+          <div className="dash-widget-loading">
+            {kpis > 0 && <Skeleton variant="card" rows={kpis} label={`Loading ${title}`} />}
+            {bars > 0 && <Skeleton variant="rows" rows={bars} label={`Loading ${title}`} />}
+          </div>
+        ) : (
+          children
+        )}
+      </ErrorBoundary>
     </section>
   );
 }

@@ -1,4 +1,5 @@
 import { Suspense, lazy, type ReactNode } from 'react';
+import { LoadingPane } from './components/ui/LoadingPane';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
 import { RequireAuth } from './auth/RequireAuth';
@@ -32,7 +33,7 @@ const ModulePlaceholderRoutes = lazy(() =>
 
 function Lazy({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<div className="full-center text-secondary">Loading...</div>}>
+    <Suspense fallback={<LoadingPane />}>
       {children}
     </Suspense>
   );
@@ -54,6 +55,8 @@ export default function App() {
               }
             >
               <Route index element={<Lazy><DashboardPage /></Lazy>} />
+              <Route path="pipeline" element={<Lazy><DashboardPage view="pipeline" /></Lazy>} />
+              <Route path="reports" element={<Lazy><DashboardPage view="reports" /></Lazy>} />
               <Route
                 path="search"
                 element={
@@ -65,7 +68,7 @@ export default function App() {
               <Route
                 path="recruit/*"
                 element={
-                  <RequireAuth roles={['admin', 'recruiter', 'sourcer']}>
+                  <RequireAuth roles={['admin', 'recruiter', 'sourcer']} deniedLabel="Recruiting">
                     <Lazy><RecruitRoutes /></Lazy>
                   </RequireAuth>
                 }
@@ -73,7 +76,7 @@ export default function App() {
               <Route
                 path="sales/*"
                 element={
-                  <RequireAuth roles={['admin', 'recruiter', 'bd']}>
+                  <RequireAuth roles={['admin', 'recruiter', 'bd']} deniedLabel="Sales">
                     <Lazy><SalesRoutes /></Lazy>
                   </RequireAuth>
                 }
@@ -113,7 +116,7 @@ export default function App() {
               <Route
                 path="users/*"
                 element={
-                  <RequireAuth roles={['admin']}>
+                  <RequireAuth roles={['admin']} deniedLabel="Users">
                     <Lazy><ModulePlaceholderRoutes module="users" /></Lazy>
                   </RequireAuth>
                 }
