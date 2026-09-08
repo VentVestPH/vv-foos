@@ -1,6 +1,6 @@
 :root {
-  --fo-nav: #427d98;
-  --fo-sidebar-header: #577995;
+  --fo-nav: #426d97;
+  --fo-sidebar-header: #426d97;
   --fo-section: #a9c6dc;
   --fo-nested-section: #8fb3cc;
   --fo-link: #1b6fc9;
@@ -17,12 +17,14 @@
   --fo-row-hover: #f0f6fb;
   --fo-border: #d5d5d5;
   --fo-control-border: #8f8f8f;
+  --fo-field-border: #d5d5d5;
+  --fo-surface-fade: rgb(255 255 255 / 0);
   --fo-text: #222222;
   --fo-tab-label: #4a4a4a;
   --fo-link-on-tint: #124a80;
   --fo-text-secondary: #5f5f5f;
   --fo-icon: #4a7098;
-  --fo-active-tab-bg: #e8ecef;
+  --fo-active-tab-bg: #f0f0f0;
   --fo-radius: 2px;
   --fo-font: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
 
@@ -35,13 +37,15 @@
   --fo-canvas-alt: #eeeeee;
   --fo-ink: #1a1a1a;
 
-  --icon-sm: 16px;
+  --icon-sm: 20px;
   --icon-md: 20px;
   --icon-lg: 24px;
-  --icon-page: 40px;
+  --icon-page: 32px;
+  --icon-empty: 64px;
 
-  --shell-header-h: 104px;
+  --shell-header-h: 72px;
   --shell-sidebar-w: 340px;
+  --shell-sidebar-collapsed-w: 52px;
   --shell-action-bar-h: 48px;
 
   --scrim: rgba(31, 41, 55, 0.45);
@@ -52,10 +56,12 @@
   --motion-instant: 90ms;
   --motion-quick: 140ms;
   --motion-panel: 220ms;
+  --motion-rail: 320ms;
   --ease-out: cubic-bezier(0.2, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-exit: cubic-bezier(0.2, 0, 1, 0.9);
   --motion-spin: 900ms;
+  --motion-skeleton: 1800ms;
 
   --primary: var(--fo-link);
   --primary-deep: var(--fo-primary-hover);
@@ -70,6 +76,8 @@
   --text-secondary: var(--fo-text-secondary);
   --border: var(--fo-border);
   --control-border: var(--fo-control-border);
+  --field-border: var(--fo-field-border);
+  --surface-fade: var(--fo-surface-fade);
   --status-warn-bg: var(--fo-status-warn-bg);
   --status-warn-text: var(--fo-status-warn-text);
   --status-ok-bg: var(--fo-status-ok-bg);
@@ -81,7 +89,7 @@
   --shadow: none;
 
   --font: var(--fo-font);
-  --fs-page-title: 26px;
+  --fs-page-title: 24px;
   --fs-lg: 18px;
   --fs-section: 16px;
   --fs-body: 14px;
@@ -91,6 +99,11 @@
   --fs-2xs: 10px;
 
   --control-h: 32px;
+  --field-h: 32px;
+  --section-pad: 24px;
+  --shell-content-pad: 24px;
+  --field-gap: 16px;
+  --field-label-gap: 4px;
 
   --sp-1: 8px;
   --sp-2: 16px;

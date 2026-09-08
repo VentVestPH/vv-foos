@@ -27,6 +27,10 @@ summary:focus-visible,
   opacity: 0.9;
 }
 
+.fo-sidebar-panel-btn:hover {
+  opacity: 0.75;
+}
+
 .record-section-header:active,
 .table th.sortable:active {
   background: var(--fo-nested-section);
@@ -34,6 +38,33 @@ summary:focus-visible,
 
 [aria-disabled='true'] {
   opacity: 0.72;
-  cursor: default;
+}
+
+button:disabled,
+.btn:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+a[aria-disabled='true'],
+[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+.fo-dialog-close:hover:not(:disabled),
+.fo-nav-scroll-btn:hover:not(:disabled),
+.fo-report-tab-gear:hover:not(:disabled),
+.fo-cal-view-btn:hover:not(:disabled):not([aria-pressed='true']) {
+  color: var(--fo-primary);
+}
+
+button:disabled svg,
+a[aria-disabled='true'] svg,
+[aria-disabled='true'] svg {
+  color: var(--muted);
+}
+
+.btn-primary:disabled svg,
+.btn-danger:disabled svg {
+  color: inherit;
 }
 

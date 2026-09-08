@@ -30,7 +30,7 @@
 
 .fo-pager-controls button:disabled {
   color: var(--muted);
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .fo-pager-controls button:active:not(:disabled) {
@@ -55,6 +55,27 @@
   min-width: 0;
 }
 
+.fo-calendar-when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.fo-calendar-when-lead {
+  font-size: var(--fs-meta);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.fo-calendar-when-date {
+  font-size: var(--fs-section);
+  font-weight: 700;
+  color: var(--text);
+}
+
 .fo-calendar-toolbar {
   display: flex;
   align-items: center;
@@ -67,33 +88,78 @@
 .fo-cal-views {
   display: inline-flex;
   gap: var(--sp-half);
+  margin-left: auto;
 }
 
 .fo-cal-view-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--icon-lg);
-  height: var(--icon-lg);
-  padding: 0;
-  color: var(--fo-icon);
-  background: var(--surface);
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius);
-  cursor: pointer;
+  width: var(--control-h);
+  height: var(--control-h);
 }
 
-.fo-cal-view-btn:active {
-  background: var(--fo-row-hover);
+.fo-cal-view-btn[aria-pressed='true'] {
+  color: var(--surface);
+  background: var(--fo-primary);
+}
+
+.fo-cal-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.fo-cal-group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-half);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+
+.fo-cal-group-count {
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-meta);
+  font-weight: 400;
+}
+
+.fo-cal-month {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--sp-half);
+}
+
+.fo-cal-month-cell {
+  border: 1px solid var(--fo-border);
+  padding: var(--sp-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  font-size: var(--fs-meta);
+}
+
+.fo-cal-month-day {
+  font-weight: 700;
+}
+
+.fo-cal-month-count {
+  color: var(--fo-text-secondary);
 }
 
 .fo-mini-calendar {
   flex: 0 0 auto;
+  width: 250px;
+  height: 180px;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--fs-meta);
 }
 
 .fo-mini-calendar caption {
+  height: 20px;
+  line-height: 16px;
   padding-bottom: var(--sp-half);
   font-weight: 600;
   color: var(--text);
@@ -103,8 +169,6 @@
 
 .fo-mini-calendar th,
 .fo-mini-calendar td {
-  width: 28px;
-  height: 24px;
   padding: 0;
   text-align: center;
   vertical-align: middle;

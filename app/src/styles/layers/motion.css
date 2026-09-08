@@ -5,9 +5,7 @@
 .btn,
 .link-btn,
 .fo-utility-link,
-.fo-utility-icon,
-.fo-pager-controls button,
-.fo-cal-view-btn {
+.fo-pager-controls button {
   transition:
     background-color var(--motion-instant) var(--ease-out),
     border-color var(--motion-instant) var(--ease-out),
@@ -32,6 +30,42 @@
 .input,
 .fo-qs-input-row input,
 .template-form textarea,
+.fo-result,
+.fo-hint {
+  transition: background-color var(--motion-quick) var(--ease-out);
+}
+
+
+
+.fo-collapse-all-glyph > svg {
+  transition:
+    opacity var(--motion-quick) var(--ease-out),
+    transform var(--motion-quick) var(--ease-out);
+}
+
+.fo-icon-btn,
+.fo-utility-icon,
+.fo-cal-view-btn,
+.fo-gear-btn,
+.fo-nav-scroll-btn,
+.fo-report-tab-gear,
+.fo-dialog-close,
+.rq-dialog-x {
+  transition:
+    color var(--motion-quick) var(--ease-out),
+    background-color var(--motion-quick) var(--ease-out);
+}
+
+.fo-sidebar-panel-btn {
+  transition:
+    color var(--motion-quick) var(--ease-out),
+    opacity var(--motion-quick) var(--ease-out);
+}
+
+.shell-content {
+  transition: padding var(--motion-rail) var(--ease-out);
+}
+
 .fo-search-row input,
 .list-page-search input {
   transition:
@@ -46,14 +80,8 @@ input[type='radio'] {
 
 .badge,
 .star-grade .star,
-.fo-sidebar-panel-btn,
-.fo-qs-advanced-link,
-.fo-gear-btn,
-.fo-nav-scroll-btn,
-.fo-report-tab-gear,
-.rq-dialog-x,
-.sales-modal-x,
-.intake-drawer-x {
+.fo-recent-settings-limit,
+.fo-recent-settings-clear {
   transition:
     background-color var(--motion-instant) var(--ease-out),
     border-color var(--motion-instant) var(--ease-out),
@@ -102,13 +130,17 @@ input[type='radio'] {
 .intake-drawer-overlay,
 .fo-placeholder-overlay,
 .sales-modal-overlay,
-.rq-overlay {
+.rq-overlay,
+.fo-dialog-overlay {
   animation: overlay-fade-in var(--motion-quick) var(--ease-out);
 }
 
 .fo-placeholder-modal,
 .sales-modal,
-.rq-dialog {
+.rq-dialog,
+.fo-dialog-panel,
+.fo-recent-settings,
+.fo-hint-pop {
   animation: panel-fade-in var(--motion-quick) var(--ease-out);
 }
 
@@ -165,10 +197,12 @@ input[type='radio'] {
   }
 }
 
+.fo-action-menu,
 .fo-utility-menu {
   animation: menu-drop-in var(--motion-instant) var(--ease-out);
 }
 
+.fo-action-menu[data-closing='true'],
 .fo-utility-menu[data-closing='true'] {
   animation: menu-drop-out var(--motion-instant) var(--ease-exit) forwards;
 }
@@ -180,6 +214,7 @@ input[type='radio'] {
 .fo-sidebar-collapse-chevron {
   transition: transform var(--motion-quick) var(--ease-out);
 }
+
 
 .spinner-ring {
   animation: spinner-rotate var(--motion-spin) linear infinite;
@@ -229,13 +264,17 @@ input[type='radio'] {
 .intake-drawer-overlay[data-closing='true'],
 .fo-placeholder-overlay[data-closing='true'],
 .sales-modal-overlay[data-closing='true'],
-.rq-overlay[data-closing='true'] {
+.rq-overlay[data-closing='true'],
+.fo-dialog-overlay[data-closing='true'] {
   animation: overlay-fade-out var(--motion-quick) var(--ease-exit) forwards;
 }
 
 .fo-placeholder-modal[data-closing='true'],
 .sales-modal[data-closing='true'],
-.rq-dialog[data-closing='true'] {
+.rq-dialog[data-closing='true'],
+.fo-dialog-panel[data-closing='true'],
+.fo-recent-settings[data-closing='true'],
+.fo-hint-pop[data-closing='true'] {
   animation: panel-fade-out var(--motion-quick) var(--ease-exit) forwards;
 }
 

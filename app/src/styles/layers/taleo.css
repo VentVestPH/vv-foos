@@ -1,14 +1,38 @@
-.fo-page-header {
+.fo-page-head {
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
+  padding: var(--section-pad);
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
+}
+
+.fo-page-head .fo-page-header,
+.fo-page-head .record-title-row {
+  margin-bottom: 0;
+}
+
+.record-page > .record-title-row,
+.record-page > .fo-page-header,
+.list-page > .fo-page-header {
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
+  padding: var(--section-pad);
+}
+
+.fo-page-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--sp-2);
+  align-items: center;
 }
 
 .fo-page-icon {
   color: var(--fo-nav);
   flex-shrink: 0;
-  margin-top: 2px;
+  height: var(--icon-page);
+  display: flex;
+  align-items: center;
 }
 
 .fo-page-icon > svg {
@@ -17,26 +41,54 @@
 }
 
 .fo-page-header-text {
-  flex: 1;
-  min-width: 0;
+  display: contents;
+}
+
+.fo-page-header > .fo-page-icon {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.fo-page-header-title-row {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.fo-page-header-text > *:not(.fo-page-header-title-row) {
+  grid-column: 1 / -1;
 }
 
 .fo-page-header-title-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--sp-2);
   flex-wrap: wrap;
+  min-height: var(--control-h);
 }
 
 .fo-page-header-title-row h1 {
   margin-right: auto;
 }
 
+.fo-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.fo-page-header-actions .fo-gear-btn {
+  height: var(--control-h);
+  width: var(--control-h);
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
 .fo-page-desc {
   color: var(--fo-text-secondary);
   font-size: var(--fs-body);
-  margin: 4px 0 0;
-  max-width: 900px;
+  margin: 12px 0 0;
 }
 
 .fo-search-row {
@@ -73,14 +125,18 @@
   padding: 0;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--control-h);
+  height: var(--control-h);
   background: var(--fo-surface);
   border: 1px solid var(--fo-primary);
   color: var(--fo-primary);
   border-radius: 2px;
   cursor: pointer;
-  margin-bottom: var(--sp-1);
+}
+
+.fo-gear-btn:hover:not(:disabled) {
+  color: var(--fo-primary-hover);
+  border-color: var(--fo-primary-hover);
 }
 
 .fo-placeholder-overlay {
@@ -122,6 +178,71 @@
   padding: var(--sp-1) var(--sp-2) var(--sp-2);
 }
 
+.fo-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.fo-dialog-panel {
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-overlay);
+}
+
+.fo-dialog-head {
+  background: var(--fo-sidebar-header);
+  color: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+}
+
+.fo-dialog-head h2 {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  margin: 0;
+  color: var(--surface);
+}
+
+.fo-dialog-x {
+  color: var(--surface);
+}
+
+.fo-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--section-pad);
+  color: var(--text);
+  font-size: var(--fs-body);
+  overflow-y: auto;
+}
+
+.fo-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2) var(--sp-2);
+}
+
+.fo-dialog-hint {
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-meta);
+  margin: 0 0 var(--sp-1);
+}
+
 .fo-module-placeholder-note {
   color: var(--fo-text-secondary);
   font-size: var(--fs-meta);
@@ -139,6 +260,15 @@
   flex-wrap: wrap;
 }
 
+.fo-calendar-main .record-section-inline-actions {
+  margin-bottom: 0;
+}
+
+.fo-calendar-main .fo-calendar-toolbar {
+  padding: var(--sp-2) 0;
+  margin-bottom: 0;
+}
+
 .record-section-divider {
   color: var(--fo-border);
 }
@@ -153,13 +283,13 @@
 }
 
 .fo-switch-dashboard-link {
-  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
 }
 
 .dash-widgets-panel .dash-home-head {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: var(--sp-2);
 }
 
 .fo-report-toggle-row,

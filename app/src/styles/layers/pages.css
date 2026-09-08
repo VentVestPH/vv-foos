@@ -99,10 +99,12 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 0;
-  overflow: hidden;
 }
 
 .record-section-header {
+  position: sticky;
+  top: calc(-1 * var(--shell-content-pad));
+  z-index: 2;
   display: flex;
   align-items: center;
   width: 100%;
@@ -113,11 +115,11 @@
   font-size: var(--fs-section);
   font-weight: 700;
   color: var(--text);
-  padding: 8px var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
   cursor: pointer;
   text-align: left;
   line-height: 1;
-  min-height: var(--control-h);
+  min-height: 41px;
 }
 
 .record-section-chevron {
@@ -141,7 +143,7 @@
 }
 
 .record-section-body {
-  padding: var(--sp-2);
+  padding: var(--section-pad);
 }
 
 
@@ -149,7 +151,8 @@
   margin-top: var(--sp-2);
 }
 
-.search-hit-list {
+
+.fo-result-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -157,19 +160,79 @@
   flex-direction: column;
 }
 
-.search-hit-list li {
-  display: flex;
-  gap: var(--sp-2);
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 6px var(--cell-pad);
+.fo-result {
   border-bottom: 1px solid var(--border);
 }
 
-.search-hit-list li:last-child {
-  border-bottom: none;
+.fo-result-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-1);
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.search-hit-list li:hover {
+.fo-result:last-child {
+  border-bottom: 0;
+}
+
+.fo-result:hover {
   background: var(--fo-row-hover);
 }
+
+.fo-result-more {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-1) 0;
+}
+
+.fo-result-all {
+  color: var(--fo-link);
+  font-size: var(--fs-body);
+}
+
+.fo-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  padding: var(--sp-4) var(--section-pad);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.fo-empty-state-icon {
+  display: flex;
+  color: var(--muted);
+}
+
+.fo-empty-state-title {
+  margin: 0;
+  font-size: var(--fs-section);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fo-empty-state-hint {
+  margin: 0;
+  max-width: 42rem;
+  color: var(--text-secondary);
+  font-size: var(--fs-body);
+}
+
+.fo-result-crumb {
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-meta);
+}
+
+.fo-result-title {
+  color: var(--fo-link);
+  font-size: var(--fs-lg);
+  line-height: 1.3;
+  text-decoration: none;
+}
+

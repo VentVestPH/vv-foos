@@ -8,12 +8,15 @@
 
 .visually-hidden {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   margin: -1px;
   padding: 0;
   overflow: hidden;
   clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -92,7 +95,7 @@
 }
 
 .reminders-heading {
-  margin: var(--sp-2) 0 var(--sp-1);
+  margin: 0 0 var(--sp-1);
   font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--text-secondary);
@@ -121,15 +124,16 @@
 .reminder-row,
 .task-row {
   display: grid;
-  grid-template-columns: minmax(9rem, auto) 1fr minmax(5rem, auto) auto;
+  grid-template-columns: minmax(9rem, auto) 1fr 7rem auto;
   gap: var(--sp-2);
   align-items: center;
-  padding: var(--sp-1) 0;
+  min-height: 48px;
+  padding: var(--sp-1);
   border-bottom: 1px solid var(--border);
 }
 
 .task-row {
-  grid-template-columns: minmax(9rem, auto) 1fr minmax(5rem, auto) auto auto;
+  grid-template-columns: minmax(9rem, auto) 1fr 5rem 7rem auto;
 }
 
 .reminder-row:last-child,
@@ -282,4 +286,62 @@
   font-weight: 700;
   min-height: 24px;
   padding: 2px 0;
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.skeleton[data-variant='grid'] {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--sp-half);
+}
+
+.skeleton[data-variant='card'] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.skeleton-row,
+.skeleton-cell,
+.skeleton-card {
+  display: block;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--fo-row-hover) 0%,
+    var(--border) 50%,
+    var(--fo-row-hover) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep var(--motion-skeleton) linear infinite;
+}
+
+.skeleton-row {
+  height: var(--control-h);
+}
+
+.skeleton-row[data-short='true'] {
+  width: 60%;
+}
+
+.skeleton-cell {
+  height: 44px;
+}
+
+.skeleton-card {
+  height: 96px;
+}
+
+@keyframes skeleton-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
