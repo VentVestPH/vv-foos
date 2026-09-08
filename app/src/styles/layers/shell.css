@@ -514,7 +514,7 @@ button.fo-qs-search-icon {
 
 .fo-recent-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--sp-1);
   padding: var(--sp-1) 0;
   border-bottom: 1px solid var(--canvas);
@@ -535,6 +535,7 @@ button.fo-qs-search-icon {
 .fo-recent-icon {
   color: var(--fo-icon);
   flex-shrink: 0;
+  height: var(--icon-sm);
 }
 
 .fo-recent-text {
@@ -547,6 +548,7 @@ button.fo-qs-search-icon {
   color: var(--fo-link);
   font-weight: 700;
   font-size: var(--fs-body);
+  line-height: var(--icon-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
