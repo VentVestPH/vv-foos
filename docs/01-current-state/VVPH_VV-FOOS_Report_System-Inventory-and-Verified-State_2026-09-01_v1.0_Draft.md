@@ -14,7 +14,7 @@ Three interchangeable React frontends share one Supabase backend. Only one is in
 | `/foos_redesign` | 5174 | Earlier redesign attempt. Not in this tree |
 | `/foos_redesign_2` | 5175, `strictPort` | The Taleo replica. This is the working tree |
 
-Build output goes to `dist-redesign-2/` with `emptyOutDir: false`. This tree is not a git repository, so there is no history, branch or diff to consult.
+Build output goes to `dist/` with `emptyOutDir: false`. This tree is not a git repository, so there is no history, branch or diff to consult.
 
 ## 2. Toolchain, verified working
 

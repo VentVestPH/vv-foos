@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 VentVest Front Office OS (FOOS): ATS + CRM on Supabase (Postgres, Auth, Storage, Edge Functions, Realtime) with React 18 + Vite + TypeScript on top.
 
-This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend, and as of 2026-09-02 it is **the only frontend anyone should change**. It runs on port **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port) against the live Supabase project (`mebfbbvrqdctamnzvbbs`). Build output goes to `dist-redesign-2/` with `emptyOutDir: true`.
+This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend, and as of 2026-09-02 it is **the only frontend anyone should change**. It runs on port **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port) against the live Supabase project (`mebfbbvrqdctamnzvbbs`). Build output goes to `app/dist/` with `emptyOutDir: true`. **Renamed 2026-09-08** from `dist-redesign-2`, a name left over from the two-frontend era, at Klent's request; 36 references across 17 files moved in one edit and `grep -rl dist-redesign-2` now returns nothing.
 
 Two sibling frontends used to share this schema: `/foos` on port 5173 and `/foos_redesign` on 5174. Both are **archived, not deleted** (plan item F4). Neither is present on this machine, so nothing here depends on them, and every schema change or `database.types.ts` edit now costs one frontend instead of three. Do not port changes into them, do not reinstate them, and do not treat their absence as a bug. Deletion waits on confirmation that nobody demos from them.
 
@@ -92,6 +92,23 @@ Four module-local `db.ts` shims used to work around that missing field. They wer
 
 ### Frontend structure
 
+**Per-staff UI preferences live in `integration_settings`, not in a new table.** That table is a staff-scoped key/value store by its own migration header, and its RLS already resolves `staff_id = auth.uid()`, so `hooks/useSectionPrefs.ts` writes keys like `ui.sections.dashboard.myview` with `value` of `{"hidden": [...]}`. Two things to know before using it: `uq_integration_settings_staff_key` is a **partial** unique index (`where staff_id is not null`), and Postgres cannot use a partial index for `ON CONFLICT` inference through PostgREST, so read the row id and branch to update or insert rather than calling `upsert`. Genuinely per-browser state stays in `localStorage`, which is where `useRecentlyViewed` keeps both its list and its item limit. Recorded as decision 0005 in the second brain.
+
+**Shared components and props added by Goal 11.** Reach for these before writing another one:
+
+- `components/ui/Table.tsx` — `TableColumn.hideWhenEmpty` drops a column when **every visible row** is empty for it, reading through `sortValue` if the column has one and `row[key]` otherwise, and treating `EMPTY_CELL` as empty. It is inert when there are no rows, so an empty table keeps its headers. Two column lists in this codebase are decoys: `RequisitionListPage`'s `COLUMN_DEFS` is the picker list and `ApplicationPipeline`'s `EXPORT_COLUMNS` is the CSV list. The flag only works on the real `TableColumn[]`
+- `components/ui/ActionMenu.tsx` — a `role="menu"` dropdown on `useDismissable` with the `escapeScope` ref, so Escape closes only that menu. Destructive actions belong in here rather than loose in an action bar
+- `components/ui/SectionSettingsDialog.tsx` with `hooks/useSectionPrefs.ts` — per-staff section visibility, persisted in `integration_settings`
+- `components/ui/AccessDenied.tsx` — a framed refusal, rendered **in place** by `RequireAuth` instead of redirecting, so the URL survives and Back works. Pass `deniedLabel` at the route to name the area
+- `components/ui/RecordPage.tsx` — `RecordSection` takes an optional `id`. Use it to scroll to a section; **do not** add an empty anchor `<div>` as a sibling, because a zero-height flex child costs two `gap` steps and shows up as a 32px hole
+- `pages/calendarData.ts` — range maths plus one read across `activities`, `tasks` and `reminders`, behind all six dashboard calendar views
+
+**One primary per action group.** `.record-section`, `.record-action-bar`, `.list-page-toolbar` and `.dash-widget` may each contain at most one `.btn-primary`; `tests/e2e/button-hierarchy.spec.ts` enforces it. For requisitions the forward action comes from `REQ_PRIMARY_ACTION` in `modules/recruit/lib.ts`, because the transition list's first entry is not the forward one (`open` lists `on_hold` first).
+
+**`.fo-page-head` is the sticky, opaque page header wrapper**, holding the title row plus the search box and buttons. A record page renders its action bar **once**, inside it.
+
+A control rendered in `ListPage`'s `actions` prop can open the filter rail through `useListPageFilters()` from `components/ui/ListPage.tsx`, which also focuses the first column checkbox on request. Before that context existed the two column gears could only tell the user where the picker was.
+
 `app/src/App.tsx` is the whole route map. Everything below `/` renders inside `AppShell` behind `RequireAuth`; each module mount is additionally wrapped in `RequireAuth roles={[...]}`.
 
 | Mount | Module | Roles |
@@ -101,15 +118,15 @@ Four module-local `db.ts` shims used to work around that missing field. They wer
 | `/sales/*` | `modules/sales` (CRM) | admin, recruiter, bd |
 | `/intake/*` | `modules/intake` | all four (deliberately cross-module) |
 | `/settings/*` | `modules/settings` | all four |
-| `/employees`, `/onboard`, `/users`, `/courses` | `pages/TaleoModulePlaceholderPage.tsx` | all / admin for Users |
+| `/employees`, `/onboard`, `/users`, `/courses` | `pages/ModulePlaceholderPage.tsx` | all / admin for Users |
 
 Each module is self-contained and all five now have the same shape: `index.tsx` exports its `<Routes>` tree plus its nav items, alongside `hooks.ts` (data access and React hooks), `lib.ts` (row types and pure helpers), `<module>.css`, and **its own `README.md`**. Only `dashboards` also has a `db.ts`, for `dashDb`. ESLint forbids a module importing another module, so anything genuinely shared belongs in `lib/`, `components/` or `shell/`. Those module READMEs are the authoritative per-module documentation (routes, query-param contracts for dashboard drill-through, data behavior, legal state transitions, Gate 3 demo scripts). Read the relevant one before changing a module. `app/README-APP.md` documents the shared shell, auth, and the `components/ui/` inventory.
 
 ### The Taleo replica shell
 
-`shell/AppShell.tsx` composes `TaleoUtilityHeader` + `TaleoPrimaryNav` + `TaleoSidebar`. The primary nav order in `shell/navConfig.ts` is fixed by the redesign prompt (Taleo tab order with FOOS's Deals/Tickets/Intake slotted in at specified positions); Settings is intentionally not a tab.
+`shell/AppShell.tsx` composes `UtilityHeader` + `PrimaryNav` + `ShellSidebar`. The primary nav order in `shell/navConfig.ts` is fixed by the redesign prompt (Taleo tab order with FOOS's Deals/Tickets/Intake slotted in at specified positions); Settings is intentionally not a tab.
 
-Screenshot-accurate controls that have no real FOOS behavior yet must route through `shell/TaleoPlaceholder.tsx` (`usePlaceholder().show('Send To')` or `<TaleoPlaceholderAction label="Send To" />`), currently used in 18 files. Never substitute an `alert()`, a silent no-op handler, a fake success state, or a link to a nonexistent route.
+Screenshot-accurate controls that have no real FOOS behavior yet must route through `shell/Placeholder.tsx` (`usePlaceholder().show('Send To')` or `<PlaceholderAction label="Send To" />`), currently used in **17 files**, down from 18 on 2026-09-08 when Goal 10 gave every settings gear real behaviour. **No gear in the product opens a placeholder any more**; `show('…')` call sites went 11 to 7. Never substitute an `alert()`, a silent no-op handler, a fake success state, or a link to a nonexistent route.
 
 ### Styling
 
@@ -137,11 +154,13 @@ Both suites run against the local stack from a clean `npm run db:reset` with no 
 ```sh
 bash scripts/gate.sh 5             # 22 checks, five times; the way to verify a change
 
-npm run test --workspace=tests     # 265 vitest tests, files run serially: 119 api, 144 unit, 2 mocks
-npm run e2e  --workspace=tests     # 178 browser tests (playwright, 2 workers)
+npm run test --workspace=tests     # 269 vitest tests, files run serially: 123 api, 144 unit, 2 mocks
+npm run e2e  --workspace=tests     # 248 browser tests (playwright, 2 workers)
 psql "$DB_URL" -f supabase/tests/validate.sql   # 34 checks; 3 structural, 31 need the seed
 node scripts/check-attachment-queue.mjs         # no orphaned attachment files, no leaked client_errors
 ```
+
+The **visual audit harness is separate and not in the gate**: `tests/audit/visual-sweep.spec.ts` (one role per run via `SWEEP_ROLE`, narrowable with `SWEEP_ONLY`) and `tests/audit/visual-states.spec.ts` run on `tests/playwright.audit.config.ts`, whose `testDir` is `./audit`, so no `scripts/gate.sh` check ever touches them. They write into `audit/<date>/`, which `.gitignore` covers with `audit/*/` because the images render real candidate names. `tests/audit/sweep-lib.ts` holds the correctness and `tests/audit/README.md` classifies all 24 audit specs, including which of them are superseded.
 
 **Corrected 2026-09-07:** the two suite counts above read 64 and 39 and had been stale for weeks, and "API/RLS tests" was itself a misnomer, because `tests/vitest.config.ts` includes `api/**`, `mocks/**` and `unit/**` and the unit directory is now the largest of the three. `validate.sql` also read 18 and then 35; it is **34**, because the gate counted `PASS` lines and check 15 prints two, while checks `5b` and `14b` carry letter suffixes so the numbered labels stop at 32.
 
@@ -164,7 +183,7 @@ node scripts/check-attachment-queue.mjs         # no orphaned attachment files, 
 
 Two more that are not guards and are not in the gate: `scripts/check-env-target.mjs`, and `scripts/check-cutover.mjs`, which is Goal 6's automated X10 and **requires an explicit target** (`CUTOVER_SUPABASE_URL` plus `CUTOVER_SUPABASE_ANON_KEY`) because an earlier version read `VITE_SUPABASE_URL` and therefore talked to the live project. See `docs/07-environments/VVPH_VV-FOOS_Runbook_Hosting-And-Cutover` and QA-017.
 
-Six things bite anyone adding tests here:
+Eight things bite anyone adding tests here:
 
 - **Fixtures must be run-unique.** Cleanup by a shared prefix means two specs delete each other's rows. Every spec derives its tag from `process.pid` plus a random suffix.
 - **`datetime-local` inputs are local time.** Filling one from `toISOString()` puts the value hours out; on UTC+8 a "+1 hour" reminder lands in the past and the reminder sweep fires it. Use `localDateTimeValue()` from `tests/e2e/helpers.ts`.
@@ -172,6 +191,8 @@ Six things bite anyone adding tests here:
 - **Vitest runs files serially** (`fileParallelism: false`) because the 10 MB oversized-resume case saturates the edge runtime enough that concurrent Edge Function calls return 503.
 - **A flat wait or a single read is never a substitute for a condition.** This cost four separate false failures on 2026-09-07 alone, logged as QA-019, QA-021 and QA-022: a combobox read once while its two neighbours polled; `waitForAnimations` returning at its 3000ms cap indistinguishably from success; a lookup list measured before its query landed; and a layout measured 1200ms after navigation because 1200 felt long enough. Every fix had the same shape, and none of them was to wait longer: **assert the condition, or read until the reading stops changing.** `optionNames`, `chooseOption` and `settleLayout` in `tests/e2e/helpers.ts` and `phone.spec.ts` are the patterns to copy. A wait that can give up must not return the same way it returns on success.
 - **`Element.closest()` matches the element itself.** `phone.spec.ts` filtered overflow culprits with `el.closest('.table-wrap')` to skip a scroll container's contents, and thereby skipped the container too, so the one element most likely to be at fault was the one never reported. Use `!el.matches(sel) && el.closest(sel)` when the intent is descendants only.
+- **Never write `.click().catch(() => undefined)` in anything that classifies an outcome.** The Goal 8 sweep did, and one overlay with a full-screen backdrop turned into **17 fabricated dead controls per page**: every later click threw `intercepts pointer events`, the catch discarded it, and the default outcome said the control did nothing. Fixing the harness alone moved the admin shell from 17 dead to 1 and the dashboard from 17 to 0, with no application change. Record a swallowed click as its own outcome, and hash the output images: **15 byte-identical PNGs** were the only visible symptom, because no product opens fifteen modals that render identically. `pressAndRecord` in `tests/audit/sweep-lib.ts` is the shape to copy.
+- **A global `keydown` listener cannot express a dismissal contract.** The first fix for QA-024 added Escape-to-close on `window`, which dismissed *every* open overlay at once and detached the date-field trigger out from under `date-field.spec.ts` (`element is not stable`, then `element was detached from the DOM`) because that trigger lives inside the filter rail the same Escape closed. The APG wording is *"Close the menu that **contains focus**"*, singular. Scope the listener to the overlay's own subtree, check `event.defaultPrevented`, and `stopPropagation` so no outer scope also acts. `useDismissable`'s optional `escapeScope` ref is that shape.
 
 Teardown belongs in `afterEach`/`afterAll`, never inline at the end of a test: a failing assertion aborts the rest of the block and the rows leak. Delete a storage object **before** its `attachments` row, or the file becomes unreachable (the DELETE policy matches on that row and `remove()` then returns an empty array with no error).
 
@@ -211,7 +232,7 @@ The only remote reading taken is the one from 2026-09-01, when `supabase migrati
 |---|---|
 | `.env` (root) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. **Absent in this checkout as of 2026-09-07**, and because it is gitignored the absence is silent: `source .env` succeeds and sets nothing. Use `app/.env`'s `VITE_` pair or `tests/.env`'s `FOOS_` pair, or pass the URL explicitly |
 | `app/.env` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (client throws at boot if either is missing). **This one points at the LIVE project**, and it is what a production build bakes in |
-| `app/.env.development` | the same two names pointing at `http://127.0.0.1:55321`, committed and safe to commit. **Vite loads it at higher priority than `.env` in dev mode**, which is the only reason `npm run dev` talks to the local stack rather than to production. There is no `app/.env.production`, so `npm run build` falls back to `.env` and bakes the live ref: `grep -o 'https://[a-z0-9]*\.supabase\.co' app/dist-redesign-2/assets/*.js` confirms it. That is X7's whole point, and it means the built bundle in this tree must not be deployed as-is |
+| `app/.env.development` | the same two names pointing at `http://127.0.0.1:55321`, committed and safe to commit. **Vite loads it at higher priority than `.env` in dev mode**, which is the only reason `npm run dev` talks to the local stack rather than to production. There is no `app/.env.production`, so `npm run build` falls back to `.env` and bakes the live ref: `grep -o 'https://[a-z0-9]*\.supabase\.co' app/dist/assets/*.js` confirms it. That is X7's whole point, and it means the built bundle in this tree must not be deployed as-is |
 | `tests/.env` | `FOOS_SUPABASE_URL`, `FOOS_SUPABASE_ANON_KEY`, `FOOS_QA_TEST_PASSWORD`, optional `FOOS_BASE_URL` |
 
 ## Things migrations cannot do

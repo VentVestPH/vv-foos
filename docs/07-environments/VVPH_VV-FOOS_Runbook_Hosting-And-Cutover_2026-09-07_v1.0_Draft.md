@@ -8,7 +8,7 @@ One correction to how that used to read. This paragraph said "nothing in this do
 
 ## What is settled and is not relitigated
 
-The artefact is a static SPA, **34 files and 955,095 bytes**, largest 215,735. `vercel.json` is committed with `outputDirectory: app/dist-redesign-2`, the SPA rewrite `/((?!assets/).*)` without which every deep link 404s, immutable asset caching, and a header set whose CSP already allows `https://*.supabase.co`, `wss://*.supabase.co` and `https://accounts.google.com`. `script-src` is `'self'` with no `unsafe-inline`, which the Vite production build satisfies.
+The artefact is a static SPA, **34 files and 955,154 bytes**, largest 215,735. `vercel.json` is committed with `outputDirectory: app/dist`, the SPA rewrite `/((?!assets/).*)` without which every deep link 404s, immutable asset caching, and a header set whose CSP already allows `https://*.supabase.co`, `wss://*.supabase.co` and `https://accounts.google.com`. `script-src` is `'self'` with no `unsafe-inline`, which the Vite production build satisfies.
 
 Two row counts in this document are easy to confuse and are both correct: **72,988 `people`** and **72,917 `candidate_profiles`**. A person can exist without a candidate profile, which is why X8's decision is stated against `people` while the plan's privacy language names candidate records.
 
@@ -139,11 +139,11 @@ The comment above it in the file is the part that matters: `A list of *exact* UR
 curl -s http://localhost:5175/src/lib/supabase.ts | grep -oE 'https?://[a-z0-9.:]+'
   http://127.0.0.1:55321
 
-grep -ohoE 'https://[a-z0-9]+\.supabase\.co' app/dist-redesign-2/assets/*.js | sort -u
+grep -ohoE 'https://[a-z0-9]+\.supabase\.co' app/dist/assets/*.js | sort -u
   https://mebfbbvrqdctamnzvbbs.supabase.co
 ```
 
-So `app/dist-redesign-2` is a **local build artefact, not a deployable one**. On the host, X7 is satisfied by setting the two variables in the host's own environment, which overrides any `.env` in the repository; the alternative, an `app/.env.production` committed alongside the others, would put a project ref in git and is not recommended.
+So `app/dist` is a **local build artefact, not a deployable one**. On the host, X7 is satisfied by setting the two variables in the host's own environment, which overrides any `.env` in the repository; the alternative, an `app/.env.production` committed alongside the others, would put a project ref in git and is not recommended.
 
 **The CSP was checked against what the app actually loads, rather than assumed to fit.** Every absolute URL in `app/src` was listed and classified:
 
@@ -158,7 +158,7 @@ So `app/dist-redesign-2` is a **local build artefact, not a deployable one**. On
 
 The two images the app serves itself, `/ventvest-logo.webp` at `LoginPage.tsx:56` and `UtilityHeader.tsx:47`, are same-origin. **Nothing the app loads falls outside the committed CSP**, which is worth knowing because a CSP that blocks a real request fails at runtime with a console error and no visible symptom.
 
-**`script-src 'self'` with no `'unsafe-inline'` is satisfied, checked against the built file rather than assumed.** `app/dist-redesign-2/index.html` contains exactly **one** `<script>`, with a `src` of `/assets/index-<hash>.js`, and **zero** inline script bodies, **zero** `style` attributes and **zero** `<style>` blocks. So the strictest directive in the policy costs nothing.
+**`script-src 'self'` with no `'unsafe-inline'` is satisfied, checked against the built file rather than assumed.** `app/dist/index.html` contains exactly **one** `<script>`, with a `src` of `/assets/index-<hash>.js`, and **zero** inline script bodies, **zero** `style` attributes and **zero** `<style>` blocks. So the strictest directive in the policy costs nothing.
 
 **`style-src`'s `'unsafe-inline'` is load-bearing and cannot be dropped.** The app uses **nine** inline `style={{...}}` props. Seven are cosmetic and could move to classes, but two cannot: `components/ui/Select.tsx:316` positions the portalled menu from measured coordinates, and `modules/dashboards/components/BarList.tsx:17` sets each bar's width from its share of the maximum. A nonce does not help here, because CSP governs inline **style attributes** through `style-src-attr`, which needs `'unsafe-inline'` or `'unsafe-hashes'` rather than a nonce, and setting a custom property through `element.style.setProperty` is still a style attribute. So this stays, and the reason is written down so nobody tightens it and breaks the select menu and every dashboard bar at once.
 
@@ -357,7 +357,7 @@ The three `FAIL` lines are the design rule working, not a problem: **a check tha
 
 ## If Cloudflare: the port is done, and the first version of it would have broken the site
 
-`_headers` and `_redirects` are in `docs/07-environments/cloudflare/`, ready to drop into the build output. `_headers` is generated from `vercel.json`'s own JSON, so the CSP and the header set cannot drift from the Vercel copy.
+`_headers` and `_redirects` are in `app/public/`, so `vite build` emits them into `app/dist/` with the rest of the output. **Corrected 2026-09-09:** they used to sit in `docs/07-environments/cloudflare/` and were never wired to the build, which meant the port existed on paper only. That directory is deleted. `_headers` was generated from `vercel.json`'s own JSON, and `vercel.json` is now deleted, so `app/public/_headers` is the only copy of the header set and the CSP.
 
 **`_redirects` was wrong on 2026-09-07 and is now deliberately empty of rules.** The first version carried the obvious port, `/* /index.html 200`, and this section claimed "Cloudflare Pages serves an existing static file before consulting `_redirects`, so the exclusion is unnecessary". Cloudflare's own documentation says the opposite:
 
@@ -375,7 +375,7 @@ The claim was not merely imprecise, it asserted Vercel's behaviour of a platform
 >
 > `developers.cloudflare.com/pages/configuration/serving-pages/`, read 2026-09-07
 
-The build satisfies the precondition: `find app/dist-redesign-2 -maxdepth 1 -name '*.html'` returns `index.html` and nothing else, and there is no `404.html` anywhere in the output. `_redirects` therefore holds only comments, which Cloudflare supports (`Lines starting with a # will be treated as comments`), and those comments say why the catch-all must not be added back.
+The build satisfies the precondition: `find app/dist -maxdepth 1 -name '*.html'` returns `index.html` and nothing else, and there is no `404.html` anywhere in the output. `_redirects` therefore holds only comments, which Cloudflare supports (`Lines starting with a # will be treated as comments`), and those comments say why the catch-all must not be added back.
 
 **Two more differences the port had to handle, both from the headers documentation:**
 
@@ -389,7 +389,7 @@ Against the documented limits: `_headers` uses **4 rules of the 100 allowed** wi
 ## What this runbook does not answer, stated rather than left implied
 
 - **Whether the hosted instance works.** Nothing here has served a request from a hosted origin, because X1 has not happened. Every figure is from the repository or the local stack, and every check is written to skip rather than pass when it cannot reach a target. The one exception is recorded honestly rather than buried: `scripts/check-cutover.mjs` reached the live project's API on its first run, read-only, which is QA-017.
-- ~~**The build's exact output.**~~ **Measured 2026-09-07, and the plan's figure was wrong.** It recorded "41 files at 1.0 MB with the largest at 212 KB". A fresh `npm run build --workspace=app` writes **34 files** totalling **955,095 bytes** (0.91 MiB, 0.96 MB), largest `assets/vendor-supabase-wIXNjVJv.js` at **215,735 bytes**, in 990ms. Twenty-nine files are in `assets/`; the other five are `index.html`, `favicon.png`, `apple-touch-icon.png`, `og-careers.png` and `ventvest-logo.webp`. Re-measure with `find app/dist-redesign-2 -type f | wc -l` and `find app/dist-redesign-2 -type f -exec stat -f%z {} + | awk '{s+=$1} END{print s}'`. Fewer files and fewer bytes than claimed, so nothing about either host's limits changes.
+- ~~**The build's exact output.**~~ **Measured 2026-09-07, re-measured 2026-09-08 after the `dist` rename, and the plan's original figure was wrong.** The total moved from 955,095 to **955,154 bytes** across the rename, 59 bytes, because the entry chunk's content hash changed with the W25 stylesheet edit and the filename length with it. The file count and the largest asset did not move. It recorded "41 files at 1.0 MB with the largest at 212 KB". A fresh `npm run build --workspace=app` writes **34 files** totalling **955,154 bytes** (0.91 MiB, 0.96 MB), largest `assets/vendor-supabase-wIXNjVJv.js` at **215,735 bytes**, in 990ms. Twenty-nine files are in `assets/`; the other five are `index.html`, `favicon.png`, `apple-touch-icon.png`, `og-careers.png` and `ventvest-logo.webp`. Re-measure with `find app/dist -type f | wc -l` and `find app/dist -type f -exec stat -f%z {} + | awk '{s+=$1} END{print s}'`. Fewer files and fewer bytes than claimed, so nothing about either host's limits changes.
 - **Whether the host's git integration should build on push.** X11, and Klent's. The X11 section sets out the mechanism and carries a recommendation; the answer is still his.
 - **Whether Cloudflare's `_headers` and `_redirects` behave as documented.** They are verified against Cloudflare's own pages, with dates, and against the documented limits. Neither file has served a request. The one thing that would have been caught only by deploying was caught by reading instead, which is QA-018, and that is luck as much as method.
 - **Whether the 11 Edge Functions deploy.** Their `verify_jwt` settings and secrets are verified against `config.toml` and every reachable `Deno.env.get`, and all 11 answer `OPTIONS` on the local stack. `supabase functions deploy` has not been run against any project from this checkout.
