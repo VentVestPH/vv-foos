@@ -1,6 +1,5 @@
 node_modules
 dist
-dist-redesign-2
 .env
 .env.local
 *.local

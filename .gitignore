@@ -1,7 +1,6 @@
 # Node
 node_modules/
 dist/
-dist-redesign-2/
 build/
 *.log
 npm-debug.log*
@@ -41,13 +40,13 @@ tests/.scratch-audit/
 # knip cache
 .knip/
 
-# Discovery screenshots. Binary, regenerable, and they render seeded candidate names.
-discovery/
 .gate/
 .verify
 
-# Component audit corpus: screenshots render real candidate names. Never committed.
-audit/corpus/
+# Audit output: screenshots render real candidate names. Never committed.
+# Covers every dated run, audit/2026-09-08/ and every one after it. The old narrow
+# rule named audit/corpus/ only, so a dated sibling was not ignored at all.
+audit/*/
 
 # armed goal + reminder throttle stamp, per-session state
 .claude/goal-armed.md

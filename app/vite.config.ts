@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5175,
     strictPort: true,
     watch: {
-      ignored: ['**/dist/**', '**/dist-redesign-2/**'],
+      ignored: ['**/dist/**'],
     },
   },
   preview: {
@@ -24,7 +24,7 @@ export default defineConfig({
         },
       },
     },
-    outDir: 'dist-redesign-2',
+    outDir: 'dist',
     emptyOutDir: true,
   },
 });

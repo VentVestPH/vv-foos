@@ -23,6 +23,30 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FOOS_REMINDER_SECONDS=0 bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/goal-reminder.sh\" 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "Goal reminder..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FOOS_REMINDER_SECONDS=0 bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/goal-reminder.sh\" 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "Goal reminder..."
+          }
+        ]
+      }
     ]
   }
 }

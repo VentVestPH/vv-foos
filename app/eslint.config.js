@@ -28,7 +28,7 @@ const moduleIsolation = MODULES.map((self) => ({
 }));
 
 export default tseslint.config(
-  { ignores: ['dist', 'dist-redesign-2', 'node_modules', 'vite.config.ts.timestamp-*'] },
+  { ignores: ['dist', 'node_modules', 'vite.config.ts.timestamp-*'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
