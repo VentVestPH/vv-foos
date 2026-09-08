@@ -850,11 +850,12 @@ begin
   select count(*) into n
     from pg_default_acl d
     join pg_namespace ns on ns.oid = d.defaclnamespace
+    cross join lateral unnest(d.defaclacl) as entry(item)
    where ns.nspname = 'public'
      and d.defaclobjtype = 'r'
      and d.defaclrole = 'postgres'::regrole
-     and (array_to_string(d.defaclacl, ',') like '%anon=%D%'
-       or array_to_string(d.defaclacl, ',') like '%authenticated=%D%');
+     and split_part(entry.item::text, '=', 1) in ('anon', 'authenticated')
+     and split_part(split_part(entry.item::text, '=', 2), '/', 1) like '%D%';
   if n > 0 then
     raise exception 'FAIL 23: default privileges would grant TRUNCATE on the next table a migration creates';
   end if;
