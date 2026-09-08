@@ -19,7 +19,8 @@
     "check:env:production": "node scripts/check-env-target.mjs --production",
     "check:licences": "node scripts/check-licences.mjs --list",
     "check:dead": "knip",
-    "gate": "bash scripts/gate.sh"
+    "gate": "bash scripts/gate.sh",
+    "deploy:pages": "npm run build --workspace=app && npx wrangler pages deploy app/dist --project-name \"${CF_PAGES_PROJECT:-foos}\" --commit-dirty=true"
   },
   "devDependencies": {
     "knip": "^6.34.0"
