@@ -65,6 +65,13 @@ jobs:
         run: psql -h localhost -U postgres -d foos -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
   integration:
+    # The full stack: Supabase containers, 269 API/RLS tests and 248 browser
+    # specs. Roughly 40 seconds for frontend and schema against 10 to 15 minutes
+    # for this, so it runs where it decides something: the branch that deploys,
+    # and any pull request into it. A develop push still gets lint, typecheck,
+    # build and the plain-Postgres schema checks, which is what caught the
+    # erasure_log and default-privilege defects on 2026-09-08.
+    if: github.ref_name == 'main' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     env:
       FOOS_QA_TEST_PASSWORD: ci-only-test-password
