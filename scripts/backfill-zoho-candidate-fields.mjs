@@ -9,7 +9,12 @@ import { normalizeZohoId } from '../migration/src/deterministic-id.mjs';
 
 const APPLY = process.argv.includes('--apply');
 const ALLOW_REMOTE = process.argv.includes('--allow-remote');
-const CANDIDATES = join('migration/zoho-exports', 'Candidates_001.csv');
+const SOURCE_ARG = process.argv.find((a) => a.startsWith('--source='))?.slice('--source='.length) ?? null;
+const SOURCE_CANDIDATES = [
+  'migration/zoho-exports/bulk/ZohoRecruit_Candidates_p1/837085000004994003.csv',
+  join('migration/zoho-exports', 'Candidates_001.csv'),
+];
+const CANDIDATES = SOURCE_ARG ?? SOURCE_CANDIDATES.find((f) => existsSync(f)) ?? SOURCE_CANDIDATES[1];
 
 const target = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/)/.test(target);
@@ -38,6 +43,7 @@ if (!key) {
 }
 if (!existsSync(CANDIDATES)) {
   console.error(`Missing ${CANDIDATES}. This backfill reads the Zoho export, not the database.`);
+  console.error(`Looked for, in order: ${SOURCE_CANDIDATES.join(', ')}. Override with --source=<path>.`);
   process.exit(1);
 }
 
@@ -137,7 +143,7 @@ const counts = {
 };
 
 for (const row of file.records) {
-  const zohoId = normalizeZohoId(row['Candidate Id'] ?? row['Record Id'] ?? '');
+  const zohoId = normalizeZohoId(row['Candidate Id'] ?? row['Record Id'] ?? row['Id'] ?? '');
   const personId = zohoId ? personByZohoId.get(zohoId) : null;
   if (!personId) {
     counts.unmapped += 1;
@@ -193,6 +199,7 @@ for (const row of file.records) {
 }
 
 console.log(`${APPLY ? 'Backfill' : 'Backfill dry run'} against ${target}`);
+console.log(`  source file            ${CANDIDATES}`);
 console.log(`  source rows            ${counts.sourceRows}`);
 console.log(`  matched via zoho_id_map ${counts.mapped}  (unmapped ${counts.unmapped}, no profile ${counts.noProfile})`);
 console.log(`  star_grade   set ${counts.gradeWouldSet}  corrected ${counts.gradeWouldChange}  already right ${counts.gradeAlreadyRight}  unparseable ${counts.gradeUnparseable}`);

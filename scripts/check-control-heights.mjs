@@ -17,7 +17,6 @@ const CONTROL_SELECTORS = [
   '.date-nav-btn',
   '.date-cell',
   '.date-grid-head',
-  '.record-section-header',
 ];
 
 function cssFiles(dir, out = []) {

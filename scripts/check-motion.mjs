@@ -4,14 +4,16 @@ import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MAX_MS = 220;
-const CONTINUOUS_TOKENS = ['--motion-spin'];
+const CONTINUOUS_TOKENS = ['--motion-spin', '--motion-skeleton'];
+const OVER_BUDGET_TOKENS = ['--motion-rail'];
 const FORBIDDEN_PROPS = ['width', 'height', 'top', 'left'];
 const SHELL_SELECTORS = [
   '.fo-utility-header',
-  '.fo-sidebar',
   '.fo-body',
   '.shell-main',
 ];
+const SIDEBAR_RAIL = '.fo-sidebar';
+const SIDEBAR_RAIL_ALLOWED = /transition:\s*width var\(--motion-rail\) var\(--ease-out\);/;
 
 function collect(dir, out = []) {
   for (const entry of readdirSync(dir)) {
@@ -32,6 +34,9 @@ for (const file of files) {
   if (css.includes('prefers-reduced-motion')) hasReducedMotion = true;
 
   let scan = css;
+  for (const token of OVER_BUDGET_TOKENS) {
+    scan = scan.replace(new RegExp(`${token}\\s*:[^;]*;`, 'g'), `${token}:;`);
+  }
   for (const token of CONTINUOUS_TOKENS) {
     scan = scan.replace(new RegExp(`${token}\\s*:[^;]*;`, 'g'), `${token}:;`);
     const use = new RegExp(`([a-z-]+)\\s*:\\s*([^;]*var\\(${token}\\)[^;]*);`, 'g');
@@ -49,9 +54,22 @@ for (const file of files) {
   }
 
   for (const m of css.matchAll(/transition(?:-property)?\s*:\s*([^;]+);/g)) {
+    if (SIDEBAR_RAIL_ALLOWED.test(m[0])) continue;
     for (const prop of FORBIDDEN_PROPS) {
       if (new RegExp(`(^|[\\s,])${prop}([\\s,]|$)`).test(m[1])) {
         problems.push(`${file}: transitions layout property "${prop}"`);
+      }
+    }
+  }
+
+  const railBlock = new RegExp(`\\${SIDEBAR_RAIL}\\s*\\{[^}]*\\}`, 'g');
+  for (const m of css.matchAll(railBlock)) {
+    const motion = m[0].match(/transition\s*:[^;]*;|animation\s*:[^;]*;/g) ?? [];
+    for (const decl of motion) {
+      if (!SIDEBAR_RAIL_ALLOWED.test(decl)) {
+        problems.push(
+          `${file}: ${SIDEBAR_RAIL} may only transition its width over --motion-panel, found ${decl.trim()}`,
+        );
       }
     }
   }

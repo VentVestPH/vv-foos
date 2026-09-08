@@ -109,8 +109,8 @@ update applications set rejection_reason = 'Withdrew for another role'
 -- ---------------------------------------------------------------------- deals
 
 insert into deals (id, name, company_id, primary_contact_id, owner_id, stage, value, currency, probability, expected_close, is_test) values
-  ('e0000000-0000-4000-8000-000000000001', 'Dune Retail - staffing retainer',  'c0000000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-000000000004', 'proposal', 60000, 'AUD', 0.5, '2026-08-15', true),
-  ('e0000000-0000-4000-8000-000000000002', 'Ember Health - exec search pilot', 'c0000000-0000-4000-8000-000000000005', null,                                   'a0000000-0000-4000-8000-000000000004', 'lead',     25000, 'SGD', 0.2, '2026-09-30', true);
+  ('e0000000-0000-4000-8000-000000000001', 'Dune Retail - staffing retainer',  'c0000000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-000000000004', 'proposal', 60000, 'AUD', 50, '2026-08-15', true),
+  ('e0000000-0000-4000-8000-000000000002', 'Ember Health - exec search pilot', 'c0000000-0000-4000-8000-000000000005', null,                                   'a0000000-0000-4000-8000-000000000004', 'lead',     25000, 'SGD', 20, '2026-09-30', true);
 
 -- ------------------------------------------------- activities, tasks, reminders
 

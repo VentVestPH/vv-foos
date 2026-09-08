@@ -420,7 +420,7 @@ select set_config('validate.total_people', (select count(*)::text from people), 
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000004","role":"authenticated"}', false);
 set role authenticated;
 do $$
-declare n int;
+declare n int; prev numeric;
 begin
   select count(*) into n from people;
   if n <> current_setting('validate.contact_people')::int then
@@ -439,8 +439,10 @@ begin
   if n <> 0 then raise exception 'FAIL 11: bd can read requisitions'; end if;
   select count(*) into n from intake_items where target_type = 'candidate';
   if n <> 0 then raise exception 'FAIL 11: bd sees candidate intake items'; end if;
-  update deals set probability = 0.6 where display_code = 'DEAL-0001';
+  select probability into prev from deals where display_code = 'DEAL-0001';
+  update deals set probability = 55 where display_code = 'DEAL-0001';
   if not found then raise exception 'FAIL 11: bd could not update a deal'; end if;
+  update deals set probability = prev where display_code = 'DEAL-0001';
   raise notice 'PASS 11: bd boundary (contact people only, no candidate data, no requisitions, deals writable)';
 end $$;
 reset role;
@@ -455,7 +457,7 @@ begin
     raise exception 'FAIL 12: recruiter sees % people, expected all %',
       n, current_setting('validate.total_people');
   end if;
-  update deals set probability = 0.9 where display_code = 'DEAL-0001';
+  update deals set probability = 90 where display_code = 'DEAL-0001';
   if found then raise exception 'FAIL 12: recruiter updated a deal'; end if;
   select count(*) into n from deals;
   if n <> 2 then raise exception 'FAIL 12: recruiter cannot read deals'; end if;
