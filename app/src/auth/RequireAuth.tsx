@@ -1,20 +1,24 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSession } from './SessionProvider';
+import { AccessDenied } from '../components/ui/AccessDenied';
+import { LoadingPane } from '../components/ui/LoadingPane';
 import type { StaffRole } from '../lib/database.types';
 
 interface RequireAuthProps {
   children: ReactNode;
 
   roles?: StaffRole[];
+
+  deniedLabel?: string;
 }
 
-export function RequireAuth({ children, roles }: RequireAuthProps) {
+export function RequireAuth({ children, roles, deniedLabel }: RequireAuthProps) {
   const { session, staff, role, loading } = useSession();
   const location = useLocation();
 
   if (loading) {
-    return <div className="full-center text-secondary">Loading…</div>;
+    return <LoadingPane what="Front Office OS" />;
   }
 
   if (!session) {
@@ -36,7 +40,7 @@ export function RequireAuth({ children, roles }: RequireAuthProps) {
   }
 
   if (roles && role && !roles.includes(role)) {
-    return <Navigate to="/" replace />;
+    return <AccessDenied what={deniedLabel ?? 'this area'} />;
   }
 
   return <>{children}</>;

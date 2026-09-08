@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { IdleSignOut } from '../auth/IdleSignOut';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
+import { SectionCollapseProvider } from '../components/ui/SectionCollapse';
 import { UtilityHeader } from './UtilityHeader';
 import { PrimaryNav } from './PrimaryNav';
 import { ShellSidebar } from './ShellSidebar';
@@ -23,7 +24,9 @@ export function AppShell() {
         <div className="shell-main">
           <main className="shell-content" id="main-content" tabIndex={-1}>
             <ErrorBoundary key={location.pathname} label="This page">
-              <Outlet />
+              <SectionCollapseProvider key={location.pathname}>
+                <Outlet />
+              </SectionCollapseProvider>
             </ErrorBoundary>
           </main>
         </div>

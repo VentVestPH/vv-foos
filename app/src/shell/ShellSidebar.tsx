@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
+import { useDismissable } from '../hooks/useDismissable';
+import { useOutsideClose } from '../hooks/useOutsideClose';
 import { usePlaceholder } from './Placeholder';
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -39,18 +41,32 @@ export function ShellSidebar() {
   const [keywords, setKeywords] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const { items: recent } = useRecentlyViewed();
+  const { items: recent, clear, limit, setLimit } = useRecentlyViewed();
+  const [recentSettingsOpen, setRecentSettingsOpen] = useState(false);
+  const [limitDraft, setLimitDraft] = useState('');
+  const [recentSettingsAt, setRecentSettingsAt] = useState<{ top: number; left: number }>({
+    top: 0,
+    left: 0,
+  });
+  const recentSettingsRef = useRef<HTMLDivElement>(null);
+  const closeRecentSettings = useCallback(() => setRecentSettingsOpen(false), []);
+  const recentSettings = useDismissable(
+    recentSettingsOpen,
+    closeRecentSettings,
+    recentSettingsRef,
+  );
+  useOutsideClose(recentSettingsOpen, recentSettings.requestClose, recentSettingsRef);
   const { show } = usePlaceholder();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const scope = searchScope(pathname);
 
+  const quickSearchTerm = (keywords || [firstName, lastName].filter(Boolean).join(' ')).trim();
+
   const runQuickSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const q = keywords || [firstName, lastName].filter(Boolean).join(' ');
-    if (!q.trim()) return;
-
-    navigate(`${scope.to}?search=${encodeURIComponent(q)}`);
+    if (!quickSearchTerm) return;
+    navigate(`${scope.to}?search=${encodeURIComponent(quickSearchTerm)}`);
   };
 
   return (
@@ -69,10 +85,12 @@ export function ShellSidebar() {
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
-            <ChevronLeftIcon size={16} className="fo-sidebar-collapse-chevron" />
+            <ChevronLeftIcon size={20} className="fo-sidebar-collapse-chevron" />
           </button>
         </div>
-        <form className="fo-sidebar-panel-body" onSubmit={runQuickSearch}>
+        <div className="fo-sidebar-panel-collapse">
+        <form className="fo-sidebar-panel-form" onSubmit={runQuickSearch}>
+        <div className="fo-sidebar-panel-body">
           <div className="fo-qs-field">
             <span className="fo-qs-label">{scope.noun} Keywords</span>
             <div className="fo-qs-input-row">
@@ -84,74 +102,159 @@ export function ShellSidebar() {
               />
               <button
                 type="submit"
-                className="fo-qs-search-icon"
+                className="fo-icon-btn fo-qs-search-btn"
                 aria-label="Search"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                disabled={quickSearchTerm.length === 0}
+                title={
+                  quickSearchTerm.length === 0
+                    ? 'Type something to search for'
+                    : `Search ${scope.noun.toLowerCase()}s for "${quickSearchTerm}"`
+                }
               >
-                <SearchIcon size={16} />
+                <SearchIcon size={20} />
               </button>
             </div>
           </div>
-          <button
-            type="button"
-            className="fo-qs-advanced-link is-placeholder"
-            onClick={() =>
-              navigate(keywords.trim() ? `/search?q=${encodeURIComponent(keywords.trim())}` : '/search')
-            }
-          >
-            Search everything
-          </button>
-          <button
-            type="button"
-            className="fo-qs-advanced-link is-placeholder"
-            onClick={() => show('Advanced Search')}
-          >
-            Advanced Search
-          </button>
+          <div className="fo-qs-actions">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() =>
+                navigate(
+                  quickSearchTerm ? `/search?q=${encodeURIComponent(quickSearchTerm)}` : '/search',
+                )
+              }
+            >
+              Search everything
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => show('Advanced Search')}
+            >
+              Advanced Search
+            </button>
+
+          </div>
+        </div>
+          {scope.namedFields && (
+            <div className="fo-sidebar-panel-body fo-qs-name-section">
+            <div className="fo-qs-name-group">
+              <div className="fo-qs-field fo-qs-name-field">
+                <span className="fo-qs-label">{scope.noun} First Name</span>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  aria-label={`${scope.noun} first name`}
+                />
+              </div>
+              <div className="fo-qs-field fo-qs-name-field">
+                <span className="fo-qs-label">{scope.noun} Last Name</span>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  aria-label={`${scope.noun} last name`}
+                />
+              </div>
+              <button
+                type="submit"
+                className="fo-icon-btn fo-qs-search-btn fo-qs-name-search"
+                aria-label="Search by name"
+                disabled={quickSearchTerm.length === 0}
+                title={
+                  quickSearchTerm.length === 0
+                    ? 'Type a first or last name to search for'
+                    : `Search ${scope.noun.toLowerCase()}s for "${quickSearchTerm}"`
+                }
+              >
+                <SearchIcon size={20} className="fo-qs-search-icon" />
+              </button>
+            </div>
+            </div>
+          )}
         </form>
+        </div>
       </div>
 
-{scope.namedFields && (
-      <form className="fo-sidebar-card" onSubmit={runQuickSearch}>
-          <div className="fo-qs-field">
-            <span className="fo-qs-label">{scope.noun} First Name</span>
-            <div className="fo-qs-input-row">
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                aria-label={`${scope.noun} first name`}
-              />
-              <SearchIcon size={16} className="fo-qs-search-icon" />
-            </div>
-          </div>
-          <div className="fo-qs-field">
-            <span className="fo-qs-label">{scope.noun} Last Name</span>
-            <div className="fo-qs-input-row">
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                aria-label={`${scope.noun} last name`}
-              />
-            </div>
-          </div>
-      </form>
-      )}
+
 
       <div className="fo-sidebar-panel">
         <div className="fo-sidebar-panel-header">
           <span className="fo-sidebar-panel-title">Recently Viewed</span>
-          <button
-            type="button"
-            className="fo-sidebar-panel-btn is-placeholder"
-            aria-label="Configure Recently Viewed"
-            title="Configure"
-            onClick={() => show('Recently Viewed settings')}
-          >
-            <GearIcon size={16} />
-          </button>
+          <div className="fo-recent-settings-anchor" ref={recentSettingsRef}>
+            <button
+              type="button"
+              className="fo-sidebar-panel-btn"
+              aria-label="Configure Recently Viewed"
+              aria-expanded={recentSettingsOpen}
+              aria-controls="fo-recent-settings"
+              title="Configure"
+              onClick={(event) => {
+                if (recentSettingsOpen) {
+                  recentSettings.requestClose();
+                  return;
+                }
+                setLimitDraft(String(limit));
+                const box = event.currentTarget.getBoundingClientRect();
+                setRecentSettingsAt({ top: box.bottom + 4, left: box.left });
+                setRecentSettingsOpen(true);
+              }}
+            >
+              <GearIcon size={20} />
+            </button>
+            {recentSettingsOpen && (
+              <div
+                className="fo-recent-settings"
+                id="fo-recent-settings"
+                style={{ top: recentSettingsAt.top, left: recentSettingsAt.left }}
+                data-closing={recentSettings.closing ? 'true' : undefined}
+              >
+                <label className="fo-recent-settings-label" htmlFor="fo-recent-limit">
+                  Records to keep
+                </label>
+                <div className="fo-recent-settings-row">
+                  <input
+                    id="fo-recent-limit"
+                    className="input"
+                    type="number"
+                    min="1"
+                    max="50"
+                    step="1"
+                    placeholder="10"
+                    value={limitDraft}
+                    onChange={(e) => setLimitDraft(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      const next = Number(limitDraft);
+                      setLimit(Number.isFinite(next) && next > 0 ? Math.min(50, next) : 10);
+                      recentSettings.requestClose();
+                    }}
+                  >
+                    Save
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="fo-recent-settings-clear"
+                  disabled={recent.length === 0}
+                  onClick={() => {
+                    clear();
+                    recentSettings.requestClose();
+                  }}
+                >
+                  Clear list
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+        <div className="fo-sidebar-panel-collapse">
+        <div className="fo-sidebar-panel-stack">
         <div className="fo-sidebar-panel-body">
           {recent.length === 0 ? (
             <p className="fo-recent-empty">
@@ -176,6 +279,8 @@ export function ShellSidebar() {
               ))}
             </div>
           )}
+        </div>
+        </div>
         </div>
       </div>
     </aside>

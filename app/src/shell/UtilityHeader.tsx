@@ -1,8 +1,11 @@
 import { BookmarkToggle } from './BookmarkBar';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { usePlaceholder } from './Placeholder';
 import { useDismissable } from '../hooks/useDismissable';
+import { useMenuKeyboard } from '../hooks/useMenuKeyboard';
+import { SearchBox } from '../components/ui/SearchBox';
 import {
   ChartColumn as BarChartIcon,
   Megaphone as MegaphoneIcon,
@@ -10,7 +13,9 @@ import {
 } from 'lucide-react';
 
 export function UtilityHeader() {
+  const [topSearch, setTopSearch] = useState('');
   const { staff, signOut } = useSession();
+  const navigate = useNavigate();
   const { show } = usePlaceholder();
   const [adminOpen, setAdminOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -18,8 +23,10 @@ export function UtilityHeader() {
   const helpRef = useRef<HTMLDivElement>(null);
   const closeAdmin = useCallback(() => setAdminOpen(false), []);
   const closeHelp = useCallback(() => setHelpOpen(false), []);
-  const admin = useDismissable(adminOpen, closeAdmin);
-  const help = useDismissable(helpOpen, closeHelp);
+  const admin = useDismissable(adminOpen, closeAdmin, adminRef);
+  const help = useDismissable(helpOpen, closeHelp, helpRef);
+  const adminKeys = useMenuKeyboard(adminOpen, closeAdmin, adminRef);
+  const helpKeys = useMenuKeyboard(helpOpen, closeHelp, helpRef);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -41,7 +48,7 @@ export function UtilityHeader() {
 
   return (
     <header className="fo-utility-header">
-      <div className="fo-brand">
+      <Link className="fo-brand" to="/" aria-label="VentVest Front Office OS home">
         <img
           className="fo-brand-logo"
           src="/ventvest-logo.webp"
@@ -50,7 +57,15 @@ export function UtilityHeader() {
           height={231}
         />
         <span className="fo-brand-sub">Front Office OS</span>
-      </div>
+      </Link>
+
+      <SearchBox
+        className="fo-utility-search"
+        value={topSearch}
+        onValueChange={setTopSearch}
+        ariaLabel="Search all records"
+        placeholder="Search everything"
+      />
 
       <div className="fo-utility-actions">
         <BookmarkToggle />
@@ -65,19 +80,19 @@ export function UtilityHeader() {
         </button>
         <button
           type="button"
-          className="fo-utility-icon is-placeholder"
+          className="fo-utility-icon"
           aria-label="Settings"
           title="Settings"
-          onClick={() => (window.location.href = '/settings')}
+          onClick={() => navigate('/settings')}
         >
           <GearIcon />
         </button>
         <button
           type="button"
-          className="fo-utility-icon is-placeholder"
+          className="fo-utility-icon"
           aria-label="Reports"
           title="Reports"
-          onClick={() => (window.location.href = '/?tab=reports')}
+          onClick={() => navigate('/reports')}
         >
           <BarChartIcon />
         </button>
@@ -90,7 +105,7 @@ export function UtilityHeader() {
           Web Support
         </button>
 
-        <div className="fo-utility-menu-wrap" ref={adminRef}>
+        <div className="fo-utility-menu-wrap" ref={adminRef} onKeyDown={adminKeys}>
           <button
             type="button"
             className="fo-utility-link is-placeholder"
@@ -115,7 +130,7 @@ export function UtilityHeader() {
                 role="menuitem"
                 onClick={() => {
                   setAdminOpen(false);
-                  show('Administration', 'General configuration is not part of the FOOS MVP.');
+                  show('General configuration');
                 }}
               >
                 General Configuration
@@ -126,7 +141,7 @@ export function UtilityHeader() {
                 role="menuitem"
                 onClick={() => {
                   setAdminOpen(false);
-                  show('Administration', 'Career Section administration is not part of the FOOS MVP.');
+                  show('Career section administration');
                 }}
               >
                 Career Section
@@ -135,7 +150,7 @@ export function UtilityHeader() {
           )}
         </div>
 
-        <div className="fo-utility-menu-wrap" ref={helpRef}>
+        <div className="fo-utility-menu-wrap" ref={helpRef} onKeyDown={helpKeys}>
           <button
             type="button"
             className="fo-utility-link is-placeholder"

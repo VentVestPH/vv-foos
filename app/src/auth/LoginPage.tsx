@@ -64,14 +64,6 @@ export function LoginPage() {
           <p className="text-secondary">Sign in with your ventvest.com account.</p>
         </div>
 
-        <Button variant="primary" onClick={signInWithGoogle} fullWidth>
-          Continue with Google
-        </Button>
-
-        <div className="login-divider">
-          <span>or</span>
-        </div>
-
         <form onSubmit={signInWithPassword} className="login-form">
           <Input
             label="Email"
@@ -79,6 +71,7 @@ export function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
+            aria-invalid={error ? true : undefined}
             required
           />
           <Input
@@ -87,6 +80,7 @@ export function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
+            aria-invalid={error ? true : undefined}
             required
           />
           {error && (
@@ -94,10 +88,18 @@ export function LoginPage() {
               {error}
             </p>
           )}
-          <Button type="submit" variant="secondary" loading={signingIn} fullWidth>
-            {signingIn ? 'Signing in…' : 'Sign in with email'}
+          <Button type="submit" variant="primary" loading={signingIn} fullWidth>
+            {signingIn ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
+
+        <div className="login-divider">
+          <span>or</span>
+        </div>
+
+        <Button variant="secondary" onClick={signInWithGoogle} fullWidth>
+          Continue with Google
+        </Button>
       </div>
     </div>
   );

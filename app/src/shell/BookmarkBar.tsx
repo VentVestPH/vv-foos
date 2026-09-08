@@ -31,7 +31,7 @@ export function BookmarkToggle() {
       onClick={() => (bookmarked ? remove(href) : add({ href, label: currentLabel(location.pathname) }))}
     >
       <BookmarkIcon
-        size={16}
+        size={20}
 
         fill={bookmarked ? 'currentColor' : 'none'}
         aria-hidden="true"
@@ -67,7 +67,7 @@ export function BookmarkBar() {
             aria-label={`Remove bookmark ${bookmark.label}`}
             onClick={() => remove(bookmark.href)}
           >
-            <X size={16} strokeWidth={1.8} aria-hidden="true" />
+            <X size={20} strokeWidth={1.8} aria-hidden="true" />
           </button>
         </span>
       ))}

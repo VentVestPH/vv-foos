@@ -21,16 +21,9 @@ const PRIMARY_NAV: PrimaryNavItem[] = [
     to: '/',
     roles: ALL,
     homeIcon: true,
-    isActive: (pathname, search) =>
-      pathname === '/' && !new URLSearchParams(search).get('tab'),
+    isActive: (pathname) => pathname === '/',
   },
-  {
-    label: 'Pipeline',
-    to: '/?tab=pipeline',
-    roles: ALL,
-    isActive: (pathname, search) =>
-      pathname === '/' && new URLSearchParams(search).get('tab') === 'pipeline',
-  },
+  { label: 'Pipeline', to: '/pipeline', roles: ALL },
   { label: 'Requisitions', to: '/recruit/requisitions', roles: ATS },
   { label: 'Candidates', to: '/recruit/candidates', roles: ATS },
   { label: 'Intake', to: '/intake', roles: ALL, badge: 'intake' },
@@ -41,13 +34,7 @@ const PRIMARY_NAV: PrimaryNavItem[] = [
   { label: 'Employees', to: '/employees', roles: ALL },
   { label: 'Onboard/Offboard', to: '/onboard', roles: ALL },
   { label: 'Users', to: '/users', roles: ['admin'] },
-  {
-    label: 'Reports',
-    to: '/?tab=reports',
-    roles: ALL,
-    isActive: (pathname, search) =>
-      pathname === '/' && new URLSearchParams(search).get('tab') === 'reports',
-  },
+  { label: 'Reports', to: '/reports', roles: ALL },
   { label: 'Courses', to: '/courses', roles: ALL },
 ];
 
