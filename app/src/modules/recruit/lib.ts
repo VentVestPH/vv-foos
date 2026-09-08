@@ -79,6 +79,13 @@ export const REQ_TRANSITIONS: Record<RequisitionStatus, RequisitionStatus[]> = {
   closed: [],
 };
 
+export const REQ_PRIMARY_ACTION: Partial<Record<RequisitionStatus, RequisitionStatus>> = {
+  draft: 'waiting_approval',
+  waiting_approval: 'open',
+  open: 'filled',
+  on_hold: 'open',
+};
+
 export const REQ_ACTION_LABELS: Record<RequisitionStatus, string> = {
   draft: 'Return to draft',
   waiting_approval: 'Submit for approval',

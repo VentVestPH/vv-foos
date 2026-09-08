@@ -116,10 +116,19 @@ export function DataExportCard() {
                     size="sm"
                     variant="secondary"
                     disabled={busy !== null || n === null || n === 0}
+                    title={
+                      busy !== null
+                        ? 'Another export is running'
+                        : n === null
+                          ? 'The row count is unavailable'
+                          : n === 0
+                            ? 'There is nothing to export'
+                            : undefined
+                    }
                     onClick={() => void exportModule(m)}
                     data-testid={`export-${m.key}`}
                   >
-                    <Download size={16} />
+                    <Download size={20} />
                     {busy === m.key
                       ? `Exporting… ${progress.toLocaleString()} of ${(n ?? 0).toLocaleString()}`
                       : 'Export CSV'}

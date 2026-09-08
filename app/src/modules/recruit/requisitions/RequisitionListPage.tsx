@@ -13,7 +13,6 @@ import { ListPage } from '../../../components/ui/ListPage';
 import { RecordSection } from '../../../components/ui/RecordPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
-import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
 import type { Database, RequisitionStatus } from '../../../lib/database.types';
 import { realtimeChannel } from '../../../lib/realtimeChannel';
@@ -25,7 +24,7 @@ type RequisitionListRow = Omit<
   Database['public']['Views']['requisition_list']['Row'],
   'search_text'
 >;
-import { type SortState, errMsg, fmtDate } from '../lib';
+import { REQ_ACTION_LABELS, REQ_TRANSITIONS, type SortState, errMsg, fmtDate } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 
@@ -390,7 +389,7 @@ export function RequisitionListPage() {
           </span>
         ),
       },
-      { key: 'company', header: COLUMN_HEADER.company, sortable: true },
+      { key: 'company', header: COLUMN_HEADER.company, sortable: true, hideWhenEmpty: true },
       {
         key: 'num_openings',
         header: COLUMN_HEADER.num_openings,
@@ -427,10 +426,41 @@ export function RequisitionListPage() {
   const canCreate = (role === 'admin' || role === 'recruiter') && !mobile;
   const canBulk = (role === 'admin' || role === 'recruiter') && !mobile;
 
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const bulkTargets = useMemo<RequisitionStatus[]>(() => {
+    const chosen = reqs.filter((r) => selected.has(r.id));
+    if (chosen.length === 0) return [];
+    let shared: RequisitionStatus[] | null = null;
+    for (const r of chosen) {
+      const allowed = REQ_TRANSITIONS[r.status];
+      shared = shared === null ? [...allowed] : shared.filter((t) => allowed.includes(t));
+    }
+    return shared ?? [];
+  }, [reqs, selected]);
+
+  const bulkChangeStatus = async (target: RequisitionStatus) => {
+    if (!target || selected.size === 0) return;
+    setBulkBusy(true);
+    setError(null);
+    const ids = [...selected];
+    const { error: err } = await supabase
+      .from('requisitions')
+      .update({ status: target })
+      .in('id', ids);
+    setBulkBusy(false);
+    if (err) {
+      setError(`Could not change status: ${err.message}`);
+      return;
+    }
+    setSelected(new Set());
+    void loadPage();
+  };
+
   return (
     <ListPage
       title="Requisitions"
-      icon={<BriefcaseIcon size={40} />}
+      icon={<BriefcaseIcon size={32} />}
       description="Requisitions are all of the job openings you want to track in Front Office OS and post on your careers website."
       search={search}
       onSearchChange={setSearch}
@@ -565,16 +595,30 @@ export function RequisitionListPage() {
 
       {canBulk && (
         <div className="record-action-bar fo-list-action-bar">
-          <PlaceholderAction
-            label="Delete"
-            detail="Bulk delete isn't implemented for requisitions yet."
+          <Select
+            aria-label="Change status to"
+            placeholder="Change status to…"
+            value=""
+            disabled={selected.size === 0 || bulkBusy}
+            title={
+              bulkBusy
+                ? 'Applying the change'
+                : selected.size === 0
+                  ? 'Select requisitions first'
+                  : bulkTargets.length === 0
+                    ? 'The selected requisitions share no legal next status'
+                    : undefined
+            }
+            options={bulkTargets.map((t) => ({ value: t, label: REQ_ACTION_LABELS[t] }))}
+            onChange={(e) => void bulkChangeStatus(e.target.value as RequisitionStatus)}
           />
-          <PlaceholderAction label="Forms" />
-          <PlaceholderAction
-            label="Change status to…"
-            caret
-            detail="Change the status of one requisition at a time from its record page."
-          />
+          <span className="text-secondary fo-bulk-hint">
+            {selected.size === 0
+              ? 'Select requisitions to change their status.'
+              : bulkTargets.length === 0
+                ? 'The selected requisitions share no legal next status.'
+                : `${selected.size} selected.`}
+          </span>
         </div>
       )}
 

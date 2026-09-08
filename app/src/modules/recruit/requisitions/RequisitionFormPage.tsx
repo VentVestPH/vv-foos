@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { AccessDenied } from '../../../components/ui/AccessDenied';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRole } from '../../../auth/SessionProvider';
 import type { ApproverType, TablesInsert } from '../../../lib/database.types';
@@ -273,7 +274,13 @@ export function RequisitionFormPage() {
   };
 
   if (role !== 'admin' && role !== 'recruiter') {
-    return <p className="text-secondary">You do not have access to edit requisitions.</p>;
+    return (
+      <AccessDenied
+        what="edit requisitions"
+        backTo="/recruit/requisitions"
+        backLabel="Back To List"
+      />
+    );
   }
   if (!loaded) {
     return <p className="text-secondary">Loading…</p>;
@@ -293,7 +300,7 @@ export function RequisitionFormPage() {
     <div className="record-page">
       <div className="record-title-row">
         <span className="fo-page-icon">
-          <BriefcaseIcon size={40} />
+          <BriefcaseIcon size={32} />
         </span>
         <h1>{editing ? 'Requisitions: Edit Requisition' : 'Requisitions: New Requisition'}</h1>
       </div>
@@ -450,7 +457,7 @@ export function RequisitionFormPage() {
                 checked={form.is_test}
                 onChange={(e) => set('is_test', e.target.checked)}
               />
-              Test data (is_test)
+              Test record
             </label>
           </div>
         </RecordSection>

@@ -357,7 +357,13 @@ export function TasksPanel({ items, allowCreate, onCreate, onToggle }: TasksPane
             onChange={(e) => setDue(e.target.value)}
           />
           <div>
-            <Button size="sm" variant="primary" type="submit" disabled={!subject.trim()}>
+            <Button
+              size="sm"
+              variant="primary"
+              type="submit"
+              disabled={!subject.trim()}
+              title={subject.trim() ? undefined : 'Give the task a subject first'}
+            >
               Add task
             </Button>
           </div>
@@ -434,6 +440,13 @@ export function RemindersPanel({
               variant="primary"
               type="submit"
               disabled={!subject.trim() || !at}
+              title={
+                !subject.trim()
+                  ? 'Give the reminder a subject first'
+                  : !at
+                    ? 'Pick when to be reminded'
+                    : undefined
+              }
             >
               Add reminder
             </Button>

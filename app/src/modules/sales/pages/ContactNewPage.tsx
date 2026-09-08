@@ -144,7 +144,7 @@ export function ContactNewPage() {
   };
 
   return (
-    <RecordPage title="Contacts: New Contact" icon={<ContactCardIcon size={40} />}>
+    <RecordPage title="Contacts: New Contact" icon={<ContactCardIcon size={32} />}>
       <form className="sales-form" noValidate onSubmit={submit}>
         <div className="sales-form-grid">
           <Input
@@ -160,6 +160,9 @@ export function ContactNewPage() {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
           />
+          <span className="field-hint sales-span-2">
+            Give at least a first or a last name.
+          </span>
           <Input
             label="Email"
             type="email"
@@ -190,7 +193,6 @@ export function ContactNewPage() {
             onChange={(e) => setSinceDate(e.target.value)}
           />
           <div className="field">
-            <span className="field-label">Flags</span>
             <label className="sales-checkbox">
               <input
                 type="checkbox"
@@ -207,6 +209,7 @@ export function ContactNewPage() {
               />
               Test record
             </label>
+            <span className="field-hint">Test records are left out of CSV exports.</span>
           </div>
         </div>
 

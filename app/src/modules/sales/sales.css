@@ -38,11 +38,6 @@
 }
 
 .sales-modal-x {
-  border: none;
-  background: none;
-  font-size: var(--fs-lg);
-  line-height: 1;
-  cursor: pointer;
   color: var(--text-secondary);
 }
 

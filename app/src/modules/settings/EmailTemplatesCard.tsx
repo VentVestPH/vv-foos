@@ -130,6 +130,17 @@ export function EmailTemplatesCard() {
               variant="primary"
               size="sm"
               disabled={busy || !draft.name.trim() || !draft.subject.trim() || !draft.body.trim()}
+              title={
+                busy
+                  ? 'Saving'
+                  : !draft.name.trim()
+                    ? 'Give the template a name'
+                    : !draft.subject.trim()
+                      ? 'Give the template a subject'
+                      : !draft.body.trim()
+                        ? 'Write the message body'
+                        : undefined
+              }
               onClick={() => void save()}
             >
               {draft.id ? 'Save changes' : 'Add template'}

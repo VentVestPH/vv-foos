@@ -239,7 +239,7 @@ export function DealsListPage() {
             {d.probability !== null && ` \u00b7 ${d.probability}%`}
           </span>
           <span>
-            {fmtDate(d.expected_close)} \u00b7 {d.owner_name ?? ''}
+            {`${fmtDate(d.expected_close)} \u00b7 ${d.owner_name ?? ''}`}
           </span>
         </div>
       ),
@@ -365,7 +365,7 @@ export function DealsListPage() {
     <>
       <ListPage
         title="Deals"
-        icon={<BriefcaseIcon size={40} />}
+        icon={<BriefcaseIcon size={32} />}
         description="Deals are the sales opportunities you are working with companies and contacts to close."
         search={search}
         onSearchChange={setSearch}

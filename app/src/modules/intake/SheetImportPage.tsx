@@ -165,7 +165,7 @@ export function SheetImportPage() {
       <div className="record-page intake-sheet-page">
         <div className="record-title-row">
           <span className="fo-page-icon">
-            <InboxIcon size={40} />
+            <InboxIcon size={32} />
           </span>
           <h1>Intake: Sheet Staged</h1>
         </div>
@@ -184,7 +184,7 @@ export function SheetImportPage() {
       <div className="record-page intake-sheet-page">
         <div className="record-title-row">
           <span className="fo-page-icon">
-            <InboxIcon size={40} />
+            <InboxIcon size={32} />
           </span>
           <h1>Intake: Preview ({fetched.rows.length} rows)</h1>
         </div>
@@ -239,7 +239,7 @@ export function SheetImportPage() {
       <div className="record-page intake-sheet-page">
         <div className="record-title-row">
           <span className="fo-page-icon">
-            <InboxIcon size={40} />
+            <InboxIcon size={32} />
           </span>
           <h1>Intake: Map Columns</h1>
         </div>
@@ -337,7 +337,7 @@ export function SheetImportPage() {
     <div className="record-page intake-sheet-page">
       <div className="record-title-row">
         <span className="fo-page-icon">
-          <InboxIcon size={40} />
+          <InboxIcon size={32} />
         </span>
         <h1>Intake: Import a Sheet</h1>
       </div>

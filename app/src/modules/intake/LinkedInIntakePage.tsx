@@ -140,7 +140,7 @@ export function LinkedInIntakePage() {
       <div className="record-page intake-linkedin-page">
         <div className="record-title-row">
           <span className="fo-page-icon">
-            <InboxIcon size={40} />
+            <InboxIcon size={32} />
           </span>
           <h1>Intake: Batch Staged</h1>
         </div>
@@ -161,7 +161,7 @@ export function LinkedInIntakePage() {
       <div className="record-page intake-linkedin-page">
         <div className="record-title-row">
           <span className="fo-page-icon">
-            <InboxIcon size={40} />
+            <InboxIcon size={32} />
           </span>
           <h1>
             Intake: {targetType === 'candidate' ? 'Grade' : 'Review'} item {index + 1} of {created.length}
@@ -225,7 +225,7 @@ export function LinkedInIntakePage() {
     <div className="record-page intake-linkedin-page">
       <div className="record-title-row">
         <span className="fo-page-icon">
-          <InboxIcon size={40} />
+          <InboxIcon size={32} />
         </span>
         <h1>Intake: Paste LinkedIn URLs</h1>
       </div>

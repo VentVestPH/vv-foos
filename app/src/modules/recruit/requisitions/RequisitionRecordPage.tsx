@@ -9,7 +9,6 @@ import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
-import { PlaceholderAction } from '../../../shell/Placeholder';
 import {
   Briefcase as BriefcaseIcon,
   CircleArrowUp,
@@ -24,7 +23,7 @@ import {
 } from '../components/engagement';
 import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { supabase } from '../../../lib/supabase';
-import { type ApproverRow, type OwnerRow, REQ_ACTION_LABELS, REQ_TRANSITIONS, type Requisition, errMsg, fmtDate, fmtDateTime, todayIso } from '../lib';
+import { type ApproverRow, type OwnerRow, REQ_ACTION_LABELS, REQ_PRIMARY_ACTION, REQ_TRANSITIONS, type Requisition, errMsg, fmtDate, fmtDateTime, todayIso } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
 import { ApplicationPipeline } from './ApplicationPipeline';
 import { EMPTY_CELL } from '../../../lib/format';
@@ -44,6 +43,10 @@ export function RequisitionRecordPage() {
   const [owners, setOwners] = useState<OwnerRow[]>([]);
   const [approvers, setApprovers] = useState<ApproverRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [companyContacts, setCompanyContacts] = useState<
+    { person_id: string; full_name: string; title: string | null; isPrimary: boolean }[]
+  >([]);
   const [rejecting, setRejecting] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [pipelineCount, setPipelineCount] = useState(0);
@@ -76,8 +79,39 @@ export function RequisitionRecordPage() {
       setApprovers(a.data ?? []);
     } catch (e) {
       setError(errMsg(e));
+    } finally {
+      setLoaded(true);
     }
   }, [requisitionId]);
+
+  useEffect(() => {
+    const companyId = req?.company_id;
+    if (!companyId) {
+      setCompanyContacts([]);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from('contact_list')
+      .select('person_id, full_name, title, is_primary')
+      .eq('company_id', companyId)
+      .order('full_name')
+      .limit(50)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setCompanyContacts(
+          (data ?? []).map((r) => ({
+            person_id: r.person_id as string,
+            full_name: (r.full_name as string) ?? 'Unnamed',
+            title: (r.title as string | null) ?? null,
+            isPrimary: r.is_primary === true,
+          })),
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [req?.company_id]);
 
   useEffect(() => {
     void load();
@@ -214,11 +248,18 @@ export function RequisitionRecordPage() {
   );
 
   if (!req) {
-    return error ? (
-      <p className="form-error" role="alert">{error}</p>
-    ) : (
-      <p className="text-secondary">Loading…</p>
-    );
+    if (error) {
+      return <p className="form-error" role="alert">{error}</p>;
+    }
+    if (loaded) {
+      return (
+        <div className="stub-panel">
+          <h1>Requisition not found</h1>
+          <p>This record does not exist, or your role does not have access to it.</p>
+        </div>
+      );
+    }
+    return <p className="text-secondary">Loading…</p>;
   }
 
   const lifecycleTargets = REQ_TRANSITIONS[req.status];
@@ -258,19 +299,22 @@ export function RequisitionRecordPage() {
       <Button size="sm" onClick={() => navigate(`/recruit/requisitions/${req.id}/edit`)}>
         Edit
       </Button>
-      <PlaceholderAction label="Send To" size="sm" />
-      <PlaceholderAction label="Forms" size="sm" />
       <Button size="sm" variant="secondary" onClick={() => window.print()}>
         Printable View
       </Button>
-      <PlaceholderAction label="More" size="sm" caret />
       {lifecycleTargets.map((target) => {
         const openGated = target === 'open' && !allApproved;
         return (
           <Button
             key={target}
             size="sm"
-            variant={target === 'closed' ? 'danger' : 'primary'}
+            variant={
+              target === 'closed'
+                ? 'danger'
+                : target === REQ_PRIMARY_ACTION[req.status]
+                  ? 'primary'
+                  : 'secondary'
+            }
             disabled={openGated}
             title={openGated ? 'Waiting on requisition approver decisions' : undefined}
             onClick={() => void changeStatus(target)}
@@ -291,12 +335,12 @@ export function RequisitionRecordPage() {
     <RecordPage
       code={req.display_code}
       title={req.title}
-      icon={<BriefcaseIcon size={40} />}
+      icon={<BriefcaseIcon size={32} />}
       titleExtras={
         <>
           <StatusBadge status={req.status} />
           {req.is_published && <Badge tone="primary">Published</Badge>}
-          {req.is_test && <Badge tone="outline">Test data</Badge>}
+          {req.is_test && <Badge tone="outline">Test record</Badge>}
           <button
             type="button"
             className="link-btn fo-back-to-list"
@@ -316,7 +360,6 @@ export function RequisitionRecordPage() {
         <button type="button" className="link-btn" onClick={scrollToPipeline}>
           Candidates ({pipelineCount})
         </button>
-        <PlaceholderAction label="Search" variant="ghost" size="sm" />
         {canEdit ? (
           <button type="button" className="link-btn" onClick={() => setAddSignal((n) => n + 1)}>
             Add new candidate
@@ -410,10 +453,35 @@ export function RequisitionRecordPage() {
         )}
       </RecordSection>
 
-      <RecordSection title="Contacts" defaultOpen={false}>
-        <p className="text-secondary">No contacts attached.</p>
-        <PlaceholderAction label="Attach Contact" size="sm" variant="ghost" />
-        <PlaceholderAction label="New Contact" size="sm" variant="ghost" />
+      <RecordSection
+        title={req.company_id ? `Company contacts (${companyContacts.length})` : 'Company contacts'}
+        defaultOpen={false}
+      >
+        {!req.company_id ? (
+          <p className="text-secondary">
+            No company is linked to this requisition, so there are no contacts to show.
+          </p>
+        ) : companyContacts.length === 0 ? (
+          <p className="text-secondary">This company has no contacts on file.</p>
+        ) : (
+          <ul className="task-list">
+            {companyContacts.map((c) => (
+              <li key={c.person_id} className="task-row" data-kind="note">
+                <span className="task-due">{c.isPrimary ? 'Primary contact' : 'Contact'}</span>
+                <span className="task-subject">
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => navigate(`/sales/contacts/${c.person_id}`)}
+                  >
+                    {c.full_name}
+                  </button>
+                </span>
+                <span className="task-related">{c.title ?? ''}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </RecordSection>
 
       <RecordSection title="Tasks" defaultOpen={false}>
@@ -537,7 +605,6 @@ export function RequisitionRecordPage() {
         </div>
       </RecordSection>
 
-      <div className="record-action-bar fo-record-bottom-bar">{actionBarContent}</div>
 
       {rejecting && (
         <Dialog

@@ -404,6 +404,7 @@ export function ApplicationPipeline({
       },
       {
         key: 'next_step',
+        hideWhenEmpty: true,
         header: 'Next step',
         render: (r) =>
           canEdit && editRowFields ? (
@@ -421,6 +422,7 @@ export function ApplicationPipeline({
       },
       {
         key: 'is_shortlisted',
+        hideWhenEmpty: true,
         header: 'Shortlist',
         sortable: true,
         sortValue: (r) => (r.is_shortlisted ? 1 : 0),
@@ -439,12 +441,13 @@ export function ApplicationPipeline({
               void toggleShortlist(r);
             }}
           >
-            <Star size={16} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
+            <Star size={20} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
           </button>
         ),
       },
       {
         key: 'rank',
+        hideWhenEmpty: true,
         header: 'Rank',
         sortable: true,
         sortValue: (r) => r.rank ?? 9999,
@@ -464,7 +467,7 @@ export function ApplicationPipeline({
             (r.rank ?? '')
           ),
       },
-      { key: 'source', header: 'Source', sortable: true },
+      { key: 'source', header: 'Source', sortable: true, hideWhenEmpty: true },
       {
         key: 'applied_at',
         header: 'Applied',
@@ -479,6 +482,7 @@ export function ApplicationPipeline({
       },
       {
         key: 'rejection_reason',
+        hideWhenEmpty: true,
         header: 'Rejection reason',
         render: (r) => <CappedCell text={r.rejection_reason} />,
       },
@@ -513,7 +517,7 @@ export function ApplicationPipeline({
                 }
                 onClick={() => void toggleShortlist(r)}
               >
-                <Star size={16} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
+                <Star size={20} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
               </button>
               {r.rank != null && <span>#{r.rank}</span>}
               {r.next_step && <span>{r.next_step}</span>}

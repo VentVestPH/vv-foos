@@ -34,13 +34,7 @@
 
 .rq-dialog-x {
   margin-left: auto;
-  background: none;
-  border: none;
-  font-size: var(--fs-lg);
-  line-height: 1;
   color: var(--text-secondary);
-  cursor: pointer;
-  padding: var(--sp-half);
 }
 
 .rq-dialog-x:hover {
@@ -366,8 +360,7 @@
   gap: 2px;
 }
 
-.fo-list-action-bar,
-.fo-record-bottom-bar {
+.fo-list-action-bar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-1);

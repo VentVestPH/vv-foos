@@ -86,7 +86,7 @@ export function CompanyNewPage() {
   };
 
   return (
-    <RecordPage title="Accounts: New Account" icon={<HandshakeIcon size={40} />}>
+    <RecordPage title="Accounts: New Account" icon={<HandshakeIcon size={32} />}>
       <form className="sales-form" noValidate onSubmit={submit}>
         <ErrorSummary errors={problems} />
         <div className="sales-form-grid">
@@ -155,8 +155,9 @@ export function CompanyNewPage() {
               checked={isTest}
               onChange={(e) => setIsTest(e.target.checked)}
             />
-            Test record (excluded from CSV exports)
+            Test record
           </label>
+          <span className="field-hint">Test records are left out of CSV exports.</span>
         </div>
         {error && <div className="form-error" role="alert">{error}</div>}
         <div className="sales-form-actions">

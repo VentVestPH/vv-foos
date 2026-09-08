@@ -159,6 +159,7 @@ export function CompaniesListPage() {
       key: 'state',
       header: 'State/Territory',
       sortable: true,
+      hideWhenEmpty: true,
       render: (c) => c.state ?? EMPTY_CELL,
     },
     {
@@ -239,7 +240,7 @@ export function CompaniesListPage() {
   return (
     <ListPage
       title="Accounts"
-      icon={<HandshakeIcon size={40} />}
+      icon={<HandshakeIcon size={32} />}
       description="Accounts are the companies and organizations involved with your business such as employers, customers, search firms, agencies, etc."
       search={search}
       onSearchChange={setSearch}

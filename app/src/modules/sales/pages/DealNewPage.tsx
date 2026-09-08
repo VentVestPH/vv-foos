@@ -131,7 +131,7 @@ export function DealNewPage() {
   };
 
   return (
-    <RecordPage title="Deals: New Deal" icon={<BriefcaseIcon size={40} />}>
+    <RecordPage title="Deals: New Deal" icon={<BriefcaseIcon size={32} />}>
       <form className="sales-form" noValidate onSubmit={submit}>
         <div className="sales-form-grid">
           <div className="sales-span-2">
@@ -167,6 +167,7 @@ export function DealNewPage() {
             value={contactId}
             onChange={(e) => setContactId(e.target.value)}
             disabled={!companyId}
+            title={companyId ? undefined : 'Pick a company first'}
           />
           <Select
             label="Owner"
@@ -193,6 +194,7 @@ export function DealNewPage() {
             type="number"
             min="0"
             max="100"
+            step="1"
             value={probability}
             onChange={(e) => setProbability(e.target.value)}
           />
@@ -207,8 +209,9 @@ export function DealNewPage() {
               checked={isTest}
               onChange={(e) => setIsTest(e.target.checked)}
             />
-            Test record (excluded from CSV exports)
+            Test record
           </label>
+          <span className="field-hint">Test records are left out of CSV exports.</span>
         </div>
         <ErrorSummary errors={problems} />
         {error && <div className="form-error" role="alert">{error}</div>}

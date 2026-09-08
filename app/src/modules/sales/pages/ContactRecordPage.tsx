@@ -215,7 +215,7 @@ export function ContactRecordPage() {
   return (
     <RecordPage
       title={personName(person)}
-      icon={<ContactCardIcon size={40} />}
+      icon={<ContactCardIcon size={32} />}
       titleExtras={
         <span className="sales-badges">
           <Badge tone="neutral">contact</Badge>

@@ -120,7 +120,7 @@ export function TicketsListPage() {
   return (
     <ListPage
       title="Tickets"
-      icon={<TicketIcon size={40} />}
+      icon={<TicketIcon size={32} />}
       description="Tickets are the customer support and account issues your team is tracking in Front Office OS."
       search={search}
       onSearchChange={setSearch}

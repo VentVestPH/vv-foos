@@ -208,7 +208,7 @@ export function DealRecordPage() {
     <RecordPage
       code={deal.display_code}
       title={deal.name}
-      icon={<BriefcaseIcon size={40} />}
+      icon={<BriefcaseIcon size={32} />}
       titleExtras={
         <span className="sales-badges">
           <StatusBadge status={deal.stage} />
@@ -312,6 +312,7 @@ export function DealRecordPage() {
             type="number"
             min="0"
             max="100"
+            step="1"
             value={probability}
             onChange={(e) => setProbability(e.target.value)}
             disabled={!canEdit}

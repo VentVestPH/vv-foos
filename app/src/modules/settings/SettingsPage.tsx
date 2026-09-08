@@ -8,7 +8,7 @@ import { DataExportCard } from './DataExportCard';
 
 export function SettingsPage() {
   return (
-    <RecordPage title="Administration: Settings" icon={<GearIcon size={40} />}>
+    <RecordPage title="Administration: Settings" icon={<GearIcon size={32} />}>
       <RecordSection title="Google Integration:">
         <GoogleIntegrationCard />
         <EmailTemplatesCard />
@@ -18,12 +18,8 @@ export function SettingsPage() {
         <DataExportCard />
       </RecordSection>
 
-      <RecordSection title="Other Administration Areas:" defaultOpen={false}>
-        <p className="text-secondary">
-          Other Administration areas are not part of the FOOS MVP. The items below are reachable from the
-          utility header's Administration menu and open the same "not available in the current FOOS MVP"
-          message as there.
-        </p>
+      <RecordSection title="Other administration areas" defaultOpen={false}>
+        <p className="text-secondary">These areas are not available yet.</p>
         <div className="settings-other-admin-actions">
           <PlaceholderAction label="General Configuration" size="sm" />
           <PlaceholderAction label="Career Section" size="sm" />

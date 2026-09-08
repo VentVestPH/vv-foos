@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
-import { ListPage } from '../../components/ui/ListPage';
+import { ListPage, useListPageFilters } from '../../components/ui/ListPage';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../components/ui/Table';
 import { Pager, usePagination } from '../../components/ui/Pager';
-import { PlaceholderAction, usePlaceholder } from '../../shell/Placeholder';
+import { PlaceholderAction } from '../../shell/Placeholder';
 import { Inbox as InboxIcon, Settings as GearIcon } from 'lucide-react';
 import { useIntakeQueue } from './hooks';
 import {
@@ -30,9 +30,9 @@ const QUEUE_COLUMN_DEFS = [
 const QUEUE_ALL_COLUMN_KEYS = QUEUE_COLUMN_DEFS.map((c) => c.key);
 
 export function QueueListPage() {
-  const { show } = usePlaceholder();
   const [search, setSearch] = useState('');
-  const [channel, setChannel] = useState('');
+  const [params] = useSearchParams();
+  const [channel, setChannel] = useState(() => params.get('channel') ?? '');
   const [targetType, setTargetType] = useState('');
   const [status, setStatus] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -68,7 +68,7 @@ export function QueueListPage() {
         const Icon = CHANNEL_ICON[r.channel];
         return (
           <span title={CHANNEL_LABEL[r.channel]}>
-            <Icon size={16} aria-label={CHANNEL_LABEL[r.channel]} />
+            <Icon size={20} aria-label={CHANNEL_LABEL[r.channel]} />
           </span>
         );
       },
@@ -116,7 +116,7 @@ export function QueueListPage() {
   return (
     <ListPage
       title="Intake"
-      icon={<InboxIcon size={40} />}
+      icon={<InboxIcon size={32} />}
       description="Intake is where new candidates and contacts arrive from LinkedIn, spreadsheets, email, and the careers page before they're merged or imported."
       search={search}
       onSearchChange={setSearch}
@@ -124,25 +124,15 @@ export function QueueListPage() {
       actions={
         <>
           <Link to="/intake/linkedin">
-            <Button size="sm">Paste LinkedIn URLs</Button>
+            <Button size="sm" variant="primary">
+              Paste LinkedIn URLs
+            </Button>
           </Link>
           <Link to="/intake/sheet">
             <Button size="sm">Import a sheet</Button>
           </Link>
           <PlaceholderAction label="More" caret size="sm" />
-          <button
-            type="button"
-            className="fo-gear-btn"
-            aria-label="Configure columns"
-            onClick={() =>
-              show(
-                'Configure columns',
-                'Column visibility is already available in the Advanced Search panel on this page.',
-              )
-            }
-          >
-            <GearIcon size={16} />
-          </button>
+          <IntakeGearButton />
         </>
       }
       filterRail={
@@ -269,5 +259,19 @@ export function QueueListPage() {
           );
         })()}
     </ListPage>
+  );
+}
+
+function IntakeGearButton() {
+  const { openFilters } = useListPageFilters();
+  return (
+    <button
+      type="button"
+      className="fo-gear-btn"
+      aria-label="Configure columns"
+      onClick={() => openFilters({ focusColumns: true })}
+    >
+      <GearIcon size={20} />
+    </button>
   );
 }

@@ -5,10 +5,10 @@ import { useRole, useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Badge } from '../../../components/ui/Badge';
-import { ListPage } from '../../../components/ui/ListPage';
+import { ListPage, useListPageFilters } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
-import { PlaceholderAction, usePlaceholder } from '../../../shell/Placeholder';
+import { PlaceholderAction } from '../../../shell/Placeholder';
 import {
   FileText as ResumeIcon,
   Flag as FlagIcon,
@@ -348,7 +348,7 @@ export function CandidateListPage() {
       key: 'flagcol',
       header: (
         <span className="cand-flag-col" role="img" aria-label="Flag" title="Flag">
-          <FlagIcon size={16} />
+          <FlagIcon size={20} />
         </span>
       ),
       width: '32px',
@@ -391,7 +391,7 @@ export function CandidateListPage() {
             }
             title={r.has_resume ? 'Resume on file' : 'No resume on file'}
           >
-            <ResumeIcon size={16} />
+            <ResumeIcon size={20} />
           </span>
         ),
       },
@@ -519,7 +519,7 @@ export function CandidateListPage() {
   return (
     <ListPage
       title="Candidates"
-      icon={<PersonIcon size={40} />}
+      icon={<PersonIcon size={32} />}
       description="Candidates are all of the people you want to track in Front Office OS who are either applicants, employee referrals, sourced prospects, agency submissions, etc."
       search={search}
       onSearchChange={setSearch}
@@ -539,7 +539,7 @@ export function CandidateListPage() {
             aria-label="Last name"
           />
           <button type="button" className="btn btn-secondary btn-sm fo-go-btn">
-            Go!
+            Search
           </button>
         </div>
       }
@@ -660,20 +660,15 @@ export function CandidateListPage() {
 }
 
 function CandidateGearButton() {
-  const { show } = usePlaceholder();
+  const { openFilters } = useListPageFilters();
   return (
     <button
       type="button"
       className="fo-gear-btn"
       aria-label="Configure candidate list columns"
-      onClick={() =>
-        show(
-          'Configure columns',
-          'Column visibility is already available in the Advanced Search panel on this page.',
-        )
-      }
+      onClick={() => openFilters({ focusColumns: true })}
     >
-      <GearIcon size={16} />
+      <GearIcon size={20} />
     </button>
   );
 }

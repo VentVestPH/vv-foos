@@ -193,7 +193,7 @@ export function CompanyRecordPage() {
   return (
     <RecordPage
       title={company.name}
-      icon={<HandshakeIcon size={40} />}
+      icon={<HandshakeIcon size={32} />}
       actionBar={
         <>
           <button

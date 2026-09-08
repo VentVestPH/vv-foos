@@ -181,6 +181,7 @@ export function ContactsListPage() {
       key: 'since',
       header: 'Since',
       sortable: true,
+      hideWhenEmpty: true,
       sortValue: (r) => r.profile.since_date ?? '',
       render: (r) => fmtDate(r.profile.since_date),
     },
@@ -227,7 +228,7 @@ export function ContactsListPage() {
   return (
     <ListPage
       title="Contacts"
-      icon={<ContactCardIcon size={40} />}
+      icon={<ContactCardIcon size={32} />}
       description="Contacts are all of the individuals outside of your organization that you need to track in Front Office OS."
       search={search}
       onSearchChange={setSearch}

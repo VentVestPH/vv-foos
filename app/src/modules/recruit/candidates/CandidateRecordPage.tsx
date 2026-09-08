@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useBackToList } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
+import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { DateField } from '../../../components/ui/DateField';
@@ -52,13 +53,13 @@ export function CandidateRecordPage() {
   const lookups = useLookups();
   const { record } = useRecentlyViewed();
   const { show } = usePlaceholder();
-  const profileSectionRef = useRef<HTMLDivElement>(null);
 
   const [person, setPerson] = useState<Person | null>(null);
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [apps, setApps] = useState<Application[]>([]);
   const [reqs, setReqs] = useState<Requisition[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const engagement = useEngagement('person', personId);
   const viewedApplicationId = params.get('application');
@@ -101,6 +102,8 @@ export function CandidateRecordPage() {
       }
     } catch (e) {
       setError(errMsg(e));
+    } finally {
+      setLoaded(true);
     }
   }, [personId, setDraft]);
 
@@ -144,15 +147,24 @@ export function CandidateRecordPage() {
   const reqById = useMemo(() => new Map(reqs.map((r) => [r.id, r])), [reqs]);
 
   const scrollToProfile = useCallback(() => {
-    profileSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document
+      .getElementById('main-status-details')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
   if (!person) {
-    return error ? (
-      <p className="form-error" role="alert">{error}</p>
-    ) : (
-      <p className="text-secondary">Loading…</p>
-    );
+    if (error) {
+      return <p className="form-error" role="alert">{error}</p>;
+    }
+    if (loaded) {
+      return (
+        <div className="stub-panel">
+          <h1>Candidate not found</h1>
+          <p>This record does not exist, or your role does not have access to it.</p>
+        </div>
+      );
+    }
+    return <p className="text-secondary">Loading…</p>;
   }
 
   const activities = engagement.activities;
@@ -213,28 +225,6 @@ export function CandidateRecordPage() {
       </Button>
       <Button
         size="sm"
-        disabled={!canEditProfile}
-        title={
-          canEditProfile
-            ? 'Merge another candidate record into this one'
-            : 'Only an admin or a recruiter can merge candidates'
-        }
-        onClick={() => setMerging(true)}
-      >
-        Merge duplicate…
-      </Button>
-      {role === 'admin' && (
-        <Button
-          size="sm"
-          variant="danger"
-          title="Erase this candidate and everything attached to them"
-          onClick={() => setErasing(true)}
-        >
-          Erase…
-        </Button>
-      )}
-      <Button
-        size="sm"
         disabled={dnc || personEmails(person).length === 0}
         title={emailDisabledTitle}
         onClick={outreach.openSendEmail}
@@ -263,7 +253,29 @@ export function CandidateRecordPage() {
       )}
       <PlaceholderAction label="Print Resume" size="sm" />
       <PlaceholderAction label="Submit" size="sm" />
-      <PlaceholderAction label="More" size="sm" caret />
+      <ActionMenu
+        label="More"
+        items={[
+          {
+            label: 'Merge duplicate…',
+            onSelect: () => setMerging(true),
+            disabled: !canEditProfile,
+            title: canEditProfile
+              ? 'Merge another candidate record into this one'
+              : 'Only an admin or a recruiter can merge candidates',
+          },
+          ...(role === 'admin'
+            ? [
+                {
+                  label: 'Erase…',
+                  onSelect: () => setErasing(true),
+                  destructive: true,
+                  title: 'Erase this candidate and everything attached to them',
+                },
+              ]
+            : []),
+        ]}
+      />
       {canGrade && draft && (
         <Button size="sm" variant="primary" onClick={() => void saveProfile()}>
           Save profile
@@ -276,16 +288,16 @@ export function CandidateRecordPage() {
   return (
     <RecordPage
       title={personName(person)}
-      icon={<PersonIcon size={40} />}
+      icon={<PersonIcon size={32} />}
       titleExtras={
         <>
           {profile?.star_grade != null && <StarGrade value={profile.star_grade} />}
-          {person.is_test && <Badge tone="outline">Test data</Badge>}
+          {person.is_test && <Badge tone="outline">Test record</Badge>}
           <button
             type="button"
             className="link-btn"
             onClick={() =>
-              show('Flag', 'Flagging candidates is not implemented in the FOOS MVP yet.')
+              show('Flag')
             }
           >
             Flag
@@ -625,9 +637,8 @@ export function CandidateRecordPage() {
           )}
       </RecordSection>
 
-      <div ref={profileSectionRef} />
       {profile && draft ? (
-        <RecordSection title="Main Status Details">
+        <RecordSection title="Main Status Details" id="main-status-details">
           <div className="panel-stack">
             <Select
               label="Main status"
@@ -709,7 +720,7 @@ export function CandidateRecordPage() {
         </dl>
       </RecordSection>
 
-      <RecordSection title="Resumes" defaultOpen={resumes.length > 0}>
+      <RecordSection title="Resumes" count={resumes.length} empty={resumes.length === 0}>
         <AttachmentsPanel
           items={resumes}
           parent={{ type: 'person', id: person.id }}
@@ -727,7 +738,7 @@ export function CandidateRecordPage() {
         )}
       </RecordSection>
 
-      <RecordSection title="Attachments">
+      <RecordSection title="Attachments" count={files.length} empty={files.length === 0}>
         <AttachmentsPanel
           items={files}
           parent={{ type: 'person', id: person.id }}
@@ -750,7 +761,6 @@ export function CandidateRecordPage() {
         </RecordSection>
       )}
 
-      <div className="record-action-bar fo-record-bottom-bar">{actionBarContent}</div>
 
       <RecordSection title="Requisition Details" defaultOpen={false}>
         {apps.length === 0 && (
@@ -903,11 +913,11 @@ export function CandidateRecordPage() {
         />
       </RecordSection>
 
-      <RecordSection title="Events" defaultOpen={false}>
+      <RecordSection title="Events" count={events.length} empty={events.length === 0}>
         <EventsPanel items={events} />
       </RecordSection>
 
-      <RecordSection title="Tasks">
+      <RecordSection title="Tasks" count={engagement.tasks.length}>
         <TasksPanel
           items={engagement.tasks}
           allowCreate={allowCreate}
@@ -916,7 +926,7 @@ export function CandidateRecordPage() {
         />
       </RecordSection>
 
-      <RecordSection title="Reminders">
+      <RecordSection title="Reminders" count={engagement.reminders.length}>
         <RemindersPanel
           items={engagement.reminders}
           allowCreate={allowCreate}
@@ -925,7 +935,11 @@ export function CandidateRecordPage() {
         />
       </RecordSection>
 
-      <RecordSection title="Status History" defaultOpen={false}>
+      <RecordSection
+        title="Status History"
+        count={activities.filter((a) => a.kind === 'status_change').length}
+        empty={activities.filter((a) => a.kind === 'status_change').length === 0}
+      >
         <StatusHistory changes={activities.filter((a) => a.kind === 'status_change')} />
       </RecordSection>
 
