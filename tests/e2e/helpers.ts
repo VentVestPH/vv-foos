@@ -43,7 +43,11 @@ export async function waitForAnimations(page: Page, capMs = 3000): Promise<void>
 export function recordSection(page: Page, title: string) {
   return page
     .locator('.record-section')
-    .filter({ has: page.getByRole('button', { name: new RegExp(`^[\\u25b8\\u25be]?\\s*${title}$`) }) })
+    .filter({
+      has: page.getByRole('button', {
+        name: new RegExp(`^[\\u25b8\\u25be]?\\s*${title}(\\s*\\(\\d+\\))?$`),
+      }),
+    })
     .first();
 }
 
@@ -70,6 +74,15 @@ export function localDateTimeValue(msFromNow: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
     d.getMinutes(),
   )}`;
+}
+
+export function localDateTimeToday(msFromNow: number): string {
+  const now = new Date();
+  const target = new Date(now.getTime() + msFromNow);
+  if (target.getDate() !== now.getDate()) {
+    return localDateTimeValue(-Math.abs(msFromNow));
+  }
+  return localDateTimeValue(msFromNow);
 }
 
 export async function waitForRealtime(page: Page, timeout = 20000): Promise<boolean> {

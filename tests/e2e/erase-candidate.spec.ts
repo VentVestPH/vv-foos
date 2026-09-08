@@ -31,7 +31,8 @@ test.describe('the erasure path a candidate can ask for', () => {
   test('an admin must type the name before the button works', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
-    await page.getByRole('button', { name: 'Erase…' }).first().click();
+    await page.getByRole('button', { name: /^More/ }).first().click();
+    await page.getByRole('menuitem', { name: 'Erase…' }).click();
 
     const dialog = page.getByRole('dialog', { name: 'Erase this candidate' });
     const confirm = dialog.getByRole('button', { name: 'Erase permanently' });
@@ -62,9 +63,13 @@ test.describe('the erasure path a candidate can ask for', () => {
   test('a recruiter is not offered the erase action at all', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
-    await expect(page.getByRole('button', { name: 'Merge duplicate…' }).first()).toBeVisible({
+    await page.getByRole('button', { name: /^More/ }).first().click();
+    await expect(page.getByRole('menuitem', { name: 'Merge duplicate…' })).toBeVisible({
       timeout: 25000,
     });
-    await expect(page.getByRole('button', { name: 'Erase…' })).toHaveCount(0);
+    await expect(
+      page.getByRole('menuitem', { name: 'Erase…' }),
+      'a recruiter must not be offered erase, even inside the menu',
+    ).toHaveCount(0);
   });
 });

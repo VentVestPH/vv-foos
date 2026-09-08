@@ -71,7 +71,7 @@ test.describe('O1: a render error is contained instead of blanking the app', () 
     page,
   }) => {
     await signIn(page, PERSONA_EMAILS.admin);
-    await gotoAsSignedIn(page, '/?tab=pipeline');
+    await gotoAsSignedIn(page, '/pipeline');
 
     await expect(page.locator('.dash-widgets-panel')).toBeVisible({ timeout: 25000 });
     const widget = page.locator('.dash-widget').first();

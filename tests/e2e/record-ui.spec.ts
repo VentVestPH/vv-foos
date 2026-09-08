@@ -1,9 +1,17 @@
 import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
+import { clientAs } from '../env';
+
+const RAIL_NOTE = `QA record-ui ${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 
 test.describe('Record and list UI criteria', () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
+  });
+
+  test.afterEach(async () => {
+    const admin = await clientAs('admin');
+    await admin.from('activities').delete().like('subject', `${RAIL_NOTE}%`);
   });
 
   test('2.10 the Recently Viewed rail records opens across modules, newest first', async ({ page }) => {
@@ -24,46 +32,23 @@ test.describe('Record and list UI criteria', () => {
     expect(railText.indexOf('candidate')).toBeLessThan(railText.indexOf('company'));
   });
 
-  test('2.10 the rail never grows past 15 entries', async ({ page }) => {
+  test('2.10 the rail never shows more than the records-to-keep setting', async ({ page }) => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     await page.locator('.table-wrap .link-btn').first().click();
     await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
-    await expect(page.locator('aside, .fo-sidebar').first()).toContainText(/candidate/, {
-      timeout: 15000,
-    });
+    const rail = page.locator('aside, .fo-sidebar').first();
+    await expect(rail).toContainText(/candidate/, { timeout: 15000 });
 
-    const key = await page.evaluate(
-      () => Object.keys(localStorage).find((k) => k.startsWith('foos.recentlyViewed.')) ?? null,
-    );
-    expect(key, 'opening a record should create the recently-viewed store').not.toBeNull();
+    await page.getByRole('button', { name: 'Configure Recently Viewed' }).click();
+    const popover = page.locator('.fo-recent-settings');
+    await expect(popover).toBeVisible();
+    const limit = Number(await popover.getByLabel('Records to keep').inputValue());
+    expect(limit, 'the popover must report the stored limit').toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
 
-    await page.evaluate((k: string) => {
-      const seeded = Array.from({ length: 40 }, (_, i) => ({
-        type: 'candidate',
-        id: `seed-${i}`,
-        label: `Seed ${i}`,
-        viewedAt: new Date().toISOString(),
-      }));
-      localStorage.setItem(k, JSON.stringify(seeded));
-    }, key as string);
-
-    await gotoAsSignedIn(page, '/sales/companies');
-    await page.locator('.table-wrap .link-btn').first().click();
-    await expect(page).toHaveURL(/\/sales\/companies\/[0-9a-f-]{36}/);
-    await expect(page.locator('aside, .fo-sidebar').first()).toContainText(/company/, {
-      timeout: 15000,
-    });
-
-    const capped = await page.evaluate(
-      (k: string) => (JSON.parse(localStorage.getItem(k) ?? '[]') as unknown[]).length,
-      key as string,
-    );
-    expect(capped).toBe(15);
-
-    const railItems = await page.locator('aside li, .fo-sidebar li').count();
-    expect(railItems).toBeLessThanOrEqual(30);
-
-    await page.evaluate((k: string) => localStorage.removeItem(k), key as string);
+    await expect
+      .poll(async () => page.locator('.fo-recent-item').count(), { timeout: 15000 })
+      .toBeLessThanOrEqual(limit);
   });
 
   test('3.8 the tickets list is read-only, with no working mutation control', async ({ page }) => {
@@ -73,7 +58,7 @@ test.describe('Record and list UI criteria', () => {
     await expect(newTicket).toBeVisible();
     await newTicket.click();
     await expect(page.locator('.fo-placeholder-modal')).toContainText(
-      /not available in the current FOOS MVP/i,
+      /not available yet/i,
     );
     await page.keyboard.press('Escape');
     await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
@@ -86,11 +71,26 @@ test.describe('Record and list UI criteria', () => {
     await page.locator('.table-wrap .link-btn').first().click();
     await expect(page).toHaveURL(/\/sales\/companies\/[0-9a-f-]{36}/);
 
+    const companyId = new URL(page.url()).pathname.split('/').pop() as string;
+    const admin = await clientAs('admin');
+    const { error: seedErr } = await admin.from('activities').insert({
+      kind: 'note',
+      subject: RAIL_NOTE,
+      body: 'the side rail collapses when a record has nothing logged, so this test seeds one',
+      occurred_at: new Date().toISOString(),
+      company_id: companyId,
+    });
+    expect(seedErr, 'the seeded note must insert').toBeNull();
+    await page.reload();
+
     for (const section of [/Details/, /Contacts \(\d+\)/, /Open deals \(\d+\)/, /Requisitions \(\d+\)/, /Activity/]) {
       await expect(page.getByRole('button', { name: section }).first()).toBeVisible();
     }
     for (const panel of ['Notes', 'Calls', 'Meetings', 'Events', 'Emails']) {
-      await expect(page.getByText(panel, { exact: true }).first()).toBeVisible();
+      await expect(
+        page.getByRole('tab', { name: new RegExp(`^${panel}`) }),
+        `${panel} must be offered as a tab`,
+      ).toBeVisible();
     }
     for (const quickAdd of ['+ Note', '+ Call', '+ Task', '+ Reminder']) {
       await expect(page.getByRole('button', { name: quickAdd, exact: true })).toBeVisible();

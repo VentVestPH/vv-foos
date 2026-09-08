@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
+import { PERSONA_EMAILS, expandSection, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
 
 const RAIL_ROUTES = [
   '/recruit/candidates',
@@ -101,6 +101,7 @@ test('the file input is a styled label over a focusable native input', async ({ 
   await expect(firstName).toBeVisible({ timeout: 25000 });
   await firstName.click();
 
+  await expandSection(page, 'Attachments');
   const upload = page.locator('.file-field-btn');
   const input = page.locator('.file-field-input').first();
   await expect(input).toHaveCount(1);
@@ -217,7 +218,7 @@ test('W25: no button or single-line field renders taller than 32px', async ({ pa
     await expect(page.locator('.btn').first()).toBeVisible({ timeout: 25000 });
     const found = await page.evaluate(() => {
       const sel =
-        'button.btn, .field input:not([type="checkbox"]):not([type="radio"]), .input, .field-select, .date-field-btn, .record-section-header';
+        'button.btn, .field input:not([type="checkbox"]):not([type="radio"]), .input, .field-select, .date-field-btn';
       return Array.from(document.querySelectorAll(sel))
         .map((el) => {
           const r = (el as HTMLElement).getBoundingClientRect();
@@ -236,4 +237,17 @@ test('W25: no button or single-line field renders taller than 32px', async ({ pa
   console.log(`PROBE controlsMeasured=${measured} heights=${spread.join(',')}`);
   expect(measured).toBeGreaterThan(0);
   expect(tall, 'every button and single-line field is capped at 32px').toEqual([]);
+
+  await gotoAsSignedIn(page, '/recruit/requisitions/new');
+  await expect(page.locator('.record-section-header').first()).toBeVisible({ timeout: 25000 });
+  const headers = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('.record-section-header')).map((el) =>
+      Math.round((el as HTMLElement).getBoundingClientRect().height),
+    ),
+  );
+  expect(headers.length, 'a record page must carry section headers to measure').toBeGreaterThan(0);
+  expect(
+    [...new Set(headers)],
+    'an accordion title is a section header, not a control: a uniform 41px bar matching the sidebar',
+  ).toEqual([41]);
 });

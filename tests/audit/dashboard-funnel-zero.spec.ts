@@ -20,7 +20,7 @@ test('pipeline dashboard: what the ATS funnel request actually returns', async (
   });
 
   await signIn(page, PERSONA_EMAILS.admin);
-  await gotoAsSignedIn(page, '/?tab=pipeline');
+  await gotoAsSignedIn(page, '/pipeline');
   await page.waitForTimeout(7000);
 
   const bars = await page

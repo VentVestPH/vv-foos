@@ -8,7 +8,7 @@ const AXE_SOURCE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 
 const ROUTES = [
   ['home', '/'],
-  ['home pipeline tab', '/?tab=pipeline'],
+  ['home pipeline tab', '/pipeline'],
   ['global search', '/search?q=an'],
   ['requisitions', '/recruit/requisitions'],
   ['requisition new', '/recruit/requisitions/new'],

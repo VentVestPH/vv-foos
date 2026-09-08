@@ -13,7 +13,7 @@ const ROUTES = [
   ['search', '/search?q=an'],
 ] as const;
 
-async function settleLayout(page: Page, capMs = 8000): Promise<void> {
+async function settleLayout(page: Page, label: string, capMs = 20000): Promise<void> {
   await page
     .locator('.table-wrap, .kanban, .record-page, .intake-queue, main, [role="main"]')
     .first()
@@ -36,6 +36,11 @@ async function settleLayout(page: Page, capMs = 8000): Promise<void> {
     previous = current;
     if (stable >= 3) return;
   }
+  throw new Error(
+    `${label}: the layout never settled within ${capMs}ms, last read ${previous}. ` +
+      'Measuring now would report a mid-layout width as an overflow, which is how ' +
+      'this check produced a false 43px on seven routes under gate load.',
+  );
 }
 
 test.describe('Q8: usable on a phone', () => {
@@ -47,7 +52,7 @@ test.describe('Q8: usable on a phone', () => {
     const offenders: string[] = [];
     for (const [name, path] of ROUTES) {
       await gotoAsSignedIn(page, path);
-      await settleLayout(page);
+      await settleLayout(page, name);
       const overflow = await page.evaluate(() => {
         const de = document.documentElement;
         return {

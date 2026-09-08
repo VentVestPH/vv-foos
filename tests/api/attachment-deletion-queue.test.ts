@@ -10,17 +10,37 @@ const paths: string[] = [];
 describe('Deleting an attachment queues its file for removal (D26)', () => {
   afterAll(async () => {
     const admin = await clientAs('admin');
-    if (paths.length) {
-      for (const path of paths) {
-        const { data: row } = await admin
-          .from('attachments')
-          .insert({ storage_path: path, parent_type: 'person', parent_id: CANDIDATE, kind: 'other' })
-          .select('id')
-          .maybeSingle();
-        await admin.storage.from(BUCKET).remove([path]);
-        if (row) await admin.from('attachments').delete().eq('id', row.id);
+    if (paths.length === 0) return;
+    const leaked: string[] = [];
+
+    for (const path of paths) {
+      const { data: row, error: insErr } = await admin
+        .from('attachments')
+        .insert({ storage_path: path, parent_type: 'person', parent_id: CANDIDATE, kind: 'other' })
+        .select('id')
+        .maybeSingle();
+
+      const { data: removed, error: rmErr } = await admin.storage.from(BUCKET).remove([path]);
+      if (row) await admin.from('attachments').delete().eq('id', row.id);
+
+      const gone = !rmErr && (removed ?? []).length === 1;
+      if (!gone) {
+        leaked.push(
+          `${path}: reinsert=${insErr ? insErr.message : 'ok'} remove=${
+            rmErr ? rmErr.message : `${(removed ?? []).length} object(s)`
+          }`,
+        );
       }
-      await admin.from('attachment_deletion_queue').delete().in('storage_path', paths);
+    }
+
+    await admin.from('attachment_deletion_queue').delete().in('storage_path', paths);
+    paths.length = 0;
+
+    if (leaked.length) {
+      throw new Error(
+        `teardown left ${leaked.length} orphaned storage object(s), which fails the ` +
+          `attachment-queue gate check on a later run:\n  ${leaked.join('\n  ')}`,
+      );
     }
   });
 

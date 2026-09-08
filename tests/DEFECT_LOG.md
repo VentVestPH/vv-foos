@@ -6,6 +6,10 @@ Severity scale: **Critical** — data loss/corruption, RLS breach, auth bypass, 
 
 No real PII in any row below — all evidence is schema/config state or synthetic (`is_test`) data.
 
+## Tally, 2026-09-08
+
+**29 entries covering 28 distinct ids, 25 closed and 4 open.** **Corrected 2026-09-08:** this line read "25 entries covering 24 distinct ids, 22 closed and 3 open" and had not been updated when QA-025 and QA-026 were added. Counted with `grep -cE '^#{2,4} QA-0'` (27) and `grep -E '^- \*\*Status:\*\*' | grep -i open` (4: QA-003, QA-006, QA-008, QA-026). **Updated 2026-09-08 for QA-027 and QA-028**, both raised during Goal 11 batch 10. The four open are the three parked with Klent plus QA-026. **QA-028 is closed**: `validate.sql` was writing `probability = 0.6` to the real seeded DEAL-0001 and never restoring it. QA-027 is closed: a layout helper returned identically whether it settled or gave up, which is the **fourth** instance of the pattern already written into `CLAUDE.md`. QA-023 and QA-024 were added on 2026-09-08 and both closed the same day; QA-024 is closed for dismissal with its focus-management half carried forward as a Goal 9 finding, and QA-025 is a defect in my own audit harness rather than in the product: it wrote to the database it was photographing. **QA-023 is the first Critical defect this log has recorded that was not a configuration gap:** two presses of any placeholder-backed control left an invisible full-screen backdrop that swallowed every click, and it had been shipping unnoticed because no test opened a second overlay in one page session.
+
 ## Tally, 2026-09-07
 
 **23 entries covering 22 distinct ids, 20 closed and 3 open**, one of those three narrowed to a part nobody here can finish. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
@@ -340,7 +344,7 @@ Error: a header plus one record per visible row; got 0 records for 3 rows
 - **Verbatim refutation, from `developers.cloudflare.com/pages/configuration/redirects/` read 2026-09-07:** `Redirects are always followed, regardless of whether or not an asset matches the incoming request.`
 - **Cause, and it is a platform difference rather than a syntax gap.** Vercel checks the filesystem before applying a rewrite. Its Build Output API documents the routing phases, with `handle: 'filesystem'` annotated `check matches after the filesystem misses` and `handle: 'rewrite'` later still, so a `vercel.json` rewrite never sees a request an existing file answers. Cloudflare has no such step in front of `_redirects`. That makes `vercel.json`'s `/((?!assets/).*)` lookahead belt and braces on Vercel and load-bearing nowhere on Cloudflare, where `/*` matches `/assets/index-<hash>.js` too. Every bundle request would have been proxied to `index.html` and the browser would have received HTML with a JavaScript content type. `_redirects` also has no negative lookahead to port the exclusion with: splats and placeholders only.
 - **Why the wrong claim was plausible:** "a static host serves the file if it exists" is true of Vercel and is the behaviour the committed `vercel.json` relies on. It was carried across to a platform that documents the opposite, from recall rather than from a read.
-- **Fix, and there is no rule to write:** Pages does the SPA fallback itself. `If your project does not include a top-level 404.html file, Pages assumes that you are deploying a single-page application ... Pages' default single-page application behavior matches all incoming paths to the root (/)`, from `developers.cloudflare.com/pages/configuration/serving-pages/`. The precondition holds: `find app/dist-redesign-2 -maxdepth 1 -name '*.html'` returns only `index.html`, and there is no `404.html` in the output. `_redirects` now contains only comments, which Cloudflare supports, and they record why the catch-all must not come back.
+- **Fix, and there is no rule to write:** Pages does the SPA fallback itself. `If your project does not include a top-level 404.html file, Pages assumes that you are deploying a single-page application ... Pages' default single-page application behavior matches all incoming paths to the root (/)`, from `developers.cloudflare.com/pages/configuration/serving-pages/`. The precondition holds: `find app/dist -maxdepth 1 -name '*.html'` returns only `index.html`, and there is no `404.html` in the output. `_redirects` now contains only comments, which Cloudflare supports, and they record why the catch-all must not come back.
 - **Two related differences found in the same read, both now handled in `_headers`:** Pages adds `Access-Control-Allow-Origin: *` to every static asset response by default where Vercel adds none, so the port now detaches it with `! Access-Control-Allow-Origin`; and a deep link answered by the SPA fallback keeps its own URL, so the `/index.html` `Cache-Control` rule does not match it and Cloudflare's `public, max-age=0, must-revalidate` default applies instead, which is equivalent.
 - **Measured against the documented limits:** `_headers` uses 4 rules of 100, longest line 500 characters of 2,000; `_redirects` uses 0 of 2,100.
 - **The lesson:** for a platform this repository cannot execute, no gate exists, so the vendor's own sentence is the only test available. "Serves the asset first" is a reasonable guess about a static host and it was wrong; the sentence that settles it took one fetch.
@@ -414,3 +418,198 @@ Error: a header plus one record per visible row; got 0 records for 3 rows
 - **The pattern, named once so it stops being rediscovered.** Four separate failures today were the same mistake: **a flat wait or a single read standing in for a condition.** QA-019, a combobox read once while its neighbours polled. QA-021, `waitForAnimations` returning at its 3000ms cap indistinguishably from success. QA-022's select read, taken before the lookup landed. QA-022's phone measurement, taken 1200ms after navigation because 1200 felt long enough. Every fix has the same shape: **assert the condition, or read until the reading stops changing.** None of them was fixed by waiting longer.
 - **Status:** closed.
 - **Closed date:** 2026-09-07
+
+---
+
+### QA-023: the second overlay of a session could not be dismissed, and its invisible backdrop swallowed every click
+
+- **Date found:** 2026-09-08, by the Goal 8 visual sweep.
+- **Module/agent:** `app/src/hooks/useOverlayDismiss.ts`, reaching `app/src/shell/Placeholder.tsx` and `app/src/components/ui/Dialog.tsx`
+- **Severity:** **Critical** — not data loss, but the application becomes wholly unusable with no visible cause and no route back except a browser reload, and it is reachable in four clicks by any role on the first page anyone sees.
+- **Steps to reproduce:** sign in as any role, click the Announcements megaphone in the utility header, press Escape (it closes), click Announcements again, press Escape, press Escape again.
+- **Expected:** the second modal behaves exactly like the first and Escape dismisses it.
+- **Actual, verbatim from the probe:**
+
+  ```
+  PROBE round1 afterOpen {"modalPresent":true,"modalClosingAttr":null,"closingNodes":0}
+  PROBE round1 afterEscape {"modalPresent":false,"modalClosingAttr":null,"closingNodes":0}
+  PROBE round2 afterOpen {"modalPresent":true,"modalClosingAttr":"true","overlayClosingAttr":"true","closingNodes":2}
+  PROBE round2 afterEscape {"modalPresent":true,"modalClosingAttr":"true","closingNodes":2}
+  PROBE round2 afterSecondEscape {"modalPresent":true,"modalClosingAttr":"true","closingNodes":2}
+  ```
+
+  and Playwright then named the consequence while trying to click anything else:
+
+  ```
+  Error: locator.click: Test timeout of 120000ms exceeded.
+    - <div data-closing="true" role="presentation" class="fo-placeholder-overlay">…</div> intercepts pointer events
+  ```
+
+- **Cause:** `requestClose` set `closingRef.current = true` and `setClosing(true)`, then scheduled `onClose` on a 140ms timer, and **nothing ever set either back to false.** `PlaceholderProvider` calls `useOverlayDismiss(state ? dismiss : undefined)` from the provider that wraps the entire app, so the hook outlives each modal. On the second `show()` the overlay therefore renders with `data-closing="true"` immediately, and `requestClose` returns at its own `closingRef.current` guard, which kills Escape, the backdrop click and the Close button together, since all three call it. `motion.css:229` animates `.fo-placeholder-overlay[data-closing='true']` to `opacity: 0` with `forwards`, so the blocker is invisible: the page looks normal and ignores the mouse.
+- **Why no existing test caught it:** every e2e test that opens a placeholder modal opens exactly one per page. The sweep found it because it presses every control on a page in sequence without reloading, which is the only access pattern that reaches the second overlay.
+- **Fix:** the exit timer now clears `timer`, `closingRef` and `closing` before calling `onClose`, because once the exit has run the overlay is by definition no longer closing; and a new effect resets all three whenever `onClose` becomes undefined, covering an overlay dismissed by any other route. Proved by re-running the same probe: three consecutive rounds read `modalClosingAttr:null` on open and `modalPresent:false` after one Escape, `closingNodes:0` throughout, and the probe finished in 7.8s instead of timing out at 120s.
+- **Guard:** `tests/e2e/overlay-dismissal.spec.ts`, in the gated suite, test `QA-023: the second overlay of a session is dismissable and leaves no click-blocking backdrop`. It opens and Escape-dismisses the overlay three times in one page, asserting on each round that the modal carries no `data-closing` attribute when it opens, that it reaches count 0 after one Escape, and that **no node anywhere is left carrying `data-closing="true"`**. It then closes a fourth overlay with the Close button and clicks a nav tab, which is the assertion that actually fails if an invisible backdrop is still eating clicks.
+- **Status:** closed.
+- **Closed date:** 2026-09-08
+
+---
+
+### QA-024: the Administration and Help menus ignored Escape
+
+- **Date found:** 2026-09-08, found free while proving QA-023.
+- **Module/agent:** `app/src/hooks/useDismissable.ts`, reaching `app/src/shell/UtilityHeader.tsx:21-22` and `app/src/components/ui/ListPage.tsx:56`
+- **Severity:** **Medium** — a workaround exists (click outside, or press the toggle again), but it is a documented keyboard requirement of the pattern the markup itself declares.
+- **Steps to reproduce:** sign in as any role, click `Administration` in the utility header, press Escape.
+- **Expected, from the published spec.** W3C ARIA Authoring Practices, Menu and Menubar Pattern, Keyboard Interaction: *"Escape: Close the menu that contains focus and return focus to the element or context, e.g., menu button or parent `menuitem`, from which the menu was opened."* The buttons declare `aria-haspopup="menu"` and the panel declares `role="menu"`, so the pattern applies by the app's own markup.
+- **Actual, verbatim:** `PROBE admin-menu round1 afterEscape {"present":true,"closing":null}` — the menu is still on screen.
+- **Cause:** `useDismissable` handled the exit animation and reset correctly but registered **no `keydown` listener**, and `UtilityHeader` adds only a `document` `mousedown` listener for outside clicks. The sibling hook `useOverlayDismiss` does register one; this hook did not, so the only dismissal routes were an outside mousedown and a second press of the toggle.
+- **Fix, second attempt. The first attempt was a regression and the gate caught it.** The first version added a **`window`** `keydown` listener in `useDismissable`, active whenever `open` was true. That made Escape close *every* open overlay at once, and the gate failed two browser tests:
+
+  ```
+  date-field.spec.ts :: the calendar is a modal grid driven entirely by the keyboard [timedOut] Test timeout of 30000ms exceeded.
+  select-combobox.spec.ts :: a long option list scrolls inside a bounded popup [timedOut] Test timeout of 30000ms exceeded.
+  ```
+
+  with the mechanism named in the call log:
+
+  ```
+  - waiting for getByRole('button', { name: /Change date, / })
+    - element is not stable
+    - element was detached from the DOM, retrying
+  > 86 |   await trigger.click();
+  ```
+
+  `date-field.spec.ts:43` opens the filter rail and the date trigger lives **inside** it. Line 82 presses Escape to dismiss the calendar dialog; the window listener dismissed the rail as well, so the trigger animated out and detached under Playwright's feet. The suite was right and the fix was wrong: the APG wording is *"Close the menu that **contains focus**"*, one overlay, not all of them.
+
+  The shipped fix takes an optional `escapeScope` ref and attaches the `keydown` listener to **that element** rather than to `window`, ignores an event whose `defaultPrevented` is already set, and calls `stopPropagation` so an outer scope does not also act. `UtilityHeader` passes its existing `adminRef` and `helpRef`, so Escape reaches a menu only when focus is on its trigger or inside its panel. `ListPage`'s filter rail passes no ref and therefore keeps its previous behaviour, which is what its own tests specify.
+- **Proof:** `npx playwright test e2e/date-field.spec.ts e2e/select-combobox.spec.ts` returns **15 passed (8.2s)** where it previously returned `2 failed`, and the new guard asserts both menus close on Escape on the first *and* second open.
+- **Deliberately not fixed here, and recorded as a Goal 9 finding instead:** the same APG pattern also requires Enter or Space on the menu button to open the menu **and move focus to the first menu item**, Down and Up Arrow to move between `menuitem`s, and Escape to **return focus** to the button. The menus satisfy none of those. That is focus management across two components, not a one-line handler, so it belongs to Goal 11 rather than to a drive-by fix.
+- **Guard:** `tests/e2e/overlay-dismissal.spec.ts`, in the gated suite, test `QA-024: Escape closes each utility menu, on every open, not just the first`. It opens each of the two menus twice and asserts the panel count goes 1 then 0 each time, so both the dismissal and the reset path are covered.
+- **Status:** closed for dismissal, with the focus-management half open as a Goal 9 finding.
+- **Closed date:** 2026-09-08
+
+---
+
+### QA-025: the audit harness wrote to the database it was photographing, and I only noticed by checking row counts
+
+- **Date found:** 2026-09-08, mid-run, by comparing `activities` against the count taken before the sweep started.
+- **Module/agent:** `tests/audit/sweep-lib.ts` `DESTRUCTIVE`, and the button loop in `tests/audit/visual-sweep.spec.ts`
+- **Severity:** **Medium** for the product (nothing shipped is wrong) and **High** for the evidence, because a capture set that shows a database the instrument itself altered is not evidence of anything.
+- **Expected:** a visual audit presses controls to photograph what they open, and changes no data.
+- **Actual:** the sweep pressed every in-content button whose name did not match `/delete|remove|purge|erase|merge|archive|deactivate|send|invite|sign out|logout|log out/i`. That regex catches destruction and misses **mutation**. The button inventory the run itself produced named the culprits: `1 star`, `2 stars`, `3 stars` and `Edit grade comment` per candidate row (**69 star controls on one list of 23**), the deal-kanban stage headers `Lead 0` through `Lost 0`, and `Complete`, `Dismiss`, `Shortlist`, `Flag`, `Applied`, `Save profile`, `Save view`, `Submit`, `Go!`.
+- **Measured damage, exactly:**
+
+  ```
+  activities  214,311 before  ->  214,369 during   (58 new rows, all kind='status_change')
+  people / applications / requisitions / deals      unchanged
+  ```
+
+  Of those 58, most belonged to another suite and to a second session signed in as `john@ventvest.com`. Attributable to my four sweep personas: **9 rows** covering **5 records**, and no more:
+
+  | Record | What the sweep did | Times |
+  | :---- | :---- | ----: |
+  | 2 Zoho-imported candidates | `star_grade` set to 3, and status set to `Candidate to Review Info` by a **bulk** action (both rows share one transaction timestamp) | 3 each |
+  | 3 seeded demo candidates | `star_grade` set to 3 | 1 each |
+  | DEAL-0001 | stage `lead -> qualified` | 3 |
+
+- **Repair, from sources rather than from memory.** Every original value was recoverable, so none of it was guessed:
+  - The two imported candidates' `star_grade` and status came from the bulk Zoho export (`Rating` empty for both, so the correct grade is null; `Candidate_Status` was `Do Not Pursue` and `Sent InMail I (Linkedin)`).
+  - The three demo candidates' grades came from `supabase/seed.sql` lines 61-63: **3, 2 and 1**, not the 3, 3, 3 the sweep left.
+  - DEAL-0001 needed **no** repair: it read `lead` before the sweep and reads `lead` now, because another suite's teardown reverted each of the three moves. Its *seed* stage is `proposal`, and it was deliberately left at `lead` rather than "restored", because that change predates this session and is not mine to undo.
+  - Verified after: `node scripts/backfill-zoho-candidate-fields.mjs` reports `corrected 0` over **72,910** source rows, and the five records read back their source values.
+- **Second defect found while repairing this one.** `scripts/backfill-zoho-candidate-fields.mjs`, the tool whose whole job is repairing `star_grade`, was reading `migration/zoho-exports/Candidates_001.csv`, a **75-row sample**, against a database of **72,917** profiles. It reported `matched 75` and a clean bill of health while 72,842 candidates were outside its reach. It now defaults to the full bulk export (`migration/zoho-exports/bulk/ZohoRecruit_Candidates_p1/*.csv`, **72,910** rows), accepts `row['Id']` as well as `Candidate Id` and `Record Id`, takes `--source=<path>` to override, prints which file it read, and lists the files it looked for when none is found. A repair tool that silently covers a tenth of a percent of its target is worse than no repair tool.
+- **Fix to the harness:** two new skip classes beside `DESTRUCTIVE`, both reported honestly rather than silently. `MUTATING` catches star and grade controls, `Complete`, `Dismiss`, `Shortlist`, `Flag`, `Applied`, `Save`, `Submit`, `Go!`, `Approve`, `Reject`, `Convert`, `Promote`, `Advance` (not `Advanced Search`), `Hire`, `Publish`, `Assign` and `Set …`; `STAGE_BUTTON` catches the twelve stage and deal-stage names. Their rows read `NOT PRESSED, writes to the database` and `NOT PRESSED, moves a record between stages`, so the report says what was left alone and why. Both regexes were checked against **87 real button names** taken from the aborted run, with the pass condition being that every mutator is caught **and** every one of 60-plus benign controls is not: `Advanced Search` was caught by `^advance` on the first attempt and the anchor became `^advance(?!d)`.
+- **Proof:** re-running the candidates route with the skip in place, `psql -c "select count(*) from audit_log where at > now() - interval '4 minutes' and actor_id in (select id from staff where email like '%demo%')"` returns **0**, and the route reports `skipped=84` with `NOT PRESSED, writes to the database` as the only skip reason.
+- **What I got wrong, plainly:** I launched a run that pressed every button against a database holding 72,988 real people and did not ask what those buttons write until row counts told me. The instruction was to try every button; the judgement about which buttons persist was mine and I did not make it.
+- **Guard:** none automated. The sweep is not in the gate by design. The mechanical check that caught it is worth keeping as habit: take entity counts before a sweep and diff them after, and read `audit_log` filtered to the sweep personas.
+- **Status:** closed.
+- **Closed date:** 2026-09-08
+
+---
+
+### QA-026: the candidate CSV export produced a completely empty file once in four gate passes, and the cause is not established
+
+- **Date found:** 2026-09-08, `bash scripts/gate.sh 4`, pass 1 of 4. Passes 2, 3 and 4 were clean, `browser 181 passed` each.
+- **Module/agent:** `tests/e2e/list-persistence.spec.ts` :: `2.11 the CSV export matches the filtered set on screen`, against `app/src/modules/recruit/candidates/CandidateListPage.tsx` `exportFilteredRows`
+- **Severity:** **Medium**, provisionally. If it is a product race rather than a test race, a user occasionally receives an **empty CSV** with no indication that the export failed, which is worse than an error.
+- **Verbatim:** `Error: a header plus one record per visible row; got 0 records for 3 rows`
+- **What that means precisely:** **0** records, not 3 and not 1. The file had no data rows *and no header*, so `toCsv` was handed an empty array. `exportFilteredRows` returns `[]` on exactly four paths, and every one of them calls `setError(...)` first: a failed count query, a match count above `EXPORT_ROW_CAP = 10000`, a failed page query, or a failed applications lookup.
+- **Two hypotheses formed and both disproved by reading the code, so neither is the cause:**
+  - *The count query and the row query apply different filters, so three rows are refused as too many.* **False.** `applyFilters` is `applyOrder(applyWhere(q))` and the count path is `applyWhere(candidateCountQuery())`, so both share `applyWhere` and differ only by ordering.
+  - *`exportFilteredRows` captures a stale `search`, so the count runs unfiltered against 72,917 candidates and trips `EXPORT_ROW_CAP`.* **False.** `applyWhere` declares `[filters, search, firstName, lastName]` and the export depends on it, so no stale closure.
+- **Not reproducible in isolation:** the test alone passed **6 of 6** consecutive runs. It needs the gate's two concurrent workers, which is consistent with a transient PostgREST error on one of the four queries, and that would be the third of the four `[]` paths.
+- **What is owed, and it is not a retry.** The test already attaches `export.csv` and `on-screen.json` on failure; what it does not capture is **which** of the four paths returned `[]`. The next step is to add the error text the page displayed to the failure message, then run the gate until it recurs. Until then the cause is **unknown**, and this entry says so rather than calling three green passes an answer.
+- **Status:** **open.**
+
+### QA-027: a layout-settling helper returned the same way on success and on giving up, and reported a false 43px overflow on seven routes
+
+- **Found:** 2026-09-08, during Goal 11 batch 10, by `bash scripts/gate.sh 2` pass 2
+- **Module:** test harness, `tests/e2e/phone.spec.ts`
+- **Criterion:** Q8, "no route scrolls the page sideways at 390px"
+- **Severity:** **Medium** in the harness. It fails a gate that should be green and, worse, blames the product for a fault that is in the measurement
+- **Symptom, verbatim from `.gate/browser-pass-2.json`:**
+
+```
+Error: a phone must not scroll sideways
+- Expected  - 1
++ Received  + 9
++ Array [
++   "dashboard: 43px, e.g. ",
++   "candidates: 43px, e.g. ",
++   "candidate record: 43px, e.g. ",
++   "requisitions: 43px, e.g. ",
++   "deals: 43px, e.g. div.kanban-col@552, div.kanban-col-header@551, span.kanban-col-count@541",
++   "intake: 43px, e.g. ",
++   "search: 43px, e.g. ",
++ ]
+```
+
+- **Expected vs actual:** the check should report zero horizontal overflow. Measured directly afterwards at 390px on `/` and `/recruit/candidates`, `document.documentElement.scrollWidth - clientWidth` is **0** on both: the primary nav's tabs do extend to `right: 1275` but the nav is its own scroll container, so the document does not scroll. **Six of the seven routes named no culprit at all**, which was the tell: the spec excludes `nav.fo-primary-nav` descendants when naming culprits but not when measuring the amount, so an amount with no culprit can only be a transient one
+- **Root cause:** `settleLayout` in that spec polls `scrollWidth x clientWidth` every 150ms and returns when three consecutive reads match, inside `while (Date.now() < deadline)`. When the 8000ms cap expired first it **fell out of the loop and returned normally**, indistinguishable from having settled, and the caller then measured a mid-layout width. Under the gate's two workers the cap is reachable; alone it never is, which is why the spec passed on every isolated run, including with two workers, and failed only inside a full gate pass
+- **This is the fourth instance of one pattern in this project.** QA-019, QA-021 and QA-022 were the same shape, and `CLAUDE.md` already states the rule it breaks: *"A wait that can give up must not return the same way it returns on success."* The lesson had been written down and this helper still predated it
+- **Fix:** `settleLayout` now takes the route label, raises the cap to 20000ms, and **throws** when it never settles, naming the last read. A load-induced failure now says "the layout never settled" instead of inventing an overflow
+- **Verified:** 5 of 5 phone tests pass with one worker and with two, and the full gate is green after the change
+- **Status:** closed.
+
+### QA-028: `validate.sql` proved that bd can write a deal by writing to the real seeded deal and never putting it back
+
+- **Found:** 2026-09-08, during Goal 11 batch 10, after migration `20260908000001_deal_probability_percent.sql` set the value to 60
+- **Module:** unknown. The writer holds a persona JWT, so it is a test or a browser client, not the service role
+- **Severity:** **Medium.** It corrupts a seeded record's data and it fails a gate check, but it is caught loudly rather than silently
+- **Evidence, from `audit_log`:**
+
+```
+2026-09-08 03:51:31.483601+00 | a0000000-0000-4000-8000-000000000004 |
+  {"probability": {"new": 0.6, "old": 60.0}, "updated_at": {...}}
+2026-09-08 04:05:49.951011+00 | a0000000-0000-4000-8000-000000000004 |
+  {"probability": {"new": 0.6, "old": 60.0}, ...}
+```
+
+`a0000000-0000-4000-8000-000000000004` is `Ben Demo (bd)`. In the second occurrence the write landed **560ms after the browser suite's last test ended** (`.gate/browser-pass-1.json` last result end `04:05:49.391Z`), so it is an in-flight request or a teardown, not a test body.
+
+- **What I ruled out, each by direct measurement rather than reasoning:**
+  - the full vitest suite alone: 269 passed, value stayed **60**
+  - the full browser suite alone: 202 passed, value stayed **60**, twice
+  - `crm-deals`, `kanban-keyboard`, `drag-and-drop` and `record-writes` individually: value stayed **60** after each
+  - a trigger or function on `deals`: the four triggers are `updated_at`, `audit`, `stage` and `require_outcome_reason`, and **no** Postgres function's source mentions `probability`
+  - the app: no `/ 100` anywhere in `app/src`, and the kanban move patches only `stage` and `lost_reason`
+  - the importer: `migration/import.mjs` runs without `--apply`, uses the service role, and handles no probability field
+  - `api/rls-boundary.test.ts:92` writes `probability: 0.42` as recruiter and asserts **0 rows updated**, so it changes nothing, and 0.42 is not 0.6
+- **Instrumentation that failed to catch it:** a `BEFORE UPDATE` trigger on `deals` recording the actor, the old and new value, `application_name` and `pg_stat_activity.query` whenever probability changed. Armed across **two** `gate.sh 2` runs, which is four vitest suites and four browser suites: **zero rows captured, value stayed 60 throughout.** The probe itself then failed `validate.sql` twice, first with `RLS disabled on: _probe_prob` and then with `permission denied for table _probe_prob`, and has been dropped
+- **Root cause, caught on the fourth attempt.** `supabase/tests/validate.sql:442`, inside check 11, proved that the bd role can update a deal by doing it for real:
+
+```sql
+update deals set probability = 0.6 where display_code = 'DEAL-0001';
+if not found then raise exception 'FAIL 11: bd could not update a deal'; end if;
+```
+
+It impersonates bd with `set_config('request.jwt.claims', …)` and `set role authenticated`, which is why every `audit_log` row named Ben Demo, and it **never restored the value**. `0.6` was picked as an arbitrary marker when the seed itself held `0.5`, so for months the write was invisible: it set the column to something indistinguishable from the seed.
+
+That explains every observation at once. It is not the browser suite and not vitest, which is why neither reproduced it alone. In the gate, `validate.sql` runs **immediately after** the browser step, which is why the write always landed a few hundred milliseconds after the last browser test ended. And the next pass's `api-tests` then read `0.6`.
+
+- **Why the first three instrumented runs saw nothing.** The probe was a `BEFORE UPDATE` trigger that inserted into `_probe_prob`. I enabled RLS on that table to satisfy `validate.sql` check 2 but **added no policy**, so the trigger's own insert was refused, the offending `UPDATE` aborted with it, and the value stayed 60. The instrument was suppressing the very event it was meant to record. Once the table had a permissive policy and grants, the first gate run captured it immediately, with `appname` of `psql` and the full `do $$ … FAIL 11: bd sees % people …` block as the query
+- **Fix:** the check now reads the current value into `prev`, writes `55`, asserts `found`, and writes `prev` back. Line 460's recruiter case changed from `0.9` to `90` as well; that one writes nothing, because RLS refuses it, but a fraction there was equally misleading
+- **Verified:** `validate.sql` run twice back to back reports **34 check(s) pass** and `DEAL-0001` stays at **60** both times. With the probe still armed the capture showed exactly four transitions, `60 → 55 → 60` per run, which is the write and its restore
+- **A second defect the probe itself caused, and the gate caught.** `grant all on _probe_prob to anon, authenticated` triggered `FAIL 23: 6 table grant(s) still give anon or authenticated TRUNCATE, TRIGGER or REFERENCES`, and an earlier form triggered `FAIL 2: RLS disabled on: _probe_prob` and then `permission denied for table _probe_prob`. The probe has been dropped and `validate.sql` is back to 34 of 34
+- **Status:** closed
+- **Lesson worth keeping:** a script named `validate` mutated the data it validated, and the only reason it went unnoticed is that its marker value looked like the seed. A permission check that must write should write to a record it creates and removes, which is the rule Klent stated for all of Goal 11: *"make sure when doing crud, create a seeded record and delete that. not actual records."* This is the same class as QA-025, where the audit harness wrote to the database it was photographing

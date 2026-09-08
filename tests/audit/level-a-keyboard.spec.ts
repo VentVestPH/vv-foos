@@ -50,7 +50,7 @@ test('level A: sort header, capped cell, dashboard bar and inline inputs', async
     `PROBE cappedCells=${cappedCount} ariaExpanded ${before} -> ${after} navigatedAway=${urlChanged}`,
   );
 
-  await gotoAsSignedIn(page, '/?tab=pipeline');
+  await gotoAsSignedIn(page, '/pipeline');
   await page.waitForTimeout(2500);
   const invalidNesting = await page.evaluate(
     () => document.querySelectorAll('button.dash-barlist-row div').length,

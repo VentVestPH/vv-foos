@@ -31,7 +31,7 @@ test.describe('Q3: one search across every entity', () => {
       .locator('.record-section')
       .filter({ hasText: /^[▸▾]?\s*Requisitions/ });
     await expect(section).toBeVisible({ timeout: 20000 });
-    await expect(section.locator('.search-hit-list li')).toHaveCount(1);
+    await expect(section.locator('.fo-result')).toHaveCount(1);
     await expect(section.getByRole('link', { name: new RegExp(code) })).toBeVisible();
   });
 
@@ -60,8 +60,13 @@ test.describe('Q3: one search across every entity', () => {
   test('a search with no match says so instead of showing empty sections', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/search?q=zzqqxx-no-such-record');
-    await expect(page.getByText('Searching…')).toBeHidden({ timeout: 25000 });
-    await expect(page.locator('.table-empty')).toContainText('Nothing matches', { timeout: 25000 });
+    await expect(
+      page.locator('.skeleton'),
+      'the wait before the search must be shown, not left blank',
+    ).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.fo-empty-state')).toContainText('Nothing matches', {
+      timeout: 25000,
+    });
     await expect(page.locator('.record-section')).toHaveCount(0);
   });
 

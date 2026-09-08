@@ -43,7 +43,7 @@ Legend: **PASS** (re-ran it, green) · **FAIL** (re-ran it, red, see defect log)
 | 2.9 | Saved view persists across sessions/devices | `tests/e2e/list-persistence.spec.ts`. Found it broken first: saving a view failed outright because the insert sent null into the NOT NULL `sort` column. Now verified across a genuinely new browser context, and confirmed another staff member is not offered it | PASS |
 | 2.10 | Recently Viewed rail, last 15 | `tests/e2e/record-ui.spec.ts` (records opens across two modules, newest first, and caps at 15). Fixed a defect: the rail never populated at all | PASS |
 | 2.11 | CSV export matches on-screen filtered set | `tests/e2e/list-persistence.spec.ts` captures the real download and compares it line by line against the visible rows: one header plus one line per row, and every on-screen name present | PASS |
-| 2.12 | Design tokens + WCAG AA + text cap | `scripts/check-contrast.mjs` (**35** pairs, all AA; read 17 until 2026-09-07) + `tests/e2e/record-ui.spec.ts` (no horizontal body scroll at 1024, 1280 and 1440px) + `scripts/check-control-heights.mjs` (one control height, 32px) | PASS |
+| 2.12 | Design tokens + WCAG AA + text cap | `scripts/check-contrast.mjs` (**35** pairs, all AA; read 17 until 2026-09-07) + `tests/e2e/record-ui.spec.ts` (no horizontal body scroll at 1024, 1280 and 1440px) + `scripts/check-control-heights.mjs` (one control height, 32px). **The visual side of this row is now covered by evidence rather than by assertion**: `audit/2026-09-08/` photographs every page at full height for all four roles, which is what a token check cannot see | PASS |
 | 2.13 | Sourcer session RLS (no req edit, no CRM, grade-own-only) | `validate.sql` check 10 | PASS |
 | 2.14 | All demo data is_test=true | Confirmed via seed-count queries this pass | PASS |
 | 2.15 | Full Gate 3 demo script click-through | Already run and documented at Agent 2's own Gate 3 (2026-07-25, per delivery plan); folded into the regression checklist for re-run before Gate 4 | TRACED |
@@ -128,6 +128,16 @@ Legend: **PASS** (re-ran it, green) · **FAIL** (re-ran it, red, see defect log)
 | 7.7 | Spot-check dashboard numbers against hand-computed values | Found QA-005 (mv_stage_durations always produced null stage_from/stage_to due to a JSON-shape bug) via a real, fully-cleaned-up non-test fixture (3 real stage transitions); fixed live and retested — corrected function now matches hand-computed duration_days exactly (0.00027514... days for a measured ~23.77s gap) | PASS (QA-005 closed) |
 | 7.8 | The four committed success metrics (adoption, cycle time, cost, data quality per delivery-plan Phase 6 and brief instruction 7's exact formulas) are actually computed, not just RLS-gated | Read `dash._refresh_success_metrics()` and `ExperimentMetrics.tsx` directly: the view/component compute 7 generic pipeline-volume counts instead of the four required metrics; `dash.cost_inputs` is empty and unread. Row 7.3 above only confirms the panel's RLS gating, not its content — that's a separate requirement and it fails | FAIL — QA-008 (open) |
 
+## Shell overlay dismissal, added 2026-09-08
+
+Neither row existed before 2026-09-08. Both defects were found by the Goal 8 capture harness rather than by any brief criterion, which is why they sit in their own section: nothing in briefs 1-7 asked for them, and nothing in the matrix would have caught them.
+
+| Flow | Test | Status |
+|---|---|---|
+| A second placeholder overlay in one page session opens clean and dismisses, leaving no click-blocking backdrop | `tests/e2e/overlay-dismissal.spec.ts` :: `QA-023`. Three open-and-Escape rounds, each asserting the modal opens without `data-closing`, reaches count 0 after one Escape, and that no node anywhere is left carrying `data-closing="true"`; then a fourth overlay closed by its Close button followed by a nav-tab click, which is the assertion that fails if an invisible backdrop is still absorbing clicks | PASS |
+| Escape dismisses each `role="menu"` utility panel, on every open, and dismisses only that panel | `tests/e2e/overlay-dismissal.spec.ts` :: `QA-024`. Both menus opened twice, panel count asserted 1 then 0 each time. The scoping half is covered by `tests/e2e/date-field.spec.ts:43` and `tests/e2e/select-combobox.spec.ts:193`, which fail if Escape reaches an overlay that does not own it | PASS |
+| Full APG menu keyboard contract: Enter or Space moves focus to the first `menuitem`, arrows traverse, Escape returns focus to the trigger | none | **GAP.** Unimplemented, carried as finding C1 in `audit/2026-09-08/findings/CARRIED-IN.md` for Goal 11 |
+
 ## Cross-module flow tests (brief instruction 3)
 
 | Flow | Test | Status |
@@ -138,3 +148,23 @@ Legend: **PASS** (re-ran it, green) · **FAIL** (re-ran it, red, see defect log)
 | RLS boundary walk, all 4 roles, through the API | Real HTTP calls this pass (sourcer via GoTrue+PostgREST) + full role matrix via `validate.sql`/pgtap (psql-level, same policies) | PASS |
 
 Overall this pass, recounted row by row: **46 PASS, 1 open FAIL, 32 TRACED, 12 GAP** (of 79 brief 1-6 criteria + 8 brief-7 rows + 4 cross-module flows = 91 rows). QA-001 (`dash` schema not exposed) was found, fixed, and retested green this same session, so it no longer appears as an open FAIL anywhere above. The one still-open FAIL is 7.8/QA-008 (three of four committed success metrics have no instrumentation) — real, not yet fixed, needs a build pass before the 30-day measurement window that gates cancelling Taleo/Zoho Recruit/Zoho CRM. TRACED rows (32) rely on each module's own Gate 3 demo evidence rather than an independent QA re-run this pass — the regression checklist exists to close that gap before Gate 4/5 sign-off. GAP rows (12) have no test at all yet, automated or scripted, and should not be assumed passing.
+
+## Settings gears, Goal 10
+
+`tests/e2e/settings-gears.spec.ts`, 9 tests, 9 PASS on 2026-09-08. Every gear in the product is covered, including the seventh that Goal 10's own grep missed.
+
+| # | Case | Gear | Result |
+| :---- | :---- | :---- | :---- |
+| 10.1 | header Settings navigates without a document load, proven by a `window` marker surviving the click | `UtilityHeader` Settings | PASS |
+| 10.2 | the same for the Reports icon | `UtilityHeader` Reports | PASS |
+| 10.3 | the rail opens and focus lands on the first column checkbox | `CandidateListPage` | PASS |
+| 10.4 | the rail opens and focus lands on the first column checkbox | `QueueListPage` | PASS |
+| 10.5 | hiding `My Reminders` survives `page.reload()`, and `Show all` also survives a reload | `DashboardPage` My View | PASS |
+| 10.6 | hiding `Requisition Aging` survives a reload | `DashboardPage` Reports | PASS |
+| 10.7 | the limit becomes 5 with `aria-pressed`, `Clear list` empties the list and restores the empty state | `ShellSidebar` Recently Viewed | PASS |
+| 10.8 | no `Configure this list` on `/employees`, `/onboard`, `/users`, `/courses` | removed | PASS |
+| 10.9 | no gear on five routes opens `.fo-placeholder-modal` | all | PASS |
+
+**Non-vacuity proven, not assumed.** With `first?.focus()` replaced by `void first` in `ListPage.tsx` and the insert path short-circuited in `useSectionPrefs.ts`, tests 10.3, 10.4, 10.5 and 10.6 failed and 10.1, 10.2, 10.7, 10.8 and 10.9 still passed. Both edits reverted.
+
+Persistence checked in Postgres rather than inferred: rows `ui.sections.dashboard.myview` and `ui.sections.dashboard.reports` with `staff_id is not null`, and `count(*)` back to **0** after the spec's `afterAll`.

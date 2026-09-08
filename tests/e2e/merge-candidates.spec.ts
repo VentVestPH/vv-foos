@@ -44,7 +44,10 @@ test.describe('Q2: merging two candidate records', () => {
   test('a recruiter merges the duplicate away and keeps the survivor', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page, `/recruit/candidates/${survivor}`);
-    const merge = page.getByRole('button', { name: 'Merge duplicate…' }).first();
+    const more = page.getByRole('button', { name: /^More/ }).first();
+    await expect(more).toBeEnabled({ timeout: 25000 });
+    await more.click();
+    const merge = page.getByRole('menuitem', { name: 'Merge duplicate…' });
     await expect(merge).toBeEnabled({ timeout: 25000 });
     await merge.click();
     const dialog = page.getByRole('dialog', { name: 'Merge a duplicate into this record' });
@@ -74,7 +77,10 @@ test.describe('Q2: merging two candidate records', () => {
   test('a sourcer cannot reach the merge at all', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.sourcer);
     await gotoAsSignedIn(page, `/recruit/candidates/${survivor}`);
-    const button = page.getByRole('button', { name: 'Merge duplicate…' }).first();
+    const more = page.getByRole('button', { name: /^More/ }).first();
+    await expect(more).toBeEnabled({ timeout: 25000 });
+    await more.click();
+    const button = page.getByRole('menuitem', { name: 'Merge duplicate…' });
     await expect(button).toBeDisabled({ timeout: 25000 });
     await expect(button).toHaveAttribute(
       'title',

@@ -17,6 +17,15 @@ function tabGeometry(page: Page) {
   );
 }
 
+async function openMerge(page: Page): Promise<void> {
+  const more = page.getByRole('button', { name: /^More/ }).first();
+  await expect(more).toBeEnabled({ timeout: 25000 });
+  await more.click();
+  const item = page.getByRole('menuitem', { name: 'Merge duplicate…' });
+  await expect(item).toBeEnabled({ timeout: 25000 });
+  await item.click();
+}
+
 test.describe('R: motion that a user can see, asserted rather than budgeted', () => {
   test('R4 a tab going bold does not change its own width or its neighbour\'s', async ({
     page,
@@ -199,10 +208,7 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
   }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, CANDIDATE);
-    const open = page.getByRole('button', { name: 'Merge duplicate…' }).first();
-    await expect(open).toBeEnabled({ timeout: 25000 });
-
-    await open.click();
+    await openMerge(page);
     const overlay = page.locator('.rq-overlay');
     await expect(overlay).toHaveCount(1);
 
@@ -222,7 +228,7 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     expect(mid.opacity).toBeLessThanOrEqual(1);
     await expect(overlay).toHaveCount(0, { timeout: 3000 });
 
-    await open.click();
+    await openMerge(page);
     await expect(overlay).toHaveCount(1);
     await page.keyboard.press('Escape');
     await expect(overlay).toHaveAttribute('data-closing', 'true');
@@ -402,9 +408,7 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
   test('R1 Cancel animates out too, not just the close cross', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, CANDIDATE);
-    const open = page.getByRole('button', { name: 'Merge duplicate…' }).first();
-    await expect(open).toBeEnabled({ timeout: 25000 });
-    await open.click();
+    await openMerge(page);
 
     const overlay = page.locator('.rq-overlay');
     await expect(overlay).toHaveCount(1);

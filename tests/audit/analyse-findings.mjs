@@ -1,0 +1,343 @@
+#!/usr/bin/env node
+import { createHash } from 'node:crypto';
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
+
+const OUT = join(process.cwd(), '..', 'audit', '2026-09-08');
+const GRID = 8;
+const ROLES = ['admin', 'recruiter', 'sourcer', 'bd'];
+
+function redact(name) {
+  return String(name ?? '')
+    .replace(/\bgrade comment for .+$/i, 'grade comment for a candidate')
+    .replace(/\bfor\s+[A-Z].*$/, 'for a candidate');
+}
+
+function readReports() {
+  const rows = [];
+  for (const role of ROLES) {
+    const d = join(OUT, 'measurements', role);
+    let files = [];
+    try {
+      files = readdirSync(d).filter((f) => f.endsWith('.json') && !f.startsWith('_gaps'));
+    } catch {
+      continue;
+    }
+    for (const f of files) {
+      try {
+        rows.push(JSON.parse(readFileSync(join(d, f), 'utf8')));
+      } catch (err) {
+        rows.push({ role, route: f.replace('.json', ''), broken: String(err) });
+      }
+    }
+  }
+  return rows;
+}
+
+function walkImages(root) {
+  const out = [];
+  const walk = (d) => {
+    let entries = [];
+    try {
+      entries = readdirSync(d);
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const full = join(d, e);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (e.endsWith('.png')) out.push(full);
+    }
+  };
+  walk(join(root, 'screens'));
+  walk(join(root, 'states'));
+  return out;
+}
+
+function readGaps() {
+  const out = [];
+  for (const role of ROLES) {
+    const f = join(OUT, 'measurements', role, '_gaps.json');
+    try {
+      for (const row of JSON.parse(readFileSync(f, 'utf8'))) {
+        for (const g of row.gaps ?? []) {
+          out.push({ role, route: row.route, gap: g.gap, above: g.above, below: g.below, overlapPx: g.overlapPx });
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+  return out;
+}
+
+const reports = readReports();
+const gapRows = readGaps();
+const imageFiles = walkImages(OUT);
+
+const byHash = new Map();
+let bytes = 0;
+for (const f of imageFiles) {
+  const buf = readFileSync(f);
+  bytes += buf.length;
+  const h = createHash('md5').update(buf).digest('hex');
+  if (!byHash.has(h)) byHash.set(h, []);
+  byHash.get(h).push(relative(OUT, f));
+}
+const duplicateSets = [...byHash.values()].filter((g) => g.length > 1).sort((a, b) => b.length - a.length);
+const duplicateImages = duplicateSets.reduce((n, g) => n + g.length - 1, 0);
+
+const dead = [];
+const stuck = [];
+const skipped = [];
+const emptyCombobox = [];
+const offGrid = [];
+const bigGaps = [];
+const tall = [];
+const coverage = [];
+
+for (const r of reports) {
+  if (r.broken) continue;
+  for (const a of r.acted ?? []) {
+    if (a.outcome.startsWith('NOTHING HAPPENED') && !a.outcome.includes('and correctly so')) {
+      dead.push({ role: r.role, route: r.route, name: redact(a.name), kind: a.kind, outcome: a.outcome });
+    }
+    if (/REFUSED TO CLOSE|would not close/.test(a.outcome)) {
+      stuck.push({ role: r.role, route: r.route, name: redact(a.name), kind: a.kind, outcome: a.outcome });
+    }
+    if (a.outcome.startsWith('NOT PRESSED')) {
+      skipped.push({ role: r.role, route: r.route, name: redact(a.name), outcome: a.outcome });
+    }
+    if (a.kind === 'combobox' && /with 0 option/.test(a.outcome)) {
+      emptyCombobox.push({ role: r.role, route: r.route, name: redact(a.name) });
+    }
+  }
+  for (const n of r.notes ?? []) {
+    if (/would not close/.test(n)) stuck.push({ role: r.role, route: r.route, name: '(note)', kind: 'note', outcome: n });
+  }
+  if (gapRows.length === 0) {
+    for (const g of r.sectionGaps ?? []) {
+      if (g > 0 && g % GRID !== 0) offGrid.push({ role: r.role, route: r.route, gap: g, above: '', below: '' });
+      if (g >= 48) bigGaps.push({ role: r.role, route: r.route, gap: g, above: '', below: '' });
+    }
+  }
+  if ((r.folds ?? 0) >= 4) tall.push({ role: r.role, route: r.route, height: r.pageHeight, folds: r.folds });
+  coverage.push({
+    role: r.role,
+    route: r.route,
+    height: r.pageHeight,
+    folds: r.folds,
+    found: r.interactiveFound,
+    acted: r.interactiveActed,
+  });
+}
+
+for (const g of gapRows) {
+  if (g.gap > 0 && g.gap % GRID !== 0) offGrid.push(g);
+  if (g.gap >= 48) bigGaps.push(g);
+}
+
+function group(list) {
+  const m = new Map();
+  for (const d of list) {
+    const key = `${d.route} :: ${d.kind} :: ${d.name}`;
+    if (!m.has(key)) m.set(key, { ...d, roles: [] });
+    m.get(key).roles.push(d.role);
+  }
+  return [...m.values()].sort((a, b) => b.roles.length - a.roles.length || a.route.localeCompare(b.route));
+}
+
+const deadGrouped = group(dead);
+const stuckGrouped = group(stuck);
+
+const byKind = new Map();
+for (const d of dead) byKind.set(d.kind, (byKind.get(d.kind) ?? 0) + 1);
+
+const L = [];
+L.push('# Measured signals from the 2026-09-08 sweep');
+L.push('');
+L.push('Generated by `tests/audit/analyse-findings.mjs`. Numbers only. The written design findings live in `UGLY.md` beside this file.');
+L.push('');
+L.push('**This file is gitignored and stays on the machine.** Control names are read from the live local database, so a row-level control is named after the record it belongs to and some of those are real people. The `for <name>` suffixes that star and grade controls carry are collapsed to `for a candidate`, but a control whose entire label is a record name is left as it is, because guessing at name shapes produced wrong redactions (`Back To List` and `Candidates (133)` were both mistaken for people). Do not copy rows out of this file into a committed document without reading them first.');
+L.push('');
+L.push('| | |');
+L.push('| :---- | ----: |');
+L.push(`| Route reports read | ${reports.length} |`);
+L.push(`| Roles with at least one report | ${new Set(reports.map((r) => r.role)).size} |`);
+L.push(`| Images captured | ${imageFiles.length} |`);
+L.push(`| Total image bytes | ${bytes.toLocaleString('en-US')} |`);
+L.push(`| Byte-identical duplicate images | ${duplicateImages} across ${duplicateSets.length} set(s) |`);
+L.push(`| Dead controls, distinct | ${deadGrouped.length} |`);
+L.push(`| Overlays that would not close | ${stuckGrouped.length} |`);
+L.push(`| Comboboxes that opened with no options | ${emptyCombobox.length} |`);
+L.push(`| Section gaps off the ${GRID}px grid | ${offGrid.length} |`);
+L.push(`| Section gaps of 48px or more | ${bigGaps.length} |`);
+L.push(`| Pages 4 folds or taller | ${tall.length} |`);
+L.push(`| Controls deliberately not pressed | ${skipped.length} |`);
+L.push('');
+
+L.push('## Why controls were not pressed');
+L.push('');
+L.push('A control the sweep declined is not a defect and not a coverage gap being hidden. Each reason is stated in the row so the review can check the judgement rather than take it on trust.');
+L.push('');
+if (skipped.length === 0) {
+  L.push('_Every control found was pressed._');
+} else {
+  const reasons = new Map();
+  for (const s2 of skipped) {
+    const key = s2.outcome
+      .replace(/^NOT PRESSED, /, '')
+      .replace(/^it is the \d+(st|nd|rd|th) control inside a table row/, 'it sits inside a table row')
+      .replace(/^the \d+ control\(s\) already acted on with the same label shape .*/, 'its label shape repeats down the page and the cap was reached')
+      .split(';')[0];
+    reasons.set(key, (reasons.get(key) ?? 0) + 1);
+  }
+  L.push('| Reason | Controls |');
+  L.push('| :---- | ----: |');
+  for (const [k, n] of [...reasons.entries()].sort((a, b) => b[1] - a[1])) L.push(`| ${k} | ${n} |`);
+}
+L.push('');
+
+L.push('## Dead controls, worst first');
+L.push('');
+L.push('A control that was pressed and changed nothing: no navigation, no overlay, no download, no change to its own state, and an unchanged page fingerprint (URL, scroll height, main text length, node count, main and sidebar widths, open-overlay markup).');
+L.push('');
+L.push('Excluded from this table, because they are correctly inert rather than dead: a control carrying `aria-current="page"`, `aria-selected="true"` or `aria-pressed="true"`, and one that carries only an active CSS class. The last group is listed separately below, because being invisible to assistive technology is its own finding.');
+L.push('');
+if (deadGrouped.length === 0) {
+  L.push('_None found._');
+} else {
+  L.push(`By kind: ${[...byKind.entries()].map(([k, n]) => `${k} ${n}`).join(', ')}`);
+  L.push('');
+  L.push('| Route | Control | Kind | Roles affected |');
+  L.push('| :---- | :---- | :---- | :---- |');
+  for (const d of deadGrouped.slice(0, 120)) {
+    L.push(`| \`${d.route}\` | ${d.name} | ${d.kind} | ${d.roles.join(', ')} |`);
+  }
+  if (deadGrouped.length > 120) L.push('');
+  if (deadGrouped.length > 120) L.push(`_${deadGrouped.length - 120} further dead control(s) not listed._`);
+}
+L.push('');
+
+L.push('## Controls whose chosen state is a CSS class and nothing else');
+L.push('');
+L.push('Pressing these changed nothing, correctly, because they were already the chosen option. The finding is that **only the stylesheet knows that**: no `aria-selected`, no `aria-pressed`, no `aria-current`, so a screen reader cannot tell which view or tab is active.');
+L.push('');
+{
+  const classOnly = new Map();
+  for (const r of reports) {
+    for (const a of r.acted ?? []) {
+      if (a.outcome.includes('correctly so by its CSS class alone')) {
+        const key = `${r.route} :: ${redact(a.name)}`;
+        if (!classOnly.has(key)) classOnly.set(key, { route: r.route, name: redact(a.name), roles: [] });
+        classOnly.get(key).roles.push(r.role);
+      }
+    }
+  }
+  if (classOnly.size === 0) {
+    L.push('_None found, or the sweep predates this check._');
+  } else {
+    L.push('| Route | Control | Roles |');
+    L.push('| :---- | :---- | :---- |');
+    for (const c of classOnly.values()) L.push(`| \`${c.route}\` | ${c.name} | ${[...new Set(c.roles)].join(', ')} |`);
+  }
+}
+L.push('');
+
+L.push('## Overlays that would not close');
+L.push('');
+L.push('Escape, then a backdrop click, then Escape again, each followed by a 200ms re-read, and the overlay was still on screen.');
+L.push('');
+if (stuckGrouped.length === 0) {
+  L.push('_None. Every overlay opened during the sweep closed._');
+} else {
+  L.push('| Route | Opened by | Kind | Roles | Outcome |');
+  L.push('| :---- | :---- | :---- | :---- | :---- |');
+  for (const s of stuckGrouped) {
+    L.push(`| \`${s.route}\` | ${s.name} | ${s.kind} | ${s.roles.join(', ')} | ${s.outcome} |`);
+  }
+}
+L.push('');
+
+L.push('## Comboboxes that opened with no options');
+L.push('');
+if (emptyCombobox.length === 0) {
+  L.push('_None._');
+} else {
+  L.push('| Route | Combobox | Role |');
+  L.push('| :---- | :---- | :---- |');
+  for (const c of emptyCombobox) L.push(`| \`${c.route}\` | ${c.name} | ${c.role} |`);
+}
+L.push('');
+
+L.push('## Byte-identical duplicate images');
+L.push('');
+L.push('Two captures with the same bytes mean the second one photographed nothing new. A large set points at an instrument fault, not a product fault.');
+L.push('');
+if (duplicateSets.length === 0) {
+  L.push('_None. Every capture differs from every other._');
+} else {
+  L.push('| Copies | Files |');
+  L.push('| ----: | :---- |');
+  for (const g of duplicateSets.slice(0, 30)) {
+    L.push(`| ${g.length} | ${g.slice(0, 6).map((f) => `\`${f}\``).join(', ')}${g.length > 6 ? ` and ${g.length - 6} more` : ''} |`);
+  }
+}
+L.push('');
+
+L.push('## Largest vertical gaps between sections');
+L.push('');
+L.push(
+  gapRows.length > 0
+    ? `Measured by \`measure-gaps.spec.ts\`, which compares two boxes only when they **overlap horizontally**. Without that condition a filter rail beside a table reads as a large vertical gap above it, which is how an earlier reading produced 188px on \`recruit-candidates\`; the number was an artefact of comparing two elements in different columns. ${gapRows.length} qualifying pair(s) measured.`
+    : '**Taken from the sweep\'s own `sectionGaps`, which did not require horizontal overlap**, so a side-by-side pair can read as a large vertical gap. Run `measure-gaps.spec.ts` and regenerate to replace these with checked numbers.',
+);
+L.push('');
+const gapSorted = [...bigGaps].sort((a, b) => b.gap - a.gap).slice(0, 40);
+if (gapSorted.length === 0) {
+  L.push('_No gap of 48px or more._');
+} else {
+  L.push('| Route | Role | Gap | Between | Horizontal overlap |');
+  L.push('| :---- | :---- | ----: | :---- | ----: |');
+  for (const g of gapSorted) {
+    L.push(
+      `| \`${g.route}\` | ${g.role} | ${g.gap}px | ${g.above || '?'} above ${g.below || '?'} | ${g.overlapPx ?? '?'}px |`,
+    );
+  }
+}
+L.push('');
+
+L.push(`## Gaps not on the ${GRID}px grid`);
+L.push('');
+const offSorted = [...new Set(offGrid.map((o) => o.gap))].sort((a, b) => a - b);
+L.push(offSorted.length ? `Distinct off-grid values: ${offSorted.join(', ')}` : '_All gaps on the grid._');
+L.push('');
+
+L.push('## Tallest pages');
+L.push('');
+const tallSorted = [...tall].sort((a, b) => b.height - a.height).slice(0, 25);
+if (tallSorted.length === 0) {
+  L.push('_No page is 4 folds or taller._');
+} else {
+  L.push('| Route | Role | Height | Folds |');
+  L.push('| :---- | :---- | ----: | ----: |');
+  for (const t of tallSorted) L.push(`| \`${t.route}\` | ${t.role} | ${t.height}px | ${t.folds} |`);
+}
+L.push('');
+
+L.push('## Coverage, every route report');
+L.push('');
+L.push('| Role | Route | Height | Folds | Interactive found | Acted on |');
+L.push('| :---- | :---- | ----: | ----: | ----: | ----: |');
+for (const c of coverage.sort((a, b) => a.role.localeCompare(b.role) || a.route.localeCompare(b.route))) {
+  L.push(`| ${c.role} | \`${c.route}\` | ${c.height ?? ''} | ${c.folds ?? ''} | ${c.found ?? ''} | ${c.acted ?? ''} |`);
+}
+L.push('');
+
+mkdirSync(join(OUT, 'findings'), { recursive: true });
+writeFileSync(join(OUT, 'findings', 'MEASURED.md'), L.join('\n'));
+
+console.log(
+  `reports=${reports.length} images=${imageFiles.length} bytes=${bytes} duplicates=${duplicateImages}/${duplicateSets.length}set dead=${deadGrouped.length} stuck=${stuckGrouped.length} emptyCombobox=${emptyCombobox.length} offGrid=${offGrid.length} bigGaps=${bigGaps.length} tall=${tall.length}`,
+);
+console.log(`wrote ${join(OUT, 'findings', 'MEASURED.md')}`);

@@ -20,8 +20,8 @@ export interface RouteSpec {
 
 export const ROUTES: RouteSpec[] = [
   { id: 'dashboard-my-view', path: '/', area: 'dashboards' },
-  { id: 'dashboard-pipeline', path: '/?tab=pipeline', area: 'dashboards' },
-  { id: 'dashboard-reports', path: '/?tab=reports', area: 'dashboards' },
+  { id: 'dashboard-pipeline', path: '/pipeline', area: 'dashboards' },
+  { id: 'dashboard-reports', path: '/reports', area: 'dashboards' },
   { id: 'global-search', path: '/search?q=a', area: 'shell' },
   { id: 'recruit-candidates', path: '/recruit/candidates', area: 'recruit' },
   { id: 'recruit-candidate-record', path: '/recruit/candidates/:id', area: 'recruit', needs: 'candidate' },
@@ -56,23 +56,23 @@ export async function resolveIds(): Promise<Record<string, string>> {
   const admin = await clientAs('admin');
   const ids: Record<string, string> = {};
 
-  const req = await admin.from('requisitions').select('id').limit(1).single();
+  const req = await admin.from('requisitions').select('id').order('id', { ascending: true }).limit(1).single();
   if (req.error) throw new Error(`no requisition to audit: ${req.error.message}`);
   ids.requisition = req.data.id;
 
-  const cand = await admin.from('candidate_profiles').select('person_id').limit(1).single();
+  const cand = await admin.from('candidate_profiles').select('person_id').order('person_id', { ascending: true }).limit(1).single();
   if (cand.error) throw new Error(`no candidate to audit: ${cand.error.message}`);
   ids.candidate = cand.data.person_id;
 
-  const co = await admin.from('companies').select('id').limit(1).single();
+  const co = await admin.from('companies').select('id').order('id', { ascending: true }).limit(1).single();
   if (co.error) throw new Error(`no company to audit: ${co.error.message}`);
   ids.company = co.data.id;
 
-  const contact = await admin.from('contact_profiles').select('person_id').limit(1).single();
+  const contact = await admin.from('contact_profiles').select('person_id').order('person_id', { ascending: true }).limit(1).single();
   if (contact.error) throw new Error(`no contact to audit: ${contact.error.message}`);
   ids.contact = contact.data.person_id;
 
-  const deal = await admin.from('deals').select('id').limit(1).single();
+  const deal = await admin.from('deals').select('id').order('id', { ascending: true }).limit(1).single();
   if (!deal.error && deal.data) ids.deal = deal.data.id;
 
   return ids;

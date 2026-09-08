@@ -67,7 +67,11 @@ test.describe('L8 and L10: hidden nav tabs are discoverable, and quick search fo
     await gotoAsSignedIn(page, '/sales/deals');
 
     await page.locator('.fo-qs-input-row input').first().fill('acme');
-    await page.getByRole('button', { name: 'Search' }).first().click();
+    await page
+      .locator('.fo-sidebar')
+      .getByRole('button', { name: 'Search', exact: true })
+      .first()
+      .click();
 
     await expect
       .poll(() => page.url(), { timeout: 20000 })

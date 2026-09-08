@@ -4,7 +4,7 @@ import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 test.describe('Success metrics (QA-008)', () => {
   test('admin sees the four gating metrics with units applied', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
-    await gotoAsSignedIn(page, '/?tab=pipeline');
+    await gotoAsSignedIn(page, '/pipeline');
 
     await page.getByRole('button', { name: /Experiment Metrics/i }).click();
     const widget = page.locator('.dash-widget', { hasText: 'Experiment metrics' });
@@ -28,7 +28,7 @@ test.describe('Success metrics (QA-008)', () => {
 
   test('a recruiter cannot see the admin-only metrics widget', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.recruiter);
-    await gotoAsSignedIn(page, '/?tab=pipeline');
+    await gotoAsSignedIn(page, '/pipeline');
     await expect(page.getByRole('button', { name: /Experiment Metrics/i })).toHaveCount(0);
   });
 });

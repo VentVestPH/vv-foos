@@ -94,7 +94,7 @@ test('the calendar is a modal grid driven entirely by the keyboard', async ({ pa
 
 test('the range fields refuse a date outside min and max', async ({ page }) => {
   await signIn(page, PERSONA_EMAILS.admin);
-  await gotoAsSignedIn(page, '/?tab=reports');
+  await gotoAsSignedIn(page, '/reports');
   const preset = page.getByRole('combobox').first();
   await expect(preset).toBeVisible({ timeout: 25000 });
   await preset.click();

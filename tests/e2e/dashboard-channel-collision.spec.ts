@@ -18,10 +18,10 @@ test.describe('the dashboard survives being remounted', () => {
     await waitForRealtime(page);
 
     const tabs = [
-      `/?tab=pipeline&probe=${probe}`,
+      `/pipeline?probe=${probe}`,
       `/?probe=${probe}`,
-      `/?tab=reports&probe=${probe}`,
-      `/?tab=pipeline&probe=${probe}`,
+      `/reports?probe=${probe}`,
+      `/pipeline?probe=${probe}`,
       `/?probe=${probe}`,
     ];
     const ownRoutes = tabs.filter((t, i) => tabs.indexOf(t) === i);

@@ -80,7 +80,7 @@ test('the sidebar chevron rotates through a transitioned class', async ({ page }
 test('the dashboard bars grow on the compositor, not by width', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, PERSONA_EMAILS.admin);
-  await gotoAsSignedIn(page, '/?tab=pipeline');
+  await gotoAsSignedIn(page, '/pipeline');
   await page.waitForTimeout(700);
 
   const fill = page.locator('.dash-barlist-fill').first();
