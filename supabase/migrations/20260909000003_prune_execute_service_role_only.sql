@@ -1,0 +1,33 @@
+-- fn_prune_retained_rows: revoke EXECUTE from anon and authenticated, not just PUBLIC.
+--
+-- 20260902000003 and 20260902000005 both end with
+--   revoke all on function public.fn_prune_retained_rows() from public;
+--   grant execute on function public.fn_prune_retained_rows() to service_role;
+-- and PUBLIC is a different grantee from anon and authenticated. Supabase's
+-- bootstrap leaves a default ACL granting EXECUTE on new functions in public to
+-- anon, authenticated and service_role, so a function created by a later
+-- migration carries an explicit authenticated=X that revoking PUBLIC does not
+-- touch.
+--
+-- Found by CI on 2026-09-08, on the integration job only, which builds a real
+-- Supabase stack:
+--   AssertionError: recruiter must not be able to prune the audit trail:
+--   expected null not to be null
+-- tests/api/retention.test.ts calls fn_prune_retained_rows as recruiter, sourcer
+-- and bd and requires each to be refused. On this machine they are, because the
+-- grant was removed by hand in an earlier session and never written down. On a
+-- fresh database any signed-in user could prune audit_log and events_outbox,
+-- which is the retention boundary the test exists to defend.
+--
+-- 20260903000008 already uses the correct form for fn_application_status,
+-- `from public, anon, authenticated`. This brings the prune function in line.
+-- fn_erase_person and fn_merge_candidates revoke only PUBLIC on purpose: both
+-- then grant EXECUTE to authenticated and gate the caller's role internally.
+--
+-- fn_fire_due_reminders is left alone here and is reported separately: it holds
+-- =X/postgres, meaning PUBLIC EXECUTE, and the e2e suite calls it as an
+-- authenticated admin, so narrowing it needs a caller guard rather than a
+-- revoke.
+
+revoke all on function public.fn_prune_retained_rows() from public, anon, authenticated;
+grant execute on function public.fn_prune_retained_rows() to service_role;
