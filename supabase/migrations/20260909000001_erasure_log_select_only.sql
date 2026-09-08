@@ -1,0 +1,31 @@
+-- erasure_log: revoke everything but SELECT, on a fresh database as well as this one.
+--
+-- 20260902000009 created erasure_log and granted SELECT, with a comment saying
+-- it was "granted SELECT and nothing else". That was not true of a database
+-- built from the migrations. Two things stack up.
+--
+-- Supabase's bootstrap leaves supabase_admin's default privileges granting
+-- arwdDxtm on new tables in public to anon, authenticated and service_role, and
+-- 20260711000011 also does `grant all on all tables in schema public to
+-- authenticated, service_role`. erasure_log is created after that, so it
+-- inherits the default grant: SELECT, INSERT, UPDATE, DELETE and the rest.
+--
+-- 20260902000010 then revokes TRUNCATE, TRIGGER and REFERENCES from every table
+-- and narrows the postgres-owned default privileges, but it deliberately leaves
+-- INSERT, UPDATE and DELETE alone, because every other table needs them and RLS
+-- is the boundary there. erasure_log is the exception: it carries exactly one
+-- policy, a SELECT for admin, and the receipt is meant to be immutable.
+--
+-- Found by CI on 2026-09-08, not locally, because this database had the extra
+-- grants removed by hand in an earlier session and the fix was never written
+-- down as a migration. validate.sql check 22 reported it on the first run
+-- against a database built from the migrations alone:
+--   ERROR: FAIL 22: erasure_log grants 3 privilege(s) beyond SELECT;
+--          a receipt must not be deletable
+--
+-- RLS already refused those three writes, since deny-by-default means a command
+-- with no policy is denied. This closes the grant as well, so the table's
+-- immutability does not rest on a policy list staying empty.
+
+revoke all on public.erasure_log from anon, authenticated;
+grant select on public.erasure_log to authenticated;
