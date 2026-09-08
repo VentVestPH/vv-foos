@@ -1,6 +1,7 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { CollapseAllButton, useSectionCollapse } from './SectionCollapse';
 
 interface RecordPageProps {
   code?: string;
@@ -26,13 +27,18 @@ export function RecordPage({
 
   return (
     <div className="record-page">
-      <div className="record-title-row">
-        {icon && <span className="fo-page-icon">{icon}</span>}
-        {code && <span className="record-code">{code}</span>}
-        <h1>{title}</h1>
-        {titleExtras}
+      <div className="fo-page-head">
+        <div className="record-title-row">
+          {icon && <span className="fo-page-icon">{icon}</span>}
+          {code && <span className="record-code">{code}</span>}
+          <h1>{title}</h1>
+          {titleExtras}
+          <div className="fo-page-header-actions">
+            <CollapseAllButton />
+          </div>
+        </div>
+        {actionBar && <div className="record-action-bar">{actionBar}</div>}
       </div>
-      {actionBar && <div className="record-action-bar">{actionBar}</div>}
       {children}
     </div>
   );
@@ -41,25 +47,51 @@ export function RecordPage({
 interface RecordSectionProps {
   title: string;
   defaultOpen?: boolean;
+  id?: string;
+  count?: number;
+  empty?: boolean;
   children: ReactNode;
 }
 
 export function RecordSection({
   title,
   defaultOpen = true,
+  id,
+  count,
+  empty = false,
   children,
 }: RecordSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
-  const [everOpened, setEverOpened] = useState(defaultOpen);
+  const startOpen = empty ? false : defaultOpen;
+  const [open, setOpen] = useState(startOpen);
+  const [everOpened, setEverOpened] = useState(startOpen);
   const [contentHeight, setContentHeight] = useState<number | null>(null);
   const userToggled = useRef(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const key = useId();
+  const bus = useSectionCollapse();
 
   useEffect(() => {
     if (userToggled.current) return;
-    setOpen(defaultOpen);
-    if (defaultOpen) setEverOpened(true);
-  }, [defaultOpen]);
+    setOpen(startOpen);
+    if (startOpen) setEverOpened(true);
+  }, [startOpen]);
+
+  useEffect(() => {
+    if (!bus) return undefined;
+    return bus.register(
+      key,
+      (next) => {
+        userToggled.current = true;
+        setOpen(next);
+        if (next) setEverOpened(true);
+      },
+      startOpen,
+    );
+  }, [bus, key, startOpen]);
+
+  useEffect(() => {
+    bus?.report(key, open);
+  }, [bus, key, open]);
 
   useLayoutEffect(() => {
     const node = bodyRef.current;
@@ -82,12 +114,12 @@ export function RecordSection({
   const rows = !open ? '0px' : contentHeight === null ? 'auto' : `${contentHeight}px`;
 
   return (
-    <section className="record-section" data-open={open ? 'true' : 'false'}>
+    <section className="record-section" data-open={open ? 'true' : 'false'} id={id}>
       <button type="button" className="record-section-header" onClick={toggle} aria-expanded={open}>
         <span className="record-section-chevron" aria-hidden="true">
-          <ChevronDown size={16} />
+          <ChevronDown size={20} />
         </span>
-        {title}
+        {count === undefined ? title : `${title} (${count})`}
       </button>
       <div
         className="record-section-collapse"

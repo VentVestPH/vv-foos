@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { EMPTY_CELL } from '../../lib/format';
 
 export interface TableColumn<T> {
   key: string;
@@ -12,6 +13,8 @@ export interface TableColumn<T> {
 
   capped?: boolean;
   width?: string;
+
+  hideWhenEmpty?: boolean;
 }
 
 interface TableProps<T> {
@@ -80,6 +83,21 @@ export function Table<T>({
     new Set(),
   );
   const sel = selected ?? internalSelected;
+
+  const visibleColumns = useMemo(() => {
+    if (rows.length === 0) return columns;
+    return columns.filter((col) => {
+      if (col.hideWhenEmpty !== true) return true;
+      return rows.some((row) => {
+        const value = col.sortValue
+          ? col.sortValue(row)
+          : (row as Record<string, unknown>)[col.key];
+        if (value === null || value === undefined) return false;
+        const text = String(value).trim();
+        return text !== '' && text !== EMPTY_CELL;
+      });
+    });
+  }, [columns, rows]);
 
   const setSelection = (next: Set<string>) => {
     if (!selected) setInternalSelected(next);
@@ -225,7 +243,7 @@ export function Table<T>({
                 />
               </th>
             )}
-            {columns.map((col) => (
+            {visibleColumns.map((col) => (
               <th
                 key={col.key}
                 className={col.sortable ? 'sortable' : undefined}
@@ -263,7 +281,7 @@ export function Table<T>({
             <tr>
               <td
                 className="table-empty"
-                colSpan={columns.length + (selectable ? 1 : 0)}
+                colSpan={visibleColumns.length + (selectable ? 1 : 0)}
               >
                 {busy === true ? 'Loading…' : emptyText}
               </td>
@@ -297,7 +315,7 @@ export function Table<T>({
                     />
                   </td>
                 )}
-                {columns.map((col) => {
+                {visibleColumns.map((col) => {
                   const raw = (row as Record<string, unknown>)[col.key];
                   return (
                     <td key={col.key}>

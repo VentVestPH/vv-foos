@@ -138,7 +138,7 @@ function CalendarDialog({
             aria-label="Previous year"
             onClick={() => onCursor(shiftMonth(cursor, -12))}
           >
-            <ChevronsLeft size={16} aria-hidden="true" />
+            <ChevronsLeft size={20} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -146,7 +146,7 @@ function CalendarDialog({
             aria-label="Previous month"
             onClick={() => onCursor(shiftMonth(cursor, -1))}
           >
-            <ChevronLeft size={16} aria-hidden="true" />
+            <ChevronLeft size={20} aria-hidden="true" />
           </button>
           <h2 className="date-dialog-title" id={titleId} aria-live="polite">
             {monthTitle(cursor.year, cursor.month)}
@@ -157,7 +157,7 @@ function CalendarDialog({
             aria-label="Next month"
             onClick={() => onCursor(shiftMonth(cursor, 1))}
           >
-            <ChevronRight size={16} aria-hidden="true" />
+            <ChevronRight size={20} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -165,7 +165,7 @@ function CalendarDialog({
             aria-label="Next year"
             onClick={() => onCursor(shiftMonth(cursor, 12))}
           >
-            <ChevronsRight size={16} aria-hidden="true" />
+            <ChevronsRight size={20} aria-hidden="true" />
           </button>
         </div>
         <div className="date-grid" role="grid" ref={gridRef} onKeyDown={onGridKeyDown}>
@@ -342,7 +342,7 @@ export function DateField({
             setOpen(true);
           }}
         >
-          <CalendarDays size={16} aria-hidden="true" />
+          <CalendarDays size={20} aria-hidden="true" />
         </button>
       </div>
       <span className="visually-hidden" id={hintId}>

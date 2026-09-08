@@ -33,6 +33,7 @@ interface SelectProps {
   name?: string;
   className?: string;
   'aria-label'?: string;
+  title?: string | undefined;
   onChange?: (event: SelectChangeEvent) => void;
 }
 
@@ -44,7 +45,8 @@ const MENU_GAP = 2;
 interface Placement {
   left: number;
   top: number;
-  width: number;
+  minWidth: number;
+  maxWidth: number;
   maxHeight: number;
   above: boolean;
 }
@@ -62,6 +64,7 @@ export function Select({
   name,
   className,
   'aria-label': ariaLabel,
+  title,
 }: SelectProps) {
   const autoId = useId();
   const selectId = id ?? autoId;
@@ -97,7 +100,8 @@ export function Select({
     setPlacement({
       left: r.left,
       top: useAbove ? r.top - MENU_GAP : r.bottom + MENU_GAP,
-      width: r.width,
+      minWidth: r.width,
+      maxWidth: Math.max(r.width, window.innerWidth - r.left - 16),
       maxHeight: Math.max(96, Math.min(MENU_MAX_H, useAbove ? above : below)),
       above: useAbove,
     });
@@ -286,6 +290,7 @@ export function Select({
       role="combobox"
       className={className === undefined ? 'field-select' : `field-select ${className}`}
       disabled={disabled}
+      title={title}
       aria-expanded={open}
       aria-controls={listId}
       aria-haspopup="listbox"
@@ -300,7 +305,7 @@ export function Select({
       onClick={() => (open ? closeMenu(false) : openMenu(selectedIndex >= 0 ? selectedIndex : 0))}
     >
       <span className="field-select-value">{selected?.label ?? placeholder ?? ''}</span>
-      <ChevronDown size={16} className="field-select-caret" aria-hidden="true" />
+      <ChevronDown size={20} className="field-select-caret" aria-hidden="true" />
     </button>
   );
 
@@ -317,7 +322,8 @@ export function Select({
               left: `${placement.left}px`,
               top: placement.above ? 'auto' : `${placement.top}px`,
               bottom: placement.above ? `${window.innerHeight - placement.top}px` : 'auto',
-              width: `${placement.width}px`,
+              minWidth: `${placement.minWidth}px`,
+              maxWidth: `${placement.maxWidth}px`,
               maxHeight: `${placement.maxHeight}px`,
             }}
           >

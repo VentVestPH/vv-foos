@@ -1,9 +1,31 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useDismissable } from '../../hooks/useDismissable';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { Button } from './Button';
 import { Input } from './Input';
 import { downloadCsv } from '../../lib/csv';
+
+interface ListPageFiltersApi {
+  filtersOpen: boolean;
+  openFilters: (options?: { focusColumns?: boolean }) => void;
+}
+
+const ListPageFiltersContext = createContext<ListPageFiltersApi | null>(null);
+
+export function useListPageFilters(): ListPageFiltersApi {
+  const api = useContext(ListPageFiltersContext);
+  if (!api) throw new Error('useListPageFilters requires a ListPage ancestor');
+  return api;
+}
 
 interface ListPageProps {
   title: string;
@@ -55,6 +77,26 @@ export function ListPage({
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   const filters = useDismissable(filtersOpen, closeFilters);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [columnFocusRequest, setColumnFocusRequest] = useState(0);
+
+  const openFilters = useCallback((options?: { focusColumns?: boolean }) => {
+    setFiltersOpen(true);
+    if (options?.focusColumns) setColumnFocusRequest((n) => n + 1);
+  }, []);
+
+  const filtersApi = useMemo<ListPageFiltersApi>(
+    () => ({ filtersOpen, openFilters }),
+    [filtersOpen, openFilters],
+  );
+
+  useEffect(() => {
+    if (columnFocusRequest === 0 || !filtersOpen) return;
+    const rail = document.getElementById('list-filter-rail');
+    const first = rail?.querySelector<HTMLInputElement>(
+      '.checkbox-list input[type="checkbox"]',
+    );
+    first?.focus();
+  }, [columnFocusRequest, filtersOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -72,7 +114,9 @@ export function ListPage({
   }, []);
 
   return (
+    <ListPageFiltersContext.Provider value={filtersApi}>
     <div className="list-page">
+      <div className="fo-page-head">
       {icon ? (
         <div className="fo-page-header">
           <span className="fo-page-icon">{icon}</span>
@@ -107,7 +151,7 @@ export function ListPage({
           />
         </div>
         <button type="button" className="btn btn-secondary btn-sm fo-go-btn">
-          Go!
+          Search
         </button>
         {savedViewsSlot}
         {exportRows && (
@@ -135,6 +179,13 @@ export function ListPage({
                 ? exportCount === 0
                 : exportRows.length === 0)
             }
+            title={
+              exporting
+                ? 'Building the file'
+                : (typeof exportRows === 'function' ? exportCount === 0 : exportRows.length === 0)
+                  ? 'There is nothing in this list to export'
+                  : undefined
+            }
           >
             {exporting ? 'Exporting…' : 'Export CSV'}
           </Button>
@@ -145,6 +196,7 @@ export function ListPage({
           {secondSearchRow}
         </div>
       )}
+      </div>
       {filterRail && (
         <div className="list-page-filter-toggle">
           <button
@@ -172,5 +224,6 @@ export function ListPage({
         <div className="list-page-table">{children}</div>
       </div>
     </div>
+    </ListPageFiltersContext.Provider>
   );
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { X as CloseIcon } from 'lucide-react';
 import { useOverlayDismiss } from '../../hooks/useOverlayDismiss';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
@@ -57,8 +58,14 @@ export function Dialog({
         <div className={headClass}>
           <h2>{title}</h2>
           {onClose && (
-            <button type="button" className={closeClass} onClick={requestClose} aria-label={closeLabel}>
-              ×
+            <button
+              type="button"
+              className={`fo-dialog-close ${closeClass}`}
+              onClick={requestClose}
+              aria-label={closeLabel}
+              title={closeLabel}
+            >
+              <CloseIcon size={24} aria-hidden="true" />
             </button>
           )}
         </div>

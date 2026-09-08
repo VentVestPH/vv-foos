@@ -53,7 +53,13 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
     <div className="fo-pager">
       {pageCount > 1 && (
         <span className="fo-pager-controls">
-          <button type="button" onClick={() => onPage(0)} disabled={atStart} aria-label="First page">
+          <button
+            type="button"
+            onClick={() => onPage(0)}
+            disabled={atStart}
+            aria-label="First page"
+            title={atStart ? 'You are on the first page' : 'First page'}
+          >
             &laquo;
           </button>
           <button
@@ -61,6 +67,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
             onClick={() => onPage(page - 1)}
             disabled={atStart}
             aria-label="Previous page"
+            title={atStart ? 'You are on the first page' : 'Previous page'}
           >
             &lsaquo;
           </button>
@@ -74,6 +81,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
             onClick={() => onPage(page + 1)}
             disabled={atEnd}
             aria-label="Next page"
+            title={atEnd ? 'You are on the last page' : 'Next page'}
           >
             &rsaquo;
           </button>
@@ -82,6 +90,13 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
             onClick={() => onPage(pageCount - 1)}
             disabled={atEnd || totalPending === true}
             aria-label="Last page"
+            title={
+              totalPending === true
+                ? 'Still counting the rows'
+                : atEnd
+                  ? 'You are on the last page'
+                  : 'Last page'
+            }
           >
             &raquo;
           </button>

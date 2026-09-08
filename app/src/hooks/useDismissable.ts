@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
 const EXIT_MS = 140;
 
-export function useDismissable(open: boolean, onClose: () => void) {
+export function useDismissable(
+  open: boolean,
+  onClose: () => void,
+  escapeScope?: RefObject<HTMLElement | null>,
+) {
   const [closing, setClosing] = useState(false);
   const timer = useRef<number | null>(null);
 
@@ -28,6 +32,19 @@ export function useDismissable(open: boolean, onClose: () => void) {
     clear();
     setClosing(false);
   }, [open, clear]);
+
+  useEffect(() => {
+    if (!open || !escapeScope) return;
+    const node = escapeScope.current;
+    if (!node) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.stopPropagation();
+      requestClose();
+    };
+    node.addEventListener('keydown', onKeyDown);
+    return () => node.removeEventListener('keydown', onKeyDown);
+  }, [open, requestClose, escapeScope]);
 
   useEffect(() => clear, [clear]);
 

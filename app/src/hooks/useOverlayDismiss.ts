@@ -11,7 +11,12 @@ export function useOverlayDismiss(onClose: (() => void) | undefined) {
     if (!onClose || closingRef.current) return;
     closingRef.current = true;
     setClosing(true);
-    timer.current = window.setTimeout(onClose, OVERLAY_EXIT_MS);
+    timer.current = window.setTimeout(() => {
+      timer.current = null;
+      closingRef.current = false;
+      setClosing(false);
+      onClose();
+    }, OVERLAY_EXIT_MS);
   }, [onClose]);
 
   useEffect(
@@ -20,6 +25,16 @@ export function useOverlayDismiss(onClose: (() => void) | undefined) {
     },
     [],
   );
+
+  useEffect(() => {
+    if (onClose) return;
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+    closingRef.current = false;
+    setClosing(false);
+  }, [onClose]);
 
   useEffect(() => {
     if (!onClose) return;
