@@ -1,0 +1,38 @@
+# Ported from vercel.json's headers block. 3 rules of the 100 allowed; longest line 500
+# characters of the 2,000 allowed. A request matching several rules inherits all of them,
+# so /assets/* and /* both apply to a bundle file.
+# developers.cloudflare.com/pages/configuration/headers/, read 2026-09-07
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: no-cache
+
+/
+  Cache-Control: no-cache
+
+# A deep link such as /recruit/candidates/<id> is answered from index.html by Pages'
+# SPA fallback without the URL changing, so neither rule above matches it. It gets
+# Cloudflare's own default instead, "Cache-Control: public, max-age=0, must-revalidate",
+# which has the same effect as no-cache. Nothing to fix; stated so it is not a surprise.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: deny
+  X-Permitted-Cross-Domain-Policies: none
+  X-DNS-Prefetch-Control: off
+  Referrer-Policy: no-referrer
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  ! Access-Control-Allow-Origin
+  Permissions-Policy: accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), unload=(), sync-xhr=(self)
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com; frame-src 'self' blob: https://*.supabase.co; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+
+# The "! Access-Control-Allow-Origin" line is not in vercel.json and is not an oversight.
+# Pages adds "Access-Control-Allow-Origin: *" to every static asset response by default
+# and Vercel does not, so a straight port would quietly widen CORS on the whole origin.
+# "! " detaches a header, per the Detach a header section of the headers doc.
+# Referrer-Policy is the same story with a smaller consequence: Pages defaults to
+# strict-origin-when-cross-origin and the rule above replaces it with no-referrer.
