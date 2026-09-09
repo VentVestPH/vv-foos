@@ -201,21 +201,32 @@ async function countsOnly() {
     wanted.set(row.entity, (wanted.get(row.entity) ?? 0) + row.zoho);
   }
 
+  const countedKeys = new Set(rows.filter((r) => typeof r.zoho === 'number').map((r) => r.key));
+  const contributors = new Map();
+  for (const [key, entity] of Object.entries(ENTITY_OF)) {
+    if (!entity) continue;
+    contributors.set(entity, [...(contributors.get(entity) ?? []), key]);
+  }
+
   console.log('entity        in zoho   imported     delta  modules counted');
-  console.log('-'.repeat(72));
+  console.log('-'.repeat(78));
   let short = 0;
+  let partial = 0;
   for (const entity of [...new Set([...wanted.keys(), ...held.keys()])].sort()) {
+    const expectedKeys = contributors.get(entity) ?? [];
+    const missing = expectedKeys.filter((k) => !countedKeys.has(k));
     const inZoho = wanted.get(entity);
     const imported = held.get(entity) ?? 0;
-    const delta = typeof inZoho === 'number' ? imported - inZoho : null;
+    const comparable = missing.length === 0 && typeof inZoho === 'number';
+    if (missing.length > 0) partial += 1;
+    const delta = comparable ? imported - inZoho : null;
     if (delta !== null && delta < 0) short += 1;
-    const from = rows
-      .filter((r) => r.entity === entity && typeof r.zoho === 'number')
-      .map((r) => r.key)
+    const from = expectedKeys
+      .map((k) => (countedKeys.has(k) ? k : `${k} (NOT COUNTED)`))
       .join(' + ');
     console.log(
       `${entity.padEnd(12)}${String(inZoho ?? '?').padStart(9)}${String(imported).padStart(11)}` +
-        `${(delta === null ? '?' : delta > 0 ? `+${delta}` : String(delta)).padStart(10)}  ${from || '(none)'}`,
+        `${(!comparable ? 'partial' : delta > 0 ? `+${delta}` : String(delta)).padStart(10)}  ${from || '(none)'}`,
     );
   }
   const counted = rows.filter((r) => typeof r.zoho === 'number').length;
@@ -237,7 +248,14 @@ async function countsOnly() {
     console.error(`\n${short} entit${short === 1 ? 'y is' : 'ies are'} short of what Zoho reports.`);
     process.exit(1);
   }
-  console.log('\nEvery counted entity holds at least what Zoho reports.');
+  if (partial > 0) {
+    console.error(
+      `\n${partial} entit${partial === 1 ? 'y' : 'ies'} span a module that was not counted, so ` +
+        'those rows compare against part of the truth and prove nothing.',
+    );
+    process.exit(1);
+  }
+  console.log('\nEvery entity holds at least what Zoho reports.');
 }
 
 if (COUNTS_ONLY) {
