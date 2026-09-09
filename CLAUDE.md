@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 VentVest Front Office OS (FOOS): ATS + CRM on Supabase (Postgres, Auth, Storage, Edge Functions, Realtime) with React 18 + Vite + TypeScript on top.
 
-This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend, and as of 2026-09-02 it is **the only frontend anyone should change**. It runs on port **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port) against the live Supabase project (`mebfbbvrqdctamnzvbbs`). Build output goes to `app/dist/` with `emptyOutDir: true`. **Renamed 2026-09-08** from `dist-redesign-2`, a name left over from the two-frontend era, at Klent's request; 36 references across 17 files moved in one edit and `grep -rl dist-redesign-2` now returns nothing.
+This particular tree is **`foos_redesign_2`**, the Taleo-exact UI replica frontend, and as of 2026-09-02 it is **the only frontend anyone should change**. It runs on port **5175** (`strictPort: true`, so it fails loudly rather than drifting to another port). **Corrected 2026-09-09: the project is `hilieyehhecrlccdveta` in Southeast Asia (Singapore).** The former `mebfbbvrqdctamnzvbbs` (Seoul) was **deleted on 2026-09-09** after a full migration; a Supabase project's region cannot be changed, so the move meant a new project. Its pre-deletion row-level backup is `migration/out/seoul-backup-2026-09-09/` (22 files, 666 rows) and the record is `docs/07-environments/VVPH_VV-FOOS_Record_Zoho-Pull-And-Singapore-Migration_2026-09-09_v1.0_Final.md`. Build output goes to `app/dist/` with `emptyOutDir: true`. **Renamed 2026-09-08** from `dist-redesign-2`, a name left over from the two-frontend era, at Klent's request; 36 references across 17 files moved in one edit and `grep -rl dist-redesign-2` now returns nothing.
 
 Two sibling frontends used to share this schema: `/foos` on port 5173 and `/foos_redesign` on 5174. Both are **archived, not deleted** (plan item F4). Neither is present on this machine, so nothing here depends on them, and every schema change or `database.types.ts` edit now costs one frontend instead of three. Do not port changes into them, do not reinstate them, and do not treat their absence as a bug. Deletion waits on confirmation that nobody demos from them.
 
@@ -216,7 +216,7 @@ FOOS_NEW_STAFF_PASSWORD='pick-one' npm run db:add-staff -- you@ventvest.com "You
 
 ## Local versus production
 
-**This checkout is linked to the live project.** `supabase/.temp/project-ref` holds `mebfbbvrqdctamnzvbbs`, so every `--linked` command targets production. There is no staging project.
+**This checkout is linked to the live project.** `supabase/.temp/project-ref` holds `hilieyehhecrlccdveta`, so every `--linked` command targets production. There is no staging project. **Corrected 2026-09-09:** relinking needs `supabase link --project-ref <ref>`, not just writing that file, because `db.<ref>.supabase.co` is AAAA-only and the CLI otherwise answers `LegacyDbConfigIpv6Error`. Bulk work must use the **session pooler on 5432**; the transaction pooler on 6543 breaks `pg_dump`.
 
 Develop against the local stack: `supabase start`, then `npm run db:reset` (which also seeds the four test personas and restarts the edge runtime, since `db reset` otherwise leaves it holding stale connections to the storage container it just replaced and every upload fails with `StorageApiError 502`).
 
