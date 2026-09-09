@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, recordSection, signIn } from './helpers';
+import {
+  PERSONA_EMAILS,
+  gotoAsSignedIn,
+  recordSection,
+  signIn,
+  watchOverlayExit,
+} from './helpers';
 
 const CANDIDATE = '/recruit/candidates/b0000000-0000-4000-8000-000000000002';
 
@@ -412,13 +418,11 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
 
     const overlay = page.locator('.rq-overlay');
     await expect(overlay).toHaveCount(1);
+    const readExit = await watchOverlayExit(page, '.rq-overlay');
     await page.getByRole('button', { name: 'Cancel' }).click();
-    const state = await page.evaluate(() => {
-      const el = document.querySelector('.rq-overlay');
-      return { mounted: !!el, closing: el?.getAttribute('data-closing') ?? null };
-    });
-    expect(state.mounted, 'Cancel must animate out, not cut').toBe(true);
-    expect(state.closing).toBe('true');
     await expect(overlay).toHaveCount(0, { timeout: 3000 });
+    const exit = await readExit();
+    expect(exit.sawClosing, 'Cancel must animate out, not cut').toBe(true);
+    expect(exit.removed, 'the overlay must unmount once it has animated out').toBe(true);
   });
 });
