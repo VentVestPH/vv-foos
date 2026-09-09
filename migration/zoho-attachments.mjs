@@ -66,14 +66,30 @@ function contentTypeFor(fileName) {
 }
 
 const PARENT_MODULES = {
-  Candidates: { dir: 'ZohoRecruit_Candidates_p1', parentType: 'person', entity: 'candidate', product: 'recruit' },
-  Job_Openings: { dir: 'ZohoRecruit_Job_Openings_p1', parentType: 'requisition', entity: 'requisition', product: 'recruit' },
-  Applications: { dir: 'ZohoRecruit_Applications_paged', parentType: 'application', entity: 'application', product: 'recruit' },
-  Clients: { dir: 'ZohoRecruit_Clients_p1', parentType: 'company', entity: 'company', product: 'recruit' },
-  CRM_Accounts: { dir: 'ZohoCRM_Accounts_p1', parentType: 'company', entity: 'company', product: 'crm', apiModule: 'Accounts' },
-  CRM_Contacts: { dir: 'ZohoCRM_Contacts_p1', parentType: 'person', entity: 'contact', product: 'crm', apiModule: 'Contacts' },
-  CRM_Leads: { dir: 'ZohoCRM_Leads_p1', parentType: 'person', entity: 'lead', product: 'crm', apiModule: 'Leads' },
+  Candidates: { corpus: 'ZohoRecruit_Candidates', parentType: 'person', entity: 'candidate', product: 'recruit' },
+  Job_Openings: { corpus: 'ZohoRecruit_Job_Openings', parentType: 'requisition', entity: 'requisition', product: 'recruit' },
+  Applications: { corpus: 'ZohoRecruit_Applications', parentType: 'application', entity: 'application', product: 'recruit' },
+  Clients: { corpus: 'ZohoRecruit_Clients', parentType: 'company', entity: 'company', product: 'recruit' },
+  Recruit_Contacts: { corpus: 'ZohoRecruit_Contacts', parentType: 'person', entity: 'contact', product: 'recruit', apiModule: 'Contacts' },
+  Departments: { corpus: 'ZohoRecruit_Departments', parentType: 'company', entity: 'company', product: 'recruit' },
+  To_Dos: { corpus: 'ZohoRecruit_To_Dos', parentType: 'task', entity: 'task', product: 'recruit' },
+  Reviews: { corpus: 'ZohoRecruit_Reviews', parentType: 'review', entity: 'review', product: 'recruit' },
+  Calendly_Invites: { corpus: 'ZohoRecruit_Calendly_Invites', parentType: 'invite', entity: 'invite', product: 'recruit' },
+  CRM_Accounts: { corpus: 'ZohoCRM_Accounts', parentType: 'company', entity: 'company', product: 'crm', apiModule: 'Accounts' },
+  CRM_Contacts: { corpus: 'ZohoCRM_Contacts', parentType: 'person', entity: 'contact', product: 'crm', apiModule: 'Contacts' },
+  CRM_Leads: { corpus: 'ZohoCRM_Leads', parentType: 'person', entity: 'lead', product: 'crm', apiModule: 'Leads' },
+  CRM_Tasks: { corpus: 'ZohoCRM_Tasks', parentType: 'task', entity: 'task', product: 'crm', apiModule: 'Tasks' },
+  CRM_Events: { corpus: 'ZohoCRM_Events', parentType: 'event', entity: 'event', product: 'crm', apiModule: 'Events' },
 };
+
+function corpusDir(spec) {
+  if (spec.dir) return join(EXPORT_DIR, 'bulk', spec.dir);
+  for (const suffix of ['_p1', '_paged']) {
+    const candidate = join(EXPORT_DIR, 'bulk', `${spec.corpus}${suffix}`);
+    if (existsSync(candidate)) return candidate;
+  }
+  return join(EXPORT_DIR, 'bulk', `${spec.corpus}_p1`);
+}
 
 function baseFor(spec) {
   return spec.product === 'crm' ? CRM : RECRUIT;
@@ -148,7 +164,7 @@ async function token(product = 'recruit') {
 function recordsWithAttachments(moduleName) {
   const spec = PARENT_MODULES[moduleName];
   if (!spec) return [];
-  const dir = join(EXPORT_DIR, 'bulk', spec.dir);
+  const dir = corpusDir(spec);
   if (!existsSync(dir)) return [];
   const files = readdirSync(dir);
   const csv = files.find((f) => f.endsWith('.csv'));
