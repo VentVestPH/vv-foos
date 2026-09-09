@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createClient } from '@supabase/supabase-js';
 
-const LIVE_REF = 'mebfbbvrqdctamnzvbbs';
+const LIVE_REF = 'hilieyehhecrlccdveta';
 
 const args = process.argv.slice(2);
 function flag(name) {
