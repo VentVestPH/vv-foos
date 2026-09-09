@@ -51,3 +51,36 @@ export function attachmentRejection(file: { name: string; size: number; type: st
   }
   return null;
 }
+
+const TYPE_LABELS: Record<string, string> = {
+  jpg: 'JPG',
+  jpeg: 'JPG',
+  png: 'PNG',
+  gif: 'GIF',
+  webp: 'WEBP',
+  pdf: 'PDF',
+  doc: 'DOC',
+  docx: 'DOCX',
+  xls: 'XLS',
+  xlsx: 'XLSX',
+  csv: 'CSV',
+  txt: 'TXT',
+  rtf: 'RTF',
+  ppt: 'PPT',
+  pptx: 'PPTX',
+  zip: 'ZIP',
+};
+
+export function fileTypeLabel(name: string): string | null {
+  const dot = name.lastIndexOf('.');
+  if (dot <= 0 || dot === name.length - 1) return null;
+  const ext = name.slice(dot + 1).toLowerCase();
+  return TYPE_LABELS[ext] ?? ext.slice(0, 5).toUpperCase();
+}
+
+export function formatBytes(bytes: number | null | undefined): string | null {
+  if (bytes === null || bytes === undefined || bytes <= 0) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

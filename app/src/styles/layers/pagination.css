@@ -4,7 +4,7 @@
   justify-content: flex-end;
   gap: var(--sp-2);
   margin-left: auto;
-  padding: var(--sp-1) 0;
+  padding: 4px 0;
   font-size: var(--fs-meta);
   color: var(--text-secondary);
   white-space: nowrap;
@@ -17,15 +17,23 @@
 }
 
 .fo-pager-controls button {
-  min-width: 26px;
-  padding: 2px var(--sp-half);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
   font-family: inherit;
-  font-size: var(--fs-body);
   color: var(--fo-link);
-  background: var(--surface);
-  border: 1px solid var(--control-border);
+  background: none;
+  border: 0;
   border-radius: var(--radius);
   cursor: pointer;
+}
+
+.fo-pager-controls button:hover:not(:disabled) {
+  background: var(--fo-row-hover);
+  color: var(--fo-primary-hover);
 }
 
 .fo-pager-controls button:disabled {

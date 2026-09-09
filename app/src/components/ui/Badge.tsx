@@ -6,7 +6,8 @@ export type BadgeTone =
   | 'success'
   | 'warning'
   | 'danger'
-  | 'outline';
+  | 'outline'
+  | 'count';
 
 interface BadgeProps {
   tone?: BadgeTone;

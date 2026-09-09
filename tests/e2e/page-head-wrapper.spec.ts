@@ -26,8 +26,9 @@ test('K18: every page header sits in an opaque wrapper that also holds its searc
     const info = await head.first().evaluate((el) => {
       const cs = getComputedStyle(el);
       const heading = el.querySelector('h1');
-      const search = el.querySelector('input[type="search"], .list-page-search');
-      const button = el.querySelector('.btn, button');
+      const assembly = el.parentElement ?? el;
+      const search = assembly.querySelector('input[type="search"], .list-page-search');
+      const button = assembly.querySelector('.btn, button');
       return {
         background: cs.backgroundColor,
         holdsHeading: heading !== null,

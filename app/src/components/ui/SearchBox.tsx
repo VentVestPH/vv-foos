@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search as SearchIcon } from 'lucide-react';
+import { SearchField } from './SearchField';
 import { supabase } from '../../lib/supabase';
 import { useDismissable } from '../../hooks/useDismissable';
 import { useOutsideClose } from '../../hooks/useOutsideClose';
@@ -181,82 +182,65 @@ export function SearchBox({
     };
   }, [draft]);
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    cancelPendingHints();
-    const term = draft.trim();
-    if (onSubmitTerm) {
-      onSubmitTerm(term);
-      return;
-    }
-    navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
-  };
-
-  const searchAll = () => {
-    cancelPendingHints();
-    const term = draft.trim();
-    if (onSubmitTerm) {
-      onSubmitTerm(term);
-      return;
-    }
-    navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
-  };
+  const searchAll = useCallback(
+    (term: string) => {
+      cancelPendingHints();
+      if (onSubmitTerm) {
+        onSubmitTerm(term);
+        return;
+      }
+      navigate(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
+    },
+    [cancelPendingHints, navigate, onSubmitTerm],
+  );
 
   return (
     <div className={className ? `fo-searchbox ${className}` : 'fo-searchbox'} ref={scopeRef}>
-      <form className="fo-search-row" onSubmit={submit}>
-        <span className="fo-search-input-wrap" data-inset={submitLabel ? undefined : 'true'}>
-          <input
-            className="input"
-            value={draft}
-            onChange={(e) => {
-              userTyped.current = true;
-              onValueChange(e.target.value);
-            }}
-            onFocus={() => setHintsOpen(hints.length > 0)}
-            aria-label={ariaLabel}
-            placeholder={placeholder}
-            autoComplete="off"
-            autoFocus={autoFocus}
-          />
-          {!submitLabel && (
-            <button
-              type="submit"
-              className="fo-icon-btn fo-searchbox-submit"
-              aria-label={ariaLabel}
-              title={ariaLabel}
-            >
-              <SearchIcon size={20} />
+      <SearchField
+        value={draft}
+        onValueChange={(next) => {
+          userTyped.current = true;
+          onValueChange(next);
+        }}
+        onSubmitTerm={searchAll}
+        ariaLabel={ariaLabel}
+        placeholder={placeholder}
+        autoFocus={autoFocus}
+        onFocus={() => setHintsOpen(hints.length > 0)}
+        trailing={
+          submitLabel ? (
+            <button type="submit" className="btn btn-primary btn-sm fo-go-btn">
+              {submitLabel}
             </button>
-          )}
-          {hintsOpen && hints.length > 0 && (
-            <div className="fo-hint-pop" data-closing={hintBox.closing ? 'true' : undefined}>
-              <div className="fo-scroll-fade">
-                <ul className="fo-hint-list" ref={hintListRef} aria-label="Suggested results">
-                  {hints.map((hint) => (
-                    <li key={hint.key}>
-                      <Link className="fo-hint" to={hint.href} onClick={closeHints}>
-                        <SearchIcon size={20} className="fo-hint-icon" aria-hidden="true" />
-                        <span className="fo-hint-primary">{hint.primary}</span>
-                        <span className="fo-hint-meta">{hint.meta}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <button type="button" className="fo-hint-all-btn" onClick={searchAll}>
-                Search everything for “{draft.trim()}” · About{' '}
-                {hintTotal.toLocaleString()} results
-              </button>
+          ) : undefined
+        }
+      >
+        {hintsOpen && hints.length > 0 && (
+          <div className="fo-hint-pop" data-closing={hintBox.closing ? 'true' : undefined}>
+            <div className="fo-scroll-fade">
+              <ul className="fo-hint-list" ref={hintListRef} aria-label="Suggested results">
+                {hints.map((hint) => (
+                  <li key={hint.key}>
+                    <Link className="fo-hint" to={hint.href} onClick={closeHints}>
+                      <SearchIcon size={20} className="fo-hint-icon" aria-hidden="true" />
+                      <span className="fo-hint-primary">{hint.primary}</span>
+                      <span className="fo-hint-meta">{hint.meta}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          )}
-        </span>
-        {submitLabel && (
-          <button type="submit" className="btn btn-primary btn-sm fo-go-btn">
-            {submitLabel}
-          </button>
+            <button
+              type="button"
+              className="fo-hint-all-btn"
+              onClick={() => searchAll(draft.trim())}
+            >
+              Search everything for “{draft.trim()}” · About{' '}
+              {hintTotal.toLocaleString()} results
+            </button>
+          </div>
         )}
-      </form>
+      </SearchField>
     </div>
   );
 }

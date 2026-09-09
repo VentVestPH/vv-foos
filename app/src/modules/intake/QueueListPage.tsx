@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { ListPage, useListPageFilters } from '../../components/ui/ListPage';
-import { RecordSection } from '../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../components/ui/Table';
 import { Pager, usePagination } from '../../components/ui/Pager';
 import { PlaceholderAction } from '../../shell/Placeholder';
@@ -136,7 +135,6 @@ export function QueueListPage() {
         </>
       }
       filterRail={
-        <RecordSection title="Advanced Search">
           <div className="fo-advanced-search-body">
             <Select
               label="Channel"
@@ -204,7 +202,6 @@ export function QueueListPage() {
               Show imported &amp; rejected
             </label>
           </div>
-        </RecordSection>
       }
       exportRows={filtered}
       exportColumns={[

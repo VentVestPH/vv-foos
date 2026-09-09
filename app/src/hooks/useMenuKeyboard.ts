@@ -15,7 +15,7 @@ export function useMenuKeyboard(
   useEffect(() => {
     if (!open) return;
     const first = itemsIn(scopeRef.current)[0];
-    if (first) first.focus();
+    if (first) first.focus({ preventScroll: true });
   }, [open, scopeRef]);
 
   const onKeyDown = useCallback(
@@ -29,7 +29,13 @@ export function useMenuKeyboard(
       const move = (next: number) => {
         event.preventDefault();
         event.stopPropagation();
-        items[(next + items.length) % items.length]?.focus();
+        const target = items[(next + items.length) % items.length];
+        if (!target) return;
+        target.focus({ preventScroll: true });
+        const scope = scopeRef.current;
+        if (scope && scope.scrollHeight > scope.clientHeight) {
+          target.scrollIntoView({ block: 'nearest' });
+        }
       };
 
       switch (event.key) {

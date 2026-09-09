@@ -7,6 +7,7 @@ import { useDismissable } from '../hooks/useDismissable';
 import { useMenuKeyboard } from '../hooks/useMenuKeyboard';
 import { SearchBox } from '../components/ui/SearchBox';
 import {
+  ChevronDown,
   ChartColumn as BarChartIcon,
   Megaphone as MegaphoneIcon,
   Settings as GearIcon,
@@ -113,7 +114,9 @@ export function UtilityHeader() {
             aria-expanded={adminOpen}
             onClick={() => (adminOpen ? admin.requestClose() : setAdminOpen(true))}
           >
-            Administration <span className="fo-utility-caret">▾</span>
+            Administration <span className="fo-utility-caret" aria-hidden="true">
+              <ChevronDown size={20} />
+            </span>
           </button>
           {adminOpen && (
             <div
@@ -158,7 +161,9 @@ export function UtilityHeader() {
             aria-expanded={helpOpen}
             onClick={() => (helpOpen ? help.requestClose() : setHelpOpen(true))}
           >
-            Help <span className="fo-utility-caret">▾</span>
+            Help <span className="fo-utility-caret" aria-hidden="true">
+              <ChevronDown size={20} />
+            </span>
           </button>
           {helpOpen && (
             <div

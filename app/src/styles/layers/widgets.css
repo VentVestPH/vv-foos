@@ -1,5 +1,5 @@
 .table input[type='checkbox'] {
-  accent-color: var(--fo-primary);
+  vertical-align: middle;
 }
 
 .table tbody tr:has(input[type='checkbox']:checked) {
@@ -235,9 +235,9 @@
 }
 
 .table .checkbox-col input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  margin: 3px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
 }
 
 .table .checkbox-col {
@@ -276,16 +276,6 @@
 .error-boundary-actions {
   display: flex;
   gap: var(--sp-1);
-}
-
-.list-page-filter-toggle {
-  padding: 0 0 var(--sp-1);
-}
-
-.list-page-filter-toggle .link-btn {
-  font-weight: 700;
-  min-height: 24px;
-  padding: 2px 0;
 }
 
 .skeleton {

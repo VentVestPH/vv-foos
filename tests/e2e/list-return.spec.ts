@@ -22,7 +22,7 @@ test('a sales record returns to the list it was opened from, filters and all', a
     await row.click();
     await expect(page).toHaveURL(record, { timeout: 25000 });
 
-    const back = page.getByRole('button', { name: 'Back To List' });
+    const back = page.getByRole('button', { name: /back to/i });
     await expect(back).toHaveCount(1);
     await back.click();
     await expect(page).toHaveURL(new RegExp(`${list}\\?probe=listreturn$`), { timeout: 25000 });

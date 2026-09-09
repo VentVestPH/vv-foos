@@ -4,10 +4,6 @@
     align-items: stretch;
   }
 
-  .filter-rail {
-    width: 100%;
-  }
-
   .shell-content {
     padding: var(--sp-2);
   }

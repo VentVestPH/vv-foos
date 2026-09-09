@@ -26,6 +26,8 @@ interface SelectProps {
   error?: string | undefined;
   options: SelectOption[];
   placeholder?: string;
+  placeholderSelectable?: boolean;
+  emptyLabel?: string;
   value?: string;
   disabled?: boolean;
   required?: boolean;
@@ -56,6 +58,8 @@ export function Select({
   error,
   options,
   placeholder,
+  placeholderSelectable = true,
+  emptyLabel = 'Nothing to choose from yet',
   required,
   id,
   value,
@@ -73,8 +77,11 @@ export function Select({
   const labelId = `${selectId}-label`;
 
   const items = useMemo<SelectOption[]>(
-    () => (placeholder !== undefined ? [{ value: '', label: placeholder }, ...options] : options),
-    [options, placeholder],
+    () =>
+      placeholder !== undefined && placeholderSelectable
+        ? [{ value: '', label: placeholder }, ...options]
+        : options,
+    [options, placeholder, placeholderSelectable],
   );
 
   const current = value ?? '';
@@ -120,7 +127,7 @@ export function Select({
 
   const closeMenu = useCallback((refocus: boolean) => {
     setOpen(false);
-    if (refocus) triggerRef.current?.focus();
+    if (refocus) triggerRef.current?.focus({ preventScroll: true });
   }, []);
 
   const commit = useCallback(
@@ -135,12 +142,14 @@ export function Select({
   );
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || items.length === 0) return;
     const list = menuRef.current;
     if (list === null) return;
     const el = list.children[activeIndex];
-    if (el instanceof HTMLElement) el.scrollIntoView({ block: 'nearest' });
-  }, [activeIndex, open]);
+    if (el instanceof HTMLElement && list.scrollHeight > list.clientHeight) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }, [activeIndex, open, items.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -327,6 +336,11 @@ export function Select({
               maxHeight: `${placement.maxHeight}px`,
             }}
           >
+            {items.length === 0 && (
+              <li className="field-select-empty" role="option" aria-disabled="true" aria-selected="false">
+                {emptyLabel}
+              </li>
+            )}
             {items.map((o, i) => (
               <li
                 key={o.value}

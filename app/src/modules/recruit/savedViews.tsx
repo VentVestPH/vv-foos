@@ -127,6 +127,8 @@ export function SavedViewsControl({
           label: v.is_shared ? `${v.name} (shared)` : v.name,
         }))}
         placeholder="Saved views…"
+        placeholderSelectable={false}
+        emptyLabel="No saved views yet. Use Save view to add one."
         value={selectedId}
         onChange={(e) => {
           const id = e.target.value;

@@ -8,10 +8,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useDismissable } from '../../hooks/useDismissable';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { useAdvancedSearch, usePublishAdvancedSearch } from '../../shell/AdvancedSearch';
 import { Button } from './Button';
-import { Input } from './Input';
+import { SearchField } from './SearchField';
 import { downloadCsv } from '../../lib/csv';
 
 interface ListPageFiltersApi {
@@ -46,6 +46,11 @@ interface ListPageProps {
 
   actions?: ReactNode;
 
+  bulkBar?: ReactNode;
+  bulkBarOpen?: boolean;
+
+  flush?: boolean;
+
   children: ReactNode;
 
   exportRows?: Record<string, unknown>[] | (() => Promise<Record<string, unknown>[]>);
@@ -65,6 +70,9 @@ export function ListPage({
   filterRail,
   savedViewsSlot,
   actions,
+  bulkBar,
+  bulkBarOpen = false,
+  flush = false,
   children,
   exportRows,
   exportCount,
@@ -73,16 +81,19 @@ export function ListPage({
 }: ListPageProps) {
   const [exporting, setExporting] = useState(false);
   useDocumentTitle(title);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const closeFilters = useCallback(() => setFiltersOpen(false), []);
-  const filters = useDismissable(filtersOpen, closeFilters);
+  const advanced = useAdvancedSearch();
+  usePublishAdvancedSearch(filterRail ?? null);
+  const filtersOpen = advanced.open;
   const searchRef = useRef<HTMLInputElement>(null);
-  const [columnFocusRequest, setColumnFocusRequest] = useState(0);
+  const { columnFocusRequest, requestColumnFocus, openPanel } = advanced;
 
-  const openFilters = useCallback((options?: { focusColumns?: boolean }) => {
-    setFiltersOpen(true);
-    if (options?.focusColumns) setColumnFocusRequest((n) => n + 1);
-  }, []);
+  const openFilters = useCallback(
+    (options?: { focusColumns?: boolean }) => {
+      openPanel();
+      if (options?.focusColumns) requestColumnFocus();
+    },
+    [openPanel, requestColumnFocus],
+  );
 
   const filtersApi = useMemo<ListPageFiltersApi>(
     () => ({ filtersOpen, openFilters }),
@@ -115,7 +126,7 @@ export function ListPage({
 
   return (
     <ListPageFiltersContext.Provider value={filtersApi}>
-    <div className="list-page">
+    <div className="list-page" data-flush={flush ? 'true' : undefined}>
       <div className="fo-page-head">
       {icon ? (
         <div className="fo-page-header">
@@ -138,21 +149,18 @@ export function ListPage({
         Press slash to search. In the results, j or down arrow moves to the next row, k or up arrow
         to the previous one, Enter opens the record, and space or x selects it.
       </p>
+      </div>
+      <div className="fo-page-toolbar">
       <div className="list-page-toolbar fo-search-row">
-        <span className="fo-search-label">Search:</span>
-        <div className="list-page-search">
-          <Input
-            ref={searchRef}
-            type="search"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label={`Search ${title}`}
-          />
-        </div>
-        <button type="button" className="btn btn-secondary btn-sm fo-go-btn">
-          Search
-        </button>
+        <SearchField
+          ref={searchRef}
+          className="list-page-search"
+          type="search"
+          value={search}
+          onValueChange={onSearchChange}
+          placeholder={searchPlaceholder}
+          ariaLabel={`Search ${title}`}
+        />
         {savedViewsSlot}
         {exportRows && (
           <Button
@@ -196,31 +204,21 @@ export function ListPage({
           {secondSearchRow}
         </div>
       )}
-      </div>
-      {filterRail && (
-        <div className="list-page-filter-toggle">
-          <button
-            type="button"
-            className="link-btn"
-            aria-expanded={filtersOpen}
-            aria-controls="list-filter-rail"
-            onClick={() => (filtersOpen ? filters.requestClose() : setFiltersOpen(true))}
-          >
-            {filtersOpen ? 'Hide search options' : 'Search these records'}
-          </button>
+      {bulkBar && (
+        <div className="fo-page-head-foot" data-open={bulkBarOpen ? 'true' : 'false'}>
+          {bulkBar && (
+            <div
+              className="fo-page-head-grow"
+              data-open={bulkBarOpen ? 'true' : 'false'}
+              aria-hidden={bulkBarOpen ? undefined : true}
+            >
+              <div className="fo-page-head-grow-inner">{bulkBar}</div>
+            </div>
+          )}
         </div>
       )}
+      </div>
       <div className="list-page-body">
-        {filterRail && filtersOpen && (
-          <aside
-            className="filter-rail"
-            id="list-filter-rail"
-            data-closing={filters.closing ? 'true' : undefined}
-          >
-            <h2>Filters</h2>
-            {filterRail}
-          </aside>
-        )}
         <div className="list-page-table">{children}</div>
       </div>
     </div>

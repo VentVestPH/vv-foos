@@ -1,17 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useBackToList } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import type { RequisitionStatus, TablesUpdate } from '../../../lib/database.types';
 import { Button } from '../../../components/ui/Button';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
+import { ActionMenu, type ActionMenuItem } from '../../../components/ui/ActionMenu';
+import { BackToList } from '../../../components/ui/BackToList';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
+import { Skeleton } from '../../../components/ui/Skeleton';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { looksLikeHtml, sanitizeHtml } from '../../../lib/sanitizeHtml';
 import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import {
   Briefcase as BriefcaseIcon,
-  CircleArrowUp,
+  UserRound as UserRoundIcon,
 } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import {
@@ -29,7 +33,6 @@ import { ApplicationPipeline } from './ApplicationPipeline';
 import { EMPTY_CELL } from '../../../lib/format';
 
 export function RequisitionRecordPage() {
-  const backToList = useBackToList('/recruit/requisitions');
   const { id } = useParams();
   const requisitionId = id ?? '';
   const navigate = useNavigate();
@@ -259,7 +262,14 @@ export function RequisitionRecordPage() {
         </div>
       );
     }
-    return <p className="text-secondary">Loading…</p>;
+    return (
+      <div className="record-page">
+        <div className="fo-page-head">
+          <Skeleton variant="lines" rows={3} label="Loading requisition" />
+        </div>
+        <Skeleton variant="card" rows={3} label="Loading requisition sections" />
+      </div>
+    );
   }
 
   const lifecycleTargets = REQ_TRANSITIONS[req.status];
@@ -277,55 +287,48 @@ export function RequisitionRecordPage() {
     pipelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const lifecycleNextStep = (target: RequisitionStatus, label: string) => {
-    if (canEdit && lifecycleTargets.includes(target)) {
-      const gated = target === 'open' && !allApproved;
-      return (
-        <button
-          type="button"
-          className="link-btn"
-          disabled={gated}
-          onClick={() => void changeStatus(target)}
-        >
-          {label}
-        </button>
-      );
-    }
-    return <span className="fo-next-step-disabled">{label}</span>;
-  };
+  const primaryTarget = REQ_PRIMARY_ACTION[req.status];
+  const primaryGated = primaryTarget === 'open' && !allApproved;
+  const overflowItems: ActionMenuItem[] = [
+    ...lifecycleTargets
+      .filter((target) => target !== primaryTarget)
+      .map((target) => {
+        const gated = target === 'open' && !allApproved;
+        const item: ActionMenuItem = {
+          label: REQ_ACTION_LABELS[target],
+          destructive: target === 'closed',
+          disabled: gated,
+          onSelect: () => void changeStatus(target),
+        };
+        if (gated) item.title = 'Waiting on requisition approver decisions';
+        return item;
+      }),
+    {
+      label: req.is_published ? 'Unpublish' : 'Publish to careers page',
+      onSelect: () => void togglePublish(),
+    },
+  ];
 
   const actionBarContent = canEdit ? (
     <>
+      {primaryTarget !== undefined && lifecycleTargets.includes(primaryTarget) && (
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={primaryGated}
+          title={primaryGated ? 'Waiting on requisition approver decisions' : undefined}
+          onClick={() => void changeStatus(primaryTarget)}
+        >
+          {REQ_ACTION_LABELS[primaryTarget]}
+        </Button>
+      )}
       <Button size="sm" onClick={() => navigate(`/recruit/requisitions/${req.id}/edit`)}>
         Edit
       </Button>
       <Button size="sm" variant="secondary" onClick={() => window.print()}>
         Printable View
       </Button>
-      {lifecycleTargets.map((target) => {
-        const openGated = target === 'open' && !allApproved;
-        return (
-          <Button
-            key={target}
-            size="sm"
-            variant={
-              target === 'closed'
-                ? 'danger'
-                : target === REQ_PRIMARY_ACTION[req.status]
-                  ? 'primary'
-                  : 'secondary'
-            }
-            disabled={openGated}
-            title={openGated ? 'Waiting on requisition approver decisions' : undefined}
-            onClick={() => void changeStatus(target)}
-          >
-            {REQ_ACTION_LABELS[target]}
-          </Button>
-        );
-      })}
-      <Button size="sm" onClick={() => void togglePublish()}>
-        {req.is_published ? 'Unpublish' : 'Publish to careers page'}
-      </Button>
+      <ActionMenu label="More actions" items={overflowItems} iconOnly />
     </>
   ) : (
     <span className="text-secondary">Read-only</span>
@@ -336,19 +339,12 @@ export function RequisitionRecordPage() {
       code={req.display_code}
       title={req.title}
       icon={<BriefcaseIcon size={32} />}
+      backTo={<BackToList fallback="/recruit/requisitions" />}
       titleExtras={
         <>
           <StatusBadge status={req.status} />
           {req.is_published && <Badge tone="primary">Published</Badge>}
           {req.is_test && <Badge tone="outline">Test record</Badge>}
-          <button
-            type="button"
-            className="link-btn fo-back-to-list"
-            onClick={backToList}
-          >
-            <CircleArrowUp size={20} aria-hidden="true" />
-            Back To List
-          </button>
         </>
       }
       actionBar={actionBarContent}
@@ -367,20 +363,25 @@ export function RequisitionRecordPage() {
         ) : (
           <span className="fo-next-step-disabled">Add new candidate</span>
         )}
-        {lifecycleNextStep('filled', 'Filled')}
-        {lifecycleNextStep('on_hold', 'Place on hold')}
-        {lifecycleNextStep('closed', 'Close')}
       </div>
 
       <RecordSection title="Requisition Owner(s):">
-        <div className="chip-row">
-          {owners.length === 0 && <span className="text-secondary">No owners.</span>}
-          {owners.map((o) => (
-            <span key={o.staff_id} className="chip">
-              {staffName.get(o.staff_id) ?? o.staff_id}
-            </span>
-          ))}
-        </div>
+        {owners.length === 0 ? (
+          <EmptyState
+            compact
+            icon={<UserRoundIcon size={32} />}
+            title="No owner assigned"
+            hint="Use Edit to give this requisition an owner."
+          />
+        ) : (
+          <div className="chip-row">
+            {owners.map((o) => (
+              <span key={o.staff_id} className="chip">
+                {staffName.get(o.staff_id) ?? o.staff_id}
+              </span>
+            ))}
+          </div>
+        )}
       </RecordSection>
 
       <RecordSection title="Requisition Information:">
@@ -417,7 +418,14 @@ export function RequisitionRecordPage() {
 
       <RecordSection title="Description:">
         {req.description ? (
-          <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{req.description}</p>
+          looksLikeHtml(req.description) ? (
+            <div
+              className="fo-rich-text"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(req.description) }}
+            />
+          ) : (
+            <p className="fo-plain-text">{req.description}</p>
+          )
         ) : (
           <p className="text-secondary">No description provided.</p>
         )}

@@ -1,6 +1,6 @@
 import { Suspense, lazy, type ReactNode } from 'react';
 import { LoadingPane } from './components/ui/LoadingPane';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
 import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './auth/LoginPage';
@@ -39,6 +39,16 @@ function Lazy({ children }: { children: ReactNode }) {
   );
 }
 
+const SHORT_PATHS: [string, string][] = [
+  ['requisitions', '/recruit/requisitions'],
+  ['candidates', '/recruit/candidates'],
+  ['deals', '/sales/deals'],
+  ['contacts', '/sales/contacts'],
+  ['companies', '/sales/companies'],
+  ['accounts', '/sales/companies'],
+  ['tickets', '/sales/tickets'],
+];
+
 export default function App() {
   return (
     <SessionProvider>
@@ -65,6 +75,9 @@ export default function App() {
                   </RequireAuth>
                 }
               />
+              {SHORT_PATHS.map(([short, full]) => (
+                <Route key={short} path={short} element={<Navigate to={full} replace />} />
+              ))}
               <Route
                 path="recruit/*"
                 element={

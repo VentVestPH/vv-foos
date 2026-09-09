@@ -4,12 +4,13 @@ interface EmptyStateProps {
   icon: ReactNode;
   title: string;
   hint?: string;
+  compact?: boolean;
   children?: ReactNode;
 }
 
-export function EmptyState({ icon, title, hint, children }: EmptyStateProps) {
+export function EmptyState({ icon, title, hint, compact = false, children }: EmptyStateProps) {
   return (
-    <div className="fo-empty-state">
+    <div className="fo-empty-state" data-compact={compact ? 'true' : undefined}>
       <span className="fo-empty-state-icon" aria-hidden="true">
         {icon}
       </span>

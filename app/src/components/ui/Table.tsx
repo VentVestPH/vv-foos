@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { EMPTY_CELL } from '../../lib/format';
 
 export interface TableColumn<T> {
@@ -13,6 +14,7 @@ export interface TableColumn<T> {
 
   capped?: boolean;
   width?: string;
+  nowrap?: boolean;
 
   hideWhenEmpty?: boolean;
 }
@@ -263,11 +265,14 @@ export function Table<T>({
                     onClick={() => toggleSort(col.key)}
                   >
                     {col.header}
-                    {sortKey === col.key && (
-                      <span className="sort-arrow">
-                        {sortDir === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
+                    <span
+                      className="sort-arrow"
+                      data-active={sortKey === col.key ? 'true' : 'false'}
+                      data-dir={sortKey === col.key ? sortDir : 'desc'}
+                      aria-hidden="true"
+                    >
+                      <ChevronDown size={20} />
+                    </span>
                   </button>
                 ) : (
                   col.header
@@ -318,7 +323,7 @@ export function Table<T>({
                 {visibleColumns.map((col) => {
                   const raw = (row as Record<string, unknown>)[col.key];
                   return (
-                    <td key={col.key}>
+                    <td key={col.key} className={col.nowrap ? 'cell-nowrap' : undefined}>
                       {col.render ? (
                         col.render(row)
                       ) : col.capped ? (

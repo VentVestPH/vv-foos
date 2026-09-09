@@ -17,6 +17,8 @@ import { supabase } from '../../../lib/supabase';
 import { errMsg, fmtDate, fmtDateTime } from '../lib';
 import {
   attachmentRejection,
+  fileTypeLabel,
+  formatBytes,
   isPendingFile,
   PENDING_FILE_LABEL,
   PENDING_FILE_REASON,
@@ -197,6 +199,18 @@ async function uploadAttachment(
     uploaded_by: uploadedBy,
   });
   return ins.error ? ins.error.message : null;
+}
+
+export async function deleteAttachment(a: Attachment): Promise<string | null> {
+  if (!isPendingFile(a.storage_path)) {
+    const rm = await supabase.storage.from('attachments').remove([a.storage_path]);
+    if (rm.error) return rm.error.message;
+    if ((rm.data ?? []).length === 0) {
+      return 'The stored file could not be removed, so the record was kept.';
+    }
+  }
+  const del = await supabase.from('attachments').delete().eq('id', a.id);
+  return del.error ? del.error.message : null;
 }
 
 export async function attachmentUrl(storagePath: string): Promise<string | null> {
@@ -499,15 +513,40 @@ export function AttachmentsPanel({
   const [kind, setKind] = useState<AttachmentKind>(fixedKind ?? 'other');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [staged, setStaged] = useState<File | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const upload = async (file: File) => {
-    setBusy(true);
-    const err = await uploadAttachment(parent, file, fixedKind ?? kind, staff?.id ?? null);
-    setError(err);
-    if (!err) await onChanged();
-    setBusy(false);
+  const clearStaged = () => {
+    setStaged(null);
+    setError(null);
     if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const stage = (file: File) => {
+    const rejection = attachmentRejection(file);
+    setError(rejection);
+    setStaged(rejection ? null : file);
+  };
+
+  const commit = async () => {
+    if (!staged) return;
+    setBusy(true);
+    const err = await uploadAttachment(parent, staged, fixedKind ?? kind, staff?.id ?? null);
+    setError(err);
+    setBusy(false);
+    if (!err) {
+      clearStaged();
+      await onChanged();
+    }
+  };
+
+  const remove = async (a: Attachment) => {
+    setRemoving(a.id);
+    const err = await deleteAttachment(a);
+    setError(err);
+    setRemoving(null);
+    if (!err) await onChanged();
   };
 
   const open = async (a: Attachment) => {
@@ -542,8 +581,29 @@ export function AttachmentsPanel({
             label={fixedKind === 'resume' ? 'Upload resume' : 'Upload file'}
             buttonLabel={fixedKind === 'resume' ? 'Choose a resume' : 'Choose a file'}
             disabled={busy}
-            onFile={(file) => void upload(file)}
+            onFile={stage}
           />
+          {staged && (
+            <div className="fo-staged-file">
+              <span className="fo-staged-file-name">
+                {fileTypeLabel(staged.name) && (
+                  <Badge tone="neutral">{fileTypeLabel(staged.name)}</Badge>
+                )}
+                {staged.name}
+              </span>
+              {formatBytes(staged.size) && (
+                <span className="text-secondary">{formatBytes(staged.size)}</span>
+              )}
+              <span className="fo-staged-file-actions">
+                <Button size="sm" variant="primary" disabled={busy} onClick={() => void commit()}>
+                  {busy ? 'Uploading…' : 'Upload'}
+                </Button>
+                <Button size="sm" variant="ghost" disabled={busy} onClick={clearStaged}>
+                  Cancel
+                </Button>
+              </span>
+            </div>
+          )}
           {busy && (
             <span className="text-secondary">
               <Spinner label="Uploading" /> Uploading…
@@ -557,31 +617,50 @@ export function AttachmentsPanel({
           {fixedKind === 'resume' ? 'No resumes yet.' : 'No files yet.'}
         </p>
       )}
-      {items.map((a) => (
-        <div key={a.id} className="panel-item">
-          <div className="panel-item-head">
-            {isPendingFile(a.storage_path) ? (
-              <span className="file-pending-name" title={PENDING_FILE_REASON}>
-                {attachmentName(a)}
+      {items.map((a) => {
+        const name = attachmentName(a);
+        const type = fileTypeLabel(name);
+        const size = formatBytes(a.file_size_bytes);
+        return (
+          <div key={a.id} className="panel-item">
+            <div className="panel-item-head">
+              {isPendingFile(a.storage_path) ? (
+                <span className="file-pending-name" title={PENDING_FILE_REASON}>
+                  {name}
+                </span>
+              ) : (
+                <button type="button" className="link-btn" onClick={() => void open(a)}>
+                  {name}
+                </button>
+              )}
+              <span className="text-secondary">{fmtDate(a.uploaded_at)}</span>
+            </div>
+            <div className="panel-item-head">
+              <span className="fo-attachment-tags">
+                {type && <Badge tone="neutral">{type}</Badge>}
+                {size && <span className="text-secondary">{size}</span>}
+                {a.kind !== 'other' && <Badge tone="outline">{a.kind}</Badge>}
+                {isPendingFile(a.storage_path) && (
+                  <Badge tone="warning">{PENDING_FILE_LABEL}</Badge>
+                )}
+                {fixedKind === 'resume' && newest && a.id === newest.id && (
+                  <Badge tone="success">Current</Badge>
+                )}
               </span>
-            ) : (
-              <button type="button" className="link-btn" onClick={() => void open(a)}>
-                {attachmentName(a)}
-              </button>
-            )}
-            <span className="text-secondary">{fmtDate(a.uploaded_at)}</span>
+              {allowUpload && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={removing === a.id}
+                  onClick={() => void remove(a)}
+                >
+                  {removing === a.id ? 'Removing…' : 'Remove'}
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="panel-item-head">
-            <Badge tone="neutral">{a.kind}</Badge>
-            {isPendingFile(a.storage_path) && (
-              <Badge tone="warning">{PENDING_FILE_LABEL}</Badge>
-            )}
-            {fixedKind === 'resume' && newest && a.id === newest.id && (
-              <Badge tone="success">Current</Badge>
-            )}
-          </div>
-        </div>
-      ))}
+        );
+      })}
       {preview && newest && <ResumePreview attachment={newest} />}
     </div>
   );

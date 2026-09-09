@@ -6,7 +6,7 @@ test('K17: the intake queue honours a channel in the URL, so a bar can link to i
 }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, '/intake?channel=linkedin_url');
-  const toggle = page.getByRole('button', { name: /Search these records|Hide search options/ });
+  const toggle = page.getByRole('button', { name: 'Advanced Search' });
   await expect(toggle).toBeVisible({ timeout: 25000 });
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
   const picker = page.getByRole('combobox', { name: /channel/i }).first();

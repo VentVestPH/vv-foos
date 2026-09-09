@@ -1,12 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 
 const SETTLE_MS = 200;
@@ -48,13 +50,10 @@ function Card({
   grabbed: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, cardId: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({ id: card.id });
-  const style = transform
-    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
-    : undefined;
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id });
+  const style = undefined;
   const className = ['kanban-card'];
-  if (isDragging) className.push('dragging');
+  if (isDragging) className.push('is-placeholder');
   if (settling) className.push('settling');
   if (grabbed) className.push('grabbed');
   return (
@@ -129,6 +128,7 @@ export function KanbanBoard({
   );
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [grabbedId, setGrabbedId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
 
   const stageOf = (cardId: string) => cards.find((c) => c.id === cardId)?.stage ?? null;
@@ -186,8 +186,13 @@ export function KanbanBoard({
     return () => clearTimeout(timer);
   }, [settlingId]);
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggingId(String(event.active.id));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setDraggingId(null);
     if (!over) return;
     const card = cards.find((c) => c.id === String(active.id));
     const toStage = String(over.id);
@@ -198,7 +203,12 @@ export function KanbanBoard({
   };
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setDraggingId(null)}
+    >
       <p id="kanban-keyboard-help" className="visually-hidden">
         Press space or enter to grab a card, then the left and right arrow keys to move it
         between columns, space to drop it, or escape to cancel.
@@ -210,7 +220,6 @@ export function KanbanBoard({
         className="kanban"
         role="group"
         aria-label="Stage board, scrollable"
-        tabIndex={0}
       >
         {stages.map((stage) => (
           <Column
@@ -224,6 +233,13 @@ export function KanbanBoard({
           />
         ))}
       </div>
+      <DragOverlay dropAnimation={null}>
+        {draggingId !== null && (
+          <div className="kanban-card is-dragging">
+            {cards.find((c) => c.id === draggingId)?.content}
+          </div>
+        )}
+      </DragOverlay>
     </DndContext>
   );
 }

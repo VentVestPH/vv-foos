@@ -9,6 +9,8 @@ const PAIRS = [
   ['section band body text', '--fo-text', '--fo-section', 4.5],
   ['nested band body text', '--fo-text', '--fo-nested-section', 4.5],
   ['count badge text', '--fo-text', '--fo-count', 4.5],
+  ['ok status text', '--fo-status-ok-text', '--fo-surface', 4.5],
+  ['ok status border', '--fo-status-ok-text', '--fo-surface', 3],
   ['link on surface', '--fo-link', '--fo-surface', 4.5],
   ['save button label', '#ffffff', '--fo-primary', 4.5],
   ['logout label', '#ffffff', '--fo-logout', 4.5],

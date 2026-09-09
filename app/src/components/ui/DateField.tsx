@@ -1,7 +1,14 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type RefObject,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { CalendarDays, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import {
   DATE_FORMAT_HINT,
@@ -34,6 +41,46 @@ interface DateFieldProps {
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const PICKER_GAP = 4;
+const YEAR_PAGE = 12;
+
+function yearPageStart(year: number): number {
+  return year - ((year % YEAR_PAGE) + YEAR_PAGE) % YEAR_PAGE;
+}
+
+interface PickerPlacement {
+  left: number;
+  top: number;
+}
+
+function placeNear(rect: DOMRect, panel: DOMRect | null): PickerPlacement {
+  const width = panel?.width ?? 280;
+  const height = panel?.height ?? 320;
+  const below = window.innerHeight - rect.bottom - PICKER_GAP - 8;
+  const useAbove = below < height && rect.top - PICKER_GAP - 8 > below;
+  return {
+    left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+    top: useAbove
+      ? Math.max(8, rect.top - PICKER_GAP - height)
+      : rect.bottom + PICKER_GAP,
+  };
+}
+
 function outOfRange(parts: DateParts, min?: string, max?: string): boolean {
   const v = formatDateValue(parts);
   if (min !== undefined && min !== '' && v < min) return true;
@@ -63,6 +110,7 @@ interface CalendarDialogProps {
   onCursor: (parts: DateParts) => void;
   onChoose: (parts: DateParts) => void;
   onDismiss: () => void;
+  anchor: RefObject<HTMLButtonElement | null>;
 }
 
 function CalendarDialog({
@@ -74,14 +122,45 @@ function CalendarDialog({
   onCursor,
   onChoose,
   onDismiss,
+  anchor,
 }: CalendarDialogProps) {
   const panelRef = useFocusTrap<HTMLDivElement>(true);
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const [placement, setPlacement] = useState<PickerPlacement | null>(null);
+  const [view, setView] = useState<'day' | 'month' | 'year'>('day');
 
   useEffect(() => {
+    const reposition = () => {
+      const rect = anchor.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPlacement(placeNear(rect, panelRef.current?.getBoundingClientRect() ?? null));
+    };
+    reposition();
+    window.addEventListener('resize', reposition);
+    document.addEventListener('scroll', reposition, true);
+    return () => {
+      window.removeEventListener('resize', reposition);
+      document.removeEventListener('scroll', reposition, true);
+    };
+  }, [anchor, panelRef]);
+
+  useEffect(() => {
+    const onPointerDown = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (panelRef.current?.contains(target) === true) return;
+      if (anchor.current?.contains(target) === true) return;
+      onDismiss();
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
+  }, [anchor, onDismiss, panelRef]);
+
+  useEffect(() => {
+    if (view !== 'day') return;
     const day = gridRef.current?.querySelector<HTMLElement>('[tabindex="0"]');
     day?.focus();
-  }, [cursor.year, cursor.month, cursor.day]);
+  }, [cursor.year, cursor.month, cursor.day, view]);
 
   const weekday = new Date(cursor.year, cursor.month, cursor.day).getDay();
 
@@ -109,7 +188,7 @@ function CalendarDialog({
   const cells: (DateParts | null)[] = [];
   for (let i = 0; i < lead; i += 1) cells.push(null);
   for (let d = 1; d <= total; d += 1) cells.push({ year: cursor.year, month: cursor.month, day: d });
-  while (cells.length % 7 !== 0) cells.push(null);
+  while (cells.length < 42) cells.push(null);
 
   const weeks: (DateParts | null)[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
@@ -124,6 +203,11 @@ function CalendarDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        style={
+          placement === null
+            ? { visibility: 'hidden' }
+            : { left: `${placement.left}px`, top: `${placement.top}px` }
+        }
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault();
@@ -135,39 +219,82 @@ function CalendarDialog({
           <button
             type="button"
             className="date-nav-btn"
-            aria-label="Previous year"
-            onClick={() => onCursor(shiftMonth(cursor, -12))}
-          >
-            <ChevronsLeft size={20} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="date-nav-btn"
-            aria-label="Previous month"
-            onClick={() => onCursor(shiftMonth(cursor, -1))}
+            aria-label={view === 'day' ? 'Previous month' : 'Previous years'}
+            onClick={() =>
+              view === 'day'
+                ? onCursor(shiftMonth(cursor, -1))
+                : onCursor({ ...cursor, year: cursor.year - (view === 'month' ? 1 : YEAR_PAGE) })
+            }
           >
             <ChevronLeft size={20} aria-hidden="true" />
           </button>
-          <h2 className="date-dialog-title" id={titleId} aria-live="polite">
-            {monthTitle(cursor.year, cursor.month)}
-          </h2>
+          <button
+            type="button"
+            className="date-dialog-scope"
+            aria-label={`Choose ${view === 'day' ? 'a month' : view === 'month' ? 'a year' : 'a month'}`}
+            onClick={() => setView(view === 'day' ? 'month' : view === 'month' ? 'year' : 'day')}
+          >
+            {view === 'year'
+              ? `${yearPageStart(cursor.year)}\u2013${yearPageStart(cursor.year) + YEAR_PAGE - 1}`
+              : view === 'month'
+                ? String(cursor.year)
+                : monthTitle(cursor.year, cursor.month)}
+          </button>
           <button
             type="button"
             className="date-nav-btn"
-            aria-label="Next month"
-            onClick={() => onCursor(shiftMonth(cursor, 1))}
+            aria-label={view === 'day' ? 'Next month' : 'Next years'}
+            onClick={() =>
+              view === 'day'
+                ? onCursor(shiftMonth(cursor, 1))
+                : onCursor({ ...cursor, year: cursor.year + (view === 'month' ? 1 : YEAR_PAGE) })
+            }
           >
             <ChevronRight size={20} aria-hidden="true" />
           </button>
-          <button
-            type="button"
-            className="date-nav-btn"
-            aria-label="Next year"
-            onClick={() => onCursor(shiftMonth(cursor, 12))}
-          >
-            <ChevronsRight size={20} aria-hidden="true" />
-          </button>
+          <h2 className="visually-hidden" id={titleId} aria-live="polite">
+            {monthTitle(cursor.year, cursor.month)}
+          </h2>
         </div>
+        {view === 'month' && (
+          <div className="date-pick-grid" role="group" aria-label="Month">
+            {MONTH_NAMES.map((name, index) => (
+              <button
+                key={name}
+                type="button"
+                className="date-pick-cell"
+                aria-pressed={cursor.month === index + 1}
+                onClick={() => {
+                  onCursor({ ...cursor, month: index + 1, day: 1 });
+                  setView('day');
+                }}
+              >
+                {name.slice(0, 3)}
+              </button>
+            ))}
+          </div>
+        )}
+        {view === 'year' && (
+          <div className="date-pick-grid" role="group" aria-label="Year">
+            {Array.from({ length: YEAR_PAGE }, (_, i) => yearPageStart(cursor.year) + i).map(
+              (year) => (
+                <button
+                  key={year}
+                  type="button"
+                  className="date-pick-cell"
+                  aria-pressed={cursor.year === year}
+                  onClick={() => {
+                    onCursor({ ...cursor, year, day: 1 });
+                    setView('month');
+                  }}
+                >
+                  {year}
+                </button>
+              ),
+            )}
+          </div>
+        )}
+        {view === 'day' && (
         <div className="date-grid" role="grid" ref={gridRef} onKeyDown={onGridKeyDown}>
           <div className="date-grid-row" role="row">
             {WEEKDAYS.map((w) => (
@@ -204,6 +331,7 @@ function CalendarDialog({
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   );
@@ -369,6 +497,7 @@ export function DateField({
             onCursor={setCursor}
             onChoose={choose}
             onDismiss={dismiss}
+            anchor={triggerRef}
           />,
           document.body,
         )}

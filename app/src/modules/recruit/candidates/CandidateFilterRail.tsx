@@ -1,5 +1,5 @@
 import { Button } from '../../../components/ui/Button';
-import { RecordSection } from '../../../components/ui/RecordPage';
+import { FilterFoot, FilterGroup } from '../../../components/ui/FilterGroup';
 import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import type { Lookups } from '../hooks';
@@ -16,7 +16,6 @@ export interface CandidateFilterRailProps {
   lookups: Lookups;
   filters: CandFilters;
   setFilters: (next: CandFilters) => void;
-  sort: SortState | null;
   setSort: (next: SortState | null) => void;
   visibleCols: (keyof CandRow & string)[];
   setVisibleCols: (next: (keyof CandRow & string)[]) => void;
@@ -26,14 +25,13 @@ export function CandidateFilterRail({
   lookups,
   filters,
   setFilters,
-  sort,
   setSort,
   visibleCols,
   setVisibleCols,
 }: CandidateFilterRailProps) {
   return (
-    <RecordSection title="Advanced Search">
       <div className="fo-advanced-search-body">
+      <FilterGroup label="Filter" defaultOpen>
       <Select
         label="Status"
         placeholder="All statuses"
@@ -68,42 +66,21 @@ export function CandidateFilterRail({
         value={filters.sourcerId}
         onChange={(e) => setFilters({ ...filters, sourcerId: e.target.value })}
       />
+      </FilterGroup>
+      <FilterGroup label="Initial date">
       <DateField
-        label="Initial date from"
+        label="From"
         value={filters.dateFrom}
         onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
       />
       <DateField
-        label="Initial date to"
+        label="To"
         value={filters.dateTo}
         onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
       />
-      <Select
-        label="Sort by"
-        placeholder="Default order"
-        options={COLUMN_DEFS.map((c) => ({ value: c.key, label: c.header }))}
-        value={sort?.key ?? ''}
-        onChange={(e) =>
-          setSort(
-            e.target.value
-              ? { key: e.target.value, dir: sort?.dir ?? 'asc' }
-              : null,
-          )
-        }
-      />
-      {sort && (
-        <Select
-          label="Direction"
-          options={[
-            { value: 'asc', label: 'Ascending' },
-            { value: 'desc', label: 'Descending' },
-          ]}
-          value={sort.dir}
-          onChange={(e) => setSort({ ...sort, dir: e.target.value as 'asc' | 'desc' })}
-        />
-      )}
+      </FilterGroup>
+      <FilterGroup label={`Columns (${visibleCols.length} of ${ALL_COLUMN_KEYS.length})`}>
       <div className="field">
-        <span className="field-label">Columns</span>
         <div className="checkbox-list">
           {COLUMN_DEFS.map((c) => (
             <label key={c.key} className="checkline">
@@ -123,18 +100,20 @@ export function CandidateFilterRail({
           ))}
         </div>
       </div>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => {
-          setFilters(EMPTY_FILTERS);
-          setSort(null);
-          setVisibleCols(ALL_COLUMN_KEYS);
-        }}
-      >
-        Clear filters
-      </Button>
+      </FilterGroup>
+      <FilterFoot>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setFilters(EMPTY_FILTERS);
+            setSort(null);
+            setVisibleCols(ALL_COLUMN_KEYS);
+          }}
+        >
+          Clear filters
+        </Button>
+      </FilterFoot>
       </div>
-    </RecordSection>
   );
 }

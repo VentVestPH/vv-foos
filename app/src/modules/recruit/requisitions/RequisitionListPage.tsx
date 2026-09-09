@@ -7,12 +7,13 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
-import { StatusBadge } from '../../../components/ui/Badge';
+import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { UnviewedBadge } from '../../../components/ui/UnviewedBadge';
 import { ListPage } from '../../../components/ui/ListPage';
-import { RecordSection } from '../../../components/ui/RecordPage';
+import { FilterFoot, FilterGroup } from '../../../components/ui/FilterGroup';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
+import { Skeleton } from '../../../components/ui/Skeleton';
 import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
 import type { Database, RequisitionStatus } from '../../../lib/database.types';
 import { realtimeChannel } from '../../../lib/realtimeChannel';
@@ -25,6 +26,7 @@ type RequisitionListRow = Omit<
   'search_text'
 >;
 import { REQ_ACTION_LABELS, REQ_TRANSITIONS, type SortState, errMsg, fmtDate } from '../lib';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { useIsMobile, useLookups } from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 
@@ -56,6 +58,7 @@ const REQ_VIEW_COLUMNS =
 const REQ_SORT_COLUMNS: Record<string, string> = {
   job_code: 'job_code',
   display_code: 'display_code',
+  owners: 'owner_names',
   title: 'title',
   company: 'company_name',
   location: 'location',
@@ -100,7 +103,7 @@ const COLUMN_DEFS: { key: keyof ReqRow & string; header: string }[] = [
   { key: 'updated_at', header: 'Last updated' },
   { key: 'location', header: 'Location' },
   { key: 'status', header: 'Status' },
-  { key: 'owners', header: 'Requisition Owners' },
+  { key: 'owners', header: 'Owners' },
   { key: 'unviewed', header: 'Next Steps' },
   { key: 'company', header: 'Company' },
   { key: 'num_openings', header: 'Openings' },
@@ -267,6 +270,8 @@ export function RequisitionListPage() {
     [reqs],
   );
 
+  const showSkeleton = useMinimumVisible(loading && reqs.length === 0);
+
   const pageCount = Math.max(1, Math.ceil(total / REQ_PAGE_SIZE));
   const pager = {
     page,
@@ -320,7 +325,7 @@ export function RequisitionListPage() {
   const columns = useMemo<TableColumn<ReqRow>[]>(() => {
     const defs: TableColumn<ReqRow>[] = [
       { key: 'job_code', header: COLUMN_HEADER.job_code, sortable: true },
-      { key: 'display_code', header: COLUMN_HEADER.display_code, sortable: true },
+      { key: 'display_code', header: COLUMN_HEADER.display_code, sortable: true, nowrap: true },
       {
         key: 'title',
         header: COLUMN_HEADER.title,
@@ -346,7 +351,7 @@ export function RequisitionListPage() {
         render: (r) => (
           <span className="fo-candidates-cell">
             <PersonIcon size={20} />
-            <span className="badge badge-success">{r.applications}</span>
+            <Badge tone="count">{r.applications}</Badge>
           </span>
         ),
       },
@@ -366,6 +371,7 @@ export function RequisitionListPage() {
       {
         key: 'owners',
         header: COLUMN_HEADER.owners,
+        sortable: true,
         render: (r) => <CappedCell text={r.owners} />,
       },
       {
@@ -423,27 +429,46 @@ export function RequisitionListPage() {
 
   const exportColumns = COLUMN_DEFS.filter((c) => visibleCols.includes(c.key));
 
+  const filtersDirty =
+    Object.values(filters).some((v) => v !== '') ||
+    sort !== null ||
+    visibleCols.length !== ALL_COLUMN_KEYS.length;
+
   const canCreate = (role === 'admin' || role === 'recruiter') && !mobile;
   const canBulk = (role === 'admin' || role === 'recruiter') && !mobile;
 
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState<string | null>(null);
 
-  const bulkTargets = useMemo<RequisitionStatus[]>(() => {
+  const changeSelection = useCallback((next: Set<string>) => {
+    setBulkNotice(null);
+    setSelected(next);
+  }, []);
+
+  const bulkTargets = useMemo(() => {
     const chosen = reqs.filter((r) => selected.has(r.id));
-    if (chosen.length === 0) return [];
-    let shared: RequisitionStatus[] | null = null;
+    const eligible = new Map<RequisitionStatus, number>();
     for (const r of chosen) {
-      const allowed = REQ_TRANSITIONS[r.status];
-      shared = shared === null ? [...allowed] : shared.filter((t) => allowed.includes(t));
+      for (const target of REQ_TRANSITIONS[r.status]) {
+        eligible.set(target, (eligible.get(target) ?? 0) + 1);
+      }
     }
-    return shared ?? [];
+    return REQUISITION_STATUSES.filter((s) => eligible.has(s)).map((s) => ({
+      value: s,
+      eligible: eligible.get(s) ?? 0,
+      of: chosen.length,
+    }));
   }, [reqs, selected]);
 
   const bulkChangeStatus = async (target: RequisitionStatus) => {
-    if (!target || selected.size === 0) return;
+    const ids = reqs
+      .filter((r) => selected.has(r.id) && REQ_TRANSITIONS[r.status].includes(target))
+      .map((r) => r.id);
+    if (ids.length === 0) return;
+    const attempted = selected.size;
     setBulkBusy(true);
     setError(null);
-    const ids = [...selected];
+    setBulkNotice(null);
     const { error: err } = await supabase
       .from('requisitions')
       .update({ status: target })
@@ -453,6 +478,13 @@ export function RequisitionListPage() {
       setError(`Could not change status: ${err.message}`);
       return;
     }
+    const label = target.replace(/_/g, ' ');
+    const skipped = attempted - ids.length;
+    setBulkNotice(
+      skipped === 0
+        ? `${ids.length} ${ids.length === 1 ? 'requisition' : 'requisitions'} set to ${label}.`
+        : `${ids.length} of ${attempted} set to ${label}. ${skipped} unchanged, because ${label} is not a legal next status from where they are.`,
+    );
     setSelected(new Set());
     void loadPage();
   };
@@ -462,6 +494,7 @@ export function RequisitionListPage() {
       title="Requisitions"
       icon={<BriefcaseIcon size={32} />}
       description="Requisitions are all of the job openings you want to track in Front Office OS and post on your careers website."
+      flush
       search={search}
       onSearchChange={setSearch}
       searchPlaceholder="Search code, title, company, location…"
@@ -482,144 +515,139 @@ export function RequisitionListPage() {
           </Button>
         ) : undefined
       }
+      bulkBarOpen={canBulk && selected.size > 0}
+      bulkBar={
+        canBulk ? (
+          <div className="record-action-bar fo-list-action-bar">
+            <Select
+              aria-label="Change status to"
+              placeholder="Change status to…"
+              placeholderSelectable={false}
+              value=""
+              disabled={selected.size === 0 || bulkBusy || bulkTargets.length === 0}
+              title={
+                bulkBusy
+                  ? 'Applying the change'
+                  : bulkTargets.length === 0
+                    ? 'Every selected requisition is closed, which has no next status'
+                    : undefined
+              }
+              options={bulkTargets.map((t) => ({
+                value: t.value,
+                label:
+                  t.eligible === t.of
+                    ? REQ_ACTION_LABELS[t.value]
+                    : `${REQ_ACTION_LABELS[t.value]} (${t.eligible} of ${t.of})`,
+              }))}
+              onChange={(e) => void bulkChangeStatus(e.target.value as RequisitionStatus)}
+            />
+            {selected.size > 0 && (
+              <span className="text-secondary fo-bulk-hint">
+                {bulkTargets.length === 0
+                  ? 'Every selected requisition is closed, which has no next status.'
+                  : `${selected.size} selected.`}
+              </span>
+            )}
+          </div>
+        ) : undefined
+      }
       exportRows={exportRequisitionRows}
       exportCount={total}
       exportColumns={exportColumns}
       exportFilename="requisitions.csv"
       filterRail={
-        <RecordSection title="Advanced Search">
           <div className="fo-advanced-search-body">
-            <Select
-              label="Status"
-              placeholder="All statuses"
-              options={REQUISITION_STATUSES.map((s) => ({
-                value: s,
-                label: s.replace(/_/g, ' '),
-              }))}
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            />
-            <Select
-              label="Company"
-              placeholder="All companies"
-              options={lookups.companies.map((c) => ({ value: c.id, label: c.name }))}
-              value={filters.companyId}
-              onChange={(e) => setFilters({ ...filters, companyId: e.target.value })}
-            />
-            <Select
-              label="Owner"
-              placeholder="All owners"
-              options={lookups.staff.map((s) => ({ value: s.id, label: s.full_name }))}
-              value={filters.ownerId}
-              onChange={(e) => setFilters({ ...filters, ownerId: e.target.value })}
-            />
-            <Input
-              label="Location"
-              value={filters.location}
-              onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-              placeholder="Contains…"
-            />
-            <DateField
-              label="Opened from"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-            />
-            <DateField
-              label="Opened to"
-              value={filters.dateTo}
-              onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-            />
-            <Select
-              label="Sort by"
-              placeholder="Default order"
-              options={COLUMN_DEFS.map((c) => ({ value: c.key, label: c.header }))}
-              value={sort?.key ?? ''}
-              onChange={(e) =>
-                setSort(
-                  e.target.value
-                    ? { key: e.target.value, dir: sort?.dir ?? 'asc' }
-                    : null,
-                )
-              }
-            />
-            {sort && (
+            <FilterGroup label="Filter" defaultOpen>
               <Select
-                label="Direction"
-                options={[
-                  { value: 'asc', label: 'Ascending' },
-                  { value: 'desc', label: 'Descending' },
-                ]}
-                value={sort.dir}
-                onChange={(e) => setSort({ ...sort, dir: e.target.value as 'asc' | 'desc' })}
+                label="Status"
+                placeholder="All statuses"
+                options={REQUISITION_STATUSES.map((s) => ({
+                  value: s,
+                  label: s.replace(/_/g, ' '),
+                }))}
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
               />
-            )}
-            <div className="field">
-              <span className="field-label">Columns</span>
-              <div className="checkbox-list">
-                {COLUMN_DEFS.map((c) => (
-                  <label key={c.key} className="checkline">
-                    <input
-                      type="checkbox"
-                      checked={visibleCols.includes(c.key)}
-                      onChange={(e) =>
-                        setVisibleCols(
-                          e.target.checked
-                            ? [...visibleCols, c.key]
-                            : visibleCols.filter((k) => k !== c.key),
-                        )
-                      }
-                    />
-                    {c.header}
-                  </label>
-                ))}
+              <Select
+                label="Company"
+                placeholder="All companies"
+                options={lookups.companies.map((c) => ({ value: c.id, label: c.name }))}
+                value={filters.companyId}
+                onChange={(e) => setFilters({ ...filters, companyId: e.target.value })}
+              />
+              <Select
+                label="Owner"
+                placeholder="All owners"
+                options={lookups.staff.map((s) => ({ value: s.id, label: s.full_name }))}
+                value={filters.ownerId}
+                onChange={(e) => setFilters({ ...filters, ownerId: e.target.value })}
+              />
+              <Input
+                label="Location"
+                value={filters.location}
+                onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                placeholder="Contains…"
+              />
+            </FilterGroup>
+            <FilterGroup label="Opened">
+              <DateField
+                label="From"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+              />
+              <DateField
+                label="To"
+                value={filters.dateTo}
+                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+              />
+            </FilterGroup>
+            <FilterGroup label={`Columns (${visibleCols.length} of ${ALL_COLUMN_KEYS.length})`}>
+              <div className="field">
+                <div className="checkbox-list">
+                  {COLUMN_DEFS.map((c) => (
+                    <label key={c.key} className="checkline">
+                      <input
+                        type="checkbox"
+                        checked={visibleCols.includes(c.key)}
+                        onChange={(e) =>
+                          setVisibleCols(
+                            e.target.checked
+                              ? [...visibleCols, c.key]
+                              : visibleCols.filter((k) => k !== c.key),
+                          )
+                        }
+                      />
+                      {c.header}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setFilters(EMPTY_FILTERS);
-                setSort(null);
-                setVisibleCols(ALL_COLUMN_KEYS);
-              }}
-            >
-              Clear filters
-            </Button>
+            </FilterGroup>
+            <FilterFoot>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!filtersDirty}
+                onClick={() => {
+                  setFilters(EMPTY_FILTERS);
+                  setSort(null);
+                  setVisibleCols(ALL_COLUMN_KEYS);
+                }}
+              >
+                Clear filters
+              </Button>
+            </FilterFoot>
           </div>
-        </RecordSection>
       }
     >
       {(error || savedViews.error) && (
         <p className="form-error" role="alert">{error ?? savedViews.error}</p>
       )}
 
-      {canBulk && (
-        <div className="record-action-bar fo-list-action-bar">
-          <Select
-            aria-label="Change status to"
-            placeholder="Change status to…"
-            value=""
-            disabled={selected.size === 0 || bulkBusy}
-            title={
-              bulkBusy
-                ? 'Applying the change'
-                : selected.size === 0
-                  ? 'Select requisitions first'
-                  : bulkTargets.length === 0
-                    ? 'The selected requisitions share no legal next status'
-                    : undefined
-            }
-            options={bulkTargets.map((t) => ({ value: t, label: REQ_ACTION_LABELS[t] }))}
-            onChange={(e) => void bulkChangeStatus(e.target.value as RequisitionStatus)}
-          />
-          <span className="text-secondary fo-bulk-hint">
-            {selected.size === 0
-              ? 'Select requisitions to change their status.'
-              : bulkTargets.length === 0
-                ? 'The selected requisitions share no legal next status.'
-                : `${selected.size} selected.`}
-          </span>
-        </div>
+      {bulkNotice && (
+        <p className="text-secondary fo-bulk-notice" role="status">
+          {bulkNotice}
+        </p>
       )}
 
       <Pager
@@ -631,6 +659,9 @@ export function RequisitionListPage() {
         onPage={pager.setPage}
       />
 
+      {showSkeleton ? (
+        <Skeleton variant="grid" rows={8} columns={6} label="Loading requisitions" />
+      ) : (
       <Table
         columns={columns}
         rows={pager.pageRows}
@@ -641,10 +672,11 @@ export function RequisitionListPage() {
         onSortChange={(key, dir) => setSort({ key, dir })}
         selectable={canBulk}
         selected={selected}
-        onSelectionChange={setSelected}
+        onSelectionChange={changeSelection}
         onRowClick={(r) => openRecord(`/recruit/requisitions/${r.id}`)}
         emptyText="No requisitions match."
       />
+      )}
 
       <Pager
         from={pager.from}

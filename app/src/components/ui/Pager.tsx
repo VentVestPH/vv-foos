@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -60,7 +66,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
             aria-label="First page"
             title={atStart ? 'You are on the first page' : 'First page'}
           >
-            &laquo;
+            <ChevronsLeft size={24} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -69,7 +75,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
             aria-label="Previous page"
             title={atStart ? 'You are on the first page' : 'Previous page'}
           >
-            &lsaquo;
+            <ChevronLeft size={24} aria-hidden="true" />
           </button>
         </span>
       )}
@@ -83,7 +89,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
             aria-label="Next page"
             title={atEnd ? 'You are on the last page' : 'Next page'}
           >
-            &rsaquo;
+            <ChevronRight size={24} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -98,7 +104,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
                   : 'Last page'
             }
           >
-            &raquo;
+            <ChevronsRight size={24} aria-hidden="true" />
           </button>
           <span className="fo-pager-pos" aria-live="polite">
             {page + 1} / {totalPending === true ? '?' : pageCount}

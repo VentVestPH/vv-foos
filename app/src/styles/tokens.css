@@ -30,6 +30,7 @@
 
   --fo-status-warn-bg: #fff7ed;
   --fo-status-warn-text: #a05a00;
+  --fo-status-ok-text: #2e7d32;
   --fo-status-ok-bg: #ecfdf5;
   --fo-status-danger-bg: #fef2f2;
   --fo-muted: #999999;
@@ -80,6 +81,7 @@
   --surface-fade: var(--fo-surface-fade);
   --status-warn-bg: var(--fo-status-warn-bg);
   --status-warn-text: var(--fo-status-warn-text);
+  --status-ok-text: var(--fo-status-ok-text);
   --status-ok-bg: var(--fo-status-ok-bg);
   --status-danger-bg: var(--fo-status-danger-bg);
   --muted: var(--fo-muted);
@@ -102,8 +104,9 @@
   --field-h: 32px;
   --section-pad: 24px;
   --shell-content-pad: 24px;
+  --shell-sidebar-gutter: 15px;
   --field-gap: 16px;
-  --field-label-gap: 4px;
+  --field-label-gap: 8px;
 
   --sp-1: 8px;
   --sp-2: 16px;

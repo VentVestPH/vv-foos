@@ -5,6 +5,7 @@ import {
   IdCard as IdBadgeIcon,
   Lock as LockIcon,
 } from 'lucide-react';
+import { SearchField } from '../components/ui/SearchField';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
 import { PlaceholderAction } from '../shell/Placeholder';
@@ -185,16 +186,15 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
       </div>
 
       {module !== 'onboard' && (
-        <div className="fo-search-row">
-          <span className="fo-search-label">Search:</span>
-          <input
-            type="text"
-            aria-label={`Search ${config.title}`}
-            title="Searching is not available yet"
-            disabled
-          />
-          <PlaceholderAction label="Search" size="sm" className="fo-go-btn" />
-        </div>
+        <SearchField
+          className="list-page-search"
+          type="search"
+          value=""
+          onValueChange={() => undefined}
+          ariaLabel={`Search ${config.title}`}
+          placeholder="Searching is not available yet"
+          disabled
+        />
       )}
 
       <div className="list-page-toolbar">

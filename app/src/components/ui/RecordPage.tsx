@@ -11,6 +11,8 @@ interface RecordPageProps {
 
   titleExtras?: ReactNode;
 
+  backTo?: ReactNode;
+
   actionBar?: ReactNode;
   children: ReactNode;
 }
@@ -20,6 +22,7 @@ export function RecordPage({
   title,
   icon,
   titleExtras,
+  backTo,
   actionBar,
   children,
 }: RecordPageProps) {
@@ -28,17 +31,30 @@ export function RecordPage({
   return (
     <div className="record-page">
       <div className="fo-page-head">
-        <div className="record-title-row">
+        {(backTo || code) && (
+          <div className="record-breadcrumb">
+            {backTo}
+            {code && <span className="record-code">{code}</span>}
+          </div>
+        )}
+        <div className="fo-page-header">
           {icon && <span className="fo-page-icon">{icon}</span>}
-          {code && <span className="record-code">{code}</span>}
-          <h1>{title}</h1>
-          {titleExtras}
-          <div className="fo-page-header-actions">
-            <CollapseAllButton />
+          <div className="fo-page-header-text">
+            <div className="fo-page-header-title-row">
+              <h1>{title}</h1>
+              {titleExtras}
+              <div className="fo-page-header-actions">
+                <CollapseAllButton />
+              </div>
+            </div>
           </div>
         </div>
-        {actionBar && <div className="record-action-bar">{actionBar}</div>}
       </div>
+      {actionBar && (
+        <div className="fo-page-toolbar">
+          <div className="record-action-bar">{actionBar}</div>
+        </div>
+      )}
       {children}
     </div>
   );

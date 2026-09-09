@@ -562,7 +562,6 @@ export function CandidateListPage() {
           lookups={lookups}
           filters={filters}
           setFilters={setFilters}
-          sort={sort}
           setSort={setSort}
           visibleCols={visibleCols}
           setVisibleCols={setVisibleCols}
