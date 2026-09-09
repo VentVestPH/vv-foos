@@ -87,7 +87,7 @@ test('the login screen, which no signed-in sweep can reach', async ({ page }) =>
       }
     }
 
-    const submit = page.locator('button[type="submit"], button:has-text("Sign in")').first();
+    const submit = page.locator('button[type="submit"], button:text-is("Sign in")').first();
     if ((await submit.count()) > 0) {
       await submit.click({ force: true }).catch(() => undefined);
       await settle(page, 500);

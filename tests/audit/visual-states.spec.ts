@@ -34,7 +34,7 @@ test('the states no signed-in page sweep can reach: login, redirect, boot, 404',
 
   const email = page.getByLabel(/email/i);
   const password = page.getByLabel(/password/i);
-  const submit = page.getByRole('button', { name: /sign in|log in/i });
+  const submit = page.getByRole('button', { name: /^(sign in|log in)$/i });
 
   await email.focus();
   await page.waitForTimeout(160);

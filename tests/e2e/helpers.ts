@@ -18,7 +18,7 @@ export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/login');
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(testPassword());
-  await page.getByRole('button', { name: /sign in|log in/i }).click();
+  await page.getByRole('button', { name: /^(sign in|log in)$/i }).click();
   await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 20000 });
   await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible({ timeout: 20000 });
 }

@@ -33,7 +33,7 @@ test('W24: a successful login never renders the not-provisioned hold card', asyn
   await page.getByLabel(/password/i).fill(testPassword());
   await watchForHoldCard(page);
 
-  await page.getByRole('button', { name: /sign in|log in/i }).click();
+  await page.getByRole('button', { name: /^(sign in|log in)$/i }).click();
   await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 20000 });
   await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible({ timeout: 20000 });
 
@@ -59,7 +59,7 @@ test('W24: the hold card still appears when the staff row really is missing', as
   await page.goto('/login');
   await page.getByLabel(/email/i).fill(PERSONA_EMAILS.admin);
   await page.getByLabel(/password/i).fill(testPassword());
-  await page.getByRole('button', { name: /sign in|log in/i }).click();
+  await page.getByRole('button', { name: /^(sign in|log in)$/i }).click();
 
   await expect(page.getByRole('heading', { name: HOLD_TEXT })).toBeVisible({ timeout: 20000 });
   await expect(page.getByRole('button', { name: 'Logout' })).toHaveCount(0);
