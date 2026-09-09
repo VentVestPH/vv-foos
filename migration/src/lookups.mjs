@@ -79,7 +79,15 @@ export function loadZohoUserNames(dir = 'migration/zoho-exports') {
   const path = join(dir, 'zoho-users.json');
   if (!existsSync(path)) return new Map();
   const raw = JSON.parse(readFileSync(path, 'utf8'));
-  return new Map(Object.entries(raw).map(([id, name]) => [String(id), String(name)]));
+  const names = new Map();
+  for (const [id, name] of Object.entries(raw)) {
+    names.set(String(id), String(name));
+  }
+  for (const [id, name] of Object.entries(raw)) {
+    const bare = String(id).replace(/^zcrm_/, '');
+    if (!names.has(bare)) names.set(bare, String(name));
+  }
+  return names;
 }
 
 const ZOHO_USER_ID = /^\d{10,}$/;

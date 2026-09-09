@@ -180,6 +180,13 @@ export interface Database {
           country: string | null;
           phone: string | null;
           owner_id: string | null;
+          account_number: string | null;
+          description: string | null;
+          email: string | null;
+          industry: string | null;
+          postal_code: string | null;
+          site: string | null;
+          street: string | null;
           is_test: boolean;
           created_at: string;
           updated_at: string;
@@ -194,6 +201,13 @@ export interface Database {
           country?: string | null;
           phone?: string | null;
           owner_id?: string | null;
+          account_number?: string | null;
+          description?: string | null;
+          email?: string | null;
+          industry?: string | null;
+          postal_code?: string | null;
+          site?: string | null;
+          street?: string | null;
           is_test?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -677,6 +691,10 @@ export interface Database {
           gcal_event_id: string | null;
           attendees: Json | null;
           created_by: string | null;
+          ends_at: string | null;
+          location: string | null;
+          all_day: boolean;
+          source_payload: Json | null;
         };
         Insert: {
           id?: string;
@@ -693,6 +711,10 @@ export interface Database {
           gcal_event_id?: string | null;
           attendees?: Json | null;
           created_by?: string | null;
+          ends_at?: string | null;
+          location?: string | null;
+          all_day?: boolean;
+          source_payload?: Json | null;
         };
         Update: Partial<Database['public']['Tables']['activities']['Insert']>;
         Relationships: [];
@@ -707,6 +729,8 @@ export interface Database {
           assignee_id: string | null;
           related_type: string | null;
           related_id: string | null;
+          completed_at: string | null;
+          source_payload: Json | null;
         };
         Insert: {
           id?: string;
@@ -717,6 +741,8 @@ export interface Database {
           assignee_id?: string | null;
           related_type?: string | null;
           related_id?: string | null;
+          completed_at?: string | null;
+          source_payload?: Json | null;
         };
         Update: Partial<Database['public']['Tables']['tasks']['Insert']>;
         Relationships: [];

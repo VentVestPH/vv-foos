@@ -71,9 +71,6 @@ const PARENT_MODULES = {
   Applications: { corpus: 'ZohoRecruit_Applications', parentType: 'application', entity: 'application', product: 'recruit' },
   Clients: { corpus: 'ZohoRecruit_Clients', parentType: 'company', entity: 'company', product: 'recruit' },
   Recruit_Contacts: { corpus: 'ZohoRecruit_Contacts', parentType: 'person', entity: 'contact', product: 'recruit', apiModule: 'Contacts' },
-  Departments: { corpus: 'ZohoRecruit_Departments', parentType: 'company', entity: 'company', product: 'recruit' },
-  To_Dos: { corpus: 'ZohoRecruit_To_Dos', parentType: 'task', entity: 'task', product: 'recruit' },
-  Reviews: { corpus: 'ZohoRecruit_Reviews', parentType: 'review', entity: 'review', product: 'recruit' },
   Calendly_Invites: { corpus: 'ZohoRecruit_Calendly_Invites', parentType: 'invite', entity: 'invite', product: 'recruit' },
   CRM_Accounts: { corpus: 'ZohoCRM_Accounts', parentType: 'company', entity: 'company', product: 'crm', apiModule: 'Accounts' },
   CRM_Contacts: { corpus: 'ZohoCRM_Contacts', parentType: 'person', entity: 'contact', product: 'crm', apiModule: 'Contacts' },
@@ -183,7 +180,7 @@ function recordsWithAttachments(moduleName) {
   return wanted.map((r) => normalizeZohoId(r.Id ?? r.id)).filter(Boolean);
 }
 
-const REQUEST_TIMEOUT_MS = 120000;
+const REQUEST_TIMEOUT_MS = Number(valueOf('--timeout-ms', '120000')) || 120000;
 const THROTTLE_WAITS_MS = [60000, 180000];
 
 let throttleTrips = 0;

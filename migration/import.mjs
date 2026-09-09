@@ -17,6 +17,11 @@ import { mapClient } from './src/map-clients.mjs';
 import { mapRecruitContact } from './src/map-recruit-contacts.mjs';
 import { mapLead } from './src/map-leads.mjs';
 import { mapCrmNote } from './src/map-crm-notes.mjs';
+import { mapTodo } from './src/map-todos.mjs';
+import { mapReview } from './src/map-reviews.mjs';
+import { mapCrmTask } from './src/map-crm-tasks.mjs';
+import { mapCrmEvent } from './src/map-crm-events.mjs';
+import { mapCalendlyInvite } from './src/map-calendly-invites.mjs';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -726,6 +731,168 @@ async function importLeads(lookups, unresolved, idMaps) {
   }
 }
 
+
+function activityImporter(name, product, moduleName, entityType, mapper) {
+  return async (lookups, unresolved, idMaps) => {
+    const file = readBulk(product, moduleName);
+    const t = tally(name);
+    if (!file) {
+      t.skipReasons['file not present'] = 1;
+      return;
+    }
+    t.rowsInFile = file.records.length;
+    const existing = idMaps[entityType] ?? new Map();
+    idMaps[entityType] = existing;
+    const resolveParent = (type, zohoId) => idMaps[type]?.get(normalizeZohoId(zohoId)) ?? null;
+
+    for (const row of file.records) {
+      const mapped = mapper(row, lookups, unresolved, resolveParent);
+      if (mapped.skip) {
+        t.skipped += 1;
+        note(t.skipReasons, mapped.skip);
+        continue;
+      }
+      for (const w of mapped.warnings) note(t.warnings, w);
+      countFields(t, mapped.activity);
+
+      const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+      if (!APPLY) {
+        if (known) t.updated += 1;
+        else t.created += 1;
+        continue;
+      }
+      try {
+        if (known) {
+          const { error } = await db.from('activities').update(mapped.activity).eq('id', known);
+          if (error) throw error;
+          t.updated += 1;
+        } else {
+          const inserted = await insertWithDeterministicId(
+            'activities',
+            entityType,
+            mapped.zohoId,
+            mapped.activity,
+          );
+          await recordMapping(mapped.zohoId, entityType, inserted.id);
+          existing.set(normalizeZohoId(mapped.zohoId), inserted.id);
+          if (inserted.alreadyPresent) t.updated += 1;
+          else t.created += 1;
+        }
+      } catch (e) {
+        t.failed += 1;
+        note(t.skipReasons, `write failed: ${e.message ?? e}`);
+      }
+    }
+  };
+}
+
+async function importTodos(lookups, unresolved, idMaps) {
+  const file = readBulk('ZohoRecruit', 'To_Dos');
+  const t = tally('todos');
+  if (!file) {
+    t.skipReasons['file not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.todo ?? new Map();
+  idMaps.todo = existing;
+  const resolveParent = (type, zohoId) => idMaps[type]?.get(normalizeZohoId(zohoId)) ?? null;
+
+  for (const row of file.records) {
+    const mapped = mapTodo(row, lookups, unresolved, resolveParent);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    const table = mapped.task ? 'tasks' : 'activities';
+    const payload = mapped.task ?? mapped.activity;
+    countFields(t, payload);
+    note(t.warnings, `routed to ${table}`);
+
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else t.created += 1;
+      continue;
+    }
+    try {
+      if (known) {
+        const { error } = await db.from(table).update(payload).eq('id', known);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const inserted = await insertWithDeterministicId(table, 'todo', mapped.zohoId, payload);
+        await recordMapping(mapped.zohoId, 'todo', inserted.id);
+        existing.set(normalizeZohoId(mapped.zohoId), inserted.id);
+        if (inserted.alreadyPresent) t.updated += 1;
+        else t.created += 1;
+      }
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
+const importReviews = activityImporter('reviews', 'ZohoRecruit', 'Reviews', 'review', mapReview);
+const importCrmEvents = activityImporter('crmEvents', 'ZohoCRM', 'Events', 'crmEvent', mapCrmEvent);
+const importCalendlyInvites = activityImporter(
+  'calendlyInvites',
+  'ZohoRecruit',
+  'Calendly_Invites',
+  'calendlyInvite',
+  mapCalendlyInvite,
+);
+
+async function importCrmTasks(lookups, unresolved, idMaps) {
+  const file = readBulk('ZohoCRM', 'Tasks');
+  const t = tally('crmTasks');
+  if (!file) {
+    t.skipReasons['file not present'] = 1;
+    return;
+  }
+  t.rowsInFile = file.records.length;
+  const existing = idMaps.crmTask ?? new Map();
+  idMaps.crmTask = existing;
+  const resolveParent = (type, zohoId) => idMaps[type]?.get(normalizeZohoId(zohoId)) ?? null;
+
+  for (const row of file.records) {
+    const mapped = mapCrmTask(row, lookups, unresolved, resolveParent);
+    if (mapped.skip) {
+      t.skipped += 1;
+      note(t.skipReasons, mapped.skip);
+      continue;
+    }
+    for (const w of mapped.warnings) note(t.warnings, w);
+    countFields(t, mapped.task);
+
+    const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (!APPLY) {
+      if (known) t.updated += 1;
+      else t.created += 1;
+      continue;
+    }
+    try {
+      if (known) {
+        const { error } = await db.from('tasks').update(mapped.task).eq('id', known);
+        if (error) throw error;
+        t.updated += 1;
+      } else {
+        const inserted = await insertWithDeterministicId('tasks', 'crmTask', mapped.zohoId, mapped.task);
+        await recordMapping(mapped.zohoId, 'crmTask', inserted.id);
+        existing.set(normalizeZohoId(mapped.zohoId), inserted.id);
+        if (inserted.alreadyPresent) t.updated += 1;
+        else t.created += 1;
+      }
+    } catch (e) {
+      t.failed += 1;
+      note(t.skipReasons, `write failed: ${e.message ?? e}`);
+    }
+  }
+}
+
 async function importCrmNotes(lookups, unresolved, idMaps) {
   const file = readBulk('ZohoCRM', 'Notes');
   const t = tally('crmNotes');
@@ -932,6 +1099,11 @@ async function main() {
     company: await loadIdMap('company'),
     contact: await loadIdMap('contact'),
     lead: await loadIdMap('lead'),
+    todo: await loadIdMap('todo'),
+    review: await loadIdMap('review'),
+    crmTask: await loadIdMap('crmTask'),
+    crmEvent: await loadIdMap('crmEvent'),
+    calendlyInvite: await loadIdMap('calendlyInvite'),
   };
 
   report.existingMappings = Object.fromEntries(
@@ -981,6 +1153,11 @@ async function main() {
     if (!want('leads')) delete report.entities.leads;
   }
   if (want('crmNotes')) await importCrmNotes(lookups, unresolved, idMaps);
+  if (want('todos')) await importTodos(lookups, unresolved, idMaps);
+  if (want('reviews')) await importReviews(lookups, unresolved, idMaps);
+  if (want('crmTasks')) await importCrmTasks(lookups, unresolved, idMaps);
+  if (want('crmEvents')) await importCrmEvents(lookups, unresolved, idMaps);
+  if (want('calendlyInvites')) await importCalendlyInvites(lookups, unresolved, idMaps);
 
   reportMissingExports();
   const redact = (m) =>
