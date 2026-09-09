@@ -3,6 +3,15 @@ import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helper
 import { clientAs } from '../env';
 
 const RAIL_NOTE = `QA record-ui ${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+const RAIL_KEY = 'ui.recentlyViewed';
+const RAIL_PERSONA = 'recruiter';
+
+async function resetRail(): Promise<void> {
+  for (const persona of ['admin', RAIL_PERSONA] as const) {
+    const client = await clientAs(persona);
+    await client.from('integration_settings').delete().eq('key', RAIL_KEY);
+  }
+}
 
 test.describe('Record and list UI criteria', () => {
   test.beforeEach(async ({ page }) => {
@@ -12,43 +21,7 @@ test.describe('Record and list UI criteria', () => {
   test.afterEach(async () => {
     const admin = await clientAs('admin');
     await admin.from('activities').delete().like('subject', `${RAIL_NOTE}%`);
-  });
-
-  test('2.10 the Recently Viewed rail records opens across modules, newest first', async ({ page }) => {
-    const rail = page.locator('aside, .fo-sidebar').first();
-
-    await gotoAsSignedIn(page, '/sales/companies');
-    await page.locator('.table-wrap .link-btn').first().click();
-    await expect(page).toHaveURL(/\/sales\/companies\/[0-9a-f-]{36}/);
-    await expect(rail).toContainText(/Recently Viewed/);
-    await expect(rail).toContainText(/company/);
-
-    await gotoAsSignedIn(page, '/recruit/candidates');
-    await page.locator('.table-wrap .link-btn').first().click();
-    await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
-    await expect(rail).toContainText(/candidate/);
-
-    const railText = (await rail.innerText()).slice((await rail.innerText()).indexOf('Recently Viewed'));
-    expect(railText.indexOf('candidate')).toBeLessThan(railText.indexOf('company'));
-  });
-
-  test('2.10 the rail never shows more than the records-to-keep setting', async ({ page }) => {
-    await gotoAsSignedIn(page, '/recruit/candidates');
-    await page.locator('.table-wrap .link-btn').first().click();
-    await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
-    const rail = page.locator('aside, .fo-sidebar').first();
-    await expect(rail).toContainText(/candidate/, { timeout: 15000 });
-
-    await page.getByRole('button', { name: 'Configure Recently Viewed' }).click();
-    const popover = page.locator('.fo-recent-settings');
-    await expect(popover).toBeVisible();
-    const limit = Number(await popover.getByLabel('Records to keep').inputValue());
-    expect(limit, 'the popover must report the stored limit').toBeGreaterThan(0);
-    await page.keyboard.press('Escape');
-
-    await expect
-      .poll(async () => page.locator('.fo-recent-item').count(), { timeout: 15000 })
-      .toBeLessThanOrEqual(limit);
+    await resetRail();
   });
 
   test('3.8 the tickets list is read-only, with no working mutation control', async ({ page }) => {
@@ -136,5 +109,55 @@ test.describe('Record and list UI criteria', () => {
       }));
       expect(scrollWidth, `body scrolls horizontally at ${width}px`).toBeLessThanOrEqual(clientWidth + 1);
     }
+  });
+});
+
+test.describe('Recently Viewed rail (2.10)', () => {
+  test.beforeEach(async ({ page }) => {
+    await resetRail();
+    await signIn(page, PERSONA_EMAILS[RAIL_PERSONA]);
+  });
+
+  test.afterEach(async () => {
+    await resetRail();
+  });
+
+  test('2.10 the Recently Viewed rail records opens across modules, newest first', async ({ page }) => {
+    const rail = page.locator('aside, .fo-sidebar').first();
+
+    await gotoAsSignedIn(page, '/sales/companies');
+    await page.locator('.table-wrap .link-btn').first().click();
+    await expect(page).toHaveURL(/\/sales\/companies\/[0-9a-f-]{36}/);
+    await expect(rail).toContainText(/Recently Viewed/);
+    await expect(rail.locator('.fo-recent-item')).toHaveCount(1, { timeout: 15000 });
+
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    await page.locator('.table-wrap .link-btn').first().click();
+    await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
+    await expect(rail.locator('.fo-recent-item')).toHaveCount(2, { timeout: 15000 });
+
+    const types = (
+      await rail.locator('.fo-recent-item .fo-recent-type').allInnerTexts()
+    ).map((text) => text.trim());
+    expect(types, 'the rail lists the newest open first').toEqual(['candidate', 'company']);
+  });
+
+  test('2.10 the rail never shows more than the records-to-keep setting', async ({ page }) => {
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    await page.locator('.table-wrap .link-btn').first().click();
+    await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
+    const rail = page.locator('aside, .fo-sidebar').first();
+    await expect(rail).toContainText(/candidate/, { timeout: 15000 });
+
+    await page.getByRole('button', { name: 'Configure Recently Viewed' }).click();
+    const popover = page.locator('.fo-recent-settings');
+    await expect(popover).toBeVisible();
+    const limit = Number(await popover.getByLabel('Records to keep').inputValue());
+    expect(limit, 'the popover must report the stored limit').toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
+
+    await expect
+      .poll(async () => page.locator('.fo-recent-item').count(), { timeout: 15000 })
+      .toBeLessThanOrEqual(limit);
   });
 });

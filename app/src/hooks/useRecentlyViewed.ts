@@ -28,7 +28,12 @@ interface RecentState {
 
 const cache = new Map<string, RecentState>();
 const pending = new Map<string, RecentItem[]>();
+const writing = new Map<string, Promise<void>>();
 const listeners = new Set<() => void>();
+
+function newestFirst(entries: RecentItem[]): RecentItem[] {
+  return [...entries].sort((a, b) => (b.viewedAt ?? '').localeCompare(a.viewedAt ?? ''));
+}
 
 function notify(): void {
   listeners.forEach((listener) => listener());
@@ -49,10 +54,10 @@ function parse(value: unknown): { items: RecentItem[]; limit: number } {
 }
 
 function flush(staffId: string): void {
-  const state = cache.get(staffId);
-  if (!state) return;
-  const value = { items: state.items.slice(0, MAX_ITEMS), limit: state.limit } as unknown as Json;
-  void (async () => {
+  const write = async () => {
+    const state = cache.get(staffId);
+    if (!state) return;
+    const value = { items: state.items.slice(0, MAX_ITEMS), limit: state.limit } as unknown as Json;
     if (state.rowId) {
       await supabase
         .from('integration_settings')
@@ -67,7 +72,10 @@ function flush(staffId: string): void {
       .maybeSingle();
     const after = cache.get(staffId);
     if (after) cache.set(staffId, { ...after, rowId: data?.id ?? null });
-  })();
+  };
+  const next = (writing.get(staffId) ?? Promise.resolve()).then(write, write);
+  writing.set(staffId, next);
+  void next;
 }
 
 export function useRecentlyViewed() {
@@ -122,7 +130,7 @@ export function useRecentlyViewed() {
     [staffId],
   );
 
-  const items = useMemo(() => state?.items ?? [], [state?.items]);
+  const items = useMemo(() => newestFirst(state?.items ?? []), [state?.items]);
   const limit = state?.limit ?? DEFAULT_LIMIT;
 
   const record = useCallback(

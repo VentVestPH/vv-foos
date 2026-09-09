@@ -3,7 +3,11 @@ import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 import { clientAs } from '../env';
 
 const SEEDED_REQUISITION = 'd0000000-0000-4000-8000-000000000001';
-const PREF_KEYS = ['ui.sections.dashboard.myview', 'ui.sections.dashboard.reports'];
+const PREF_KEYS = [
+  'ui.sections.dashboard.myview',
+  'ui.sections.dashboard.reports',
+  'ui.recentlyViewed',
+];
 
 test.afterAll(async () => {
   const client = await clientAs('admin');
