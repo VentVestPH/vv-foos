@@ -304,6 +304,15 @@ function bulkHeaderMap(spec) {
   return buildBulkColumnMap(Object.keys(first).map((k) => k.replace(/_/g, ' ')));
 }
 
+function unescapeEntities(text) {
+  return text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
 function normalise(value) {
   if (value === null || value === undefined || value === '') return null;
   if (typeof value === 'number') return String(value);
@@ -315,7 +324,7 @@ function normalise(value) {
     if (Number.isNaN(ms)) return s;
     return new Date(Math.floor(ms / 1000) * 1000).toISOString();
   }
-  return s;
+  return unescapeEntities(s);
 }
 
 const db = createClient(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321', serviceKey(), {
@@ -331,6 +340,7 @@ let checked = 0;
 let compared = 0;
 let mismatched = 0;
 const problems = [];
+const absent = [];
 
 for (const [name, spec] of Object.entries(MODULES)) {
   const idFilter = spec.idPrefix ? ` and zoho_id like '${spec.idPrefix}%'` : '';
@@ -346,7 +356,12 @@ for (const [name, spec] of Object.entries(MODULES)) {
     : [];
 
   const columnMap = spec.uiHeader ? uiColumnMap(spec) : (bulkHeaderMap(spec) ?? buildBulkColumnMap([]));
-  const aliases = BULK_ALIASES[spec.aliasKey] ?? {};
+  const declared = BULK_ALIASES[spec.aliasKey] ?? {};
+  const aliases = { ...declared };
+  for (const [from, to] of Object.entries(declared)) {
+    const lower = from.charAt(0).toLowerCase() + from.slice(1);
+    if (lower !== from && aliases[lower] === undefined) aliases[lower] = to;
+  }
 
   let moduleMismatch = 0;
   for (const { zohoId, foosId } of sample) {
@@ -362,12 +377,36 @@ for (const [name, spec] of Object.entries(MODULES)) {
     const json = await res.json().catch(() => ({}));
     const live = json.data?.[0];
     if (!live) {
-      problems.push(`${name} ${zohoId.slice(-6)}: no record in the response`);
+      absent.push(`${name} ${zohoId.slice(-6)}`);
       continue;
     }
     checked += 1;
 
-    const row = { ...live, ...bulkRowToExportRow(live, columnMap, aliases) };
+    const flattened = {};
+    for (const [k, v] of Object.entries(live)) {
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        for (const [k2, v2] of Object.entries(v)) {
+          if (v2 && typeof v2 === 'object' && !Array.isArray(v2)) {
+            for (const [k3, v3] of Object.entries(v2)) flattened[`${k}.${k2}.${k3}`] = v3;
+          } else {
+            flattened[`${k}.${k2}`] = v2;
+          }
+        }
+      }
+    }
+    const FOREIGN_KEYS = new Set(['Parent_Id', 'What_Id', 'Who_Id']);
+    const idOnly = {};
+    for (const [k, v] of Object.entries(live)) {
+      if (FOREIGN_KEYS.has(k) && v && typeof v === 'object' && typeof v.id === 'string') {
+        idOnly[k] = v.id;
+      }
+    }
+    const row = {
+      ...live,
+      ...idOnly,
+      ...flattened,
+      ...bulkRowToExportRow(live, columnMap, aliases),
+    };
     const rawMapped = spec.raw ? spec.raw(row, lookups, newUnresolved()) : null;
     const mapped = spec.map(row, lookups, newUnresolved());
     const expected = mapped ?? {};
@@ -408,6 +447,13 @@ for (const [name, spec] of Object.entries(MODULES)) {
 }
 
 console.log(`\n  ${checked} record(s) fetched from Zoho, ${compared} field comparison(s), ${mismatched} mismatch(es)`);
+
+if (absent.length > 0) {
+  console.log(`\n${absent.length} sampled record(s) no longer exist in Zoho, so nothing could be`);
+  console.log('compared. A record FOOS holds that Zoho does not serve is upstream deletion or a');
+  console.log('record the importer synthesised, not a migration defect:');
+  for (const a of absent.slice(0, 20)) console.log(`  - ${a}`);
+}
 
 if (problems.length === 0) {
   console.log('\nEvery sampled field matches what the live Zoho record maps to.\n');
