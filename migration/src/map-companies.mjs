@@ -102,10 +102,24 @@ export function mapCompany(row, lookups, unresolved) {
   const parent = trimmed(row, 'Parent Account');
   if (parent) carried.parent_account = parent;
 
-  const unmapped = Object.keys(carried);
-  if (unmapped.length) {
+  const COLUMNS_ON_COMPANIES = [
+    'account_number',
+    'description',
+    'email',
+    'industry',
+    'postal_code',
+    'site',
+    'street',
+  ];
+  const leftover = {};
+  for (const [key, value] of Object.entries(carried)) {
+    if (COLUMNS_ON_COMPANIES.includes(key)) company[key] = value;
+    else leftover[key] = value;
+  }
+  if (Object.keys(leftover).length > 0) {
+    company.source_payload = leftover;
     warnings.push(
-      `${unmapped.length} field(s) have no column on companies and are reported, not written: ${unmapped.sort().join(', ')}`,
+      `${Object.keys(leftover).length} field(s) have no column on companies and are kept in source_payload: ${Object.keys(leftover).sort().join(', ')}`,
     );
   }
 

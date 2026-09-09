@@ -187,6 +187,7 @@ export interface Database {
           postal_code: string | null;
           site: string | null;
           street: string | null;
+          source_payload: Json | null;
           is_test: boolean;
           created_at: string;
           updated_at: string;
@@ -208,6 +209,7 @@ export interface Database {
           postal_code?: string | null;
           site?: string | null;
           street?: string | null;
+          source_payload?: Json | null;
           is_test?: boolean;
           created_at?: string;
           updated_at?: string;

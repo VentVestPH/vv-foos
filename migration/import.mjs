@@ -1175,6 +1175,7 @@ async function main() {
   };
   report.redacted = !SHOW_NAMES;
   report.finishedAt = new Date().toISOString();
+  const totalFailed = Object.values(report.entities).reduce((n, e) => n + (e.failed ?? 0), 0);
 
   const path = join(OUT_DIR, `zoho-import-${report.mode}-${Date.now()}.json`);
   writeFileSync(path, JSON.stringify(report, null, 2));
@@ -1224,6 +1225,12 @@ async function main() {
   }
   console.log(`  report: ${path}`);
   if (!APPLY) console.log('  Dry run. Nothing was written. Re-run with --apply.');
+  if (totalFailed > 0) {
+    console.error(
+      `\n${totalFailed} row(s) failed to write. The report names the reason per entity.`,
+    );
+    process.exitCode = 1;
+  }
 }
 
 main().catch((e) => {
