@@ -52,6 +52,9 @@ const PRODUCTS = {
       'Contacts',
       'Notes',
       'Departments',
+      'To_Dos',
+      'Reviews',
+      'Calendly_Invites',
     ],
   },
   ZohoCRM: {
@@ -63,7 +66,7 @@ const PRODUCTS = {
     countUrl: (m) => `https://www.zohoapis.${DC}/crm/v7/${m}/actions/count`,
     listUrl: (m, page, per) =>
       `https://www.zohoapis.${DC}/crm/v7/${m}?per_page=${per}&page=${page}`,
-    modules: ['Accounts', 'Contacts', 'Leads', 'Notes'],
+    modules: ['Accounts', 'Contacts', 'Leads', 'Notes', 'Tasks', 'Events'],
   },
 };
 
