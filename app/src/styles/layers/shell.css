@@ -402,6 +402,10 @@
   gap: var(--sp-1);
 }
 
+.fo-qs-name-section {
+  border-top: 0;
+}
+
 .fo-qs-field {
   display: flex;
   flex-direction: column;
