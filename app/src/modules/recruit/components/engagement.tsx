@@ -201,7 +201,7 @@ async function uploadAttachment(
   return ins.error ? ins.error.message : null;
 }
 
-export async function deleteAttachment(a: Attachment): Promise<string | null> {
+async function deleteAttachment(a: Attachment): Promise<string | null> {
   if (!isPendingFile(a.storage_path)) {
     const rm = await supabase.storage.from('attachments').remove([a.storage_path]);
     if (rm.error) return rm.error.message;
