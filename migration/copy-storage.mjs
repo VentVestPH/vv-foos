@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
 const args = process.argv.slice(2);
@@ -12,20 +13,27 @@ const APPLY = has('--apply');
 const LIMIT = Number(valueOf('--limit', '0')) || 0;
 const PAGE = 1000;
 
-const SRC_URL = process.env.SRC_SUPABASE_URL ?? 'http://127.0.0.1:55321';
-const SRC_KEY = process.env.SRC_SERVICE_ROLE_KEY;
-const DST_URL = process.env.DST_SUPABASE_URL;
-const DST_KEY = process.env.DST_SERVICE_ROLE_KEY;
+function localServiceKey() {
+  if (process.env.FOOS_LOCAL_SERVICE_ROLE_KEY) return process.env.FOOS_LOCAL_SERVICE_ROLE_KEY;
+  const env = execSync('supabase status -o env', { encoding: 'utf8' });
+  return /^SERVICE_ROLE_KEY="?([^"\n]+)"?$/m.exec(env)?.[1] ?? null;
+}
 
-if (!SRC_KEY || !DST_URL || !DST_KEY) {
-  console.error(
-    'Needs SRC_SERVICE_ROLE_KEY, DST_SUPABASE_URL and DST_SERVICE_ROLE_KEY.\n' +
-      'SRC_SUPABASE_URL defaults to the local stack.',
-  );
+const SRC_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const SRC_KEY = localServiceKey();
+const DST_URL = process.env.SUPABASE_URL;
+const DST_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SRC_KEY) {
+  console.error('No local service role key. Start the local stack, or set FOOS_LOCAL_SERVICE_ROLE_KEY.');
+  process.exit(1);
+}
+if (!DST_URL || !DST_KEY) {
+  console.error('Needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for the target project.');
   process.exit(1);
 }
 if (/127\.0\.0\.1|localhost/.test(String(DST_URL))) {
-  console.error('DST_SUPABASE_URL points at the local stack; that is a copy onto itself.');
+  console.error('SUPABASE_URL points at the local stack; that is a copy onto itself.');
   process.exit(1);
 }
 
@@ -51,13 +59,19 @@ async function listAll(client, prefix = '') {
 }
 
 const source = await listAll(src);
-const already = new Set((await listAll(dst)).map((o) => o.path));
-const todo = source.filter((o) => !already.has(o.path)).slice(0, LIMIT || undefined);
+const already = new Map((await listAll(dst)).map((o) => [o.path, Number(o.size ?? 0)]));
+const short = source.filter(
+  (o) => already.has(o.path) && already.get(o.path) !== Number(o.size ?? 0),
+);
+const todo = source
+  .filter((o) => !already.has(o.path) || already.get(o.path) !== Number(o.size ?? 0))
+  .slice(0, LIMIT || undefined);
 const bytes = todo.reduce((n, o) => n + Number(o.size ?? 0), 0);
 
 console.log(`bucket ${BUCKET}`);
 console.log(`  source objects      ${source.length}`);
 console.log(`  already at target   ${already.size}`);
+console.log(`  wrong size at target ${short.length} (re-uploaded)`);
 console.log(`  to copy             ${todo.length} (${(bytes / 1048576).toFixed(1)} MB)`);
 
 if (!APPLY) {
@@ -87,8 +101,15 @@ for (const object of todo) {
   }
 }
 
+const after = new Map((await listAll(dst)).map((o) => [o.path, Number(o.size ?? 0)]));
+const mismatched = source.filter((o) => after.get(o.path) !== Number(o.size ?? 0));
+
 console.log(`\n  copied ${copied}`);
 console.log(`  failed ${failed}`);
+console.log(`  size mismatches after the copy ${mismatched.length}`);
+for (const o of mismatched.slice(0, 10)) {
+  console.log(`    - ${o.path}: source ${o.size}, target ${after.get(o.path) ?? 'absent'}`);
+}
 for (const p of problems.slice(0, 20)) console.log(`    - ${p}`);
 if (problems.length > 20) console.log(`    ... and ${problems.length - 20} more`);
-if (failed > 0) process.exitCode = 1;
+if (failed > 0 || mismatched.length > 0) process.exitCode = 1;
