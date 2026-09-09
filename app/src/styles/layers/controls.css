@@ -23,6 +23,10 @@
   font-size: var(--fs-meta);
 }
 
+.login-google-btn {
+  gap: var(--sp-1);
+}
+
 .btn-full {
   width: 100%;
 }
