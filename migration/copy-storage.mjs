@@ -60,18 +60,25 @@ async function listAll(client, prefix = '') {
 
 const source = await listAll(src);
 const already = new Map((await listAll(dst)).map((o) => [o.path, Number(o.size ?? 0)]));
+const wouldShrink = source.filter(
+  (o) => already.has(o.path) && already.get(o.path) > Number(o.size ?? 0),
+);
 const short = source.filter(
-  (o) => already.has(o.path) && already.get(o.path) !== Number(o.size ?? 0),
+  (o) => already.has(o.path) && already.get(o.path) < Number(o.size ?? 0),
 );
 const todo = source
-  .filter((o) => !already.has(o.path) || already.get(o.path) !== Number(o.size ?? 0))
+  .filter((o) => !already.has(o.path) || already.get(o.path) < Number(o.size ?? 0))
   .slice(0, LIMIT || undefined);
 const bytes = todo.reduce((n, o) => n + Number(o.size ?? 0), 0);
 
 console.log(`bucket ${BUCKET}`);
 console.log(`  source objects      ${source.length}`);
 console.log(`  already at target   ${already.size}`);
-console.log(`  wrong size at target ${short.length} (re-uploaded)`);
+console.log(`  smaller at target   ${short.length} (re-uploaded)`);
+console.log(`  larger at target    ${wouldShrink.length} (left alone, never shrunk)`);
+for (const o of wouldShrink.slice(0, 5)) {
+  console.log(`    keeping target copy of ${o.path}: source ${o.size}, target ${already.get(o.path)}`);
+}
 console.log(`  to copy             ${todo.length} (${(bytes / 1048576).toFixed(1)} MB)`);
 
 if (!APPLY) {
@@ -102,7 +109,7 @@ for (const object of todo) {
 }
 
 const after = new Map((await listAll(dst)).map((o) => [o.path, Number(o.size ?? 0)]));
-const mismatched = source.filter((o) => after.get(o.path) !== Number(o.size ?? 0));
+const mismatched = source.filter((o) => (after.get(o.path) ?? 0) < Number(o.size ?? 0));
 
 console.log(`\n  copied ${copied}`);
 console.log(`  failed ${failed}`);

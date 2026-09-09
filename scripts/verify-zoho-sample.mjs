@@ -6,6 +6,19 @@ import { parseCsvRecords } from '../migration/src/csv.mjs';
 import { BULK_ALIASES, buildBulkColumnMap, bulkRowToExportRow } from '../migration/src/bulk-to-export.mjs';
 import { mapCandidate } from '../migration/src/map-candidates.mjs';
 import { mapRequisition } from '../migration/src/map-requisitions.mjs';
+import { mapApplication } from '../migration/src/map-applications.mjs';
+import { mapClient } from '../migration/src/map-clients.mjs';
+import { mapRecruitContact } from '../migration/src/map-recruit-contacts.mjs';
+import { mapNote } from '../migration/src/map-notes.mjs';
+import { mapTodo } from '../migration/src/map-todos.mjs';
+import { mapReview } from '../migration/src/map-reviews.mjs';
+import { mapCalendlyInvite } from '../migration/src/map-calendly-invites.mjs';
+import { mapCompany } from '../migration/src/map-companies.mjs';
+import { mapContact } from '../migration/src/map-contacts.mjs';
+import { mapLead } from '../migration/src/map-leads.mjs';
+import { mapCrmNote } from '../migration/src/map-crm-notes.mjs';
+import { mapCrmTask } from '../migration/src/map-crm-tasks.mjs';
+import { mapCrmEvent } from '../migration/src/map-crm-events.mjs';
 import { loadLookups, newUnresolved } from '../migration/src/lookups.mjs';
 import { normalizeZohoId } from '../migration/src/deterministic-id.mjs';
 
@@ -23,21 +36,53 @@ const CLIENT_ID = process.env.ZOHO_CLIENT_ID;
 const CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
 const orgId = (v) => (v ?? '').trim().replace(/^org/i, '') || undefined;
 const RECRUIT_ORG = orgId(process.env.ZOHO_RECRUIT_ORG_ID);
+const CRM_ORG = orgId(process.env.ZOHO_CRM_ORG_ID);
 
 const ACCOUNTS = `https://accounts.zoho.${DC}`;
-const RECRUIT = `https://recruit.zoho.${DC}/recruit/v2`;
 
-if (!CLIENT_ID || !CLIENT_SECRET || !RECRUIT_ORG) {
+const PRODUCTS = {
+  recruit: {
+    soid: () => `ZohoRecruit.${RECRUIT_ORG}`,
+    scope: 'ZohoRecruit.modules.ALL,ZohoRecruit.settings.ALL',
+    base: `https://recruit.zoho.${DC}/recruit/v2`,
+    prefix: 'ZohoRecruit',
+    org: () => RECRUIT_ORG,
+  },
+  crm: {
+    soid: () => `ZohoCRM.${CRM_ORG}`,
+    scope: 'ZohoCRM.modules.ALL,ZohoCRM.settings.READ',
+    base: `https://www.zohoapis.${DC}/crm/v7`,
+    prefix: 'ZohoCRM',
+    org: () => CRM_ORG,
+  },
+};
+
+if (!CLIENT_ID || !CLIENT_SECRET || !RECRUIT_ORG || !CRM_ORG) {
   console.error(
-    'Needs ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET and ZOHO_RECRUIT_ORG_ID.\n' +
+    'Needs ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET, ZOHO_RECRUIT_ORG_ID and ZOHO_CRM_ORG_ID.\n' +
       'This is the one check that reads Zoho rather than the extracted files, so it\n' +
       'cannot run offline. Every other pass is in scripts/verify-zoho-migration.mjs.',
   );
   process.exit(1);
 }
 
+const parentCache = new Map();
+
+function resolveParent(entity, zohoId) {
+  const key = `${entity}:${normalizeZohoId(zohoId)}`;
+  if (parentCache.has(key)) return parentCache.get(key);
+  const row = psql(
+    `select foos_id from zoho_id_map where entity_type = '${entity}'
+       and zoho_id = '${normalizeZohoId(zohoId)}' limit 1;`,
+  );
+  const id = row ? row.split('\n')[0].trim() || null : null;
+  parentCache.set(key, id);
+  return id;
+}
+
 const MODULES = {
   candidates: {
+    product: 'recruit', idPrefix: '837085',
     entity: 'candidate',
     module: 'Candidates',
     aliasKey: 'ZohoRecruit/Candidates',
@@ -53,11 +98,11 @@ const MODULES = {
       'postal_code',
       'linkedin_public_url',
       'linkedin_recruiter_url',
-      'updated_at',
       'created_at',
     ],
   },
   requisitions: {
+    product: 'recruit', idPrefix: '837085',
     entity: 'requisition',
     module: 'Job_Openings',
     aliasKey: 'ZohoRecruit/Job_Openings',
@@ -72,24 +117,133 @@ const MODULES = {
       'opened_date',
       'pay_notes',
       'employment_type',
-      'updated_at',
       'created_at',
     ],
   },
+  applications: {
+    product: 'recruit', idPrefix: '837085', entity: 'application', module: 'Applications',
+    aliasKey: 'ZohoRecruit/Applications', uiHeader: null, table: 'applications',
+    map: (row, l, u) =>
+      mapApplication(row, l, u, {
+        person: (z) => resolveParent('candidate', z),
+        requisition: (z) => resolveParent('requisition', z),
+      })?.application ?? {},
+    compare: ['stage', 'applied_at', 'next_step', 'is_shortlisted', 'source_status'],
+  },
+  clients: {
+    product: 'recruit', idPrefix: '837085', entity: 'company', module: 'Clients',
+    aliasKey: 'ZohoRecruit/Clients', uiHeader: null, table: 'companies',
+    map: (row, l, u) => mapClient(row, l, u)?.company ?? {},
+    compare: ['name', 'website', 'city', 'country', 'phone'],
+  },
+  recruitContacts: {
+    product: 'recruit', idPrefix: '837085', entity: 'contact', module: 'Contacts',
+    aliasKey: 'ZohoRecruit/Contacts', uiHeader: null, table: 'people',
+    map: (row, l, u) => mapRecruitContact(row, l, u, new Map())?.person ?? {},
+    compare: ['first_name', 'last_name', 'city', 'country'],
+  },
+  notes: {
+    raw: (row, l, u) => mapNote(row, l, u, resolveParent),
+    product: 'recruit', idPrefix: '837085', entity: 'note', module: 'Notes',
+    aliasKey: 'ZohoRecruit/Notes', uiHeader: null, table: 'activities',
+    map: (row, l, u) => mapNote(row, l, u, resolveParent)?.activity ?? {},
+    compare: ['kind', 'subject', 'body', 'occurred_at'],
+  },
+  todos: {
+    product: 'recruit', idPrefix: '837085', entity: 'todo', module: 'To_Dos',
+    aliasKey: 'ZohoRecruit/To_Dos', uiHeader: null,
+    map: (row, l, u) => {
+      const m = mapTodo(row, l, u, resolveParent);
+      return m?.task ?? m?.activity ?? {};
+    },
+    table: (payload) => ('due_date' in payload || 'assignee_id' in payload ? 'tasks' : 'activities'),
+    compare: (payload) =>
+      'due_date' in payload || 'assignee_id' in payload
+        ? ['subject', 'due_date', 'priority', 'status', 'related_type']
+        : ['kind', 'subject', 'occurred_at', 'ends_at', 'location'],
+  },
+  reviews: {
+    product: 'recruit', idPrefix: '837085', entity: 'review', module: 'Reviews',
+    aliasKey: 'ZohoRecruit/Reviews', uiHeader: null, table: 'activities',
+    map: (row, l, u) => mapReview(row, l, u, resolveParent)?.activity ?? {},
+    compare: ['kind', 'subject', 'body', 'occurred_at', 'person_id'],
+  },
+  calendlyInvites: {
+    product: 'recruit', idPrefix: '837085', entity: 'calendlyInvite', module: 'Calendly_Invites',
+    aliasKey: 'ZohoRecruit/Calendly_Invites', uiHeader: null, table: 'activities',
+    map: (row, l, u) => mapCalendlyInvite(row, l, u, resolveParent)?.activity ?? {},
+    compare: ['kind', 'subject', 'occurred_at', 'person_id', 'requisition_id'],
+  },
+  crmAccounts: {
+    raw: (row, l, u) => mapCompany(row, l, u),
+    product: 'crm', idPrefix: '7079769', entity: 'company', module: 'Accounts',
+    aliasKey: 'ZohoCRM/Accounts', uiHeader: null, table: 'companies',
+    map: (row, l, u) => mapCompany(row, l, u)?.company ?? {},
+    compare: ['name', 'website', 'city', 'country', 'industry', 'account_number'],
+  },
+  crmContacts: {
+    raw: (row, l, u) => mapContact(row, l, u, new Map()),
+    product: 'crm', idPrefix: '7079769', entity: 'contact', module: 'Contacts',
+    aliasKey: 'ZohoCRM/Contacts', uiHeader: null, table: 'people',
+    map: (row, l, u) => mapContact(row, l, u, new Map())?.person ?? {},
+    compare: ['first_name', 'last_name', 'city', 'country'],
+  },
+  crmLeads: {
+    product: 'crm', idPrefix: '7079769', entity: 'lead', module: 'Leads',
+    aliasKey: 'ZohoCRM/Leads', uiHeader: null, table: 'people',
+    map: (row, l, u) => mapLead(row, l, u)?.person ?? {},
+    compare: ['first_name', 'last_name', 'city', 'country'],
+  },
+  crmNotes: {
+    raw: (row, l, u) => mapCrmNote(row, l, u, resolveParent),
+    product: 'crm', idPrefix: '7079769', entity: 'note', module: 'Notes',
+    aliasKey: 'ZohoCRM/Notes', uiHeader: null, table: 'activities',
+    map: (row, l, u) => mapCrmNote(row, l, u, resolveParent)?.activity ?? {},
+    compare: ['kind', 'subject', 'body', 'occurred_at'],
+  },
+  crmTasks: {
+    product: 'crm', idPrefix: '7079769', entity: 'crmTask', module: 'Tasks',
+    aliasKey: 'ZohoCRM/Tasks', uiHeader: null, table: 'tasks',
+    map: (row, l, u) => mapCrmTask(row, l, u, resolveParent)?.task ?? {},
+    compare: ['subject', 'due_date', 'priority', 'status', 'related_type'],
+  },
+  crmEvents: {
+    product: 'crm', idPrefix: '7079769', entity: 'crmEvent', module: 'Events',
+    aliasKey: 'ZohoCRM/Events', uiHeader: null, table: 'activities',
+    map: (row, l, u) => mapCrmEvent(row, l, u, resolveParent)?.activity ?? {},
+    compare: ['kind', 'subject', 'occurred_at', 'ends_at', 'location'],
+  },
 };
 
-async function token() {
+const tokenCache = new Map();
+
+async function token(product = 'recruit') {
+  if (tokenCache.has(product)) return tokenCache.get(product);
+  const cfg = PRODUCTS[product];
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
-    scope: 'ZohoRecruit.modules.ALL,ZohoRecruit.settings.ALL',
-    soid: `ZohoRecruit.${RECRUIT_ORG}`,
+    scope: cfg.scope,
+    soid: cfg.soid(),
   });
-  const res = await fetch(`${ACCOUNTS}/oauth/v2/token`, { method: 'POST', body });
-  const json = await res.json().catch(() => ({}));
-  if (!json.access_token) throw new Error(`no access token: ${json.error ?? res.status}`);
-  return json.access_token;
+  const waits = [0, 20000, 60000, 120000];
+  let last = null;
+  for (const wait of waits) {
+    if (wait) {
+      console.log(`  ${product} token throttled, waiting ${wait / 1000}s`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+    const res = await fetch(`${ACCOUNTS}/oauth/v2/token`, { method: 'POST', body });
+    const json = await res.json().catch(() => ({}));
+    if (json.access_token) {
+      tokenCache.set(product, json.access_token);
+      return json.access_token;
+    }
+    last = json.error ?? res.status;
+    if (!/Access Denied|too many/i.test(String(last) + JSON.stringify(json))) break;
+  }
+  throw new Error(`${product} token: ${last}`);
 }
 
 function serviceKey() {
@@ -122,15 +276,32 @@ function uiColumnMap(spec) {
   return buildBulkColumnMap(parseCsvRecords(readFileSync(path, 'utf8')).header);
 }
 
+function bulkDir(spec) {
+  const prefix = PRODUCTS[spec.product ?? 'recruit'].prefix;
+  for (const suffix of ['_p1', '_paged']) {
+    const candidate = join(EXPORT_DIR, 'bulk', `${prefix}_${spec.module}${suffix}`);
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 function bulkHeaderMap(spec) {
-  const dir = join(EXPORT_DIR, 'bulk', `ZohoRecruit_${spec.module}_p1`);
-  if (!existsSync(dir)) return null;
-  const csv = readdirSync(dir).find((f) => f.endsWith('.csv'));
-  if (!csv) return null;
-  const header = parseCsvRecords(readFileSync(join(dir, csv), 'utf8')).header.map((h) =>
-    h.replace(/_/g, ' '),
-  );
-  return buildBulkColumnMap(header);
+  const dir = bulkDir(spec);
+  if (!dir) return null;
+  const files = readdirSync(dir);
+  const csv = files.find((f) => f.endsWith('.csv'));
+  if (csv) {
+    const header = parseCsvRecords(readFileSync(join(dir, csv), 'utf8')).header.map((h) =>
+      h.replace(/_/g, ' '),
+    );
+    return buildBulkColumnMap(header);
+  }
+  const jsonFile = files.find((f) => f.endsWith('.json'));
+  if (!jsonFile) return null;
+  const records = JSON.parse(readFileSync(join(dir, jsonFile), 'utf8'));
+  const first = Array.isArray(records) ? records[0] : (records.data ?? [])[0];
+  if (!first) return null;
+  return buildBulkColumnMap(Object.keys(first).map((k) => k.replace(/_/g, ' ')));
 }
 
 function normalise(value) {
@@ -151,7 +322,6 @@ const db = createClient(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321
   auth: { persistSession: false },
 });
 const lookups = await loadLookups(db);
-const access = await token();
 
 console.log(`\nField-level spot check against the live Zoho API, ${SIZE} record(s) per module\n`);
 console.log('This is the only pass that reads Zoho rather than the extracted files, so it is');
@@ -163,8 +333,9 @@ let mismatched = 0;
 const problems = [];
 
 for (const [name, spec] of Object.entries(MODULES)) {
+  const idFilter = spec.idPrefix ? ` and zoho_id like '${spec.idPrefix}%'` : '';
   const rows = psql(
-    `select zoho_id, foos_id from zoho_id_map where entity_type = '${spec.entity}'
+    `select zoho_id, foos_id from zoho_id_map where entity_type = '${spec.entity}'${idFilter}
      order by md5(zoho_id) limit ${SIZE};`,
   );
   const sample = rows
@@ -179,7 +350,9 @@ for (const [name, spec] of Object.entries(MODULES)) {
 
   let moduleMismatch = 0;
   for (const { zohoId, foosId } of sample) {
-    const res = await fetch(`${RECRUIT}/${spec.module}/${zohoId}`, {
+    const product = spec.product ?? 'recruit';
+    const access = await token(product);
+    const res = await fetch(`${PRODUCTS[product].base}/${spec.module}/${zohoId}`, {
       headers: { Authorization: `Zoho-oauthtoken ${access}` },
     });
     if (!res.ok) {
@@ -195,11 +368,20 @@ for (const [name, spec] of Object.entries(MODULES)) {
     checked += 1;
 
     const row = { ...live, ...bulkRowToExportRow(live, columnMap, aliases) };
-    const expected = spec.map(row, lookups, newUnresolved()) ?? {};
+    const rawMapped = spec.raw ? spec.raw(row, lookups, newUnresolved()) : null;
+    const mapped = spec.map(row, lookups, newUnresolved());
+    const expected = mapped ?? {};
+    if (Object.keys(expected).length === 0) {
+      const why = rawMapped?.skip ?? 'the mapper returned no payload and no skip reason';
+      problems.push(`${name} ${zohoId.slice(-6)}: mapper skipped, ${why}`);
+      continue;
+    }
 
+    const table = typeof spec.table === 'function' ? spec.table(expected) : spec.table;
+    const compare = typeof spec.compare === 'function' ? spec.compare(expected) : spec.compare;
     const { data: actual, error } = await db
-      .from(spec.table)
-      .select(spec.compare.join(', '))
+      .from(table)
+      .select(compare.join(', '))
       .eq('id', foosId)
       .maybeSingle();
     if (error || !actual) {
@@ -207,7 +389,7 @@ for (const [name, spec] of Object.entries(MODULES)) {
       continue;
     }
 
-    for (const field of spec.compare) {
+    for (const field of compare) {
       const want = normalise(expected[field]);
       const got = normalise(actual[field]);
       compared += 1;
@@ -221,7 +403,7 @@ for (const [name, spec] of Object.entries(MODULES)) {
     }
   }
   console.log(
-    `  ${name.padEnd(14)}${String(sample.length).padStart(4)} sampled, ${String(spec.compare.length).padStart(3)} field(s) each, ${moduleMismatch} mismatch(es)`,
+    `  ${name.padEnd(18)}${String(sample.length).padStart(4)} sampled, ${moduleMismatch} mismatch(es)`,
   );
 }
 
