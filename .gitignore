@@ -51,3 +51,4 @@ audit/*/
 # armed goal + reminder throttle stamp, per-session state
 .claude/goal-armed.md
 .claude/.goal-reminder-stamp
+.claude/playwright-mcp/
