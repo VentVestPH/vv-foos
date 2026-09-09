@@ -31,6 +31,8 @@ const BUDGET = (() => {
 const PAGE_CEILING = 200000;
 const POLL_INTERVAL_MS = Number(valueOf('--poll-ms', '4000'));
 const POLL_LIMIT = Number(valueOf('--poll-limit', '150'));
+const COUNTS_ONLY = has('--counts-only');
+const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
 
 const PRODUCTS = {
   ZohoRecruit: {
@@ -138,6 +140,109 @@ async function moduleCount(product, moduleName) {
   const json = await res.json().catch(() => null);
   const n = json?.count;
   return typeof n === 'number' ? n : Number(n ?? Number.NaN);
+}
+
+const ENTITY_OF = {
+  'ZohoRecruit/Candidates': 'candidate',
+  'ZohoRecruit/Job_Openings': 'requisition',
+  'ZohoRecruit/Applications': 'application',
+  'ZohoRecruit/Clients': 'company',
+  'ZohoRecruit/Contacts': 'contact',
+  'ZohoRecruit/Notes': 'note',
+  'ZohoRecruit/Departments': null,
+  'ZohoCRM/Accounts': 'company',
+  'ZohoCRM/Contacts': 'contact',
+  'ZohoCRM/Leads': 'lead',
+  'ZohoCRM/Notes': 'note',
+};
+
+function heldByEntity() {
+  const url = valueOf('--db', process.env.FOOS_LOCAL_DB_URL ?? LOCAL_DB);
+  const out = execFileSync(
+    'psql',
+    [url, '-tAqc', 'select entity_type, count(*) from zoho_id_map group by 1'],
+    { encoding: 'utf8' },
+  );
+  const held = new Map();
+  for (const line of out.split('\n')) {
+    const [entity, n] = line.split('|');
+    if (entity) held.set(entity.trim(), Number(n));
+  }
+  return held;
+}
+
+async function countsOnly() {
+  const rows = [];
+  for (const [product, cfg] of Object.entries(PRODUCTS)) {
+    if (!cfg.org) {
+      console.log(`${product}: skipped, ${cfg.orgVar} is not set\n`);
+      continue;
+    }
+    console.log(`${product}`);
+    for (const moduleName of cfg.modules) {
+      if (ONLY && !ONLY.split(',').includes(moduleName)) continue;
+      const key = `${product}/${moduleName}`;
+      try {
+        const zoho = await moduleCount(product, moduleName);
+        rows.push({ key, entity: ENTITY_OF[key] ?? null, zoho });
+        console.log(`  ${moduleName.padEnd(14)} ${String(zoho ?? '?').padStart(9)}`);
+      } catch (err) {
+        rows.push({ key, entity: ENTITY_OF[key] ?? null, zoho: null, error: err.message });
+        console.log(`  ${moduleName.padEnd(14)} FAILED  ${err.message}`);
+      }
+    }
+    console.log('');
+  }
+
+  const held = heldByEntity();
+  const wanted = new Map();
+  for (const row of rows) {
+    if (!row.entity || typeof row.zoho !== 'number') continue;
+    wanted.set(row.entity, (wanted.get(row.entity) ?? 0) + row.zoho);
+  }
+
+  console.log('entity        in zoho   imported     delta  modules counted');
+  console.log('-'.repeat(72));
+  let short = 0;
+  for (const entity of [...new Set([...wanted.keys(), ...held.keys()])].sort()) {
+    const inZoho = wanted.get(entity);
+    const imported = held.get(entity) ?? 0;
+    const delta = typeof inZoho === 'number' ? imported - inZoho : null;
+    if (delta !== null && delta < 0) short += 1;
+    const from = rows
+      .filter((r) => r.entity === entity && typeof r.zoho === 'number')
+      .map((r) => r.key)
+      .join(' + ');
+    console.log(
+      `${entity.padEnd(12)}${String(inZoho ?? '?').padStart(9)}${String(imported).padStart(11)}` +
+        `${(delta === null ? '?' : delta > 0 ? `+${delta}` : String(delta)).padStart(10)}  ${from || '(none)'}`,
+    );
+  }
+  const counted = rows.filter((r) => typeof r.zoho === 'number').length;
+  const failed = rows.filter((r) => r.error).length;
+  console.log(`\n${counted} of ${rows.length} module(s) counted, credits used ${creditsUsed}`);
+
+  if (counted === 0) {
+    console.error(
+      '\nNothing was counted, so this proves nothing. Needs ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET\n' +
+        'and the org id for each product you want checked: ZOHO_RECRUIT_ORG_ID, ZOHO_CRM_ORG_ID.',
+    );
+    process.exit(1);
+  }
+  if (failed > 0) {
+    console.error(`\n${failed} module(s) failed to report a count; the totals above are partial.`);
+    process.exit(1);
+  }
+  if (short > 0) {
+    console.error(`\n${short} entit${short === 1 ? 'y is' : 'ies are'} short of what Zoho reports.`);
+    process.exit(1);
+  }
+  console.log('\nEvery counted entity holds at least what Zoho reports.');
+}
+
+if (COUNTS_ONLY) {
+  await countsOnly();
+  process.exit(0);
 }
 
 const LIST_PER_PAGE = 200;
