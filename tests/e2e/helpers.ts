@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { clientAs } from '../env';
 
 export const PERSONA_EMAILS = {
   admin: 'demo-admin@ventvest.test',
@@ -67,6 +68,23 @@ export async function expandSection(page: Page, title: string) {
   await expect(header).toHaveAttribute('aria-expanded', 'true', { timeout: 10000 });
   return section;
 }
+
+let importedDataset: boolean | null = null;
+
+export async function hasImportedDataset(): Promise<boolean> {
+  if (importedDataset !== null) return importedDataset;
+  const admin = await clientAs('admin');
+  const { count } = await admin
+    .from('requisitions')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_test', false);
+  importedDataset = (count ?? 0) > 100;
+  return importedDataset;
+}
+
+export const NEEDS_IMPORT =
+  'needs the migrated dataset: every seeded requisition is is_test, so a database ' +
+  'built from migrations and seed alone has nothing for this to measure';
 
 export function localDateTimeValue(msFromNow: number): string {
   const d = new Date(Date.now() + msFromNow);

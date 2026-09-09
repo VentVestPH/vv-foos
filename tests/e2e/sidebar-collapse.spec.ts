@@ -67,12 +67,22 @@ test('K5: the rail animates its width rather than jumping', async ({ page }) => 
     'a transition cannot interpolate from auto, so the open width must be explicit',
   ).toMatch(/px$/);
 
-  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
-  const widths: number[] = [];
-  for (let i = 0; i < 8; i += 1) {
-    widths.push(Math.round((await header.boundingBox())!.width));
-    await page.waitForTimeout(40);
-  }
+  const widths = await page.evaluate(async () => {
+    const bar = document.querySelector('.fo-sidebar-panel-header') as HTMLElement;
+    const toggle = document.querySelector('.fo-sidebar-collapse-btn') as HTMLElement;
+    const seen: number[] = [];
+    const frames = new Promise<number[]>((resolve) => {
+      const started = performance.now();
+      const tick = () => {
+        seen.push(Math.round(bar.getBoundingClientRect().width));
+        if (performance.now() - started < 400) requestAnimationFrame(tick);
+        else resolve(seen);
+      };
+      requestAnimationFrame(tick);
+    });
+    toggle.click();
+    return frames;
+  });
   expect(
     new Set(widths).size,
     `the header must travel rather than snap, saw ${widths.join(',')}`,

@@ -1,9 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, expandSection, gotoAsSignedIn, signIn } from './helpers';
+import {
+  NEEDS_IMPORT,
+  PERSONA_EMAILS,
+  expandSection,
+  gotoAsSignedIn,
+  hasImportedDataset,
+  signIn,
+} from './helpers';
 
 test.describe('U6: the Settings data exporter', () => {
   test('an admin sees every module with a live row count from the database', async ({ page }) => {
     test.setTimeout(90000);
+    test.skip(!(await hasImportedDataset()), NEEDS_IMPORT);
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/settings');
     await expandSection(page, 'Data Export:');

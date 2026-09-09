@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { PERSONA_EMAILS, expandSection, gotoAsSignedIn, signIn } from './helpers';
+import { NEEDS_IMPORT, PERSONA_EMAILS, expandSection, gotoAsSignedIn, hasImportedDataset, signIn } from './helpers';
 
 async function pagerText(page: Page, selector = '.fo-pager-count'): Promise<string> {
   const el = page.locator(selector).first();
@@ -363,6 +363,7 @@ test.describe('U1.9: the application pipeline is bounded per stage', () => {
   const BUSIEST = '597c4a64-b872-5e5c-9dbf-1851ceb6025d';
 
   test('the table pages, and never reads applications wholesale', async ({ page }) => {
+    test.skip(!(await hasImportedDataset()), NEEDS_IMPORT);
     await signIn(page, PERSONA_EMAILS.admin);
     const calls = await restCalls(page, async () => {
       await gotoAsSignedIn(page, `/recruit/requisitions/${BUSIEST}`);
@@ -391,6 +392,7 @@ test.describe('U1.9: the application pipeline is bounded per stage', () => {
   test('the board bounds its cards and still counts unviewed over every application', async ({
     page,
   }) => {
+    test.skip(!(await hasImportedDataset()), NEEDS_IMPORT);
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/requisitions/${BUSIEST}`);
     await expandSection(page, 'Application Pipeline');

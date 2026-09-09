@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { NEEDS_IMPORT, PERSONA_EMAILS, gotoAsSignedIn, hasImportedDataset, signIn } from './helpers';
 import { clientAs } from '../env';
 
 test('S1: the default dashboard range shows the data that exists rather than zero', async ({
   page,
 }) => {
+  test.skip(!(await hasImportedDataset()), NEEDS_IMPORT);
   const admin = await clientAs('admin');
   const { count } = await admin
     .schema('dash')

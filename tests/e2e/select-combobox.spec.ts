@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, optionNames, signIn } from './helpers';
+import { NEEDS_IMPORT, PERSONA_EMAILS, gotoAsSignedIn, hasImportedDataset, openFilterRail, optionNames, signIn } from './helpers';
 
 const STAGES = ['All stages', 'Lead', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
 
@@ -191,6 +191,7 @@ test.describe('the select replacement honours the APG combobox contract', () => 
   });
 
   test('a long option list scrolls inside a bounded popup', async ({ page }) => {
+    test.skip(!(await hasImportedDataset()), NEEDS_IMPORT);
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/recruit/requisitions');
     await openFilterRail(page);
