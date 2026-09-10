@@ -9,7 +9,6 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { useListLink } from '../../../lib/listReturn';
-import { RecordSection } from '../../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
@@ -17,6 +16,7 @@ import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useCanEditCrm, useStaffList } from '../hooks';
 import { fmtDate } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
+import { sentenceCase } from '../../../lib/format';
 
 const COMPANY_PAGE_SIZE = 20;
 const COMPANY_EXPORT_PAGE_SIZE = 1000;
@@ -174,7 +174,7 @@ export function CompaniesListPage() {
         <span className="sales-badges">
           {c.types.map((t: string) => (
             <Badge key={t} tone={t === 'client' ? 'primary' : 'neutral'}>
-              {t}
+              {sentenceCase(t)}
             </Badge>
           ))}
         </span>
@@ -239,6 +239,7 @@ export function CompaniesListPage() {
 
   return (
     <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Accounts' }]}
       title="Accounts"
       icon={<HandshakeIcon size={32} />}
       description="Accounts are the companies and organizations involved with your business such as employers, customers, search firms, agencies, etc."
@@ -254,7 +255,6 @@ export function CompaniesListPage() {
         ) : undefined
       }
       filterRail={
-        <RecordSection title="Advanced Search">
           <div className="fo-advanced-search-body">
             <Select
               label="Type"
@@ -277,7 +277,6 @@ export function CompaniesListPage() {
               placeholder="City, state, country"
             />
           </div>
-        </RecordSection>
       }
       exportRows={exportCompanyRows}
       exportCount={total}

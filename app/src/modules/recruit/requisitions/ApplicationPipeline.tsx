@@ -13,6 +13,10 @@ import { StatusBadge } from '../../../components/ui/Badge';
 import { UnviewedBadge } from '../../../components/ui/UnviewedBadge';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
+import { ActionMenu } from '../../../components/ui/ActionMenu';
+import { Pager } from '../../../components/ui/Pager';
+import { SegmentedToggle } from '../../../components/ui/SegmentedToggle';
+import { Table2 as TableIcon, Columns3 as KanbanIcon } from 'lucide-react';
 import { downloadCsv } from '../../../lib/csv';
 import { Dialog } from '../components/Dialog';
 import { AddCandidateDialog } from './AddCandidateDialog';
@@ -547,54 +551,60 @@ export function ApplicationPipeline({
             Add candidate
           </Button>
         )}
-        {canEdit && (
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-pressed={editRowFields}
-            onClick={() => setEditRowFields((v) => !v)}
-          >
-            {editRowFields ? 'Done editing' : 'Edit next step and rank'}
-          </Button>
-        )}
-        <Button
-          size="sm"
-          disabled={rows.length === 0}
-          onClick={() =>
-            downloadCsv(
-              `${requisition.display_code}-applications.csv`,
-              rows,
-              EXPORT_COLUMNS,
-            )
-          }
-        >
-          Export CSV
-        </Button>
+        <ActionMenu
+          label="More pipeline actions"
+          iconOnly
+          items={[
+            ...(canEdit
+              ? [
+                  {
+                    label: editRowFields ? 'Done editing' : 'Edit next step and rank',
+                    onSelect: () => setEditRowFields((v) => !v),
+                  },
+                ]
+              : []),
+            {
+              label: 'Export CSV',
+              disabled: rows.length === 0,
+              onSelect: () =>
+                downloadCsv(
+                  `${requisition.display_code}-applications.csv`,
+                  rows,
+                  EXPORT_COLUMNS,
+                ),
+            },
+          ]}
+        />
         {!mobile && (
-          <div className="pipeline-toggle" role="tablist" aria-label="Pipeline view">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'table'}
-              className={view === 'table' ? 'active' : ''}
-              onClick={() => setView('table')}
-            >
-              Table
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'kanban'}
-              className={view === 'kanban' ? 'active' : ''}
-              onClick={() => setView('kanban')}
-            >
-              Kanban
-            </button>
-          </div>
+          <SegmentedToggle
+            className="rq-pipeline-view"
+            ariaLabel="Pipeline view"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'table', label: 'Table', icon: <TableIcon size={20} aria-hidden="true" /> },
+              {
+                value: 'kanban',
+                label: 'Kanban',
+                icon: <KanbanIcon size={20} aria-hidden="true" />,
+              },
+            ]}
+          />
         )}
       </div>
 
       {error && <p className="form-error" role="alert">{error}</p>}
+
+      {!showKanban && (
+        <Pager
+          from={total === 0 ? 0 : page * TABLE_PAGE_SIZE + 1}
+          to={Math.min(total, (page + 1) * TABLE_PAGE_SIZE)}
+          total={total}
+          page={page}
+          pageCount={Math.max(1, Math.ceil(total / TABLE_PAGE_SIZE))}
+          onPage={setPage}
+        />
+      )}
 
       {showKanban ? (
         <KanbanBoard
@@ -637,29 +647,14 @@ export function ApplicationPipeline({
               setPage(0);
             }}
           />
-          {total > TABLE_PAGE_SIZE && (
-            <div className="fo-pager">
-              <span className="fo-pager-count">
-                {`${page * TABLE_PAGE_SIZE + 1}-${Math.min(total, (page + 1) * TABLE_PAGE_SIZE)} of ${total.toLocaleString()}`}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={page === 0}
-                onClick={() => setPage((n) => Math.max(0, n - 1))}
-              >
-                Previous
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={(page + 1) * TABLE_PAGE_SIZE >= total}
-                onClick={() => setPage((n) => n + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          )}
+          <Pager
+            from={total === 0 ? 0 : page * TABLE_PAGE_SIZE + 1}
+            to={Math.min(total, (page + 1) * TABLE_PAGE_SIZE)}
+            total={total}
+            page={page}
+            pageCount={Math.max(1, Math.ceil(total / TABLE_PAGE_SIZE))}
+            onPage={setPage}
+          />
         </>
       )}
 

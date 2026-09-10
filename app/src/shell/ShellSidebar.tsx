@@ -1,15 +1,32 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { useDismissable } from '../hooks/useDismissable';
 import { useOutsideClose } from '../hooks/useOutsideClose';
-import { usePlaceholder } from './Placeholder';
+import { useAdvancedSearch } from './AdvancedSearch';
+import { EmptyState } from '../components/ui/EmptyState';
 import {
+  Briefcase as RequisitionIcon,
+  Building2 as CompanyIcon,
   ChevronLeft as ChevronLeftIcon,
+  Contact as ContactIcon,
+  FileText as RecordIcon,
+  History as HistoryIcon,
+  Handshake as DealIcon,
   Search as SearchIcon,
   Settings as GearIcon,
   User as PersonIcon,
 } from 'lucide-react';
+import { useScrollShadow } from '../hooks/useScrollShadow';
+import { sentenceCase } from '../lib/format';
+
+const RECENT_ICONS: Record<string, typeof PersonIcon> = {
+  requisition: RequisitionIcon,
+  candidate: PersonIcon,
+  company: CompanyIcon,
+  contact: ContactIcon,
+  deal: DealIcon,
+};
 
 interface SearchScope {
   noun: string;
@@ -35,6 +52,7 @@ function searchScope(pathname: string): SearchScope {
 }
 
 export function ShellSidebar() {
+  const recentListRef = useScrollShadow<HTMLDivElement>();
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches,
   );
@@ -56,10 +74,26 @@ export function ShellSidebar() {
     recentSettingsRef,
   );
   useOutsideClose(recentSettingsOpen, recentSettings.requestClose, recentSettingsRef);
-  const { show } = usePlaceholder();
+  const advanced = useAdvancedSearch();
+  const [grown, setGrown] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const scope = searchScope(pathname);
+
+  useEffect(() => {
+    if (!advanced.open || advanced.closing) {
+      setGrown(false);
+      return undefined;
+    }
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setGrown(true));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [advanced.open, advanced.closing]);
 
   const quickSearchTerm = (keywords || [firstName, lastName].filter(Boolean).join(' ')).trim();
 
@@ -72,6 +106,7 @@ export function ShellSidebar() {
   return (
     <aside
       className={collapsed ? 'fo-sidebar collapsed' : 'fo-sidebar'}
+      data-named-fields={scope.namedFields ? 'true' : 'false'}
       aria-label="Quick search and recently viewed"
     >
       <div className="fo-sidebar-panel">
@@ -130,13 +165,34 @@ export function ShellSidebar() {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => show('Advanced Search')}
+              aria-expanded={advanced.node ? advanced.open && !advanced.closing : undefined}
+              aria-controls={advanced.node ? 'list-filter-rail' : undefined}
+              disabled={!advanced.node || advanced.narrow}
+              title={
+                advanced.node
+                  ? undefined
+                  : 'This page has no advanced search. Open a list such as Requisitions or Candidates.'
+              }
+              onClick={advanced.toggle}
             >
               Advanced Search
             </button>
 
           </div>
         </div>
+          {advanced.node && advanced.open && !advanced.narrow && (
+            <div className="fo-qs-advanced-grow" data-open={grown ? 'true' : 'false'}>
+              <div className="fo-qs-advanced-clip">
+                <div
+                  className="fo-sidebar-panel-body fo-qs-advanced-section filter-rail"
+                  id="list-filter-rail"
+                  data-closing={advanced.closing ? 'true' : undefined}
+                >
+                  {advanced.node}
+                </div>
+              </div>
+            </div>
+          )}
           {scope.namedFields && (
             <div className="fo-sidebar-panel-body fo-qs-name-section">
             <div className="fo-qs-name-group">
@@ -257,26 +313,32 @@ export function ShellSidebar() {
         <div className="fo-sidebar-panel-stack">
         <div className="fo-sidebar-panel-body">
           {recent.length === 0 ? (
-            <p className="fo-recent-empty">
-              Records you open will appear here.
-            </p>
+            <EmptyState
+              compact
+              icon={<HistoryIcon size={32} />}
+              title="Nothing viewed yet"
+              hint="Records you open will appear here."
+            />
           ) : (
-            <div className="fo-recent-list">
-              {recent.map((item) => (
-                <button
-                  key={`${item.type}:${item.id}`}
-                  type="button"
-                  className="fo-recent-item"
-                  onClick={() => item.href && navigate(item.href)}
-                  title={item.label}
-                >
-                  <PersonIcon size={20} className="fo-recent-icon" />
-                  <span className="fo-recent-text">
-                    <span className="fo-recent-name">{item.label}</span>
-                    <span className="fo-recent-type">{item.type}</span>
-                  </span>
-                </button>
-              ))}
+            <div className="fo-recent-list fo-scroll-shade" ref={recentListRef}>
+                {recent.map((item) => (
+                  <button
+                    key={`${item.type}:${item.id}`}
+                    type="button"
+                    className="fo-recent-item"
+                    onClick={() => item.href && navigate(item.href)}
+                    title={item.label}
+                  >
+                    {(() => {
+                      const Icon = RECENT_ICONS[item.type] ?? RecordIcon;
+                      return <Icon size={20} className="fo-recent-icon" />;
+                    })()}
+                    <span className="fo-recent-text">
+                      <span className="fo-recent-name">{item.label}</span>
+                      <span className="fo-recent-type">{sentenceCase(item.type)}</span>
+                    </span>
+                  </button>
+                ))}
             </div>
           )}
         </div>

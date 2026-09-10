@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useBackToList } from '../../../lib/listReturn';
+import { useListReturnHref } from '../../../lib/listReturn';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { Button } from '../../../components/ui/Button';
@@ -9,13 +9,16 @@ import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
+import { EmptyState } from '../../../components/ui/EmptyState';
 import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { SidePanelTabs } from '../../../components/ui/SidePanelTabs';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { PlaceholderAction, usePlaceholder } from '../../../shell/Placeholder';
 import {
-  CircleArrowUp,
+  Briefcase as BriefcaseIcon,
+  ClipboardList as ClipboardListIcon,
+  FileText as FileTextIcon,
   User as PersonIcon,
 } from 'lucide-react';
 import { StarGrade } from '../../../components/ui/StarGrade';
@@ -42,7 +45,7 @@ import { useCandidateOutreach } from './useCandidateOutreach';
 import { toDraft, useCandidateProfileDraft } from './useCandidateProfileDraft';
 
 export function CandidateRecordPage() {
-  const backToList = useBackToList('/recruit/candidates');
+  const listHref = useListReturnHref('/recruit/candidates');
   const navigate = useNavigate();
   const { id } = useParams();
   const personId = id ?? '';
@@ -287,6 +290,11 @@ export function CandidateRecordPage() {
 
   return (
     <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Candidates', to: listHref },
+        { label: personName(person) },
+      ]}
       title={personName(person)}
       icon={<PersonIcon size={32} />}
       titleExtras={
@@ -301,14 +309,6 @@ export function CandidateRecordPage() {
             }
           >
             Flag
-          </button>
-          <button
-            type="button"
-            className="link-btn fo-back-to-list"
-            onClick={backToList}
-          >
-            <CircleArrowUp size={20} aria-hidden="true" />
-            Back To List
           </button>
           <span className="text-secondary">|</span>
           <button
@@ -336,7 +336,12 @@ export function CandidateRecordPage() {
 
       <RecordSection title="Requisition Summary" defaultOpen={false}>
         {apps.length === 0 && (
-          <p className="text-secondary">No applications yet.</p>
+          <EmptyState
+            compact
+            icon={<BriefcaseIcon size={32} />}
+            title="No applications yet"
+            hint="Add this candidate to a requisition and the application shows up here."
+          />
         )}
         {apps.map((a) => {
           const r = reqById.get(a.requisition_id);
@@ -734,7 +739,12 @@ export function CandidateRecordPage() {
         {resumes.length > 0 ? (
           <ResumePreview attachment={resumes[0]} />
         ) : (
-          <p className="text-secondary">No resume on file to preview yet.</p>
+          <EmptyState
+            compact
+            icon={<FileTextIcon size={32} />}
+            title="No resume on file to preview yet"
+            hint="Upload one in Attachments and it previews here."
+          />
         )}
       </RecordSection>
 
@@ -764,7 +774,12 @@ export function CandidateRecordPage() {
 
       <RecordSection title="Requisition Details" defaultOpen={false}>
         {apps.length === 0 && (
-          <p className="text-secondary">No application-specific details yet.</p>
+          <EmptyState
+            compact
+            icon={<ClipboardListIcon size={32} />}
+            title="No application-specific details yet"
+            hint="Details appear once this candidate applies to a requisition."
+          />
         )}
         {apps.map((a) => {
           const r = reqById.get(a.requisition_id);
@@ -833,7 +848,12 @@ export function CandidateRecordPage() {
             />
           </div>
         ) : (
-          <p className="text-secondary">No candidate profile on this person yet.</p>
+          <EmptyState
+            compact
+            icon={<PersonIcon size={32} />}
+            title="No candidate profile on this person yet"
+            hint="Use Edit to add sourcing details, grade and referral."
+          />
         )}
       </RecordSection>
 

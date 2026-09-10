@@ -5,6 +5,7 @@ import {
   IdCard as IdBadgeIcon,
   Lock as LockIcon,
 } from 'lucide-react';
+import { SearchField } from '../components/ui/SearchField';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
 import { PlaceholderAction } from '../shell/Placeholder';
@@ -12,6 +13,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { supabase } from '../lib/supabase';
 import { EMPTY_CELL } from '../lib/format';
 import type { StaffRole } from '../lib/database.types';
+import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
 type ModuleKey = 'employees' | 'onboard' | 'users' | 'courses';
 
@@ -172,29 +174,34 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
 
   return (
     <div className="list-page">
-      <div className="fo-page-header">
-        <span className="fo-page-icon">{config.icon}</span>
-        <div className="fo-page-header-text">
-          <div className="fo-page-header-title-row">
-            <h1>{config.title}</h1>
+      <div className="fo-page-head">
+        <Breadcrumbs
+          items={[{ label: 'Home', to: '/' }, { label: config.title.replace(/: Home$/, '') }]}
+        />
+        <div className="fo-page-header">
+          <span className="fo-page-icon">{config.icon}</span>
+          <div className="fo-page-header-text">
+            <div className="fo-page-header-title-row">
+              <h1>{config.title}</h1>
+            </div>
+            {config.description && (
+              <p className="fo-page-desc">{config.description}</p>
+            )}
           </div>
-          {config.description && (
-            <p className="fo-page-desc">{config.description}</p>
-          )}
         </div>
       </div>
 
       {module !== 'onboard' && (
-        <div className="fo-search-row">
-          <span className="fo-search-label">Search:</span>
-          <input
-            type="text"
-            aria-label={`Search ${config.title}`}
-            title="Searching is not available yet"
-            disabled
-          />
-          <PlaceholderAction label="Search" size="sm" className="fo-go-btn" />
-        </div>
+        <SearchField
+          className="list-page-search"
+          type="search"
+          value=""
+          onValueChange={() => undefined}
+          ariaLabel={`Search ${config.title}`}
+          placeholder="Searching is not available yet"
+          title="Searching is not available yet"
+          disabled
+        />
       )}
 
       <div className="list-page-toolbar">

@@ -8,6 +8,7 @@ import { Search as SearchIcon, SearchX as NoResultsIcon } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
 import { SearchBox } from '../components/ui/SearchBox';
 import { useMinimumVisible } from '../hooks/useMinimumVisible';
+import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
 const LIMIT = 25;
 const MORE_STEP = 50;
@@ -370,36 +371,39 @@ export function GlobalSearchPage() {
 
   return (
     <div className="record-page">
-      <div className="fo-page-header">
-        <span className="fo-page-icon">
-          <SearchIcon size={32} />
-        </span>
-        <div className="fo-page-header-text">
-          <div className="fo-page-header-title-row">
-            <h1>Search everything</h1>
-          </div>
-          <p className="fo-page-desc">
-            Candidates, requisitions, contacts, accounts, deals and tickets you have access to.
-          </p>
-          <div className="fo-search-block">
-            <SearchBox
-              value={draft}
-              onValueChange={setDraft}
-              onSubmitTerm={(next) => setParams(next ? { q: next } : {})}
-              submitLabel="Search"
-              autoFocus
-            />
-            <p className="fo-search-status">
-              {term.length === 0
-                ? draft.trim().length > 0
-                  ? 'Press Enter, or use Search, to look through every record.'
-                  : 'Start typing, or pick up with a recently updated record below.'
-                : term.length < 2
-                  ? 'Type at least two characters.'
-                  : showSkeleton
-                    ? 'Searching every record you can see…'
-                    : `Showing the top ${found} ${found === 1 ? 'match' : 'matches'} for “${term}”.`}
+      <div className="fo-page-head">
+        <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Search' }]} />
+        <div className="fo-page-header">
+          <span className="fo-page-icon">
+            <SearchIcon size={32} />
+          </span>
+          <div className="fo-page-header-text">
+            <div className="fo-page-header-title-row">
+              <h1>Search everything</h1>
+            </div>
+            <p className="fo-page-desc">
+              Candidates, requisitions, contacts, accounts, deals and tickets you have access to.
             </p>
+            <div className="fo-search-block">
+              <SearchBox
+                value={draft}
+                onValueChange={setDraft}
+                onSubmitTerm={(next) => setParams(next ? { q: next } : {})}
+                submitLabel="Search"
+                autoFocus
+              />
+              <p className="fo-search-status">
+                {term.length === 0
+                  ? draft.trim().length > 0
+                    ? 'Press Enter, or use Search, to look through every record.'
+                    : 'Start typing, or pick up with a recently updated record below.'
+                  : term.length < 2
+                    ? 'Type at least two characters.'
+                    : showSkeleton
+                      ? 'Searching every record you can see…'
+                      : `Showing the top ${found} ${found === 1 ? 'match' : 'matches'} for “${term}”.`}
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -119,6 +119,7 @@ export function TicketsListPage() {
 
   return (
     <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Tickets' }]}
       title="Tickets"
       icon={<TicketIcon size={32} />}
       description="Tickets are the customer support and account issues your team is tracking in Front Office OS."

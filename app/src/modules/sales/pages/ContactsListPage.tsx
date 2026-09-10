@@ -8,7 +8,6 @@ import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { useListLink } from '../../../lib/listReturn';
-import { RecordSection } from '../../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
@@ -227,6 +226,7 @@ export function ContactsListPage() {
 
   return (
     <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Contacts' }]}
       title="Contacts"
       icon={<ContactCardIcon size={32} />}
       description="Contacts are all of the individuals outside of your organization that you need to track in Front Office OS."
@@ -244,7 +244,6 @@ export function ContactsListPage() {
         ) : undefined
       }
       filterRail={
-        <RecordSection title="Advanced Search">
           <div className="fo-advanced-search-body">
             <Select
               label="Company"
@@ -254,7 +253,6 @@ export function ContactsListPage() {
               onChange={(e) => setCompanyFilter(e.target.value)}
             />
           </div>
-        </RecordSection>
       }
       exportRows={exportContactRows}
       exportCount={total}

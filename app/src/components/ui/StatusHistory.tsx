@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { ArrowRightLeft } from 'lucide-react';
+import { EmptyState } from './EmptyState';
 
 export interface StatusChange {
   id: string;
@@ -83,7 +85,14 @@ export function StatusHistory({ changes }: { changes: StatusChange[] }) {
   const rows = useMemo(() => buildRows(changes), [changes]);
 
   if (rows.length === 0) {
-    return <p className="text-secondary">No status changes recorded.</p>;
+    return (
+      <EmptyState
+        compact
+        icon={<ArrowRightLeft size={32} />}
+        title="No status changes recorded"
+        hint="Every stage or status move is logged here automatically."
+      />
+    );
   }
 
   return (

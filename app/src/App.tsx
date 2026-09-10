@@ -1,6 +1,6 @@
 import { Suspense, lazy, type ReactNode } from 'react';
-import { LoadingPane } from './components/ui/LoadingPane';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { RouteSkeleton } from './components/ui/PageSkeleton';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
 import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './auth/LoginPage';
@@ -33,11 +33,21 @@ const ModulePlaceholderRoutes = lazy(() =>
 
 function Lazy({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<LoadingPane />}>
+    <Suspense fallback={<RouteSkeleton />}>
       {children}
     </Suspense>
   );
 }
+
+const SHORT_PATHS: [string, string][] = [
+  ['requisitions', '/recruit/requisitions'],
+  ['candidates', '/recruit/candidates'],
+  ['deals', '/sales/deals'],
+  ['contacts', '/sales/contacts'],
+  ['companies', '/sales/companies'],
+  ['accounts', '/sales/companies'],
+  ['tickets', '/sales/tickets'],
+];
 
 export default function App() {
   return (
@@ -65,6 +75,9 @@ export default function App() {
                   </RequireAuth>
                 }
               />
+              {SHORT_PATHS.map(([short, full]) => (
+                <Route key={short} path={short} element={<Navigate to={full} replace />} />
+              ))}
               <Route
                 path="recruit/*"
                 element={

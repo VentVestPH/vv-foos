@@ -8,7 +8,6 @@ import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { useListLink } from '../../../lib/listReturn';
-import { RecordSection } from '../../../components/ui/RecordPage';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
@@ -364,6 +363,7 @@ export function DealsListPage() {
   return (
     <>
       <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Deals' }]}
         title="Deals"
         icon={<BriefcaseIcon size={32} />}
         description="Deals are the sales opportunities you are working with companies and contacts to close."
@@ -399,7 +399,6 @@ export function DealsListPage() {
           </span>
         }
         filterRail={
-          <RecordSection title="Advanced Search">
             <div className="fo-advanced-search-body">
               <Select
                 label="Stage"
@@ -419,7 +418,6 @@ export function DealsListPage() {
                 onChange={(e) => setOwnerFilter(e.target.value)}
               />
             </div>
-          </RecordSection>
         }
         exportRows={exportDealRows}
         exportCount={total}

@@ -1,11 +1,19 @@
 @media (max-width: 900px) {
   .list-page-body {
     flex-direction: column;
-    align-items: stretch;
   }
 
-  .filter-rail {
-    width: 100%;
+  .fo-utility-search {
+    flex: 1 1 200px;
+  }
+
+  .fo-utility-caret {
+    display: none;
+  }
+
+  .list-page-body {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .shell-content {

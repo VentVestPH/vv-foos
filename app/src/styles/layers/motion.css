@@ -5,7 +5,16 @@
 .btn,
 .link-btn,
 .fo-utility-link,
-.fo-pager-controls button {
+.fo-pager-controls button,
+.date-dialog-scope,
+.date-pick-cell,
+.fo-filter-group-header,
+.fo-recent-item,
+.fo-recent-name,
+.fo-action-menu-trigger,
+.fo-kanban-scroll,
+.fo-column-grip,
+.fo-breadcrumbs a {
   transition:
     background-color var(--motion-instant) var(--ease-out),
     border-color var(--motion-instant) var(--ease-out),
@@ -20,8 +29,16 @@
   transition: grid-template-rows var(--motion-panel) var(--ease-out);
 }
 
+.table th.sortable {
+  transition:
+    background-color var(--motion-quick) var(--ease-out),
+    color var(--motion-quick) var(--ease-out);
+}
+
 .table th.sortable .sort-arrow {
-  transition: opacity var(--motion-instant) var(--ease-out);
+  transition:
+    opacity var(--motion-quick) var(--ease-out),
+    transform var(--motion-quick) var(--ease-out);
 }
 
 .field input,
@@ -66,7 +83,27 @@
   transition: padding var(--motion-rail) var(--ease-out);
 }
 
-.fo-search-row input,
+.fo-page-head-grow {
+  transition: grid-template-rows var(--motion-panel) var(--ease-out);
+}
+
+.fo-page-head-foot {
+  transition: margin-top var(--motion-panel) var(--ease-out);
+}
+
+.fo-qs-advanced-grow {
+  transition: grid-template-rows var(--motion-quick) var(--ease-out);
+}
+
+.fo-filter-group-collapse {
+  transition: grid-template-rows var(--motion-panel) var(--ease-out);
+}
+
+.fo-filter-group-chevron {
+  transition: transform var(--motion-quick) var(--ease-out);
+}
+
+.fo-search-row .fo-search-input-wrap input,
 .list-page-search input {
   transition:
     border-color var(--motion-instant) var(--ease-out),
@@ -75,12 +112,13 @@
 
 input[type='checkbox'],
 input[type='radio'] {
-  transition: accent-color var(--motion-instant) var(--ease-out);
+  transition:
+    background-color var(--motion-instant) var(--ease-out),
+    border-color var(--motion-instant) var(--ease-out);
 }
 
 .badge,
 .star-grade .star,
-.fo-recent-settings-limit,
 .fo-recent-settings-clear {
   transition:
     background-color var(--motion-instant) var(--ease-out),
@@ -203,8 +241,10 @@ input[type='radio'] {
 }
 
 .fo-action-menu[data-closing='true'],
-.fo-utility-menu[data-closing='true'] {
+.fo-utility-menu[data-closing='true'],
+.field-select-menu[data-closing='true'] {
   animation: menu-drop-out var(--motion-instant) var(--ease-exit) forwards;
+  pointer-events: none;
 }
 
 .fo-utility-caret {
@@ -299,6 +339,14 @@ input[type='radio'] {
   }
 }
 
+.fo-segmented-thumb {
+  transition: transform var(--motion-quick) var(--ease-out);
+}
+
+.fo-segmented button {
+  transition: color var(--motion-quick) var(--ease-out);
+}
+
 .kanban-card.settling {
   animation: kanban-drop-settle var(--motion-quick) var(--ease-out);
 }
@@ -338,4 +386,23 @@ input[type='radio'] {
 
 .field-select[aria-expanded='true'] .field-select-caret {
   transform: rotate(180deg);
+}
+
+.fo-boot-bar-fill {
+  animation: fo-boot-sweep var(--motion-skeleton) linear infinite;
+}
+
+@keyframes fo-boot-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+
+.fo-scroll-shade::before,
+.fo-scroll-shade::after {
+  transition: opacity var(--motion-quick) var(--ease-out);
 }

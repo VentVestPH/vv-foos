@@ -96,9 +96,7 @@ export function RequisitionAging({ range }: { range: DateRange }) {
         columns={columns}
         rows={open}
         rowKey={(r) => r.requisition_id}
-        onRowClick={(r) =>
-          navigate(`/recruit/requisitions?company_id=${r.company_id}&status=${r.status}`)
-        }
+        onRowClick={(r) => navigate(`/recruit/requisitions/${r.requisition_id}`)}
         emptyText="No open requisitions in range."
       />
     </Widget>

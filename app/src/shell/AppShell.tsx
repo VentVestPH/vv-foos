@@ -5,6 +5,7 @@ import { SectionCollapseProvider } from '../components/ui/SectionCollapse';
 import { UtilityHeader } from './UtilityHeader';
 import { PrimaryNav } from './PrimaryNav';
 import { ShellSidebar } from './ShellSidebar';
+import { AdvancedSearchProvider } from './AdvancedSearch';
 import { BookmarkBar } from './BookmarkBar';
 import { useStickyFocusGuard } from './useStickyFocusGuard';
 
@@ -19,18 +20,20 @@ export function AppShell() {
       </a>
       <UtilityHeader />
       <PrimaryNav />
-      <div className="fo-body">
-        <ShellSidebar />
-        <div className="shell-main">
-          <main className="shell-content" id="main-content" tabIndex={-1}>
-            <ErrorBoundary key={location.pathname} label="This page">
-              <SectionCollapseProvider key={location.pathname}>
-                <Outlet />
-              </SectionCollapseProvider>
-            </ErrorBoundary>
-          </main>
+      <AdvancedSearchProvider>
+        <div className="fo-body">
+          <ShellSidebar />
+          <div className="shell-main">
+            <main className="shell-content" id="main-content" tabIndex={-1}>
+              <ErrorBoundary key={location.pathname} label="This page">
+                <SectionCollapseProvider key={location.pathname}>
+                  <Outlet />
+                </SectionCollapseProvider>
+              </ErrorBoundary>
+            </main>
+          </div>
         </div>
-      </div>
+      </AdvancedSearchProvider>
       <BookmarkBar />
       <IdleSignOut />
     </div>

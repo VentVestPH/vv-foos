@@ -112,7 +112,7 @@ const rows = [
   ['`type="radio"`', count(/type="radio"/g)],
   ['`aria-modal`', count(/aria-modal/g)],
   ['`useListLink` **references** (definition + imports + calls; only 2 are call sites)', count(/useListLink/g)],
-  ['`Back To List` controls', count(/Back To List/g)],
+  ['`Back To List` controls', count(/(Back [Tt]o (List|list|requisitions)|>Back<)/g)],
 ];
 say('| Count | Value |');
 say('| :---- | ----: |');

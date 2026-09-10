@@ -1,39 +1,42 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 
 export function useScrollShadow<T extends HTMLElement>() {
-  const node = useRef<T | null>(null);
   const detach = useRef<(() => void) | null>(null);
 
-  const measure = useCallback(() => {
-    const el = node.current;
+  return useCallback((el: T | null) => {
+    detach.current?.();
+    detach.current = null;
     if (!el) return;
-    const scrollable = el.scrollHeight - el.clientHeight > 1;
-    const atTop = el.scrollTop <= 1;
-    const atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 1;
-    el.dataset.shadowTop = scrollable && !atTop ? 'true' : 'false';
-    el.dataset.shadowBottom = scrollable && !atBottom ? 'true' : 'false';
-  }, []);
 
-  const attach = useCallback(
-    (el: T | null) => {
-      detach.current?.();
-      detach.current = null;
-      node.current = el;
-      if (!el) return;
+    const measure = () => {
+      const scrollable = el.scrollHeight - el.clientHeight > 1;
+      const atTop = el.scrollTop <= 1;
+      const atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 1;
+      el.dataset.shadowTop = scrollable && !atTop ? 'true' : 'false';
+      el.dataset.shadowBottom = scrollable && !atBottom ? 'true' : 'false';
+    };
+
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', measure);
+    const sizes = new ResizeObserver(measure);
+    sizes.observe(el);
+    for (const child of el.children) sizes.observe(child);
+    const contents = new MutationObserver(() => {
+      sizes.disconnect();
+      sizes.observe(el);
+      for (const child of el.children) sizes.observe(child);
       measure();
-      el.addEventListener('scroll', measure, { passive: true });
-      const observer = new ResizeObserver(measure);
-      observer.observe(el);
-      for (const child of el.children) observer.observe(child);
-      detach.current = () => {
-        el.removeEventListener('scroll', measure);
-        observer.disconnect();
-      };
-    },
-    [measure],
-  );
+    });
+    contents.observe(el, { childList: true, subtree: true });
+    const frame = requestAnimationFrame(measure);
 
-  useEffect(() => () => detach.current?.(), []);
-
-  return attach;
+    detach.current = () => {
+      cancelAnimationFrame(frame);
+      el.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+      sizes.disconnect();
+      contents.disconnect();
+    };
+  }, []);
 }

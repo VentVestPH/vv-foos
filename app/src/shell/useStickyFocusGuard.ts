@@ -7,6 +7,7 @@ export function useStickyFocusGuard(): void {
     function onFocusIn(event: FocusEvent) {
       const el = event.target;
       if (!(el instanceof HTMLElement)) return;
+      if (!el.matches(':focus-visible')) return;
 
       const scroller = el.closest<HTMLElement>('.shell-content');
       if (!scroller) return;

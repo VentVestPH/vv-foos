@@ -7,10 +7,12 @@ import { useDismissable } from '../hooks/useDismissable';
 import { useMenuKeyboard } from '../hooks/useMenuKeyboard';
 import { SearchBox } from '../components/ui/SearchBox';
 import {
+  ChevronDown,
   ChartColumn as BarChartIcon,
   Megaphone as MegaphoneIcon,
   Settings as GearIcon,
 } from 'lucide-react';
+import { useScrollShadow } from '../hooks/useScrollShadow';
 
 export function UtilityHeader() {
   const [topSearch, setTopSearch] = useState('');
@@ -40,7 +42,8 @@ export function UtilityHeader() {
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
-
+  const adminShadow = useScrollShadow<HTMLDivElement>();
+  const helpShadow = useScrollShadow<HTMLDivElement>();
   const adminRequestClose = useRef(admin.requestClose);
   const helpRequestClose = useRef(help.requestClose);
   adminRequestClose.current = admin.requestClose;
@@ -113,11 +116,14 @@ export function UtilityHeader() {
             aria-expanded={adminOpen}
             onClick={() => (adminOpen ? admin.requestClose() : setAdminOpen(true))}
           >
-            Administration <span className="fo-utility-caret">▾</span>
+            Administration <span className="fo-utility-caret" aria-hidden="true">
+              <ChevronDown size={20} />
+            </span>
           </button>
           {adminOpen && (
             <div
-              className="fo-utility-menu"
+              className="fo-utility-menu fo-scroll-shade"
+              ref={adminShadow}
               data-closing={admin.closing ? 'true' : undefined}
               role="menu"
             >
@@ -158,11 +164,14 @@ export function UtilityHeader() {
             aria-expanded={helpOpen}
             onClick={() => (helpOpen ? help.requestClose() : setHelpOpen(true))}
           >
-            Help <span className="fo-utility-caret">▾</span>
+            Help <span className="fo-utility-caret" aria-hidden="true">
+              <ChevronDown size={20} />
+            </span>
           </button>
           {helpOpen && (
             <div
-              className="fo-utility-menu"
+              className="fo-utility-menu fo-scroll-shade"
+              ref={helpShadow}
               data-closing={help.closing ? 'true' : undefined}
               role="menu"
             >

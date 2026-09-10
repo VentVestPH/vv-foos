@@ -59,7 +59,7 @@ export function Widget({
         {showSkeleton ? (
           <div className="dash-widget-loading">
             {kpis > 0 && <Skeleton variant="card" rows={kpis} label={`Loading ${title}`} />}
-            {bars > 0 && <Skeleton variant="rows" rows={bars} label={`Loading ${title}`} />}
+            {bars > 0 && <Skeleton rows={bars} label={`Loading ${title}`} />}
           </div>
         ) : (
           children

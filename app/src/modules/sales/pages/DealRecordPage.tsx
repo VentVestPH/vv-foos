@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useBackToList } from '../../../lib/listReturn';
+import { useListReturnHref } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
 import { CURRENCIES } from '../../../lib/format';
 import { DEAL_STAGES, type DealStage } from '../../../lib/database.types';
@@ -11,7 +11,7 @@ import { Input } from '../../../components/ui/Input';
 import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
-import { CircleArrowUp, Briefcase as BriefcaseIcon } from 'lucide-react';
+import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { LostReasonDialog } from '../components/LostReasonDialog';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
@@ -25,7 +25,7 @@ import {
 
 export function DealRecordPage() {
   const { id } = useParams<{ id: string }>();
-  const backToList = useBackToList('/sales/deals');
+  const listHref = useListReturnHref('/sales/deals');
   const navigate = useNavigate();
   const canEdit = useCanEditCrm();
   const { record } = useRecentlyViewed();
@@ -206,6 +206,11 @@ export function DealRecordPage() {
 
   return (
     <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Deals', to: listHref },
+        { label: deal.display_code },
+      ]}
       code={deal.display_code}
       title={deal.name}
       icon={<BriefcaseIcon size={32} />}
@@ -217,14 +222,6 @@ export function DealRecordPage() {
       }
       actionBar={
         <>
-          <button
-            type="button"
-            className="link-btn fo-back-to-list"
-            onClick={backToList}
-          >
-            <CircleArrowUp size={20} aria-hidden="true" />
-            Back To List
-          </button>
           {canEdit && (
             <Button
               variant="primary"

@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react';
 import {
   createContext,
   useCallback,
@@ -109,7 +110,6 @@ export function PlaceholderAction({
     'btn',
     `btn-${variant}`,
     size === 'sm' ? 'btn-sm' : '',
-    caret ? 'btn-caret' : '',
     'is-placeholder',
     className ?? '',
   ]
@@ -122,6 +122,11 @@ export function PlaceholderAction({
       onClick={() => show(label, detail)}
     >
       {label}
+      {caret && (
+        <span className="fo-utility-caret" aria-hidden="true">
+          <ChevronDown size={20} />
+        </span>
+      )}
     </button>
   );
 }

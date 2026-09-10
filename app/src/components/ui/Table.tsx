@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ChevronDown, Inbox } from 'lucide-react';
 import { EMPTY_CELL } from '../../lib/format';
+import { EmptyState } from './EmptyState';
 
 export interface TableColumn<T> {
   key: string;
@@ -13,6 +15,7 @@ export interface TableColumn<T> {
 
   capped?: boolean;
   width?: string;
+  nowrap?: boolean;
 
   hideWhenEmpty?: boolean;
 }
@@ -31,6 +34,8 @@ interface TableProps<T> {
   onRowClick?: (row: T) => void;
   emptyText?: string;
   busy?: boolean;
+
+  emptyIcon?: ReactNode;
 
   sortKey?: string | null;
   sortDir?: SortDir;
@@ -70,6 +75,7 @@ export function Table<T>({
   onRowClick,
   emptyText = 'No records.',
   busy,
+  emptyIcon,
   sortKey: controlledKey,
   sortDir: controlledDir,
   onSortChange,
@@ -263,11 +269,14 @@ export function Table<T>({
                     onClick={() => toggleSort(col.key)}
                   >
                     {col.header}
-                    {sortKey === col.key && (
-                      <span className="sort-arrow">
-                        {sortDir === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
+                    <span
+                      className="sort-arrow"
+                      data-active={sortKey === col.key ? 'true' : 'false'}
+                      data-dir={sortKey === col.key ? sortDir : 'desc'}
+                      aria-hidden="true"
+                    >
+                      <ChevronDown size={20} />
+                    </span>
                   </button>
                 ) : (
                   col.header
@@ -283,7 +292,15 @@ export function Table<T>({
                 className="table-empty"
                 colSpan={visibleColumns.length + (selectable ? 1 : 0)}
               >
-                {busy === true ? 'Loading…' : emptyText}
+                {busy === true ? (
+                  'Loading…'
+                ) : (
+                  <EmptyState
+                    compact
+                    icon={emptyIcon ?? <Inbox size={32} />}
+                    title={emptyText}
+                  />
+                )}
               </td>
             </tr>
           )}
@@ -318,7 +335,7 @@ export function Table<T>({
                 {visibleColumns.map((col) => {
                   const raw = (row as Record<string, unknown>)[col.key];
                   return (
-                    <td key={col.key}>
+                    <td key={col.key} className={col.nowrap ? 'cell-nowrap' : undefined}>
                       {col.render ? (
                         col.render(row)
                       ) : col.capped ? (

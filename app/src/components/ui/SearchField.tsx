@@ -1,0 +1,79 @@
+import { forwardRef, type FormEvent, type ReactNode } from 'react';
+import { Search as SearchIcon } from 'lucide-react';
+
+interface SearchFieldProps {
+  value: string;
+  onValueChange: (next: string) => void;
+  onSubmitTerm?: ((term: string) => void) | undefined;
+  ariaLabel: string;
+  placeholder?: string | undefined;
+  className?: string | undefined;
+  type?: 'text' | 'search' | undefined;
+  autoFocus?: boolean | undefined;
+  disabled?: boolean | undefined;
+  title?: string | undefined;
+  onFocus?: (() => void) | undefined;
+  trailing?: ReactNode;
+  children?: ReactNode;
+}
+
+export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function SearchField(
+  {
+    value,
+    onValueChange,
+    onSubmitTerm,
+    ariaLabel,
+    placeholder,
+    className,
+    type = 'text',
+    autoFocus = false,
+    disabled,
+    title,
+    onFocus,
+    trailing,
+    children,
+  },
+  ref,
+) {
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    onSubmitTerm?.(value.trim());
+  };
+
+  return (
+    <form
+      className={className === undefined ? 'fo-search-row' : `fo-search-row ${className}`}
+      onSubmit={submit}
+    >
+      <span className="fo-search-input-wrap" data-inset={trailing === undefined ? 'true' : undefined}>
+        <input
+          ref={ref}
+          className="input"
+          type={type}
+          value={value}
+          onChange={(e) => onValueChange(e.target.value)}
+          onFocus={onFocus}
+          aria-label={ariaLabel}
+          placeholder={placeholder}
+          autoComplete="off"
+          autoFocus={autoFocus}
+          disabled={disabled}
+          title={title}
+        />
+        {trailing === undefined && (
+          <button
+            type="submit"
+            className="fo-icon-btn fo-searchbox-submit"
+            aria-label="Search"
+            title={ariaLabel}
+            disabled={disabled}
+          >
+            <SearchIcon size={20} />
+          </button>
+        )}
+        {children}
+      </span>
+      {trailing}
+    </form>
+  );
+});

@@ -84,7 +84,7 @@ test('the dashboard settings gear hides a section, and the choice survives a rel
   const dialog = page.getByRole('dialog', { name: 'Dashboard settings' });
   await expect(dialog).toBeVisible();
 
-  const toggle = dialog.getByRole('checkbox', { name: 'My Reminders' });
+  const toggle = dialog.getByRole('checkbox', { name: 'My Reminders', exact: true });
   await expect(toggle).toBeChecked();
   await toggle.uncheck();
   await expect(section).toHaveCount(0);
@@ -115,7 +115,7 @@ test('the report categories gear hides a report section, and the choice survives
   await page.getByRole('button', { name: 'Configure report categories' }).click();
   const dialog = page.getByRole('dialog', { name: 'Report categories' });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('checkbox', { name: 'Requisition Aging' }).uncheck();
+  await dialog.getByRole('checkbox', { name: 'Requisition Aging', exact: true }).uncheck();
   await expect(section).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Done' }).click();
 

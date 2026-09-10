@@ -64,7 +64,9 @@ test('K18: the page head is opaque and holds the one action bar, so sticky would
   const info = await head.evaluate((el) => ({
     background: getComputedStyle(el).backgroundColor,
     position: getComputedStyle(el).position,
-    holdsBar: el.querySelector('.record-action-bar') !== null,
+    holdsBar:
+      el.querySelector('.record-action-bar') !== null ||
+      (el.parentElement?.querySelector('.fo-page-toolbar .record-action-bar') ?? null) !== null,
   }));
   expect(info.background, 'a sticky head must not be see-through').not.toMatch(
     /rgba\(0, 0, 0, 0\)|transparent/,

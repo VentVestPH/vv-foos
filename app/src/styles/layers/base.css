@@ -51,18 +51,6 @@ a:hover {
   justify-content: center;
 }
 
-.loading-pane {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  color: var(--text-secondary);
-  font-size: var(--fs-body);
-}
-
-.loading-pane-text {
-  color: var(--text-secondary);
-}
-
 .hold-card {
   background: var(--surface);
   border: 1px solid var(--border);

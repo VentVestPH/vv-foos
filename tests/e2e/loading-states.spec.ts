@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, signIn } from './helpers';
 
-test('C5: the boot gate shows a spinner and names what it is loading, not one bare word', async ({
+test('C5: the boot gate shows the branded boot screen and names what it is loading', async ({
   page,
 }) => {
   test.setTimeout(120000);
@@ -18,12 +18,18 @@ test('C5: the boot gate shows a spinner and names what it is loading, not one ba
 
   await page.goto('/recruit/candidates');
 
-  const pane = page.locator('.loading-pane');
-  await expect(pane, 'the boot gate must render the shared loading pane').toBeVisible({
+  const pane = page.locator('.fo-boot');
+  await expect(pane, 'the boot gate must render the branded boot screen').toBeVisible({
     timeout: 10000,
   });
-  await expect(pane.locator('.spinner-ring'), 'it must show a spinner').toHaveCount(1);
-  await expect(pane).toContainText(/Loading Front Office OS/);
+  await expect(
+    pane.locator('.fo-boot-title'),
+    'it must say where it is taking the user',
+  ).toHaveText('Taking you to Front Office OS');
+  await expect(
+    pane.locator('.fo-boot-bar-fill'),
+    'it must show that something is still happening',
+  ).toBeVisible();
   await expect(
     page.getByRole('status', { name: /Loading Front Office OS/ }),
     'a screen reader must be told the app is loading',

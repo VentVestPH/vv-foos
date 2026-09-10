@@ -1,12 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 
 const SETTLE_MS = 200;
@@ -48,13 +51,10 @@ function Card({
   grabbed: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, cardId: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({ id: card.id });
-  const style = transform
-    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
-    : undefined;
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id });
+  const style = undefined;
   const className = ['kanban-card'];
-  if (isDragging) className.push('dragging');
+  if (isDragging) className.push('is-placeholder');
   if (settling) className.push('settling');
   if (grabbed) className.push('grabbed');
   return (
@@ -129,6 +129,32 @@ export function KanbanBoard({
   );
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [grabbedId, setGrabbedId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const [canScroll, setCanScroll] = useState({ start: false, end: false });
+
+  const syncScroll = useCallback(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setCanScroll({ start: el.scrollLeft > 1, end: el.scrollLeft < max - 1 });
+  }, []);
+
+  const scrollBoard = (direction: -1 | 1) => {
+    const el = boardRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * Math.max(240, el.clientWidth * 0.8), behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    syncScroll();
+    const el = boardRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(syncScroll);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [syncScroll, stages.length, cards.length]);
+
   const [announcement, setAnnouncement] = useState('');
 
   const stageOf = (cardId: string) => cards.find((c) => c.id === cardId)?.stage ?? null;
@@ -186,8 +212,13 @@ export function KanbanBoard({
     return () => clearTimeout(timer);
   }, [settlingId]);
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggingId(String(event.active.id));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setDraggingId(null);
     if (!over) return;
     const card = cards.find((c) => c.id === String(active.id));
     const toStage = String(over.id);
@@ -198,7 +229,12 @@ export function KanbanBoard({
   };
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setDraggingId(null)}
+    >
       <p id="kanban-keyboard-help" className="visually-hidden">
         Press space or enter to grab a card, then the left and right arrow keys to move it
         between columns, space to drop it, or escape to cancel.
@@ -206,24 +242,56 @@ export function KanbanBoard({
       <p className="visually-hidden" role="status" aria-live="polite">
         {announcement}
       </p>
-      <div
-        className="kanban"
-        role="group"
-        aria-label="Stage board, scrollable"
-        tabIndex={0}
-      >
-        {stages.map((stage) => (
-          <Column
-            key={stage.key}
-            stage={stage}
-            cards={cards.filter((c) => c.stage === stage.key)}
-            extras={columnExtras?.(stage.key)}
-            settlingId={settlingId}
-            grabbedId={grabbedId}
-            onCardKeyDown={onCardKeyDown}
-          />
-        ))}
+      <div className="kanban-wrap">
+        <button
+          type="button"
+          className="fo-kanban-scroll"
+          data-side="start"
+          onClick={() => scrollBoard(-1)}
+          disabled={!canScroll.start}
+          aria-label="Scroll the board left"
+          title={canScroll.start ? 'Scroll the board left' : 'The board is at its first stage'}
+        >
+          <ChevronLeft size={24} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="fo-kanban-scroll"
+          data-side="end"
+          onClick={() => scrollBoard(1)}
+          disabled={!canScroll.end}
+          aria-label="Scroll the board right"
+          title={canScroll.end ? 'Scroll the board right' : 'The board is at its last stage'}
+        >
+          <ChevronRight size={24} aria-hidden="true" />
+        </button>
+        <div
+          className="kanban"
+          role="group"
+          aria-label="Stage board, scrollable"
+          ref={boardRef}
+          onScroll={syncScroll}
+        >
+          {stages.map((stage) => (
+            <Column
+              key={stage.key}
+              stage={stage}
+              cards={cards.filter((c) => c.stage === stage.key)}
+              extras={columnExtras?.(stage.key)}
+              settlingId={settlingId}
+              grabbedId={grabbedId}
+              onCardKeyDown={onCardKeyDown}
+            />
+          ))}
+        </div>
       </div>
+      <DragOverlay dropAnimation={null}>
+        {draggingId !== null && (
+          <div className="kanban-card is-dragging">
+            {cards.find((c) => c.id === draggingId)?.content}
+          </div>
+        )}
+      </DragOverlay>
     </DndContext>
   );
 }

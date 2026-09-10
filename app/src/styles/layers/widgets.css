@@ -1,5 +1,5 @@
 .table input[type='checkbox'] {
-  accent-color: var(--fo-primary);
+  vertical-align: middle;
 }
 
 .table tbody tr:has(input[type='checkbox']:checked) {
@@ -235,9 +235,9 @@
 }
 
 .table .checkbox-col input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  margin: 3px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
 }
 
 .table .checkbox-col {
@@ -278,26 +278,10 @@
   gap: var(--sp-1);
 }
 
-.list-page-filter-toggle {
-  padding: 0 0 var(--sp-1);
-}
-
-.list-page-filter-toggle .link-btn {
-  font-weight: 700;
-  min-height: 24px;
-  padding: 2px 0;
-}
-
 .skeleton {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
-}
-
-.skeleton[data-variant='grid'] {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: var(--sp-half);
 }
 
 .skeleton[data-variant='card'] {
@@ -307,7 +291,6 @@
 }
 
 .skeleton-row,
-.skeleton-cell,
 .skeleton-card {
   display: block;
   border-radius: 2px;
@@ -325,14 +308,6 @@
   height: var(--control-h);
 }
 
-.skeleton-row[data-short='true'] {
-  width: 60%;
-}
-
-.skeleton-cell {
-  height: 44px;
-}
-
 .skeleton-card {
   height: 96px;
 }
@@ -344,4 +319,54 @@
   to {
     background-position: -200% 0;
   }
+}
+
+
+.fo-head-skeleton {
+  display: block;
+  width: 100%;
+}
+
+
+.fo-skeleton-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.fo-skeleton-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.fo-skeleton-section-head {
+  display: flex;
+  align-items: center;
+  min-height: 41px;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--fo-canvas-alt);
+}
+
+.fo-skeleton-section-head .skeleton-row {
+  width: 240px;
+  max-width: 60%;
+  height: var(--sp-2);
+}
+
+.fo-skeleton-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+  background: var(--fo-row-alt);
+}
+
+.fo-skeleton-section-body .skeleton-row {
+  height: var(--sp-2);
+}
+
+.fo-skeleton-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: var(--section-pad);
 }

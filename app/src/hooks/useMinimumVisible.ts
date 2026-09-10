@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-const MIN_MS = 450;
+const MIN_MS = 1000;
 
 export function useMinimumVisible(active: boolean, minMs: number = MIN_MS): boolean {
   const [held, setHeld] = useState(active);

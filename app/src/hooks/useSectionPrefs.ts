@@ -7,8 +7,21 @@ export interface SectionPrefs {
   isHidden: (section: string) => boolean;
   toggle: (section: string) => void;
   showAll: () => void;
+  opensOnLoad: (section: string, fallback: boolean) => boolean;
+  toggleOpensOnLoad: (section: string, fallback: boolean) => void;
   ready: boolean;
   error: string | null;
+}
+
+function readOpen(value: unknown): Record<string, boolean> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const raw = (value as Record<string, unknown>).open;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, boolean> = {};
+  for (const [section, flag] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof flag === 'boolean') out[section] = flag;
+  }
+  return out;
 }
 
 function readHidden(value: unknown): string[] {
@@ -23,6 +36,7 @@ export function useSectionPrefs(scope: string): SectionPrefs {
   const staffId = staff?.id ?? null;
   const key = `ui.sections.${scope}`;
   const [hidden, setHidden] = useState<string[]>([]);
+  const [open, setOpen] = useState<Record<string, boolean>>({});
   const [rowId, setRowId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +44,7 @@ export function useSectionPrefs(scope: string): SectionPrefs {
   useEffect(() => {
     if (!staffId) {
       setHidden([]);
+      setOpen({});
       setRowId(null);
       setReady(true);
       return;
@@ -47,6 +62,7 @@ export function useSectionPrefs(scope: string): SectionPrefs {
         if (readError) setError(readError.message);
         setRowId(data?.id ?? null);
         setHidden(readHidden(data?.value));
+        setOpen(readOpen(data?.value));
         setReady(true);
       });
     return () => {
@@ -55,10 +71,11 @@ export function useSectionPrefs(scope: string): SectionPrefs {
   }, [staffId, key]);
 
   const persist = useCallback(
-    (next: string[]) => {
+    (next: string[], nextOpen: Record<string, boolean>) => {
       setHidden(next);
+      setOpen(nextOpen);
       if (!staffId) return;
-      const value = { hidden: next };
+      const value = { hidden: next, open: nextOpen };
       void (async () => {
         if (rowId) {
           const { error: updateError } = await supabase
@@ -90,12 +107,25 @@ export function useSectionPrefs(scope: string): SectionPrefs {
         hidden.includes(section)
           ? hidden.filter((entry) => entry !== section)
           : [...hidden, section],
+        open,
       );
     },
-    [hidden, persist],
+    [hidden, open, persist],
   );
 
-  const showAll = useCallback(() => persist([]), [persist]);
+  const showAll = useCallback(() => persist([], open), [open, persist]);
+
+  const opensOnLoad = useCallback(
+    (section: string, fallback: boolean) => open[section] ?? fallback,
+    [open],
+  );
+
+  const toggleOpensOnLoad = useCallback(
+    (section: string, fallback: boolean) => {
+      persist(hidden, { ...open, [section]: !(open[section] ?? fallback) });
+    },
+    [hidden, open, persist],
+  );
 
   const hiddenSet = useMemo(() => new Set(hidden), [hidden]);
   const isHidden = useCallback(
@@ -103,5 +133,14 @@ export function useSectionPrefs(scope: string): SectionPrefs {
     [hiddenSet],
   );
 
-  return { hidden, isHidden, toggle, showAll, ready, error };
+  return {
+    hidden,
+    isHidden,
+    toggle,
+    showAll,
+    opensOnLoad,
+    toggleOpensOnLoad,
+    ready,
+    error,
+  };
 }

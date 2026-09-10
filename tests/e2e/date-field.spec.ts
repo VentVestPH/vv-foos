@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
 
 function dateInput(page: import('@playwright/test').Page) {
-  return page.getByLabel('Initial date from');
+  return page.locator('.filter-rail .date-field-input').first();
 }
 
 async function openRail(page: import('@playwright/test').Page) {
@@ -10,6 +10,8 @@ async function openRail(page: import('@playwright/test').Page) {
   await gotoAsSignedIn(page, '/recruit/candidates');
   await openFilterRail(page);
   await expect(page.locator('.table-wrap')).toBeVisible({ timeout: 25000 });
+  const group = page.locator('.fo-filter-group-header', { hasText: 'Initial date' });
+  if ((await group.getAttribute('aria-expanded')) !== 'true') await group.click();
   await expect(dateInput(page)).toBeVisible();
 }
 
@@ -54,12 +56,12 @@ test('the calendar is a modal grid driven entirely by the keyboard', async ({ pa
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('aria-modal', 'true');
   await expect(dialog.getByRole('grid')).toHaveCount(1);
-  await expect(dialog.locator('.date-dialog-title')).toHaveText('March 2026');
+  await expect(dialog.locator('.date-dialog-scope')).toHaveText('March 2026');
   await expect(dialog.getByRole('gridcell', { selected: true })).toHaveCount(1);
 
   const activeDay = () =>
     dialog.evaluate(() => document.activeElement?.textContent?.trim() ?? '');
-  const title = () => dialog.locator('.date-dialog-title').innerText();
+  const title = () => dialog.locator('.date-dialog-scope').innerText();
 
   expect(await activeDay()).toBe('4');
   await page.keyboard.press('ArrowRight');

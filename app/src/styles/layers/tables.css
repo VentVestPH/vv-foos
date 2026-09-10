@@ -30,13 +30,32 @@
 }
 
 .table th.sortable:hover {
+  background: var(--fo-row-hover);
   color: var(--fo-primary-hover);
 }
 
 .sort-arrow {
-  font-size: var(--fs-2xs);
+  display: inline-flex;
   margin-left: var(--sp-half);
   color: var(--fo-link);
+  opacity: 0;
+}
+
+.th-sort-btn:hover .sort-arrow,
+.th-sort-btn:focus-visible .sort-arrow {
+  opacity: 0.55;
+}
+
+.th-sort-btn .sort-arrow[data-active='true'] {
+  opacity: 1;
+}
+
+.sort-arrow[data-dir='asc'] {
+  transform: rotate(180deg);
+}
+
+.table td.cell-nowrap {
+  white-space: nowrap;
 }
 
 .table td {
@@ -89,6 +108,7 @@
   align-items: center;
   gap: var(--sp-half);
   width: 100%;
+  justify-content: space-between;
 }
 
 .cell-capped {
