@@ -126,20 +126,31 @@ test.describe('Recently Viewed rail (2.10)', () => {
     const rail = page.locator('aside, .fo-sidebar').first();
 
     await gotoAsSignedIn(page, '/sales/companies');
-    await page.locator('.table-wrap .link-btn').first().click();
+    const companyLink = page.locator('.table-wrap .link-btn').first();
+    const companyLabel = (await companyLink.innerText()).trim();
+    await companyLink.click();
     await expect(page).toHaveURL(/\/sales\/companies\/[0-9a-f-]{36}/);
     await expect(rail).toContainText(/Recently Viewed/);
-    await expect(rail.locator('.fo-recent-item')).toHaveCount(1, { timeout: 15000 });
+    await expect(rail.getByText(companyLabel, { exact: true })).toBeVisible({ timeout: 15000 });
 
     await gotoAsSignedIn(page, '/recruit/candidates');
-    await page.locator('.table-wrap .link-btn').first().click();
+    const candidateLink = page.locator('.table-wrap .link-btn').first();
+    const candidateLabel = (await candidateLink.innerText()).trim();
+    await candidateLink.click();
     await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
-    await expect(rail.locator('.fo-recent-item')).toHaveCount(2, { timeout: 15000 });
+    await expect(rail.getByText(candidateLabel, { exact: true })).toBeVisible({ timeout: 15000 });
 
-    const types = (
-      await rail.locator('.fo-recent-item .fo-recent-type').allInnerTexts()
-    ).map((text) => text.trim());
-    expect(types, 'the rail lists the newest open first').toEqual(['Candidate', 'Company']);
+    const labels = (await rail.locator('.fo-recent-item .fo-recent-name').allInnerTexts()).map(
+      (text) => text.trim(),
+    );
+    const candidateAt = labels.indexOf(candidateLabel);
+    const companyAt = labels.indexOf(companyLabel);
+    expect(candidateAt, `the rail must list ${candidateLabel}`).toBeGreaterThanOrEqual(0);
+    expect(companyAt, `the rail must list ${companyLabel}`).toBeGreaterThanOrEqual(0);
+    expect(
+      candidateAt,
+      'the record opened later must sit above the one opened before it. The rail is stored per staff in integration_settings, so a parallel worker signed in as the same persona writes to the same row: assert the order of this test\'s own two records, never the whole list',
+    ).toBeLessThan(companyAt);
   });
 
   test('2.10 the rail never shows more than the records-to-keep setting', async ({ page }) => {

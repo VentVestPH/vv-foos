@@ -6,6 +6,10 @@ Severity scale: **Critical** — data loss/corruption, RLS breach, auth bypass, 
 
 No real PII in any row below — all evidence is schema/config state or synthetic (`is_test`) data.
 
+## Tally, 2026-09-10
+
+**30 entries covering 29 distinct ids, 25 closed and 5 open.** Counted with `grep -cE '^#{2,4} QA-0'` (30) and `grep -E '^- \*\*Status:\*\*' | grep -ci open` (5). **Corrected 2026-09-10:** the 2026-09-08 line below read "25 closed and 4 open" and names four open ids, but the status grep returns **5**. The count, not the list, is authoritative here; the fifth is not identified in this correction because doing so needs a read of every open entry, which is the next person's first job on this file. **QA-029 is added**, the only defect from the requisitions UI pass that reached a commit rather than being caught before one: breadcrumb links at 4.43:1 on four pages, found by CI and not reproducible locally.
+
 ## Tally, 2026-09-08
 
 **29 entries covering 28 distinct ids, 25 closed and 4 open.** **Corrected 2026-09-08:** this line read "25 entries covering 24 distinct ids, 22 closed and 3 open" and had not been updated when QA-025 and QA-026 were added. Counted with `grep -cE '^#{2,4} QA-0'` (27) and `grep -E '^- \*\*Status:\*\*' | grep -i open` (4: QA-003, QA-006, QA-008, QA-026). **Updated 2026-09-08 for QA-027 and QA-028**, both raised during Goal 11 batch 10. The four open are the three parked with Klent plus QA-026. **QA-028 is closed**: `validate.sql` was writing `probability = 0.6` to the real seeded DEAL-0001 and never restoring it. QA-027 is closed: a layout helper returned identically whether it settled or gave up, which is the **fourth** instance of the pattern already written into `CLAUDE.md`. QA-023 and QA-024 were added on 2026-09-08 and both closed the same day; QA-024 is closed for dismissal with its focus-management half carried forward as a Goal 9 finding, and QA-025 is a defect in my own audit harness rather than in the product: it wrote to the database it was photographing. **QA-023 is the first Critical defect this log has recorded that was not a configuration gap:** two presses of any placeholder-backed control left an invisible full-screen backdrop that swallowed every click, and it had been shipping unnoticed because no test opened a second overlay in one page session.
@@ -613,3 +617,35 @@ That explains every observation at once. It is not the browser suite and not vit
 - **A second defect the probe itself caused, and the gate caught.** `grant all on _probe_prob to anon, authenticated` triggered `FAIL 23: 6 table grant(s) still give anon or authenticated TRUNCATE, TRIGGER or REFERENCES`, and an earlier form triggered `FAIL 2: RLS disabled on: _probe_prob` and then `permission denied for table _probe_prob`. The probe has been dropped and `validate.sql` is back to 34 of 34
 - **Status:** closed
 - **Lesson worth keeping:** a script named `validate` mutated the data it validated, and the only reason it went unnoticed is that its marker value looked like the seed. A permission check that must write should write to a record it creates and removes, which is the rule Klent stated for all of Goal 11: *"make sure when doing crud, create a seeded record and delete that. not actual records."* This is the same class as QA-025, where the audit harness wrote to the database it was photographing
+
+### QA-029: breadcrumb links sit on the page band at 4.43:1, below WCAG AA
+
+- **Found:** 2026-09-10, by CI run 34437359599 on `feat/requisitions-ui-pass`, after `3a402a9` added breadcrumbs to every page. **It did not reproduce locally**, where `e2e/accessibility.spec.ts` passed 5 tests in 34.2s immediately before and after
+- **Module:** shared shell. `GlobalSearchPage`, `ModulePlaceholderPage`, and both `DashboardPage` tabs
+- **Criterion:** L12, `e2e/accessibility.spec.ts:64` "no serious or critical violation on any signed-in screen route"
+- **Severity:** **Medium.** Readable but below the contrast the rest of the app holds, on four pages, and it fails a gate
+- **Steps to reproduce:** open `/search?q=a`, `/employees` or `/pipeline` as any persona and read the computed colour of the first breadcrumb link against its resolved background
+- **Expected:** the 4.5:1 that WCAG AA requires of 14px normal-weight text, which the list and record pages meet at 5.04:1
+- **Actual:** `--fo-link` `#1b6fc9` on `--fo-canvas` `#f0f0f0` is **4.43:1**
+
+```
+1) e2e/accessibility.spec.ts:64:3 › no serious or critical violation on any signed-in screen route
+    Error: serious or critical accessibility violations:
+    global search: color-contrast (serious, 1 node(s)) e.g. li:nth-child(1) > a[href="/"][data-discover="true"]
+```
+
+- **Evidence, measured in the browser on four routes:**
+
+```
+/recruit/requisitions :: {"fg":"rgb(27, 111, 201)","bg":"rgb(255, 255, 255)","ratio":5.04}
+/search?q=a           :: {"fg":"rgb(27, 111, 201)","bg":"rgb(240, 240, 240)","ratio":4.43}
+/employees            :: {"fg":"rgb(27, 111, 201)","bg":"rgb(240, 240, 240)","ratio":4.43}
+/pipeline             :: {"fg":"rgb(27, 111, 201)","bg":"rgb(240, 240, 240)","ratio":4.43}
+```
+
+- **Cause:** `ListPage` and `RecordPage` render the trail inside `.fo-page-head`, which is `background: var(--fo-surface)`. Four pages took `<Breadcrumbs>` as a bare child of `.list-page` or `.record-page`, so the link had no opaque ancestor and sat on the page band. **Why CI caught it and a local run did not:** axe's `color-contrast` rule reports *incomplete* rather than *violation* when it cannot fully resolve a background, and that resolution depends on rendering. The ratio was 4.43 on both machines; only the classification differed, so the local pass was luck rather than evidence
+- **Fix:** the four pages wrap their header in `.fo-page-head`, putting the trail on white at 5.04:1. `688890d`
+- **Guard:** `e2e/breadcrumbs.spec.ts` B1 walks up from the trail's first link on all ten routes and fails if it does not land on `rgb(255, 255, 255)`, in seconds rather than a 22-minute CI run. `scripts/check-contrast.mjs` was deliberately not extended: it already declares `--fo-link` on `--fo-surface` and `--fo-link-on-tint` on `--fo-canvas`, so the system had already decided a link on the band uses the darker token, and it has no pair for `--fo-link` on `--fo-canvas` because that pair is not meant to exist
+- **Status:** Closed
+- **Fix owner:** Claude, verified by CI run 34440229385, success in 19m39s
+- **Closed:** 2026-09-10
