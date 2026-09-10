@@ -198,12 +198,6 @@
   word-break: break-word;
 }
 
-.sales-panel-empty {
-  color: var(--text-secondary);
-  font-size: var(--fs-body);
-  padding: var(--sp-1) 0;
-}
-
 .sales-panel-note {
   color: var(--text-secondary);
   font-size: var(--fs-meta);

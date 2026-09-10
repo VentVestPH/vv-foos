@@ -23,6 +23,8 @@ import {
   PENDING_FILE_LABEL,
   PENDING_FILE_REASON,
 } from '../../../lib/attachments';
+import { BellRing, CalendarDays, ListChecks, MessageSquare, Paperclip } from 'lucide-react';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 export type EngagementParentType = 'person' | 'requisition' | 'application';
 
@@ -285,7 +287,9 @@ export function ActivityPanel({
           </div>
         </form>
       )}
-      {items.length === 0 && <p className="text-secondary">{emptyText}</p>}
+      {items.length === 0 && (
+        <EmptyState compact icon={<MessageSquare size={32} />} title={emptyText} />
+      )}
       {items.map((a) => (
         <div key={a.id} className="panel-item">
           <div className="panel-item-head">
@@ -301,7 +305,14 @@ export function ActivityPanel({
 
 export function EventsPanel({ items }: { items: Activity[] }) {
   if (items.length === 0) {
-    return <p className="text-secondary">No calendar events linked yet.</p>;
+    return (
+      <EmptyState
+        compact
+        icon={<CalendarDays size={32} />}
+        title="No calendar events linked yet"
+        hint="Meetings created from here, and Google events matched by attendee, show up in this list."
+      />
+    );
   }
   return (
     <div className="panel-stack">
@@ -383,7 +394,14 @@ export function TasksPanel({ items, allowCreate, onCreate, onToggle }: TasksPane
           </div>
         </form>
       )}
-      {items.length === 0 && <p className="text-secondary">No tasks yet.</p>}
+      {items.length === 0 && (
+        <EmptyState
+          compact
+          icon={<ListChecks size={32} />}
+          title="No tasks yet"
+          hint="Add one above to track follow-up work on this record."
+        />
+      )}
       {items.map((t) => (
         <div key={t.id} className="panel-item">
           <div className="panel-item-head">
@@ -467,7 +485,14 @@ export function RemindersPanel({
           </div>
         </form>
       )}
-      {items.length === 0 && <p className="text-secondary">No reminders yet.</p>}
+      {items.length === 0 && (
+        <EmptyState
+          compact
+          icon={<BellRing size={32} />}
+          title="No reminders yet"
+          hint="Set one above and it will fire at the time you pick."
+        />
+      )}
       {items.map((r) => (
         <div key={r.id} className="panel-item">
           <div className="panel-item-head">
@@ -613,9 +638,12 @@ export function AttachmentsPanel({
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
       {items.length === 0 && (
-        <p className="text-secondary">
-          {fixedKind === 'resume' ? 'No resumes yet.' : 'No files yet.'}
-        </p>
+        <EmptyState
+          compact
+          icon={<Paperclip size={32} />}
+          title={fixedKind === 'resume' ? 'No resumes yet' : 'No files yet'}
+          hint="Choose a file above, then press Upload to attach it."
+        />
       )}
       {items.map((a) => {
         const name = attachmentName(a);

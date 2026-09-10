@@ -11,7 +11,7 @@ const RAIL_ROUTES = [
 ];
 
 function railHeader(page: Page) {
-  return page.locator('.filter-rail .record-section-header');
+  return page.locator('.filter-rail .fo-filter-group-header');
 }
 
 test('no advanced-search rail is a native details element', async ({ page }) => {
@@ -20,23 +20,20 @@ test('no advanced-search rail is a native details element', async ({ page }) => 
   for (const route of RAIL_ROUTES) {
     await gotoAsSignedIn(page, route);
     await openFilterRail(page);
-    const header = railHeader(page);
-    await expect(header).toHaveCount(1);
-    await expect(header).toHaveText('Advanced Search');
-    await expect(header).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.filter-rail')).toBeVisible();
     headers += 1;
-    expect(await page.locator('details.fo-advanced-search').count()).toBe(0);
-    expect(await page.locator('summary').count()).toBe(0);
+    expect(await page.locator('.filter-rail details').count()).toBe(0);
+    expect(await page.locator('.filter-rail summary').count()).toBe(0);
   }
   expect(headers).toBe(RAIL_ROUTES.length);
 });
 
 test('the advanced-search rail interpolates its height in both directions', async ({ page }) => {
   await signIn(page, PERSONA_EMAILS.admin);
-  await gotoAsSignedIn(page, '/sales/deals');
+  await gotoAsSignedIn(page, '/recruit/requisitions');
   await openFilterRail(page);
-  const header = railHeader(page);
-  const collapse = page.locator('.filter-rail .record-section-collapse');
+  const header = railHeader(page).first();
+  const collapse = page.locator('.filter-rail .fo-filter-group-collapse').first();
 
   await expect(collapse).toHaveCSS('transition-property', /grid-template-rows/);
   const openRows = await collapse.evaluate((el) => getComputedStyle(el).gridTemplateRows);

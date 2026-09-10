@@ -11,8 +11,10 @@
 .fo-filter-group-header,
 .fo-recent-item,
 .fo-recent-name,
-.fo-back-to-list,
-.fo-action-menu-trigger {
+.fo-action-menu-trigger,
+.fo-kanban-scroll,
+.fo-column-grip,
+.fo-breadcrumbs a {
   transition:
     background-color var(--motion-instant) var(--ease-out),
     border-color var(--motion-instant) var(--ease-out),
@@ -101,13 +103,7 @@
   transition: transform var(--motion-quick) var(--ease-out);
 }
 
-.fo-back-to-list svg {
-  transition:
-    transform var(--motion-quick) var(--ease-out),
-    color var(--motion-quick) var(--ease-out);
-}
-
-.fo-search-row input,
+.fo-search-row .fo-search-input-wrap input,
 .list-page-search input {
   transition:
     border-color var(--motion-instant) var(--ease-out),
@@ -123,7 +119,6 @@ input[type='radio'] {
 
 .badge,
 .star-grade .star,
-.fo-recent-settings-limit,
 .fo-recent-settings-clear {
   transition:
     background-color var(--motion-instant) var(--ease-out),
@@ -246,8 +241,10 @@ input[type='radio'] {
 }
 
 .fo-action-menu[data-closing='true'],
-.fo-utility-menu[data-closing='true'] {
+.fo-utility-menu[data-closing='true'],
+.field-select-menu[data-closing='true'] {
   animation: menu-drop-out var(--motion-instant) var(--ease-exit) forwards;
+  pointer-events: none;
 }
 
 .fo-utility-caret {
@@ -342,11 +339,11 @@ input[type='radio'] {
   }
 }
 
-.pipeline-toggle-thumb {
+.fo-segmented-thumb {
   transition: transform var(--motion-quick) var(--ease-out);
 }
 
-.pipeline-toggle button {
+.fo-segmented button {
   transition: color var(--motion-quick) var(--ease-out);
 }
 
@@ -389,4 +386,23 @@ input[type='radio'] {
 
 .field-select[aria-expanded='true'] .field-select-caret {
   transform: rotate(180deg);
+}
+
+.fo-boot-bar-fill {
+  animation: fo-boot-sweep var(--motion-skeleton) linear infinite;
+}
+
+@keyframes fo-boot-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+
+.fo-scroll-shade::before,
+.fo-scroll-shade::after {
+  transition: opacity var(--motion-quick) var(--ease-out);
 }

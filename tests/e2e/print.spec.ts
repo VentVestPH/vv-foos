@@ -51,10 +51,19 @@ test.describe('N9: the replica has a print stylesheet and Printable View uses it
       };
     });
     await button.click();
+    await expect
+      .poll(
+        async () => page.evaluate(() => (window as unknown as { __printed: number }).__printed),
+        {
+          timeout: 15000,
+          message: 'clicking Printable View must invoke print once the page has settled',
+        },
+      )
+      .toBe(1);
     const printed = await page.evaluate(
       () => (window as unknown as { __printed: number }).__printed,
     );
-    expect(printed, 'clicking Printable View must invoke print').toBe(1);
+    expect(printed, 'it must print once, not once per settle poll').toBe(1);
     await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
   });
 

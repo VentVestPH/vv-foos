@@ -108,7 +108,14 @@ export function PromoteContactPage() {
     : 'Hired candidate (name visible once promoted)';
 
   return (
-    <RecordPage title="Promote hired candidate to contact">
+    <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Contacts', to: '/sales/contacts' },
+        { label: 'Promote hired candidate' },
+      ]}
+      title="Promote hired candidate to contact"
+    >
       <RecordSection title="Promotion">
         <p>
           <strong>{displayName}</strong> was hired

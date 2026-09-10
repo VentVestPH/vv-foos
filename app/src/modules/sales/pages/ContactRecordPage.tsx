@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useBackToList, useListLink } from '../../../lib/listReturn';
+import { useListLink, useListReturnHref } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
@@ -10,7 +10,7 @@ import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { Table } from '../../../components/ui/Table';
-import { CircleArrowUp, Contact as ContactCardIcon } from 'lucide-react';
+import { Contact as ContactCardIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { Modal } from '../components/Modal';
 import { useCanEditCrm, useCompanyOptions } from '../hooks';
@@ -38,7 +38,7 @@ export function ContactRecordPage() {
   const [profile, setProfile] = useState<ContactProfile | null>(null);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const backToList = useBackToList('/sales/contacts');
+  const listHref = useListReturnHref('/sales/contacts');
   const openRecord = useListLink();
 
   const [editing, setEditing] = useState(false);
@@ -214,25 +214,22 @@ export function ContactRecordPage() {
 
   return (
     <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Contacts', to: listHref },
+        { label: personName(person) },
+      ]}
       title={personName(person)}
       icon={<ContactCardIcon size={32} />}
       titleExtras={
         <span className="sales-badges">
-          <Badge tone="neutral">contact</Badge>
+          <Badge tone="neutral">Contact</Badge>
           {profile.is_primary && <Badge tone="primary">primary</Badge>}
           {person.is_test && <Badge tone="warning">TEST</Badge>}
         </span>
       }
       actionBar={
         <>
-          <button
-            type="button"
-            className="link-btn fo-back-to-list"
-            onClick={backToList}
-          >
-            <CircleArrowUp size={20} aria-hidden="true" />
-            Back To List
-          </button>
           <Button
             size="sm"
             disabled={emails.length === 0}

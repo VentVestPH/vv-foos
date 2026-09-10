@@ -363,6 +363,7 @@ export function DealsListPage() {
   return (
     <>
       <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Deals' }]}
         title="Deals"
         icon={<BriefcaseIcon size={32} />}
         description="Deals are the sales opportunities you are working with companies and contacts to close."

@@ -1,6 +1,7 @@
 import {
   createContext,
   useCallback,
+  useEffect,
   useContext,
   useMemo,
   useRef,
@@ -58,6 +59,12 @@ export function SectionCollapseProvider({ children }: { children: ReactNode }) {
     () => ({ register, report, setAll }),
     [register, report, setAll],
   );
+
+  useEffect(() => {
+    const expand = () => setAll(true);
+    window.addEventListener('beforeprint', expand);
+    return () => window.removeEventListener('beforeprint', expand);
+  }, [setAll]);
 
   const state = useMemo<SectionCollapseState>(() => {
     const keys = Object.keys(openByKey);

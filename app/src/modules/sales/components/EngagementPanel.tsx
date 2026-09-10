@@ -19,6 +19,8 @@ import {
 } from '../lib';
 import { Modal } from './Modal';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
+import { BellRing, ListChecks, MessageSquare, Paperclip } from 'lucide-react';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 type EngagementParent = 'person' | 'company' | 'deal';
 
@@ -56,7 +58,7 @@ function ActivityList({
   return (
     <>
       {items.length === 0 ? (
-        <div className="sales-panel-empty">{emptyText}</div>
+        <EmptyState compact icon={<MessageSquare size={32} />} title={emptyText} />
       ) : (
         <ul className="sales-panel-list">
           {items.map((a) => (
@@ -315,7 +317,12 @@ export function EngagementPanel({
               count: tasks.filter((t) => t.status !== 'done').length,
               content:
                 tasks.length === 0 ? (
-                  <div className="sales-panel-empty">No tasks.</div>
+                  <EmptyState
+                    compact
+                    icon={<ListChecks size={32} />}
+                    title="No tasks yet"
+                    hint="Add one above to track follow-up work on this record."
+                  />
                 ) : (
                   <ul className="sales-panel-list">
                     {tasks.map((t) => (
@@ -349,7 +356,12 @@ export function EngagementPanel({
               count: reminders.filter((r) => r.status === 'pending').length,
               content:
                 reminders.length === 0 ? (
-                  <div className="sales-panel-empty">No reminders.</div>
+                  <EmptyState
+                    compact
+                    icon={<BellRing size={32} />}
+                    title="No reminders yet"
+                    hint="Set one above and it will fire at the time you pick."
+                  />
                 ) : (
                   <ul className="sales-panel-list">
                     {reminders.map((r) => (
@@ -386,7 +398,12 @@ export function EngagementPanel({
               count: attachments.length,
               content:
                 attachments.length === 0 ? (
-                  <div className="sales-panel-empty">No files.</div>
+                  <EmptyState
+                    compact
+                    icon={<Paperclip size={32} />}
+                    title="No files yet"
+                    hint="Choose a file above, then press Upload to attach it."
+                  />
                 ) : (
                   <ul className="sales-panel-list">
                     {attachments.map((f) => (

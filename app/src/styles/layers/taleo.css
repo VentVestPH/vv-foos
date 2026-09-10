@@ -4,23 +4,24 @@
   padding: var(--section-pad);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
+  gap: var(--sp-1);
 }
 
-.list-page[data-flush='true'] > .fo-page-head,
-.record-page > .fo-page-head {
+.list-page[data-flush='true'] > .fo-page-head:has(+ .fo-page-toolbar),
+.record-page > .fo-page-head:has(+ .fo-page-toolbar) {
   border-bottom: 0;
   padding-bottom: 0;
 }
 
-.record-page > .fo-page-toolbar {
+.record-page > .fo-page-toolbar,
+.record-page > form > .fo-page-toolbar:first-child {
   margin-top: calc(-1 * var(--sp-2));
 }
 
 .fo-page-toolbar {
   position: sticky;
   top: calc(-1 * var(--shell-content-pad));
-  z-index: 15;
+  z-index: 8;
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);
   border-top: 0;
@@ -131,7 +132,7 @@
   white-space: nowrap;
 }
 
-.fo-search-row input {
+.fo-search-row .fo-search-input-wrap input {
   flex: 1;
   min-width: 160px;
 }
@@ -353,16 +354,15 @@
   justify-content: center;
   width: var(--control-h);
   height: var(--control-h);
-  background: var(--fo-surface);
-  border: 1px solid var(--fo-primary);
-  color: var(--fo-primary);
-  border-radius: 2px;
+  background: none;
+  border: none;
+  color: var(--fo-icon);
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
 .fo-gear-btn:hover:not(:disabled) {
-  color: var(--fo-primary-hover);
-  border-color: var(--fo-primary-hover);
+  color: var(--fo-primary);
 }
 
 .fo-placeholder-overlay {
@@ -449,7 +449,6 @@
 .fo-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
   padding: var(--section-pad);
   color: var(--text);
   font-size: var(--fs-body);
@@ -460,13 +459,13 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-2) var(--sp-2);
+  padding: 0 var(--sp-2) var(--sp-2);
 }
 
 .fo-dialog-hint {
   color: var(--fo-text-secondary);
   font-size: var(--fs-meta);
-  margin: 0 0 var(--sp-1);
+  margin: 0 0 var(--sp-2);
 }
 
 .fo-module-placeholder-note {
@@ -506,11 +505,6 @@
   color: var(--fo-text-secondary);
   font-size: var(--fs-body);
   margin-left: var(--sp-1);
-}
-
-.fo-switch-dashboard-link {
-  display: inline-flex;
-  align-items: center;
 }
 
 .dash-widgets-panel .dash-home-head {

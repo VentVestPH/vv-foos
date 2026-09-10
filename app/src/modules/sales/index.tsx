@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { RouteSkeleton } from '../../components/ui/PageSkeleton';
 import type { StaffRole } from '../../lib/database.types';
 import './sales.css';
 import { HiredPromotionListener } from './components/HiredPromotionListener';
@@ -47,7 +48,7 @@ export function SalesRoutes() {
         <Route
           path="contacts/:personId"
           element={
-            <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+            <Suspense fallback={<RouteSkeleton />}>
               <ContactRecordPage />
             </Suspense>
           }

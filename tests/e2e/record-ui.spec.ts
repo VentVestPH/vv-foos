@@ -139,7 +139,7 @@ test.describe('Recently Viewed rail (2.10)', () => {
     const types = (
       await rail.locator('.fo-recent-item .fo-recent-type').allInnerTexts()
     ).map((text) => text.trim());
-    expect(types, 'the rail lists the newest open first').toEqual(['candidate', 'company']);
+    expect(types, 'the rail lists the newest open first').toEqual(['Candidate', 'Company']);
   });
 
   test('2.10 the rail never shows more than the records-to-keep setting', async ({ page }) => {
@@ -147,7 +147,7 @@ test.describe('Recently Viewed rail (2.10)', () => {
     await page.locator('.table-wrap .link-btn').first().click();
     await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
     const rail = page.locator('aside, .fo-sidebar').first();
-    await expect(rail).toContainText(/candidate/, { timeout: 15000 });
+    await expect(rail).toContainText(/candidate/i, { timeout: 15000 });
 
     await page.getByRole('button', { name: 'Configure Recently Viewed' }).click();
     const popover = page.locator('.fo-recent-settings');

@@ -44,8 +44,20 @@ interface PagerProps {
 }
 
 export function Pager({ from, to, total, page, pageCount, onPage, totalPending }: PagerProps) {
+  const single = pageCount <= 1;
+  const empty = total === 0;
   const atStart = page === 0;
   const atEnd = page >= pageCount - 1;
+  const startTitle = empty
+    ? 'There are no rows to page through'
+    : single
+      ? 'There is only one page'
+      : 'You are on the first page';
+  const endTitle = empty
+    ? 'There are no rows to page through'
+    : single
+      ? 'There is only one page'
+      : 'You are on the last page';
   const countLabel =
     total === null
       ? to > 0
@@ -57,60 +69,52 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
 
   return (
     <div className="fo-pager">
-      {pageCount > 1 && (
-        <span className="fo-pager-controls">
-          <button
-            type="button"
-            onClick={() => onPage(0)}
-            disabled={atStart}
-            aria-label="First page"
-            title={atStart ? 'You are on the first page' : 'First page'}
-          >
-            <ChevronsLeft size={24} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onPage(page - 1)}
-            disabled={atStart}
-            aria-label="Previous page"
-            title={atStart ? 'You are on the first page' : 'Previous page'}
-          >
-            <ChevronLeft size={24} aria-hidden="true" />
-          </button>
-        </span>
-      )}
+      <span className="fo-pager-controls">
+        <button
+          type="button"
+          onClick={() => onPage(0)}
+          disabled={atStart}
+          aria-label="First page"
+          title={atStart ? startTitle : 'First page'}
+        >
+          <ChevronsLeft size={24} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onPage(page - 1)}
+          disabled={atStart}
+          aria-label="Previous page"
+          title={atStart ? startTitle : 'Previous page'}
+        >
+          <ChevronLeft size={24} aria-hidden="true" />
+        </button>
+      </span>
       <span className="fo-pager-count">{countLabel}</span>
-      {pageCount > 1 && (
-        <span className="fo-pager-controls">
-          <button
-            type="button"
-            onClick={() => onPage(page + 1)}
-            disabled={atEnd}
-            aria-label="Next page"
-            title={atEnd ? 'You are on the last page' : 'Next page'}
-          >
-            <ChevronRight size={24} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onPage(pageCount - 1)}
-            disabled={atEnd || totalPending === true}
-            aria-label="Last page"
-            title={
-              totalPending === true
-                ? 'Still counting the rows'
-                : atEnd
-                  ? 'You are on the last page'
-                  : 'Last page'
-            }
-          >
-            <ChevronsRight size={24} aria-hidden="true" />
-          </button>
-          <span className="fo-pager-pos" aria-live="polite">
-            {page + 1} / {totalPending === true ? '?' : pageCount}
-          </span>
+      <span className="fo-pager-controls">
+        <button
+          type="button"
+          onClick={() => onPage(page + 1)}
+          disabled={atEnd}
+          aria-label="Next page"
+          title={atEnd ? endTitle : 'Next page'}
+        >
+          <ChevronRight size={24} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onPage(pageCount - 1)}
+          disabled={atEnd || totalPending === true}
+          aria-label="Last page"
+          title={
+            totalPending === true ? 'Still counting the rows' : atEnd ? endTitle : 'Last page'
+          }
+        >
+          <ChevronsRight size={24} aria-hidden="true" />
+        </button>
+        <span className="fo-pager-pos" aria-live="polite">
+          {empty ? 0 : page + 1} / {totalPending === true ? '?' : empty ? 0 : pageCount}
         </span>
-      )}
+      </span>
     </div>
   );
 }

@@ -8,7 +8,11 @@ import { DataExportCard } from './DataExportCard';
 
 export function SettingsPage() {
   return (
-    <RecordPage title="Administration: Settings" icon={<GearIcon size={32} />}>
+    <RecordPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Settings' }]}
+      title="Administration: Settings"
+      icon={<GearIcon size={32} />}
+    >
       <RecordSection title="Google Integration:">
         <GoogleIntegrationCard />
         <EmailTemplatesCard />

@@ -11,10 +11,13 @@ import {
 
 const EXIT_MS = 140;
 
+const NARROW_QUERY = '(max-width: 900px)';
+
 interface AdvancedSearchApi {
   node: ReactNode;
   open: boolean;
   closing: boolean;
+  narrow: boolean;
   columnFocusRequest: number;
   publish: (node: ReactNode) => void;
   reset: () => void;
@@ -31,6 +34,16 @@ export function AdvancedSearchProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [columnFocusRequest, setColumnFocusRequest] = useState(0);
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_QUERY);
+    const onChange = () => setNarrow(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   const timer = useRef<number | null>(null);
 
@@ -83,6 +96,7 @@ export function AdvancedSearchProvider({ children }: { children: ReactNode }) {
       node,
       open,
       closing,
+      narrow,
       columnFocusRequest,
       publish,
       reset,
@@ -95,6 +109,7 @@ export function AdvancedSearchProvider({ children }: { children: ReactNode }) {
       node,
       open,
       closing,
+      narrow,
       columnFocusRequest,
       publish,
       reset,

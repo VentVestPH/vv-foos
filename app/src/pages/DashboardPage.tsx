@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useSession } from '../auth/SessionProvider';
 import { RecordSection } from '../components/ui/RecordPage';
 import { CollapseAllButton } from '../components/ui/SectionCollapse';
@@ -9,12 +8,12 @@ import {
   ChartPie as PieChartIcon,
   Funnel as PipelineIcon,
   House as HomeIcon,
-  Settings as GearIcon,
 } from 'lucide-react';
 import { DashboardWidgetsPanel, useDashboardWidgetSections } from '../modules/dashboards';
 import { DateRangeFilter } from '../modules/dashboards/components/DateRangeFilter';
 import { DEFAULT_RANGE, type DateRange } from '../modules/dashboards/lib';
 import { SectionSettingsDialog } from '../components/ui/SectionSettingsDialog';
+import { SettingsButton } from '../components/ui/SettingsButton';
 import { useSectionPrefs } from '../hooks/useSectionPrefs';
 import { MyCalendar } from './MyCalendar';
 import { MyInterviews } from './MyInterviews';
@@ -23,6 +22,7 @@ import { NewCalendarEntryDialog } from './NewCalendarEntryDialog';
 import { MyReminders } from './MyReminders';
 import { MyTasks } from './MyTasks';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
 export type DashboardView = 'myview' | 'pipeline' | 'reports';
 
@@ -66,20 +66,11 @@ function MyViewTab() {
               My View: {staffName} ({roleLabel} at VentVest)
             </h1>
             <div className="fo-page-header-actions">
-              <Link to="/pipeline" className="fo-switch-dashboard-link">
-                <Button size="sm" variant="secondary">
-                  Switch to My Dashboard
-                </Button>
-              </Link>
               <CollapseAllButton />
-              <button
-                type="button"
-                className="fo-gear-btn"
-                aria-label="Dashboard settings"
+                            <SettingsButton
+                label="Dashboard settings"
                 onClick={() => setSettingsOpen(true)}
-              >
-                <GearIcon size={20} />
-              </button>
+              />
             </div>
           </div>
         </div>
@@ -166,9 +157,13 @@ function MyViewTab() {
 }
 
 function PipelineTab() {
+  const sections = useDashboardWidgetSections();
+  const prefs = useSectionPrefs('dashboard.pipeline');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [range, setRange] = useState<DateRange>(DEFAULT_RANGE);
   return (
     <div className="list-page">
+      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Pipeline' }]} />
       <div className="fo-page-header">
         <span className="fo-page-icon">
           <PipelineIcon size={32} />
@@ -177,12 +172,12 @@ function PipelineTab() {
           <div className="fo-page-header-title-row">
             <h1>Pipeline: Home</h1>
             <div className="fo-page-header-actions">
-              <Link to="/" className="fo-switch-dashboard-link">
-                <Button size="sm" variant="secondary">
-                  Switch to My View
-                </Button>
-              </Link>
               <CollapseAllButton />
+                            <SettingsButton
+                label="Pipeline settings"
+                title="Choose which sections appear"
+                onClick={() => setSettingsOpen(true)}
+              />
             </div>
           </div>
           <p className="fo-page-desc">
@@ -197,7 +192,21 @@ function PipelineTab() {
         </div>
       </div>
 
-      <DashboardWidgetsPanel range={range} onRangeChange={setRange} />
+      {settingsOpen && (
+        <SectionSettingsDialog
+          title="Pipeline settings"
+          hint="Choose which sections appear on Pipeline. The choice is saved to your account."
+          sections={sections}
+          prefs={prefs}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      <DashboardWidgetsPanel
+        isSectionHidden={prefs.isHidden}
+        range={range}
+        onRangeChange={setRange}
+      />
     </div>
   );
 }
@@ -209,6 +218,7 @@ function ReportsTab() {
 
   return (
     <div className="list-page">
+      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Run Report' }]} />
       <div className="fo-page-header">
         <span className="fo-page-icon">
           <PieChartIcon size={32} />
@@ -217,11 +227,6 @@ function ReportsTab() {
           <div className="fo-page-header-title-row">
             <h1>Run Report</h1>
             <div className="fo-page-header-actions">
-              <Link to="/" className="fo-switch-dashboard-link">
-                <Button size="sm" variant="secondary">
-                  Switch to My View
-                </Button>
-              </Link>
               <CollapseAllButton />
             </div>
           </div>
@@ -250,14 +255,11 @@ function ReportsTab() {
         <PlaceholderAction label="Requisition" variant="ghost" className="fo-report-tab" />
         <PlaceholderAction label="Compliance" variant="ghost" className="fo-report-tab" />
         <PlaceholderAction label="More" variant="ghost" caret className="fo-report-tab" />
-        <button
-          type="button"
-          className="fo-gear-btn fo-report-tab-gear"
-          aria-label="Configure report categories"
+                <SettingsButton
+          label="Configure report categories"
+          className="fo-report-tab-gear"
           onClick={() => setSettingsOpen(true)}
-        >
-          <GearIcon size={20} />
-        </button>
+        />
       </div>
 
       {settingsOpen && (

@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { Breadcrumbs, type BreadcrumbItem } from './Breadcrumbs';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { CollapseAllButton, useSectionCollapse } from './SectionCollapse';
 
@@ -13,6 +14,10 @@ interface RecordPageProps {
 
   backTo?: ReactNode;
 
+  breadcrumbs?: BreadcrumbItem[];
+
+  headerActions?: ReactNode;
+
   actionBar?: ReactNode;
   children: ReactNode;
 }
@@ -23,6 +28,8 @@ export function RecordPage({
   icon,
   titleExtras,
   backTo,
+  breadcrumbs,
+  headerActions,
   actionBar,
   children,
 }: RecordPageProps) {
@@ -31,10 +38,14 @@ export function RecordPage({
   return (
     <div className="record-page">
       <div className="fo-page-head">
-        {(backTo || code) && (
+        {(backTo || code || breadcrumbs) && (
           <div className="record-breadcrumb">
             {backTo}
-            {code && <span className="record-code">{code}</span>}
+            {breadcrumbs ? (
+              <Breadcrumbs items={breadcrumbs} />
+            ) : (
+              code && <span className="record-code">{code}</span>
+            )}
           </div>
         )}
         <div className="fo-page-header">
@@ -45,6 +56,7 @@ export function RecordPage({
               {titleExtras}
               <div className="fo-page-header-actions">
                 <CollapseAllButton />
+                {headerActions}
               </div>
             </div>
           </div>
@@ -66,6 +78,7 @@ interface RecordSectionProps {
   id?: string;
   count?: number;
   empty?: boolean;
+  hidden?: boolean;
   children: ReactNode;
 }
 
@@ -75,6 +88,7 @@ export function RecordSection({
   id,
   count,
   empty = false,
+  hidden = false,
   children,
 }: RecordSectionProps) {
   const startOpen = empty ? false : defaultOpen;
@@ -109,6 +123,12 @@ export function RecordSection({
     bus?.report(key, open);
   }, [bus, key, open]);
 
+  useEffect(() => {
+    if (userToggled.current) return;
+    setOpen(startOpen);
+    if (startOpen) setEverOpened(true);
+  }, [startOpen]);
+
   useLayoutEffect(() => {
     const node = bodyRef.current;
     if (!node || !everOpened) return;
@@ -128,6 +148,8 @@ export function RecordSection({
   };
 
   const rows = !open ? '0px' : contentHeight === null ? 'auto' : `${contentHeight}px`;
+
+  if (hidden) return null;
 
   return (
     <section className="record-section" data-open={open ? 'true' : 'false'} id={id}>

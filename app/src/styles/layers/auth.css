@@ -62,3 +62,67 @@
   width: 16px;
   height: 16px;
 }
+
+.fo-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-3);
+  background: var(--canvas);
+}
+
+.fo-boot-card {
+  width: 420px;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-raised);
+  padding: var(--sp-4);
+  text-align: center;
+}
+
+.fo-boot-logo {
+  width: 180px;
+  height: auto;
+  margin: 0 auto var(--sp-3);
+  display: block;
+}
+
+.fo-boot-title {
+  font-size: var(--fs-section);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.fo-boot-message {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  margin: var(--sp-half) 0 0;
+}
+
+.fo-boot-bar {
+  margin-top: var(--sp-3);
+  height: var(--sp-half);
+  border-radius: 999px;
+  background: var(--fo-row-hover);
+  overflow: hidden;
+}
+
+.fo-boot-bar-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--fo-row-hover) 0%,
+    var(--fo-primary) 50%,
+    var(--fo-row-hover) 100%
+  );
+  background-size: 200% 100%;
+}

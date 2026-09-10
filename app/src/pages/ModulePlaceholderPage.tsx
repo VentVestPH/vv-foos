@@ -13,6 +13,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { supabase } from '../lib/supabase';
 import { EMPTY_CELL } from '../lib/format';
 import type { StaffRole } from '../lib/database.types';
+import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
 type ModuleKey = 'employees' | 'onboard' | 'users' | 'courses';
 
@@ -173,6 +174,9 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
 
   return (
     <div className="list-page">
+      <Breadcrumbs
+        items={[{ label: 'Home', to: '/' }, { label: config.title.replace(/: Home$/, '') }]}
+      />
       <div className="fo-page-header">
         <span className="fo-page-icon">{config.icon}</span>
         <div className="fo-page-header-text">
@@ -193,6 +197,7 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
           onValueChange={() => undefined}
           ariaLabel={`Search ${config.title}`}
           placeholder="Searching is not available yet"
+          title="Searching is not available yet"
           disabled
         />
       )}

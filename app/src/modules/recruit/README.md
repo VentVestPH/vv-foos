@@ -57,6 +57,21 @@ and marks that application viewed for the current staff user.
   `<parent_type>/<parent_id>/<timestamp>_<name>`; reads use signed URLs.
 - Saved views persist to `ats_saved_views` (filters + visible columns + sort),
   one row per staff user per named view, entity `requisition` or `candidate`.
+  The `columns` array is **ordered**: the requisition list keeps a `columnOrder`
+  plus a `hiddenCols` set, and the table, the CSV export and the Advanced Search
+  column list all render in that order. Saving a view therefore captures the
+  arrangement as well as the visibility; applying one puts the saved columns
+  first and pushes the rest to the end, hidden. Saved views do not carry the
+  search term.
+- The requisition list's search is debounced by 2000ms and the timer restarts on
+  every keystroke, insertion or deletion alike. The magnifying glass and Enter
+  bypass the wait through `ListPage`'s `onSearchSubmit`.
+- Per-staff accordion preferences on the requisition record live in
+  `integration_settings` under `ui.sections.recruit.requisition.record`, holding
+  both `hidden` and an `open` map. `REQ_SECTION_DEFAULT_OPEN` in
+  `RequisitionRecordPage.tsx` is the single source of truth for the section list
+  and for which ones open by default; the settings dialog and every
+  `RecordSection` read from it.
 - Legal requisition transitions: draft → waiting_approval → open → on_hold →
   filled → closed, plus open ↔ on_hold, open → filled/closed, on_hold →
   filled, and waiting_approval → draft on any approver rejection.

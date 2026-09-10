@@ -10,6 +10,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ActivityKind } from '../../lib/database.types';
+import { History } from 'lucide-react';
+import { EmptyState } from './EmptyState';
 
 export interface TimelineItem {
   id: string;
@@ -67,7 +69,14 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
   const [visible, setVisible] = useState(INITIAL_VISIBLE);
 
   if (items.length === 0) {
-    return <div className="timeline-empty">No activity yet.</div>;
+    return (
+      <EmptyState
+        compact
+        icon={<History size={32} />}
+        title="No activity yet"
+        hint="Calls, notes, meetings and status changes appear here as they happen."
+      />
+    );
   }
 
   const sorted = [...items].sort(

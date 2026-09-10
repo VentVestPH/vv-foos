@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { sentenceCase } from '../../lib/format';
 
 export type BadgeTone =
   | 'neutral'
@@ -53,5 +54,5 @@ function statusTone(status: string): BadgeTone {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  return <Badge tone={statusTone(status)}>{status.replace(/_/g, ' ')}</Badge>;
+  return <Badge tone={statusTone(status)}>{sentenceCase(status)}</Badge>;
 }

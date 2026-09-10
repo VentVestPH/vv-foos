@@ -1,6 +1,7 @@
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent,
@@ -129,7 +130,7 @@ function CalendarDialog({
   const [placement, setPlacement] = useState<PickerPlacement | null>(null);
   const [view, setView] = useState<'day' | 'month' | 'year'>('day');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const reposition = () => {
       const rect = anchor.current?.getBoundingClientRect();
       if (!rect) return;
@@ -205,7 +206,7 @@ function CalendarDialog({
         aria-labelledby={titleId}
         style={
           placement === null
-            ? { visibility: 'hidden' }
+            ? { opacity: 0, pointerEvents: 'none' }
             : { left: `${placement.left}px`, top: `${placement.top}px` }
         }
         onKeyDown={(event) => {

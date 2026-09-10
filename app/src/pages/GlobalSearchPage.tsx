@@ -8,6 +8,7 @@ import { Search as SearchIcon, SearchX as NoResultsIcon } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
 import { SearchBox } from '../components/ui/SearchBox';
 import { useMinimumVisible } from '../hooks/useMinimumVisible';
+import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
 const LIMIT = 25;
 const MORE_STEP = 50;
@@ -370,6 +371,7 @@ export function GlobalSearchPage() {
 
   return (
     <div className="record-page">
+      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Search' }]} />
       <div className="fo-page-header">
         <span className="fo-page-icon">
           <SearchIcon size={32} />

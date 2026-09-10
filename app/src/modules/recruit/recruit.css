@@ -102,7 +102,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  max-width: 920px;
 }
 
 .rq-form-grid {
@@ -176,7 +175,14 @@
 
 @media (max-width: 1100px) {
   .info-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .info-item {
+    display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: var(--sp-1);
+    align-items: baseline;
   }
 
   .info-item:nth-child(even) > dt {
@@ -272,56 +278,8 @@
   margin-bottom: var(--sp-2);
 }
 
-.pipeline-toggle {
-  position: relative;
-  display: inline-flex;
-  border: 1px solid var(--fo-border);
-  border-radius: var(--radius);
-  background: var(--fo-canvas);
-  padding: 2px;
+.rq-pipeline-view {
   margin-left: auto;
-}
-
-.pipeline-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  bottom: 2px;
-  left: 2px;
-  width: calc(50% - 2px);
-  border-radius: var(--radius);
-  background: var(--fo-primary);
-}
-
-.pipeline-toggle[data-view='kanban'] .pipeline-toggle-thumb {
-  transform: translateX(100%);
-}
-
-.pipeline-toggle button {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-half);
-  flex: 1 0 auto;
-  min-width: 88px;
-  min-height: 28px;
-  border: none;
-  background: none;
-  font-family: inherit;
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  padding: 0 var(--sp-1);
-  cursor: pointer;
-  color: var(--fo-text-secondary);
-}
-
-.pipeline-toggle button:hover:not(.active) {
-  color: var(--fo-primary);
-}
-
-.pipeline-toggle button.active {
-  color: var(--fo-surface);
 }
 
 .shortlist-btn {
@@ -439,13 +397,39 @@
 
 .rq-editor-toolbar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: var(--sp-1);
   padding: var(--sp-half);
   border: 1px solid var(--border);
-  border-bottom: none;
   border-radius: var(--radius) var(--radius) 0 0;
   background: var(--fo-canvas, var(--canvas));
+  margin-bottom: calc(-1 * var(--field-label-gap));
+}
+
+.rq-editor-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.rq-editor-view {
+  margin-left: auto;
+}
+
+.rq-description-preview {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface);
+  padding: var(--cell-pad);
+  min-height: 176px;
+  overflow-y: auto;
+}
+
+.rq-description-preview > p {
+  font-size: var(--fs-body);
+  margin: 0;
 }
 
 .rq-editor-toolbar-btn {
@@ -455,8 +439,7 @@
 }
 
 .rq-form textarea#req-description {
-  border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius);
+  border-top: 0;
 }
 
 .cand-flag-col {

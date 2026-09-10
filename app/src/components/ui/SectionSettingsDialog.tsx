@@ -1,12 +1,14 @@
 import { Button } from './Button';
-import { Dialog } from './Dialog';
+import { SettingsDialog } from './SettingsDialog';
 import type { SectionPrefs } from '../../hooks/useSectionPrefs';
+import { useScrollShadow } from '../../hooks/useScrollShadow';
 
 interface SectionSettingsDialogProps {
   title: string;
   hint: string;
   sections: string[];
   prefs: SectionPrefs;
+  defaultOpenFor?: (section: string) => boolean;
   onClose: () => void;
 }
 
@@ -15,21 +17,17 @@ export function SectionSettingsDialog({
   hint,
   sections,
   prefs,
+  defaultOpenFor,
   onClose,
 }: SectionSettingsDialogProps) {
+  const listShadow = useScrollShadow<HTMLDivElement>();
   const hiddenCount = sections.filter((section) => prefs.isHidden(section)).length;
 
   return (
-    <Dialog
+    <SettingsDialog
       title={title}
+      hint={hint}
       onClose={onClose}
-      overlayClass="fo-dialog-overlay"
-      panelClass="fo-dialog-panel"
-      headClass="fo-dialog-head"
-      bodyClass="fo-dialog-body"
-      footClass="fo-dialog-foot"
-      closeClass="fo-dialog-x"
-      closeLabel="Close dialog"
       footer={(dismiss) => (
         <>
           <Button
@@ -46,20 +44,39 @@ export function SectionSettingsDialog({
         </>
       )}
     >
-      <p className="fo-dialog-hint">{hint}</p>
       {prefs.error && <p className="form-error">{prefs.error}</p>}
-      <div className="checkbox-list">
-        {sections.map((section) => (
-          <label key={section} className="checkline">
-            <input
-              type="checkbox"
-              checked={!prefs.isHidden(section)}
-              onChange={() => prefs.toggle(section)}
-            />
-            {section}
-          </label>
-        ))}
+      <div className="fo-section-row fo-section-row-head" aria-hidden="true">
+        <span>Section</span>
+        <span>Open on load</span>
       </div>
-    </Dialog>
+      <div className="checkbox-list fo-scroll-shade" ref={listShadow}>
+        {sections.map((section) => {
+          const shown = !prefs.isHidden(section);
+          const fallback = defaultOpenFor?.(section) ?? true;
+          return (
+            <div key={section} className="fo-section-row">
+              <label className="checkline">
+                <input
+                  type="checkbox"
+                  checked={shown}
+                  onChange={() => prefs.toggle(section)}
+                />
+                {section}
+              </label>
+              <label className="checkline fo-section-row-open">
+                <input
+                  type="checkbox"
+                  checked={shown && prefs.opensOnLoad(section, fallback)}
+                  disabled={!shown}
+                  title={shown ? undefined : 'Show the section first'}
+                  onChange={() => prefs.toggleOpensOnLoad(section, fallback)}
+                />
+                <span className="visually-hidden">{`Open ${section} on page load`}</span>
+              </label>
+            </div>
+          );
+        })}
+      </div>
+    </SettingsDialog>
   );
 }

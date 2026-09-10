@@ -131,7 +131,15 @@ export function DealNewPage() {
   };
 
   return (
-    <RecordPage title="Deals: New Deal" icon={<BriefcaseIcon size={32} />}>
+    <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Deals', to: '/sales/deals' },
+        { label: 'New deal' },
+      ]}
+      title="Deals: New Deal"
+      icon={<BriefcaseIcon size={32} />}
+    >
       <form className="sales-form" noValidate onSubmit={submit}>
         <div className="sales-form-grid">
           <div className="sales-span-2">

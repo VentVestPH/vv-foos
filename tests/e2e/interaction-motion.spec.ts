@@ -334,7 +334,9 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/recruit/candidates');
 
-    const toggle = page.getByRole('button', { name: 'Search these records' });
+    const toggle = page
+      .getByRole('button', { name: 'Advanced Search', disabled: false })
+      .first();
     await expect(toggle).toBeVisible({ timeout: 25000 });
     const rail = page.locator('.filter-rail');
     await expect(rail).toHaveCount(0);
@@ -343,7 +345,7 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     await expect(rail).toHaveCount(1);
     expect(await rail.evaluate((el) => getComputedStyle(el).animationName)).toBe('panel-fade-in');
 
-    await page.getByRole('button', { name: 'Hide search options' }).click();
+    await toggle.click();
     const mid = await page.evaluate(() => {
       const el = document.querySelector('.filter-rail');
       return { mounted: !!el, closing: el?.getAttribute('data-closing') ?? null };

@@ -16,6 +16,7 @@ import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useCanEditCrm, useStaffList } from '../hooks';
 import { fmtDate } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
+import { sentenceCase } from '../../../lib/format';
 
 const COMPANY_PAGE_SIZE = 20;
 const COMPANY_EXPORT_PAGE_SIZE = 1000;
@@ -173,7 +174,7 @@ export function CompaniesListPage() {
         <span className="sales-badges">
           {c.types.map((t: string) => (
             <Badge key={t} tone={t === 'client' ? 'primary' : 'neutral'}>
-              {t}
+              {sentenceCase(t)}
             </Badge>
           ))}
         </span>
@@ -238,6 +239,7 @@ export function CompaniesListPage() {
 
   return (
     <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Accounts' }]}
       title="Accounts"
       icon={<HandshakeIcon size={32} />}
       description="Accounts are the companies and organizations involved with your business such as employers, customers, search firms, agencies, etc."

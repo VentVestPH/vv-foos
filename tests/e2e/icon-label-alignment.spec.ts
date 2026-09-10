@@ -24,9 +24,12 @@ test('K6: every icon is vertically centred on its label', async ({ page }) => {
           node = walker.nextNode();
         }
         if (!textNode) continue;
+        const stacked = host.querySelector('.fo-recent-text');
         const range = document.createRange();
         range.selectNodeContents(textNode);
-        const tr = range.getBoundingClientRect();
+        const tr = stacked === null
+          ? range.getBoundingClientRect()
+          : stacked.getBoundingClientRect();
         const ir = svg.getBoundingClientRect();
         if (ir.height === 0 || tr.height === 0) continue;
         const delta = Math.round((ir.top + ir.height / 2) - (tr.top + tr.height / 2));

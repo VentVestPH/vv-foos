@@ -46,6 +46,7 @@ export function SearchBox({
   ariaLabel = 'Search everything',
   className,
 }: SearchBoxProps) {
+  const hintListRef = useScrollShadow<HTMLUListElement>();
   const navigate = useNavigate();
   const [hints, setHints] = useState<Hint[]>([]);
   const [hintTotal, setHintTotal] = useState(0);
@@ -54,7 +55,6 @@ export function SearchBox({
   const closeHints = useCallback(() => setHintsOpen(false), []);
   const hintBox = useDismissable(hintsOpen, closeHints, scopeRef);
   useOutsideClose(hintsOpen, hintBox.requestClose, scopeRef);
-  const hintListRef = useScrollShadow<HTMLUListElement>();
   const hintRun = useRef(0);
   const hintTimer = useRef<number | null>(null);
   const userTyped = useRef(false);
@@ -217,8 +217,7 @@ export function SearchBox({
       >
         {hintsOpen && hints.length > 0 && (
           <div className="fo-hint-pop" data-closing={hintBox.closing ? 'true' : undefined}>
-            <div className="fo-scroll-fade">
-              <ul className="fo-hint-list" ref={hintListRef} aria-label="Suggested results">
+            <ul className="fo-hint-list fo-scroll-shade" ref={hintListRef} aria-label="Suggested results">
                 {hints.map((hint) => (
                   <li key={hint.key}>
                     <Link className="fo-hint" to={hint.href} onClick={closeHints}>
@@ -228,8 +227,7 @@ export function SearchBox({
                     </Link>
                   </li>
                 ))}
-              </ul>
-            </div>
+            </ul>
             <button
               type="button"
               className="fo-hint-all-btn"

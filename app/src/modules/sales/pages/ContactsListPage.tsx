@@ -226,6 +226,7 @@ export function ContactsListPage() {
 
   return (
     <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Contacts' }]}
       title="Contacts"
       icon={<ContactCardIcon size={32} />}
       description="Contacts are all of the individuals outside of your organization that you need to track in Front Office OS."

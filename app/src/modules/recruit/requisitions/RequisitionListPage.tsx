@@ -27,6 +27,8 @@ type RequisitionListRow = Omit<
 >;
 import { REQ_ACTION_LABELS, REQ_TRANSITIONS, type SortState, errMsg, fmtDate } from '../lib';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
+import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialog';
+import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { useIsMobile, useLookups } from '../hooks';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 
@@ -110,6 +112,8 @@ const COLUMN_DEFS: { key: keyof ReqRow & string; header: string }[] = [
   { key: 'opened_date', header: 'Opened' },
 ];
 
+const SEARCH_DEBOUNCE_MS = 2000;
+
 const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
 const COLUMN_HEADER: Record<string, string> = Object.fromEntries(
@@ -137,6 +141,8 @@ export function RequisitionListPage() {
   const [params] = useSearchParams();
 
   const [search, setSearch] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [filters, setFilters] = useState<ReqFilters>(() => ({
     status: params.get('status') ?? '',
     companyId: params.get('company_id') ?? '',
@@ -146,7 +152,12 @@ export function RequisitionListPage() {
     dateTo: params.get('date_to') ?? '',
   }));
   const [sort, setSort] = useState<SortState | null>(null);
-  const [visibleCols, setVisibleCols] = useState<string[]>(ALL_COLUMN_KEYS);
+  const [columnOrder, setColumnOrder] = useState<string[]>(ALL_COLUMN_KEYS);
+  const [hiddenCols, setHiddenCols] = useState<string[]>([]);
+  const visibleCols = useMemo(
+    () => columnOrder.filter((key) => !hiddenCols.includes(key)),
+    [columnOrder, hiddenCols],
+  );
 
   const [reqs, setReqs] = useState<RequisitionListRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +177,7 @@ export function RequisitionListPage() {
       }
       if (filters.dateFrom) out = out.gte('opened_date', filters.dateFrom);
       if (filters.dateTo) out = out.lte('opened_date', filters.dateTo);
-      const term = search.trim().toLowerCase();
+      const term = searchTerm.trim().toLowerCase();
       if (term) out = out.ilike('search_text', `%${reqLikeLiteral(term)}%`);
 
       const sortColumn = sort ? REQ_SORT_COLUMNS[sort.key] : undefined;
@@ -177,13 +188,14 @@ export function RequisitionListPage() {
       }
       return out.order('id', { ascending: true });
     },
-    [filters, search, sort],
+    [filters, searchTerm, sort],
   );
 
   const beginLoad = useLatestOnly();
 
   const loadPage = useCallback(async () => {
     const isCurrent = beginLoad();
+    setLoading(true);
     try {
       const start = page * REQ_PAGE_SIZE;
       const { data, count, error: listErr } = await applyReqFilters(requisitionBaseQuery()).range(
@@ -205,8 +217,14 @@ export function RequisitionListPage() {
   }, [applyReqFilters, page, beginLoad]);
 
   useEffect(() => {
+    if (search === searchTerm) return undefined;
+    const timer = window.setTimeout(() => setSearchTerm(search), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [search, searchTerm]);
+
+  useEffect(() => {
     setPage(0);
-  }, [filters, search, sort]);
+  }, [filters, searchTerm, sort]);
 
   useEffect(() => {
     void loadPage();
@@ -270,7 +288,7 @@ export function RequisitionListPage() {
     [reqs],
   );
 
-  const showSkeleton = useMinimumVisible(loading && reqs.length === 0);
+  const showSkeleton = useMinimumVisible(loading);
 
   const pageCount = Math.max(1, Math.ceil(total / REQ_PAGE_SIZE));
   const pager = {
@@ -409,7 +427,10 @@ export function RequisitionListPage() {
         render: (r) => fmtDate(r.opened_date),
       },
     ];
-    return defs.filter((c) => visibleCols.includes(c.key));
+    const byKey = new Map(defs.map((c) => [c.key, c]));
+    return visibleCols
+      .map((key) => byKey.get(key))
+      .filter((c): c is (typeof defs)[number] => c !== undefined);
   }, [visibleCols, openRecord]);
 
   const currentState = useCallback(
@@ -423,16 +444,23 @@ export function RequisitionListPage() {
 
   const applyView = useCallback((state: ViewState) => {
     setFilters({ ...EMPTY_FILTERS, ...(state.filters as Partial<ReqFilters>) });
-    if (state.columns.length > 0) setVisibleCols(state.columns);
+    if (state.columns.length > 0) {
+      const rest = ALL_COLUMN_KEYS.filter((key) => !state.columns.includes(key));
+      setColumnOrder([...state.columns, ...rest]);
+      setHiddenCols(rest);
+    }
     setSort(state.sort);
   }, []);
 
-  const exportColumns = COLUMN_DEFS.filter((c) => visibleCols.includes(c.key));
+  const exportColumns = visibleCols
+    .map((key) => COLUMN_DEFS.find((c) => c.key === key))
+    .filter((c): c is (typeof COLUMN_DEFS)[number] => c !== undefined);
 
   const filtersDirty =
     Object.values(filters).some((v) => v !== '') ||
     sort !== null ||
-    visibleCols.length !== ALL_COLUMN_KEYS.length;
+    hiddenCols.length > 0 ||
+    columnOrder.some((key, i) => key !== ALL_COLUMN_KEYS[i]);
 
   const canCreate = (role === 'admin' || role === 'recruiter') && !mobile;
   const canBulk = (role === 'admin' || role === 'recruiter') && !mobile;
@@ -494,9 +522,11 @@ export function RequisitionListPage() {
       title="Requisitions"
       icon={<BriefcaseIcon size={32} />}
       description="Requisitions are all of the job openings you want to track in Front Office OS and post on your careers website."
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Requisitions' }]}
       flush
       search={search}
       onSearchChange={setSearch}
+      onSearchSubmit={setSearchTerm}
       searchPlaceholder="Search code, title, company, location…"
       savedViewsSlot={
         <SavedViewsControl
@@ -509,11 +539,18 @@ export function RequisitionListPage() {
         />
       }
       actions={
-        canCreate ? (
-          <Button variant="primary" onClick={() => navigate('/recruit/requisitions/new')}>
-            New requisition
-          </Button>
-        ) : undefined
+        <>
+          {canCreate && (
+            <Button variant="primary" onClick={() => navigate('/recruit/requisitions/new')}>
+              New requisition
+            </Button>
+          )}
+          <SettingsButton
+            label="Column settings"
+            title="Choose the column order and which columns show"
+            onClick={() => setSettingsOpen(true)}
+          />
+        </>
       }
       bulkBarOpen={canBulk && selected.size > 0}
       bulkBar={
@@ -601,19 +638,22 @@ export function RequisitionListPage() {
                 onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
               />
             </FilterGroup>
-            <FilterGroup label={`Columns (${visibleCols.length} of ${ALL_COLUMN_KEYS.length})`}>
+            <FilterGroup
+              label={`Columns (${visibleCols.length} of ${ALL_COLUMN_KEYS.length})`}
+             
+            >
               <div className="field">
                 <div className="checkbox-list">
                   {COLUMN_DEFS.map((c) => (
                     <label key={c.key} className="checkline">
                       <input
                         type="checkbox"
-                        checked={visibleCols.includes(c.key)}
+                        checked={!hiddenCols.includes(c.key)}
                         onChange={(e) =>
-                          setVisibleCols(
+                          setHiddenCols(
                             e.target.checked
-                              ? [...visibleCols, c.key]
-                              : visibleCols.filter((k) => k !== c.key),
+                              ? hiddenCols.filter((k) => k !== c.key)
+                              : [...hiddenCols, c.key],
                           )
                         }
                       />
@@ -631,7 +671,8 @@ export function RequisitionListPage() {
                 onClick={() => {
                   setFilters(EMPTY_FILTERS);
                   setSort(null);
-                  setVisibleCols(ALL_COLUMN_KEYS);
+                  setColumnOrder(ALL_COLUMN_KEYS);
+                  setHiddenCols([]);
                 }}
               >
                 Clear filters
@@ -660,7 +701,9 @@ export function RequisitionListPage() {
       />
 
       {showSkeleton ? (
-        <Skeleton variant="grid" rows={8} columns={6} label="Loading requisitions" />
+        <div className="fo-skeleton-card">
+          <Skeleton rows={8} label="Loading requisitions" />
+        </div>
       ) : (
       <Table
         columns={columns}
@@ -686,6 +729,28 @@ export function RequisitionListPage() {
         pageCount={pager.pageCount}
         onPage={pager.setPage}
       />
+      {settingsOpen && (
+        <ColumnSettingsDialog
+          title="Column settings"
+          hint="Drag a column to change where it sits, or untick it to hide it. Save a view to keep this arrangement."
+          columns={COLUMN_DEFS.map((c) => ({ key: c.key, header: c.header }))}
+          order={columnOrder}
+          hidden={hiddenCols}
+          onOrderChange={setColumnOrder}
+          onToggle={(key) =>
+            setHiddenCols(
+              hiddenCols.includes(key)
+                ? hiddenCols.filter((k) => k !== key)
+                : [...hiddenCols, key],
+            )
+          }
+          onReset={() => {
+            setColumnOrder(ALL_COLUMN_KEYS);
+            setHiddenCols([]);
+          }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </ListPage>
   );
 }

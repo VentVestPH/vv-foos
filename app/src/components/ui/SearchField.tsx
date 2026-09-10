@@ -11,6 +11,7 @@ interface SearchFieldProps {
   type?: 'text' | 'search' | undefined;
   autoFocus?: boolean | undefined;
   disabled?: boolean | undefined;
+  title?: string | undefined;
   onFocus?: (() => void) | undefined;
   trailing?: ReactNode;
   children?: ReactNode;
@@ -27,6 +28,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
     type = 'text',
     autoFocus = false,
     disabled,
+    title,
     onFocus,
     trailing,
     children,
@@ -56,6 +58,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
           autoComplete="off"
           autoFocus={autoFocus}
           disabled={disabled}
+          title={title}
         />
         {trailing === undefined && (
           <button

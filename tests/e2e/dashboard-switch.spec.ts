@@ -5,38 +5,44 @@ test.beforeEach(async ({ page }) => {
   await signIn(page, PERSONA_EMAILS.admin);
 });
 
-test('K13: Switch to My Dashboard goes somewhere, and comes back', async ({ page }) => {
+test('K13: the primary nav moves between the dashboards, and back', async ({ page }) => {
   await gotoAsSignedIn(page, '/');
   await expect(page.getByRole('heading', { name: /^My View:/ })).toBeVisible({ timeout: 25000 });
 
-  await page.getByRole('link', { name: 'Switch to My Dashboard' }).click();
+  await expect(
+    page.getByRole('link', { name: /Switch to/ }),
+    'the in-page switch links were removed in favour of the nav',
+  ).toHaveCount(0);
+
+  await page.locator('.fo-primary-nav').getByRole('button', { name: 'Pipeline' }).click();
   await expect(page.getByRole('heading', { name: 'Pipeline: Home' })).toBeVisible({
     timeout: 25000,
   });
   await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
 
-  await page.getByRole('link', { name: 'Switch to My View' }).click();
+  await page.locator('.fo-primary-nav').getByRole('button', { name: 'Home' }).click();
   await expect(page.getByRole('heading', { name: /^My View:/ })).toBeVisible({ timeout: 25000 });
 });
 
-test('K12: the dashboard settings gear sits on the same row as the switch control', async ({
+test('K12: the dashboard settings gear shares the title row with Collapse all', async ({
   page,
 }) => {
   await gotoAsSignedIn(page, '/');
   const row = page.locator('.fo-page-header-title-row');
-  await expect(row.getByRole('link', { name: 'Switch to My Dashboard' })).toBeVisible();
-  await expect(row.getByRole('button', { name: 'Dashboard settings' })).toBeVisible();
+  const gear = row.getByRole('button', { name: 'Dashboard settings' });
+  const collapse = row.locator('.fo-collapse-all');
+  await expect(gear).toBeVisible({ timeout: 25000 });
+  await expect(collapse).toBeVisible();
 
-  const link = await row.getByRole('link', { name: 'Switch to My Dashboard' }).boundingBox();
-  const gear = await row.getByRole('button', { name: 'Dashboard settings' }).boundingBox();
-  expect(link, 'the switch control must be laid out').not.toBeNull();
-  expect(gear, 'the gear must be laid out').not.toBeNull();
-  const linkMid = link!.y + link!.height / 2;
-  const gearMid = gear!.y + gear!.height / 2;
+  const gearBox = await gear.boundingBox();
+  const collapseBox = await collapse.boundingBox();
+  expect(gearBox, 'the gear must be laid out').not.toBeNull();
+  expect(collapseBox, 'Collapse all must be laid out').not.toBeNull();
   expect(
-    Math.abs(linkMid - gearMid),
-    'the gear and the switch control must share a horizontal line',
+    Math.abs(gearBox!.y + gearBox!.height / 2 - (collapseBox!.y + collapseBox!.height / 2)),
+    'the two head controls must share a horizontal line',
   ).toBeLessThanOrEqual(2);
+  await expect(gear.locator('svg'), 'the gear is an icon button').toHaveCount(1);
 });
 
 test('K11: the calendar actions are buttons with a primary and a secondary, and no pipe divider', async ({

@@ -17,6 +17,8 @@ import {
   Settings as GearIcon,
   User as PersonIcon,
 } from 'lucide-react';
+import { useScrollShadow } from '../hooks/useScrollShadow';
+import { sentenceCase } from '../lib/format';
 
 const RECENT_ICONS: Record<string, typeof PersonIcon> = {
   requisition: RequisitionIcon,
@@ -50,6 +52,7 @@ function searchScope(pathname: string): SearchScope {
 }
 
 export function ShellSidebar() {
+  const recentListRef = useScrollShadow<HTMLDivElement>();
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches,
   );
@@ -164,7 +167,7 @@ export function ShellSidebar() {
               className="btn btn-secondary btn-sm"
               aria-expanded={advanced.node ? advanced.open && !advanced.closing : undefined}
               aria-controls={advanced.node ? 'list-filter-rail' : undefined}
-              disabled={!advanced.node}
+              disabled={!advanced.node || advanced.narrow}
               title={
                 advanced.node
                   ? undefined
@@ -177,7 +180,7 @@ export function ShellSidebar() {
 
           </div>
         </div>
-          {advanced.node && advanced.open && (
+          {advanced.node && advanced.open && !advanced.narrow && (
             <div className="fo-qs-advanced-grow" data-open={grown ? 'true' : 'false'}>
               <div className="fo-qs-advanced-clip">
                 <div
@@ -317,25 +320,25 @@ export function ShellSidebar() {
               hint="Records you open will appear here."
             />
           ) : (
-            <div className="fo-recent-list">
-              {recent.map((item) => (
-                <button
-                  key={`${item.type}:${item.id}`}
-                  type="button"
-                  className="fo-recent-item"
-                  onClick={() => item.href && navigate(item.href)}
-                  title={item.label}
-                >
-                  {(() => {
-                    const Icon = RECENT_ICONS[item.type] ?? RecordIcon;
-                    return <Icon size={20} className="fo-recent-icon" />;
-                  })()}
-                  <span className="fo-recent-text">
-                    <span className="fo-recent-name">{item.label}</span>
-                    <span className="fo-recent-type">{item.type}</span>
-                  </span>
-                </button>
-              ))}
+            <div className="fo-recent-list fo-scroll-shade" ref={recentListRef}>
+                {recent.map((item) => (
+                  <button
+                    key={`${item.type}:${item.id}`}
+                    type="button"
+                    className="fo-recent-item"
+                    onClick={() => item.href && navigate(item.href)}
+                    title={item.label}
+                  >
+                    {(() => {
+                      const Icon = RECENT_ICONS[item.type] ?? RecordIcon;
+                      return <Icon size={20} className="fo-recent-icon" />;
+                    })()}
+                    <span className="fo-recent-text">
+                      <span className="fo-recent-name">{item.label}</span>
+                      <span className="fo-recent-type">{sentenceCase(item.type)}</span>
+                    </span>
+                  </button>
+                ))}
             </div>
           )}
         </div>

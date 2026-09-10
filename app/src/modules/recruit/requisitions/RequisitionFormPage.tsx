@@ -4,17 +4,25 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useRole } from '../../../auth/SessionProvider';
 import type { ApproverType, TablesInsert } from '../../../lib/database.types';
 import { Button } from '../../../components/ui/Button';
+import { useListReturnHref } from '../../../lib/listReturn';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { Input } from '../../../components/ui/Input';
 import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordSection } from '../../../components/ui/RecordPage';
+import { Breadcrumbs } from '../../../components/ui/Breadcrumbs';
+import { RecordSkeleton } from '../../../components/ui/RecordSkeleton';
+import { SegmentedToggle } from '../../../components/ui/SegmentedToggle';
+import { looksLikeHtml, sanitizeHtml } from '../../../lib/sanitizeHtml';
+import { CollapseAllButton } from '../../../components/ui/SectionCollapse';
 import { PlaceholderAction } from '../../../shell/Placeholder';
-import { Briefcase as BriefcaseIcon } from 'lucide-react';
+import { Briefcase as BriefcaseIcon, Eye as EyeIcon, PencilLine as PencilIcon } from 'lucide-react';
 import { CURRENCIES } from '../../../lib/format';
 import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSummary';
 import { supabase } from '../../../lib/supabase';
 import { type ApproverRow, errMsg, todayIso } from '../lib';
 import { useLookups } from '../hooks';
+import { useScrollShadow } from '../../../hooks/useScrollShadow';
 
 interface FormState {
   title: string;
@@ -65,8 +73,17 @@ const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contract', 'Temporary', 'In
 const BUDGET_STATUSES = ['Approved', 'Pending', 'Not budgeted'];
 const REASONS = ['New position', 'Replacement', 'Expansion', 'Other'];
 
+const REQ_FORM_SECTIONS = [
+  'Requisition Owner(s):',
+  'Requisition Information:',
+  'Description:',
+  'Approvers:',
+];
+
 export function RequisitionFormPage() {
+  const listShadow = useScrollShadow<HTMLDivElement>();
   const { id } = useParams();
+  const listHref = useListReturnHref('/recruit/requisitions');
   const editing = Boolean(id);
   const navigate = useNavigate();
   const role = useRole();
@@ -80,7 +97,9 @@ export function RequisitionFormPage() {
   const [error, setError] = useState<string | null>(null);
   const [showProblems, setShowProblems] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [descriptionView, setDescriptionView] = useState<'write' | 'preview'>('write');
   const [loaded, setLoaded] = useState(!editing);
+  const showSkeleton = useMinimumVisible(!loaded);
 
   const [initialForm, setInitialForm] = useState<FormState>(EMPTY);
   const [initialOwnerIds, setInitialOwnerIds] = useState<string[]>([]);
@@ -282,28 +301,62 @@ export function RequisitionFormPage() {
       />
     );
   }
-  if (!loaded) {
-    return <p className="text-secondary">Loading…</p>;
+  if (showSkeleton) {
+    return (
+      <RecordSkeleton label="Loading requisition" sections={REQ_FORM_SECTIONS.length} panel />
+    );
   }
 
   const actionButtons = (
-    <div className="rq-form-actions">
-      <Button variant="primary" onClick={() => void save()} disabled={busy}>
-        Save
-      </Button>
-      <Button onClick={() => navigate(-1)}>Cancel</Button>
-      <Button onClick={resetForm}>Reset</Button>
+    <div className="fo-page-toolbar">
+      <div className="record-action-bar rq-form-actions">
+        <Button
+          variant="primary"
+          onClick={() => void save()}
+          disabled={busy}
+          title={busy ? 'Saving' : undefined}
+        >
+          Save
+        </Button>
+        <Button onClick={() => navigate(-1)}>Cancel</Button>
+        <Button onClick={resetForm}>Reset</Button>
+      </div>
     </div>
   );
 
   return (
     <div className="record-page">
-      <div className="record-title-row">
-        <span className="fo-page-icon">
-          <BriefcaseIcon size={32} />
-        </span>
-        <h1>{editing ? 'Requisitions: Edit Requisition' : 'Requisitions: New Requisition'}</h1>
+      <div className="fo-page-head">
+        <div className="record-breadcrumb">
+          <Breadcrumbs
+            items={[
+              { label: 'Home', to: '/' },
+              { label: 'Requisitions', to: listHref },
+              ...(editing
+                ? [
+                    {
+                      label: form.title.trim() || 'Requisition',
+                      to: `/recruit/requisitions/${id ?? ''}`,
+                    },
+                    { label: 'Edit' },
+                  ]
+                : [{ label: 'New requisition' }]),
+            ]}
+          />
+        </div>
+        <div className="record-title-row">
+          <span className="fo-page-icon">
+            <BriefcaseIcon size={32} />
+          </span>
+          <h1>
+            {editing ? `Edit: ${form.title.trim() || 'Requisition'}` : 'Requisitions: New Requisition'}
+          </h1>
+          <div className="fo-page-header-actions">
+            <CollapseAllButton />
+          </div>
+        </div>
       </div>
+      {actionButtons}
       <form
         className="rq-form"
         onSubmit={(e) => {
@@ -311,8 +364,6 @@ export function RequisitionFormPage() {
           void save();
         }}
       >
-        {actionButtons}
-
         <ErrorSummary errors={showProblems ? validation : []} />
         {error !== null && <p className="form-error" role="alert">{error}</p>}
 
@@ -321,7 +372,7 @@ export function RequisitionFormPage() {
             <span className="field-label">
               <span className="field-required">*</span> Requisition Owners
             </span>
-            <div className="checkbox-list">
+            <div className="checkbox-list fo-scroll-shade" ref={listShadow}>
               {lookups.staff.map((s) => (
                 <label key={s.id} className="checkline">
                   <input
@@ -467,26 +518,69 @@ export function RequisitionFormPage() {
             <label className="field-label" htmlFor="req-description">
               Description
             </label>
-            <div className="rq-editor-toolbar" role="toolbar" aria-label="Text formatting (not available)">
-              {['Undo', 'Redo', 'Bold', 'Italic', 'Underline', 'Bullet list', 'Numbered list', 'Link'].map(
-                (label) => (
-                  <PlaceholderAction
-                    key={label}
-                    label={label}
-                    size="sm"
-                    variant="ghost"
-                    className="rq-editor-toolbar-btn"
-                  />
-                ),
-              )}
+            <div className="rq-editor-toolbar">
+              <div
+                className="rq-editor-tools"
+                role="toolbar"
+                aria-label="Text formatting (not available)"
+              >
+                {['Undo', 'Redo', 'Bold', 'Italic', 'Underline', 'Bullet list', 'Numbered list', 'Link'].map(
+                  (label) => (
+                    <PlaceholderAction
+                      key={label}
+                      label={label}
+                      size="sm"
+                      variant="ghost"
+                      className="rq-editor-toolbar-btn"
+                    />
+                  ),
+                )}
+              </div>
+              <SegmentedToggle
+                className="rq-editor-view"
+                ariaLabel="Description view"
+                value={descriptionView}
+                onChange={setDescriptionView}
+                options={[
+                  {
+                    value: 'write',
+                    label: '',
+                    title: 'Write',
+                    icon: <PencilIcon size={20} aria-hidden="true" />,
+                  },
+                  {
+                    value: 'preview',
+                    label: '',
+                    title: 'Preview',
+                    icon: <EyeIcon size={20} aria-hidden="true" />,
+                  },
+                ]}
+              />
             </div>
-            <textarea
-              id="req-description"
-              rows={8}
-              value={form.description}
-              onChange={(e) => set('description', e.target.value)}
-              placeholder="Role description shown on the careers page when published."
-            />
+            {descriptionView === 'preview' ? (
+              <div className="rq-description-preview">
+                {form.description.trim() ? (
+                  looksLikeHtml(form.description) ? (
+                    <div
+                      className="fo-rich-text"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.description) }}
+                    />
+                  ) : (
+                    <p className="fo-plain-text">{form.description}</p>
+                  )
+                ) : (
+                  <p className="text-secondary">Nothing to preview yet.</p>
+                )}
+              </div>
+            ) : (
+              <textarea
+                id="req-description"
+                rows={8}
+                value={form.description}
+                onChange={(e) => set('description', e.target.value)}
+                placeholder="Role description shown on the careers page when published."
+              />
+            )}
           </div>
         </RecordSection>
 
@@ -543,8 +637,6 @@ export function RequisitionFormPage() {
             </Button>
           </div>
         </RecordSection>
-
-        {actionButtons}
       </form>
     </div>
   );

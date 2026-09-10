@@ -83,8 +83,10 @@ anything:
   (added `useSearchParams` support to `DealsListPage.tsx` and
   `ContactsListPage.tsx` this pass, documented in `sales/README.md`'s new
   "Query param contract" section). Requisition Aging rows →
-  `/recruit/requisitions?company_id=X&status=Y` (recruit's contract was
-  already published and already correct).
+  `/recruit/requisitions/<requisition_id>`. A row names one requisition, so
+  it opens that record. It used to navigate to
+  `/recruit/requisitions?company_id=X&status=Y`, which only filtered the
+  list and left the user to find the row again.
 - **Not wired, documented as a gap instead of faked:** ATS pipeline-by-stage
   bars (no application-level list view exists in the app — only
   candidate-level and requisition-level lists, neither filters by

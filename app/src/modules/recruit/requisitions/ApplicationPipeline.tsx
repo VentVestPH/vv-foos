@@ -15,6 +15,7 @@ import { Table, CappedCell, type TableColumn } from '../../../components/ui/Tabl
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { Pager } from '../../../components/ui/Pager';
+import { SegmentedToggle } from '../../../components/ui/SegmentedToggle';
 import { Table2 as TableIcon, Columns3 as KanbanIcon } from 'lucide-react';
 import { downloadCsv } from '../../../lib/csv';
 import { Dialog } from '../components/Dialog';
@@ -575,34 +576,20 @@ export function ApplicationPipeline({
           ]}
         />
         {!mobile && (
-          <div
-            className="pipeline-toggle"
-            role="tablist"
-            aria-label="Pipeline view"
-            data-view={view}
-          >
-            <span className="pipeline-toggle-thumb" aria-hidden="true" />
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'table'}
-              className={view === 'table' ? 'active' : ''}
-              onClick={() => setView('table')}
-            >
-              <TableIcon size={20} aria-hidden="true" />
-              Table
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'kanban'}
-              className={view === 'kanban' ? 'active' : ''}
-              onClick={() => setView('kanban')}
-            >
-              <KanbanIcon size={20} aria-hidden="true" />
-              Kanban
-            </button>
-          </div>
+          <SegmentedToggle
+            className="rq-pipeline-view"
+            ariaLabel="Pipeline view"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'table', label: 'Table', icon: <TableIcon size={20} aria-hidden="true" /> },
+              {
+                value: 'kanban',
+                label: 'Kanban',
+                icon: <KanbanIcon size={20} aria-hidden="true" />,
+              },
+            ]}
+          />
         )}
       </div>
 

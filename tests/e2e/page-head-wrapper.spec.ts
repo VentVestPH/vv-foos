@@ -22,6 +22,10 @@ test('K18: every page header sits in an opaque wrapper that also holds its searc
     await gotoAsSignedIn(page, path);
     const head = page.locator('.fo-page-head');
     await expect(head, `${name} must have a page head wrapper`).toBeVisible({ timeout: 25000 });
+    await expect(
+      page.locator('.fo-skeleton-card, .fo-skeleton-sections, .fo-page-skeleton'),
+      `${name}: judge the real head, not the skeleton standing in for it`,
+    ).toHaveCount(0, { timeout: 25000 });
 
     const info = await head.first().evaluate((el) => {
       const cs = getComputedStyle(el);

@@ -11,6 +11,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import { useScrollShadow } from '../../hooks/useScrollShadow';
 
 interface SelectOption {
   value: string;
@@ -53,6 +54,8 @@ interface Placement {
   above: boolean;
 }
 
+const MENU_EXIT_MS = 90;
+
 export function Select({
   label,
   error,
@@ -89,11 +92,14 @@ export function Select({
   const selected = selectedIndex >= 0 ? items[selectedIndex] : undefined;
 
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const exitTimer = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(selectedIndex >= 0 ? selectedIndex : 0);
   const [placement, setPlacement] = useState<Placement | null>(null);
 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLUListElement | null>(null);
+  const menuShadow = useScrollShadow<HTMLUListElement>();
   const typed = useRef({ buffer: '', at: 0 });
   const location = useLocation();
 
@@ -125,10 +131,30 @@ export function Select({
     [disabled, measure],
   );
 
-  const closeMenu = useCallback((refocus: boolean) => {
+  const beginClose = useCallback(() => {
     setOpen(false);
-    if (refocus) triggerRef.current?.focus({ preventScroll: true });
+    setClosing(true);
+    if (exitTimer.current !== null) window.clearTimeout(exitTimer.current);
+    exitTimer.current = window.setTimeout(() => {
+      exitTimer.current = null;
+      setClosing(false);
+    }, MENU_EXIT_MS);
   }, []);
+
+  const closeMenu = useCallback(
+    (refocus: boolean) => {
+      beginClose();
+      if (refocus) triggerRef.current?.focus({ preventScroll: true });
+    },
+    [beginClose],
+  );
+
+  useEffect(
+    () => () => {
+      if (exitTimer.current !== null) window.clearTimeout(exitTimer.current);
+    },
+    [],
+  );
 
   const commit = useCallback(
     (index: number, refocus: boolean) => {
@@ -158,7 +184,7 @@ export function Select({
       if (!(target instanceof Node)) return;
       if (triggerRef.current?.contains(target) === true) return;
       if (menuRef.current?.contains(target) === true) return;
-      setOpen(false);
+      beginClose();
     };
     const onReflow = (event: Event) => {
       const target = event.target;
@@ -173,10 +199,11 @@ export function Select({
       document.removeEventListener('scroll', onReflow, true);
       window.removeEventListener('resize', onReflow);
     };
-  }, [measure, open]);
+  }, [beginClose, measure, open]);
 
   useEffect(() => {
     setOpen(false);
+    setClosing(false);
   }, [location.pathname]);
 
   const jump = useCallback(
@@ -319,13 +346,17 @@ export function Select({
   );
 
   const menu =
-    open && placement !== null
+    (open || closing) && placement !== null
       ? createPortal(
           <ul
-            ref={menuRef}
+            ref={(el) => {
+              menuRef.current = el;
+              menuShadow(el);
+            }}
             id={listId}
             role="listbox"
-            className="field-select-menu"
+            className="field-select-menu fo-scroll-shade"
+            data-closing={closing ? 'true' : undefined}
             aria-labelledby={label !== undefined ? labelId : undefined}
             style={{
               left: `${placement.left}px`,

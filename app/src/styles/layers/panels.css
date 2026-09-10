@@ -1,10 +1,72 @@
+.kanban-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.fo-kanban-scroll {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--fo-border);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+  color: var(--fo-icon);
+  cursor: pointer;
+}
+
+.fo-kanban-scroll[data-side='start'] {
+  left: calc(-1 * var(--sp-2));
+}
+
+.fo-kanban-scroll[data-side='end'] {
+  right: calc(-1 * var(--sp-2));
+}
+
+.fo-kanban-scroll:hover:not(:disabled) {
+  border-color: var(--fo-primary);
+  color: var(--fo-primary);
+}
+
+.fo-kanban-scroll:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .kanban {
   display: flex;
   gap: var(--sp-2);
   align-items: stretch;
   overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: var(--sp-1);
   scrollbar-width: thin;
+  scrollbar-color: var(--fo-control-border) var(--fo-canvas);
+}
+
+.kanban::-webkit-scrollbar {
+  height: var(--sp-1);
+}
+
+.kanban::-webkit-scrollbar-track {
+  background: var(--fo-canvas);
+  border-radius: 999px;
+}
+
+.kanban::-webkit-scrollbar-thumb {
+  background: var(--fo-control-border);
+  border-radius: 999px;
+}
+
+.kanban::-webkit-scrollbar-thumb:hover {
+  background: var(--fo-primary);
 }
 
 .kanban:focus,
@@ -143,11 +205,6 @@
   font-size: var(--fs-meta);
   margin-left: auto;
   flex-shrink: 0;
-}
-
-.timeline-empty {
-  color: var(--text-secondary);
-  padding: var(--sp-2) 0;
 }
 
 .side-tabs {

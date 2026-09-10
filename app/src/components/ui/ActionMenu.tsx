@@ -3,6 +3,7 @@ import { ChevronDown, EllipsisVertical } from 'lucide-react';
 import { useDismissable } from '../../hooks/useDismissable';
 import { useOutsideClose } from '../../hooks/useOutsideClose';
 import { useMenuKeyboard } from '../../hooks/useMenuKeyboard';
+import { useScrollShadow } from '../../hooks/useScrollShadow';
 
 export interface ActionMenuItem {
   label: string;
@@ -20,6 +21,7 @@ interface ActionMenuProps {
 }
 
 export function ActionMenu({ label, items, iconOnly = false, children }: ActionMenuProps) {
+  const menuShadow = useScrollShadow<HTMLDivElement>();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +66,7 @@ export function ActionMenu({ label, items, iconOnly = false, children }: ActionM
       </button>
       {open && (
         <div
-          className="fo-action-menu"
+          className="fo-action-menu fo-scroll-shade" ref={menuShadow}
           data-closing={menu.closing ? 'true' : undefined}
           role="menu"
         >

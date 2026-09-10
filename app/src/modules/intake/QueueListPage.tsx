@@ -114,6 +114,7 @@ export function QueueListPage() {
 
   return (
     <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Intake' }]}
       title="Intake"
       icon={<InboxIcon size={32} />}
       description="Intake is where new candidates and contacts arrive from LinkedIn, spreadsheets, email, and the careers page before they're merged or imported."

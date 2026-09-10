@@ -56,3 +56,9 @@ export function formatMoney(
   }
   return `${currency ? currency + ' ' : ''}${value.toLocaleString()}`;
 }
+
+export function sentenceCase(value: string): string {
+  const words = value.replace(/_/g, ' ').trim();
+  if (words === '') return words;
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}

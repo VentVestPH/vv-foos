@@ -58,7 +58,7 @@ test('K19: the requisition record no longer offers controls with nothing behind 
 }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, `/recruit/requisitions/${SEEDED}`);
-  await expect(page.getByRole('button', { name: /back to/i })).toBeVisible({ timeout: 25000 });
+  await expect(page.locator('.record-breadcrumb .fo-breadcrumbs')).toBeVisible({ timeout: 25000 });
 
   for (const gone of ['Send To', 'Forms', 'Attach Contact']) {
     await expect(

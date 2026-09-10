@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { RouteSkeleton } from '../../components/ui/PageSkeleton';
 import type { StaffRole } from '../../lib/database.types';
 import './recruit.css';
 import { RequisitionListPage } from './requisitions/RequisitionListPage';
@@ -27,7 +28,7 @@ export function RecruitRoutes() {
       <Route
         path="requisitions/new"
         element={
-          <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+          <Suspense fallback={<RouteSkeleton />}>
             <RequisitionFormPage />
           </Suspense>
         }
@@ -35,7 +36,7 @@ export function RecruitRoutes() {
       <Route
         path="requisitions/:id"
         element={
-          <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+          <Suspense fallback={<RouteSkeleton />}>
             <RequisitionRecordPage />
           </Suspense>
         }
@@ -43,7 +44,7 @@ export function RecruitRoutes() {
       <Route
         path="requisitions/:id/edit"
         element={
-          <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+          <Suspense fallback={<RouteSkeleton />}>
             <RequisitionFormPage />
           </Suspense>
         }
@@ -52,7 +53,7 @@ export function RecruitRoutes() {
       <Route
         path="candidates/:id"
         element={
-          <Suspense fallback={<p className="text-secondary">Loading…</p>}>
+          <Suspense fallback={<RouteSkeleton />}>
             <CandidateRecordPage />
           </Suspense>
         }

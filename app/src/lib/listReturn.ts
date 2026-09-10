@@ -17,11 +17,8 @@ export function useListLink() {
   );
 }
 
-export function useBackToList(fallback: string) {
+export function useListReturnHref(fallback: string): string {
   const location = useLocation();
-  const navigate = useNavigate();
   const state = location.state as ListReturnState | null;
-  const target = state?.listUrl ?? fallback;
-
-  return useCallback(() => navigate(target), [navigate, target]);
+  return state?.listUrl ?? fallback;
 }

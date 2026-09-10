@@ -11,6 +11,7 @@ import {
   type CandFilters,
   type CandRow,
 } from './candidateRows';
+import { useScrollShadow } from '../../../hooks/useScrollShadow';
 
 export interface CandidateFilterRailProps {
   lookups: Lookups;
@@ -29,6 +30,7 @@ export function CandidateFilterRail({
   visibleCols,
   setVisibleCols,
 }: CandidateFilterRailProps) {
+  const listShadow = useScrollShadow<HTMLDivElement>();
   return (
       <div className="fo-advanced-search-body">
       <FilterGroup label="Filter" defaultOpen>
@@ -81,7 +83,7 @@ export function CandidateFilterRail({
       </FilterGroup>
       <FilterGroup label={`Columns (${visibleCols.length} of ${ALL_COLUMN_KEYS.length})`}>
       <div className="field">
-        <div className="checkbox-list">
+        <div className="checkbox-list fo-scroll-shade" ref={listShadow}>
           {COLUMN_DEFS.map((c) => (
             <label key={c.key} className="checkline">
               <input

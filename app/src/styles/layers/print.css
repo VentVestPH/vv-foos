@@ -1,15 +1,134 @@
+@page {
+  margin: 15mm;
+}
+
 @media print {
   .fo-utility-header,
   .fo-primary-nav,
   .fo-sidebar,
   .fo-bookmark-bar,
+  .fo-page-toolbar,
   .record-action-bar,
   .list-page-toolbar,
   .filter-rail,
   .fo-pager,
   .skip-link,
-  .checkbox-col {
+  .checkbox-col,
+  .fo-segmented,
+  .fo-action-menu-wrap,
+  .fo-collapse-all,
+  .kanban,
+  .fo-kanban-scroll,
+  .fo-staged-file,
+  .panel-form,
+  .fo-next-steps {
     display: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  body {
+    font-size: 11pt;
+    line-height: 1.45;
+    color: #000000;
+  }
+
+  h1 {
+    font-size: 18pt;
+  }
+
+  .fo-page-head,
+  .record-section,
+  .panel-item,
+  .fo-empty-state {
+    box-shadow: none !important;
+  }
+
+  .record-section-header {
+    break-after: avoid;
+  }
+
+  .fo-page-head {
+    break-after: avoid;
+  }
+
+  .record-code {
+    font-size: 12pt;
+  }
+
+  .info-grid {
+    break-inside: avoid;
+  }
+
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 9pt;
+    color: #555555;
+    word-break: break-all;
+  }
+
+  .fo-breadcrumbs li:not(:last-child),
+  .fo-breadcrumb-sep,
+  .record-section-chevron,
+  .fo-page-header-actions,
+  .unviewed-badge,
+  .unviewed-dot {
+    display: none !important;
+  }
+
+  .fo-breadcrumbs [aria-current='page'] {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #000000;
+    letter-spacing: 0.04em;
+  }
+
+  .fo-page-head,
+  .record-section,
+  .panel-item {
+    border: 0 !important;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .record-section {
+    break-inside: auto;
+  }
+
+  .record-section-header {
+    padding: 0;
+    margin: 14pt 0 0;
+    font-size: 12pt;
+    font-weight: 700;
+    border-bottom: 1pt solid #000000;
+  }
+
+  .record-section-body {
+    padding: 8pt 0 0;
+  }
+
+  .info-item dt {
+    color: #333333;
+  }
+
+  .badge,
+  .chip {
+    color: #000000 !important;
+    border: 1px solid #777777 !important;
+    background: #ffffff !important;
+  }
+
+  .table tbody tr {
+    background: #ffffff !important;
+  }
+
+  .fo-rich-text {
+    max-width: 46em;
   }
 
   html,

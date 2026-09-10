@@ -11,6 +11,7 @@ import {
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useAdvancedSearch, usePublishAdvancedSearch } from '../../shell/AdvancedSearch';
 import { Button } from './Button';
+import { Breadcrumbs, type BreadcrumbItem } from './Breadcrumbs';
 import { SearchField } from './SearchField';
 import { downloadCsv } from '../../lib/csv';
 
@@ -36,6 +37,8 @@ interface ListPageProps {
 
   search: string;
   onSearchChange: (value: string) => void;
+
+  onSearchSubmit?: (value: string) => void;
   searchPlaceholder?: string;
 
   secondSearchRow?: ReactNode;
@@ -45,6 +48,8 @@ interface ListPageProps {
   savedViewsSlot?: ReactNode;
 
   actions?: ReactNode;
+
+  breadcrumbs?: BreadcrumbItem[];
 
   bulkBar?: ReactNode;
   bulkBarOpen?: boolean;
@@ -65,11 +70,13 @@ export function ListPage({
   description,
   search,
   onSearchChange,
+  onSearchSubmit,
   searchPlaceholder = 'Search…',
   secondSearchRow,
   filterRail,
   savedViewsSlot,
   actions,
+  breadcrumbs,
   bulkBar,
   bulkBarOpen = false,
   flush = false,
@@ -85,7 +92,7 @@ export function ListPage({
   usePublishAdvancedSearch(filterRail ?? null);
   const filtersOpen = advanced.open;
   const searchRef = useRef<HTMLInputElement>(null);
-  const { columnFocusRequest, requestColumnFocus, openPanel } = advanced;
+  const { columnFocusRequest, requestColumnFocus, openPanel, requestClose } = advanced;
 
   const openFilters = useCallback(
     (options?: { focusColumns?: boolean }) => {
@@ -128,6 +135,7 @@ export function ListPage({
     <ListPageFiltersContext.Provider value={filtersApi}>
     <div className="list-page" data-flush={flush ? 'true' : undefined}>
       <div className="fo-page-head">
+      {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
       {icon ? (
         <div className="fo-page-header">
           <span className="fo-page-icon">{icon}</span>
@@ -158,9 +166,20 @@ export function ListPage({
           type="search"
           value={search}
           onValueChange={onSearchChange}
+          onSubmitTerm={onSearchSubmit}
           placeholder={searchPlaceholder}
           ariaLabel={`Search ${title}`}
         />
+        {filterRail && advanced.narrow && (
+          <Button
+            size="sm"
+            aria-expanded={filtersOpen}
+            aria-controls="list-filter-rail"
+            onClick={() => (filtersOpen ? requestClose() : openPanel())}
+          >
+            Advanced Search
+          </Button>
+        )}
         {savedViewsSlot}
         {exportRows && (
           <Button
@@ -219,6 +238,15 @@ export function ListPage({
       )}
       </div>
       <div className="list-page-body">
+        {filterRail && advanced.narrow && filtersOpen && (
+          <aside
+            className="filter-rail fo-qs-advanced-section"
+            id="list-filter-rail"
+            data-closing={advanced.closing ? 'true' : undefined}
+          >
+            {filterRail}
+          </aside>
+        )}
         <div className="list-page-table">{children}</div>
       </div>
     </div>

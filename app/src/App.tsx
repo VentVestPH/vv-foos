@@ -1,5 +1,5 @@
 import { Suspense, lazy, type ReactNode } from 'react';
-import { LoadingPane } from './components/ui/LoadingPane';
+import { RouteSkeleton } from './components/ui/PageSkeleton';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SessionProvider } from './auth/SessionProvider';
 import { RequireAuth } from './auth/RequireAuth';
@@ -33,7 +33,7 @@ const ModulePlaceholderRoutes = lazy(() =>
 
 function Lazy({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<LoadingPane />}>
+    <Suspense fallback={<RouteSkeleton />}>
       {children}
     </Suspense>
   );

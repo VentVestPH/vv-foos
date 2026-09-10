@@ -102,7 +102,7 @@
   flex-direction: column;
   background: var(--section-tint);
   border-radius: var(--radius);
-  padding: var(--sp-1) var(--sp-2);
+  padding: var(--sp-2);
   min-width: 140px;
 }
 

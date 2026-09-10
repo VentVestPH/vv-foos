@@ -421,3 +421,56 @@ test.describe('U1.9: the application pipeline is bounded per stage', () => {
     ).toBeGreaterThan(25);
   });
 });
+
+test('U1.10: the requisition search waits for the typing to stop', async ({ page }) => {
+  test.setTimeout(120000);
+  await signIn(page, PERSONA_EMAILS.admin);
+
+  const searches: number[] = [];
+  await page.route('**/rest/v1/requisition_list?*', async (route) => {
+    if (route.request().url().includes('search_text')) searches.push(Date.now());
+    await route.continue().catch(() => undefined);
+  });
+
+  await gotoAsSignedIn(page, '/recruit/requisitions');
+  await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
+
+  const box = page.getByRole('searchbox', { name: /Search Requisitions/i });
+  const typed = [...'REQ-000'];
+  for (let i = 0; i < typed.length; i += 1) {
+    if (i > 0) await page.waitForTimeout(250);
+    await box.press(typed[i] === '-' ? 'Minus' : typed[i]!);
+  }
+  const lastKeystroke = Date.now();
+
+  expect(searches, 'no query may fire while the user is still typing').toEqual([]);
+  await page.waitForTimeout(1000);
+  expect(
+    searches,
+    'and none within a second of the last keystroke either',
+  ).toEqual([]);
+
+  await expect
+    .poll(() => searches.length, {
+      timeout: 6000,
+      message: 'one query must fire once the typing settles',
+    })
+    .toBe(1);
+  expect(searches[0]! - lastKeystroke, 'it waits about two seconds').toBeGreaterThan(1500);
+
+  await box.press('Backspace');
+  await expect
+    .poll(() => searches.length, { timeout: 6000, message: 'a deletion searches again' })
+    .toBe(2);
+
+  const beforeSubmit = searches.length;
+  await box.press('1');
+  await box.press('Enter');
+  await expect
+    .poll(() => searches.length, {
+      timeout: 1200,
+      message: 'submitting must search at once rather than waiting out the debounce',
+    })
+    .toBe(beforeSubmit + 1);
+  await page.unroute('**/rest/v1/requisition_list?*');
+});

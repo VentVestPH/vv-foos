@@ -86,7 +86,15 @@ export function CompanyNewPage() {
   };
 
   return (
-    <RecordPage title="Accounts: New Account" icon={<HandshakeIcon size={32} />}>
+    <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Accounts', to: '/sales/companies' },
+        { label: 'New account' },
+      ]}
+      title="Accounts: New Account"
+      icon={<HandshakeIcon size={32} />}
+    >
       <form className="sales-form" noValidate onSubmit={submit}>
         <ErrorSummary errors={problems} />
         <div className="sales-form-grid">

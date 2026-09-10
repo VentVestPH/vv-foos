@@ -144,7 +144,15 @@ export function ContactNewPage() {
   };
 
   return (
-    <RecordPage title="Contacts: New Contact" icon={<ContactCardIcon size={32} />}>
+    <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Contacts', to: '/sales/contacts' },
+        { label: 'New contact' },
+      ]}
+      title="Contacts: New Contact"
+      icon={<ContactCardIcon size={32} />}
+    >
       <form className="sales-form" noValidate onSubmit={submit}>
         <div className="sales-form-grid">
           <Input

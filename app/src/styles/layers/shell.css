@@ -132,9 +132,21 @@
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);
   min-width: 220px;
-  padding: var(--sp-1) 0;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 0;
   z-index: 40;
   box-shadow: var(--shadow-raised);
+}
+
+.fo-utility-menu > *:first-of-type {
+  margin-top: var(--sp-1);
+}
+
+.fo-utility-menu > *:last-of-type {
+  margin-bottom: var(--sp-1);
 }
 
 .fo-utility-menu-item {
@@ -286,7 +298,6 @@
   background: var(--fo-canvas);
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -295,7 +306,6 @@
 .fo-sidebar.collapsed {
   width: var(--shell-sidebar-collapsed-w);
   overflow-x: hidden;
-  scrollbar-gutter: auto;
 }
 
 
@@ -334,7 +344,6 @@
 }
 
 .fo-sidebar-panel-body,
-.fo-sidebar-card,
 .fo-sidebar-panel-title {
   transition:
     transform var(--motion-rail) var(--ease-out),
@@ -342,25 +351,9 @@
 }
 
 .fo-sidebar.collapsed .fo-sidebar-panel-body,
-.fo-sidebar.collapsed .fo-sidebar-card,
 .fo-sidebar.collapsed .fo-sidebar-panel-title {
   transform: translateX(calc(-1 * var(--shell-sidebar-w)));
   opacity: 0;
-}
-
-.fo-sidebar-card {
-  width: var(--shell-sidebar-w);
-  flex: 0 0 auto;
-  background: var(--fo-surface);
-  border: none;
-  padding: 0 var(--section-pad) var(--sp-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-
-.fo-sidebar.collapsed .fo-sidebar-card {
-  display: none;
 }
 
 .fo-sidebar-panel-header {
@@ -518,6 +511,7 @@ button.fo-qs-search-icon {
   flex-direction: column;
   max-height: 320px;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 
@@ -590,13 +584,12 @@ button.fo-qs-search-icon {
   overflow: auto;
   scrollbar-gutter: stable;
   padding: var(--shell-content-pad);
-  padding-left: calc(var(--shell-content-pad) - var(--shell-sidebar-gutter));
+  scroll-padding-top: calc(var(--shell-action-bar-h) * 2);
   padding-bottom: var(--sp-3);
 }
 
 .fo-sidebar.collapsed + .shell-main {
   --shell-content-pad: 0px;
-  --shell-sidebar-gutter: 0px;
 }
 
 .fo-recent-settings-anchor {
@@ -634,22 +627,6 @@ button.fo-qs-search-icon {
   width: 100%;
   min-width: 0;
   flex: 1;
-}
-
-.fo-recent-settings-limit {
-  flex: 1;
-  height: var(--control-h);
-  background: var(--fo-surface);
-  border: 1px solid var(--fo-border);
-  color: var(--fo-primary);
-  font-size: var(--fs-body);
-  cursor: pointer;
-}
-
-.fo-recent-settings-limit[aria-pressed='true'] {
-  background: var(--fo-primary);
-  border-color: var(--fo-primary);
-  color: var(--surface);
 }
 
 .fo-recent-settings-clear {

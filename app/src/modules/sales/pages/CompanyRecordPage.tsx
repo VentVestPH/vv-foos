@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useBackToList, useListLink } from '../../../lib/listReturn';
+import { useListLink, useListReturnHref } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
 import { useRole } from '../../../auth/SessionProvider';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { CircleArrowUp, Handshake as HandshakeIcon } from 'lucide-react';
+import { Handshake as HandshakeIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { useStaffList } from '../hooks';
 import {
@@ -46,7 +46,7 @@ export function CompanyRecordPage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [requisitions, setRequisitions] = useState<RequisitionLite[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const backToList = useBackToList('/sales/companies');
+  const listHref = useListReturnHref('/sales/companies');
   const openRecord = useListLink();
 
   const canSeeRequisitions = role === 'admin' || role === 'recruiter';
@@ -192,20 +192,13 @@ export function CompanyRecordPage() {
 
   return (
     <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Accounts', to: listHref },
+        { label: company.name },
+      ]}
       title={company.name}
       icon={<HandshakeIcon size={32} />}
-      actionBar={
-        <>
-          <button
-            type="button"
-            className="link-btn fo-back-to-list"
-            onClick={backToList}
-          >
-            <CircleArrowUp size={20} aria-hidden="true" />
-            Back To List
-          </button>
-        </>
-      }
       titleExtras={
         <span className="sales-badges">
           {company.types.map((t) => (

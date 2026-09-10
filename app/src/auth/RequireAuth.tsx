@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSession } from './SessionProvider';
 import { AccessDenied } from '../components/ui/AccessDenied';
-import { LoadingPane } from '../components/ui/LoadingPane';
+import { BootScreen } from '../components/ui/BootScreen';
+import { useMinimumVisible } from '../hooks/useMinimumVisible';
 import type { StaffRole } from '../lib/database.types';
 
 interface RequireAuthProps {
@@ -16,9 +17,10 @@ interface RequireAuthProps {
 export function RequireAuth({ children, roles, deniedLabel }: RequireAuthProps) {
   const { session, staff, role, loading } = useSession();
   const location = useLocation();
+  const showBoot = useMinimumVisible(loading);
 
-  if (loading) {
-    return <LoadingPane what="Front Office OS" />;
+  if (showBoot) {
+    return <BootScreen />;
   }
 
   if (!session) {

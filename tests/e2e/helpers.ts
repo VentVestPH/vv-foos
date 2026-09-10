@@ -156,7 +156,9 @@ export async function optionNames(page: Page, box: Locator): Promise<string[]> {
 }
 
 export async function openFilterRail(page: Page): Promise<void> {
-  const toggle = page.getByRole('button', { name: 'Advanced Search' });
+  const toggle = page
+    .getByRole('button', { name: 'Advanced Search', disabled: false })
+    .first();
   await expect(toggle).toBeVisible({ timeout: 25000 });
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
     await toggle.click();
