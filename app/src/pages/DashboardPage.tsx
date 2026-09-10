@@ -67,7 +67,7 @@ function MyViewTab() {
             </h1>
             <div className="fo-page-header-actions">
               <CollapseAllButton />
-                            <SettingsButton
+              <SettingsButton
                 label="Dashboard settings"
                 onClick={() => setSettingsOpen(true)}
               />
@@ -163,31 +163,33 @@ function PipelineTab() {
   const [range, setRange] = useState<DateRange>(DEFAULT_RANGE);
   return (
     <div className="list-page">
-      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Pipeline' }]} />
-      <div className="fo-page-header">
-        <span className="fo-page-icon">
-          <PipelineIcon size={32} />
-        </span>
-        <div className="fo-page-header-text">
-          <div className="fo-page-header-title-row">
-            <h1>Pipeline: Home</h1>
-            <div className="fo-page-header-actions">
-              <CollapseAllButton />
-                            <SettingsButton
-                label="Pipeline settings"
-                title="Choose which sections appear"
-                onClick={() => setSettingsOpen(true)}
-              />
+      <div className="fo-page-head">
+        <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Pipeline' }]} />
+        <div className="fo-page-header">
+          <span className="fo-page-icon">
+            <PipelineIcon size={32} />
+          </span>
+          <div className="fo-page-header-text">
+            <div className="fo-page-header-title-row">
+              <h1>Pipeline: Home</h1>
+              <div className="fo-page-header-actions">
+                <CollapseAllButton />
+                <SettingsButton
+                  label="Pipeline settings"
+                  title="Choose which sections appear"
+                  onClick={() => setSettingsOpen(true)}
+                />
+              </div>
             </div>
-          </div>
-          <p className="fo-page-desc">
-            The Pipeline page provides an overall summary of your
-            organization's current and upcoming staffing activities including
-            interview schedules, pending feedback, approved requisitions, and
-            active candidates for each open requisition.
-          </p>
-          <div className="dash-home-head">
-            <DateRangeFilter range={range} onChange={setRange} />
+            <p className="fo-page-desc">
+              The Pipeline page provides an overall summary of your
+              organization's current and upcoming staffing activities including
+              interview schedules, pending feedback, approved requisitions, and
+              active candidates for each open requisition.
+            </p>
+            <div className="dash-home-head">
+              <DateRangeFilter range={range} onChange={setRange} />
+            </div>
           </div>
         </div>
       </div>
@@ -218,16 +220,18 @@ function ReportsTab() {
 
   return (
     <div className="list-page">
-      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Run Report' }]} />
-      <div className="fo-page-header">
-        <span className="fo-page-icon">
-          <PieChartIcon size={32} />
-        </span>
-        <div className="fo-page-header-text">
-          <div className="fo-page-header-title-row">
-            <h1>Run Report</h1>
-            <div className="fo-page-header-actions">
-              <CollapseAllButton />
+      <div className="fo-page-head">
+        <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Run Report' }]} />
+        <div className="fo-page-header">
+          <span className="fo-page-icon">
+            <PieChartIcon size={32} />
+          </span>
+          <div className="fo-page-header-text">
+            <div className="fo-page-header-title-row">
+              <h1>Run Report</h1>
+              <div className="fo-page-header-actions">
+                <CollapseAllButton />
+              </div>
             </div>
           </div>
         </div>
@@ -255,7 +259,7 @@ function ReportsTab() {
         <PlaceholderAction label="Requisition" variant="ghost" className="fo-report-tab" />
         <PlaceholderAction label="Compliance" variant="ghost" className="fo-report-tab" />
         <PlaceholderAction label="More" variant="ghost" caret className="fo-report-tab" />
-                <SettingsButton
+        <SettingsButton
           label="Configure report categories"
           className="fo-report-tab-gear"
           onClick={() => setSettingsOpen(true)}

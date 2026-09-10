@@ -66,16 +66,30 @@ async function assertFadeContract(page: Page, selector: string, label: string) {
   expect(end.bottomOpacity, `${label} hides the bottom fade at the end`).toBe('0');
 }
 
-test('S1: a long dropdown fades at whichever end has more to show', async ({ page }) => {
+test('S1: the column list fades at whichever end has more to show', async ({ page }) => {
   test.setTimeout(120000);
   await gotoAsSignedIn(page, '/recruit/requisitions');
   await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
-  await page.getByRole('button', { name: 'Advanced Search', disabled: false }).first().click();
-  const company = page.locator('.filter-rail').getByRole('combobox', { name: /Company/i }).first();
-  await expect(company).toBeVisible({ timeout: 15000 });
-  await company.click();
-  await expect(page.locator('.field-select-menu')).toBeVisible();
-  await assertFadeContract(page, '.field-select-menu', 'the company listbox');
+  await page.getByRole('button', { name: 'Column settings' }).click();
+  await expect(page.locator('.fo-column-row').first()).toBeVisible({ timeout: 15000 });
+  await assertFadeContract(page, '.checkbox-list', 'the column settings list');
+  await page.getByRole('button', { name: 'Done' }).click();
+});
+
+test('S5: a fixed-position listbox carries the same fade contract', async ({ page }) => {
+  test.setTimeout(120000);
+  await gotoAsSignedIn(page, `/recruit/requisitions/${SEEDED_REQUISITION}/edit`);
+  const status = page.getByRole('combobox', { name: /Employment/i }).first();
+  await expect(status).toBeVisible({ timeout: 25000 });
+  await status.click();
+  const listbox = await edges(page, '.field-select-menu');
+  expect(listbox.paddingBlock, 'a shaded scroller must carry no vertical padding').toBe('0px/0px');
+  expect(listbox.overflowX, 'and must not offer a sideways scrollbar').toBe('hidden');
+  expect(listbox.sidewaysScroll).toBe(0);
+  expect(
+    `${listbox.top}/${listbox.bottom}`,
+    'a short list claims neither fade',
+  ).toBe('false/false');
 });
 
 test('S2: a scrolling settings list fades at both ends, from the border', async ({ page }) => {

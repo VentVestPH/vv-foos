@@ -37,11 +37,22 @@ test('B1: every page carries a trail that names where you are', async ({ page })
     const trail = await page.evaluate(() => {
       const el = document.querySelector('nav[aria-label="Breadcrumb"]')!;
       const current = el.querySelector('[aria-current="page"]');
+      const link = el.querySelector('a');
+      const backdrop = (node: Element | null): string => {
+        let walk: Element | null = node;
+        while (walk) {
+          const bg = getComputedStyle(walk).backgroundColor;
+          if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
+          walk = walk.parentElement;
+        }
+        return 'none';
+      };
       return {
         crumbs: [...el.querySelectorAll('li')].map((li) => (li.textContent ?? '').trim()),
         links: el.querySelectorAll('a').length,
         current: (current?.textContent ?? '').trim(),
         height: Math.round(el.getBoundingClientRect().height),
+        backdrop: backdrop(link),
       };
     });
     if (trail.crumbs.length < 2) offenders.push(`${name}: only ${trail.crumbs.length} crumb`);
@@ -50,6 +61,11 @@ test('B1: every page carries a trail that names where you are', async ({ page })
     if (trail.current === '') offenders.push(`${name}: no crumb marked as the current page`);
     if (/[a-z]/.test(trail.crumbs.at(-1)?.charAt(0) ?? '')) {
       offenders.push(`${name}: the last crumb starts lower case`);
+    }
+    if (trail.backdrop !== 'rgb(255, 255, 255)') {
+      offenders.push(
+        `${name}: the trail sits on ${trail.backdrop}, where --fo-link only reaches 4.43:1`,
+      );
     }
     heights.add(trail.height);
   }

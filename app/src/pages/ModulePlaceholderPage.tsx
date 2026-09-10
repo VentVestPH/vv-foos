@@ -174,18 +174,20 @@ export function ModulePlaceholderRoutes({ module }: { module: ModuleKey }) {
 
   return (
     <div className="list-page">
-      <Breadcrumbs
-        items={[{ label: 'Home', to: '/' }, { label: config.title.replace(/: Home$/, '') }]}
-      />
-      <div className="fo-page-header">
-        <span className="fo-page-icon">{config.icon}</span>
-        <div className="fo-page-header-text">
-          <div className="fo-page-header-title-row">
-            <h1>{config.title}</h1>
+      <div className="fo-page-head">
+        <Breadcrumbs
+          items={[{ label: 'Home', to: '/' }, { label: config.title.replace(/: Home$/, '') }]}
+        />
+        <div className="fo-page-header">
+          <span className="fo-page-icon">{config.icon}</span>
+          <div className="fo-page-header-text">
+            <div className="fo-page-header-title-row">
+              <h1>{config.title}</h1>
+            </div>
+            {config.description && (
+              <p className="fo-page-desc">{config.description}</p>
+            )}
           </div>
-          {config.description && (
-            <p className="fo-page-desc">{config.description}</p>
-          )}
         </div>
       </div>
 
