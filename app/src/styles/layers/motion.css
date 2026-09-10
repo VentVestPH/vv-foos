@@ -8,6 +8,8 @@
 .fo-pager-controls button,
 .date-dialog-scope,
 .date-pick-cell,
+.field-select-option,
+.fo-action-menu-item,
 .fo-filter-group-header,
 .fo-recent-item,
 .fo-recent-name,
@@ -45,7 +47,6 @@
 .field select,
 .field textarea,
 .input,
-.fo-qs-input-row input,
 .template-form textarea,
 .fo-result,
 .fo-hint {

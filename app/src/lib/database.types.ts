@@ -1061,6 +1061,7 @@ export interface Database {
           source_name: string | null;
           sourcer_name: string | null;
           has_resume: boolean;
+          requisition_codes: string | null;
         };
         Relationships: [];
       };

@@ -15,7 +15,7 @@
   height: 32px;
   padding: 0;
   border: 1px solid var(--fo-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
   box-shadow: var(--shadow-raised);
   color: var(--fo-icon);
@@ -57,12 +57,12 @@
 
 .kanban::-webkit-scrollbar-track {
   background: var(--fo-canvas);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .kanban::-webkit-scrollbar-thumb {
   background: var(--fo-control-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .kanban::-webkit-scrollbar-thumb:hover {
@@ -252,8 +252,8 @@
 .side-tab-count {
   background: var(--border);
   color: var(--text);
-  border-radius: 999px;
-  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--sp-tight);
   font-size: var(--fs-xs);
 }
 

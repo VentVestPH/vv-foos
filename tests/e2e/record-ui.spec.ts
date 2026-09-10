@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
-import { clientAs } from '../env';
+import { clientAs, deleteOwnSettings } from '../env';
 
 const RAIL_NOTE = `QA record-ui ${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const RAIL_KEY = 'ui.recentlyViewed';
@@ -8,8 +8,7 @@ const RAIL_PERSONA = 'recruiter';
 
 async function resetRail(): Promise<void> {
   for (const persona of ['admin', RAIL_PERSONA] as const) {
-    const client = await clientAs(persona);
-    await client.from('integration_settings').delete().eq('key', RAIL_KEY);
+    await deleteOwnSettings(persona, [RAIL_KEY]);
   }
 }
 
@@ -31,8 +30,12 @@ test.describe('Record and list UI criteria', () => {
     await expect(newTicket).toBeVisible();
     await newTicket.click();
     await expect(page.locator('.fo-placeholder-modal')).toContainText(
-      /not available yet/i,
+      /still in development/i,
     );
+    await expect(
+      page.locator('.fo-placeholder-modal'),
+      'the copy says what happens next, not just that something is missing',
+    ).toContainText(/Customer Success module/i);
     await page.keyboard.press('Escape');
     await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
     await expect(page.locator('.table-wrap input:not([disabled]), .table-wrap select:not([disabled])')).toHaveCount(0);
@@ -171,4 +174,58 @@ test.describe('Recently Viewed rail (2.10)', () => {
       .poll(async () => page.locator('.fo-recent-item').count(), { timeout: 15000 })
       .toBeLessThanOrEqual(limit);
   });
+});
+
+test('an empty table cell keeps its own padding, not the row padding', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await gotoAsSignedIn(page, '/recruit/candidates?search=zzzznomatchzzzz');
+  const cell = page.locator('.table-empty');
+  await expect(cell).toBeVisible({ timeout: 25000 });
+
+  const shape = await cell.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { tag: el.tagName, padding: cs.paddingTop, align: cs.textAlign };
+  });
+  expect(shape.tag, 'the empty state renders as a table cell').toBe('TD');
+  expect(
+    shape.padding,
+    'a bare .table-empty is (0,1,0) and loses to .table td (0,1,1) in the same layer, so the rule was dead and the cell used --cell-pad',
+  ).toBe('24px');
+  expect(shape.align).toBe('center');
+});
+
+test.describe('sortable headers', () => {
+  const TABLES: [string, string][] = [
+    ['candidates', '/recruit/candidates'],
+    ['requisitions', '/recruit/requisitions'],
+    ['accounts', '/sales/companies'],
+    ['contacts', '/sales/contacts'],
+    ['tickets', '/sales/tickets'],
+  ];
+
+  for (const [label, route] of TABLES) {
+    test(`the sort chevron appears on hovering anywhere in a ${label} header cell`, async ({
+      page,
+    }) => {
+      await signIn(page, PERSONA_EMAILS.admin);
+      await gotoAsSignedIn(page, route);
+      await page.waitForSelector('.table-wrap thead th.sortable', { timeout: 25000 });
+
+      const th = page.locator('.table-wrap thead th.sortable').first();
+      const arrow = th.locator('.sort-arrow');
+      expect(
+        await arrow.evaluate((el) => getComputedStyle(el).opacity),
+        'the chevron is hidden until the cell is pointed at',
+      ).toBe('0');
+
+      await th.hover({ position: { x: 3, y: 3 } });
+      await expect
+        .poll(async () => arrow.evaluate((el) => getComputedStyle(el).opacity), {
+          timeout: 10000,
+          message:
+            'the cell padding is part of the th but outside the button, so hovering there must still reveal the chevron',
+        })
+        .toBe('0.55');
+    });
+  }
 });

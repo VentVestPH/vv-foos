@@ -57,15 +57,89 @@ and marks that application viewed for the current staff user.
   `<parent_type>/<parent_id>/<timestamp>_<name>`; reads use signed URLs.
 - Saved views persist to `ats_saved_views` (filters + visible columns + sort),
   one row per staff user per named view, entity `requisition` or `candidate`.
-  The `columns` array is **ordered**: the requisition list keeps a `columnOrder`
-  plus a `hiddenCols` set, and the table, the CSV export and the Advanced Search
-  column list all render in that order. Saving a view therefore captures the
+  The `columns` array is **ordered**: the requisition **and candidate** lists
+  each keep a `columnOrder` plus a `hiddenCols` set, and the table, the CSV
+  export and the Advanced Search column list all render in that order. Because
+  the CSV column order is a user preference, a test must find a column by its
+  header and never by index. Saving a view therefore captures the
   arrangement as well as the visibility; applying one puts the saved columns
   first and pushes the rest to the end, hidden. Saved views do not carry the
   search term.
-- The requisition list's search is debounced by 2000ms and the timer restarts on
-  every keystroke, insertion or deletion alike. The magnifying glass and Enter
-  bypass the wait through `ListPage`'s `onSearchSubmit`.
+- **Neither list search filters as you type.** The table changes only when the
+  term is submitted, by Enter or by the magnifying glass, through
+  `useSubmittedSearch()` in `lib/quickSearch.ts`: `input` drives the box, `term`
+  drives the query. The requisition list's 2000ms debounce is gone, replaced by
+  this; it was approximating "the user has stopped typing" when submitting says
+  it outright. Suggestions still appear while typing, on their own 300ms
+  debounce, and submitting dismisses them.
+- The X beside the magnifying glass clears the box, resets the applied term so
+  the full list comes back, and refocuses the input.
+- Both list searches read their opening term from `?search=`, and it is applied,
+  not merely typed into the box. That is the contract the sidebar Quick Search
+  navigates on, and every list page in the app now honours it.
+- The candidate search ANDs the words of the term, one `ilike` on `search_text`
+  per word. `search_text` on `candidate_list` concatenates first, middle and last
+  name, so a first-plus-last search matched nothing at all for anyone with a
+  middle name until 2026-09-10.
+- Both the candidate list's own First Name and Last Name boxes **and the
+  sidebar's Candidate First/Last Name pair are gone**, on Klent's call
+  2026-09-10: "i think there's no point of keeping first and last name fields.
+  remove them in the sidebar." One keyword box per scope is the whole Quick
+  Search now, and because the candidate query ANDs the words of the term, typing
+  a first and last name into it does what the two fields were for. `SearchScope`
+  lost its `namedFields` flag and `.fo-sidebar` lost `data-named-fields`; the one
+  CSS rule that keyed off that attribute is now unconditional, which is
+  behaviour-identical since every remaining case was the `'false'` case.
+- Candidate Information's groups take their spacing from
+  `.record-section-body { gap: 16px }` and add none of their own. That gap is
+  shared with every other record section, so it stays; a group that adds its own
+  margin and padding on top of it is what made the section look unevenly spaced.
+- The Resume column is centred through `TableColumn.align: 'center'`, which is
+  the reusable way to centre an icon-only column. Name and Sourcer carry
+  `nowrap`, and Location carries `minWidth: '200px'` rather than `width`, which
+  the auto table layout ignored (it measured 106px and wrapped).
+- Every candidate column is sortable. Flags, Resume and Grade comment already had
+  a `SORT_COLUMNS` entry and only needed `sortable: true`; Requisitions needed a
+  new `requisition_codes` column on `candidate_list`, because the codes had been
+  assembled in the browser and Postgres cannot order by that. See
+  `20260910000002_candidate_list_requisition_codes.sql`, which carries the
+  measurement that justified a correlated aggregate over a materialised column.
+- Both recruit list pages suggest records as you type, through `searchHints` on
+  `ListPage` and `requisitionSearchHints` / `candidateSearchHints` in
+  `lib/searchHints.ts`. Suggestions are scoped to the list you are on; the
+  utility header's box is the one that searches everything.
+- **The candidate record's flag is real.** It was a `link-btn` reading "Flag" that
+  opened a placeholder and did nothing. It is now a hollow `Flag` icon that fills
+  red and writes `candidate_profiles.do_not_contact`, which is the only flag the
+  schema has and exactly what the list's Flags column shows. `aria-pressed`
+  carries the state, and it is disabled for anyone who is not an admin or a
+  recruiter, matching `canEditProfile`. The pipe that used to sit between it and
+  **Next** is gone.
+- **Next works.** The candidate list hands the current page's ordered ids to
+  `useListLink`, and the record reads them through `useRecordSiblings`, which also
+  gives the `1 of 20` counter beside the button. Paging re-passes the same router
+  state, so it keeps working across hops. Arrive by URL instead of from the list
+  and there are no siblings, so Next disables itself and says why. Previous is the
+  same two lines if it is ever wanted; only Next was asked for.
+- The candidate record's action bar was eight controls wide. It is now Edit, Send
+  Email, View Resume and Save profile, with Schedule meeting, Print Resume,
+  Submit, Merge duplicate and Erase behind the icon-only `ActionMenu`, the same
+  `label="More actions" iconOnly` shape the requisition record uses.
+- **Requisition Details is gone.** It rendered the same `apps` array as Requisition
+  Summary with the requisition link replaced by plain text; every other element
+  was identical. Summary survives because it links.
+- Web Links are `.fo-link-card`s, not bare anchors, and they now also surface the
+  candidate's real LinkedIn and online-resume URLs beside the generated searches.
+  **There is no Google results iframe and there cannot be:** Google sends
+  `X-Frame-Options` on search results, which is set by them and cannot be
+  overridden from the client. A card carrying the target host is the honest
+  substitute.
+- The candidate table has **one** flag column, keyed `flags`. It shows a red flag
+  when `candidate_profiles.do_not_contact` is set and nothing otherwise, and its
+  header is the flag icon. There used to be two: this one rendering a text badge
+  at the far right, and a decorative 32px `flagcol` on the left whose `render`
+  returned `null` for every row. `do_not_contact` is the only value the flag
+  string has ever taken, so the `warning` tone in the old badge was dead code.
 - Per-staff accordion preferences on the requisition record live in
   `integration_settings` under `ui.sections.recruit.requisition.record`, holding
   both `hidden` and an `open` map. `REQ_SECTION_DEFAULT_OPEN` in

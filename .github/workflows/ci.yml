@@ -23,6 +23,7 @@ jobs:
       - run: node scripts/check-contrast.mjs
       - run: node scripts/check-motion.mjs
       - run: node scripts/check-css-layers.mjs
+      - run: node scripts/check-spacing-tokens.mjs
       - run: node scripts/check-icons.mjs
       - run: node scripts/check-unbounded-queries.mjs
       - run: node scripts/check-paged-order.mjs
@@ -65,17 +66,35 @@ jobs:
         run: psql -h localhost -U postgres -d foos -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
   integration:
-    # The full stack: Supabase containers, 269 API/RLS tests and 248 browser
+    # The full stack: Supabase containers, 269 API/RLS tests and 276 browser
     # specs. Roughly 40 seconds for frontend and schema against 10 to 15 minutes
     # for this, so it runs where it decides something: the branch that deploys,
     # and any pull request into it. A develop push still gets lint, typecheck,
     # build and the plain-Postgres schema checks, which is what caught the
     # erasure_log and default-privilege defects on 2026-09-08.
+    #
+    # The browser step is sharded two ways because it is the whole cost: the run
+    # on 2026-09-10 spent 17.6 of its 22 minutes there. Raising the worker count
+    # is not an option, because ubuntu-latest on a private repo is 2 vCPU and
+    # already about twice as slow per test as a developer machine at 2 workers,
+    # so more Chromium workers contend rather than parallelise. Two shards run
+    # 2 workers each on their own runner and their own Supabase stack. That
+    # trades roughly 20 percent more billable minutes for close to half the wall
+    # clock, and changes nothing about what is tested. Three shards would cut
+    # more wall time for 40 percent more minutes; two is the better ratio.
+    #
+    # Vitest runs on shard 1 only. It is not sharded, so running it on both
+    # would pay for it twice and make shard 2 the critical path for no gain.
     if: github.ref_name == 'main' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     env:
       FOOS_QA_TEST_PASSWORD: ci-only-test-password
       FOOS_INTAKE_PARSER_SECRET: ci-only-intake-secret
+      FOOS_PW_SHARD_TOTAL: '2'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -122,13 +141,14 @@ jobs:
         run: psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
       - name: API and RLS tests
+        if: matrix.shard == 1
         run: npm run test --workspace=tests
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
       - name: Browser flow tests
-        run: npm run e2e --workspace=tests
+        run: npm run e2e --workspace=tests -- --shard=${{ matrix.shard }}/${{ env.FOOS_PW_SHARD_TOTAL }}
 
       - name: No attachment files were orphaned by the suites
         run: node scripts/check-attachment-queue.mjs
@@ -136,7 +156,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-artifacts
+          name: playwright-artifacts-shard-${{ matrix.shard }}
           path: |
             tests/test-results/
             tests/playwright-report/

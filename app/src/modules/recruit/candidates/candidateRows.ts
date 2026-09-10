@@ -4,7 +4,7 @@ import { personName } from '../lib';
 
 export type CandidateListRow = Omit<
   Database['public']['Views']['candidate_list']['Row'],
-  'search_text'
+  'search_text' | 'requisition_codes'
 >;
 
 export const SORT_COLUMNS: Record<string, string> = {
@@ -20,6 +20,7 @@ export const SORT_COLUMNS: Record<string, string> = {
   current_title: 'current_title',
   current_employer: 'current_employer',
   sourcer: 'sourcer_name',
+  requisitions: 'requisition_codes',
   flags: 'do_not_contact',
 };
 
@@ -67,6 +68,7 @@ export interface CandRow extends Record<string, unknown> {
 }
 
 export const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
+  { key: 'flags', header: 'Flags' },
   { key: 'name', header: 'Name' },
   { key: 'updated_at', header: 'Last updated' },
   { key: 'has_resume', header: 'Resume' },
@@ -80,7 +82,6 @@ export const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
   { key: 'current_title', header: 'Current title' },
   { key: 'current_employer', header: 'Current employer' },
   { key: 'sourcer', header: 'Sourcer' },
-  { key: 'flags', header: 'Flags' },
 ];
 
 export const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);

@@ -5,15 +5,21 @@ import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 const SEEDED_CANDIDATE = 'b0000000-0000-4000-8000-000000000002';
 
 test.describe('Q3: one search across every entity', () => {
-  test('the sidebar carries the typed keywords into the global search', async ({ page }) => {
+  test('the sidebar button opens global search, and the header box carries a term into it', async ({
+    page,
+  }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/sales/deals');
 
-    await page.getByLabel('Deal keywords').fill('Manila');
-    await page.getByRole('button', { name: 'Search everything' }).click();
-
-    await expect(page).toHaveURL(/\/search\?q=Manila/);
+    await page.locator('.fo-sidebar').getByRole('button', { name: 'Search everything' }).click();
+    await expect(page).toHaveURL(/\/search$/);
     await expect(page.getByRole('heading', { name: 'Search everything' })).toBeVisible();
+
+    await gotoAsSignedIn(page, '/sales/deals');
+    const header = page.getByRole('textbox', { name: 'Search all records' });
+    await header.fill('Manila');
+    await header.press('Enter');
+    await expect(page).toHaveURL(/\/search\?q=Manila/);
     await expect(page.getByLabel('Search everything')).toHaveValue('Manila');
   });
 

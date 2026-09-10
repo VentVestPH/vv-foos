@@ -9,7 +9,6 @@ import {
   COLUMN_DEFS,
   EMPTY_FILTERS,
   type CandFilters,
-  type CandRow,
 } from './candidateRows';
 import { useScrollShadow } from '../../../hooks/useScrollShadow';
 
@@ -18,8 +17,9 @@ export interface CandidateFilterRailProps {
   filters: CandFilters;
   setFilters: (next: CandFilters) => void;
   setSort: (next: SortState | null) => void;
-  visibleCols: (keyof CandRow & string)[];
-  setVisibleCols: (next: (keyof CandRow & string)[]) => void;
+  hiddenCols: string[];
+  setHiddenCols: (next: string[]) => void;
+  setColumnOrder: (next: string[]) => void;
 }
 
 export function CandidateFilterRail({
@@ -27,8 +27,9 @@ export function CandidateFilterRail({
   filters,
   setFilters,
   setSort,
-  visibleCols,
-  setVisibleCols,
+  hiddenCols,
+  setHiddenCols,
+  setColumnOrder,
 }: CandidateFilterRailProps) {
   const listShadow = useScrollShadow<HTMLDivElement>();
   return (
@@ -81,19 +82,21 @@ export function CandidateFilterRail({
         onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
       />
       </FilterGroup>
-      <FilterGroup label={`Columns (${visibleCols.length} of ${ALL_COLUMN_KEYS.length})`}>
+      <FilterGroup
+        label={`Columns (${ALL_COLUMN_KEYS.length - hiddenCols.length} of ${ALL_COLUMN_KEYS.length})`}
+      >
       <div className="field">
         <div className="checkbox-list fo-scroll-shade" ref={listShadow}>
           {COLUMN_DEFS.map((c) => (
             <label key={c.key} className="checkline">
               <input
                 type="checkbox"
-                checked={visibleCols.includes(c.key)}
+                checked={!hiddenCols.includes(c.key)}
                 onChange={(e) =>
-                  setVisibleCols(
+                  setHiddenCols(
                     e.target.checked
-                      ? [...visibleCols, c.key]
-                      : visibleCols.filter((k) => k !== c.key),
+                      ? hiddenCols.filter((k) => k !== c.key)
+                      : [...hiddenCols, c.key],
                   )
                 }
               />
@@ -110,7 +113,8 @@ export function CandidateFilterRail({
           onClick={() => {
             setFilters(EMPTY_FILTERS);
             setSort(null);
-            setVisibleCols(ALL_COLUMN_KEYS);
+            setColumnOrder(ALL_COLUMN_KEYS);
+            setHiddenCols([]);
           }}
         >
           Clear filters

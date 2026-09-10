@@ -694,7 +694,7 @@ export function AttachmentsPanel({
   );
 }
 
-export function ResumePreview({ attachment }: { attachment: Attachment }) {
+function ResumePreview({ attachment }: { attachment: Attachment }) {
   const pending = isPendingFile(attachment.storage_path);
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);

@@ -6,6 +6,7 @@ import { usePlaceholder } from './Placeholder';
 import { useDismissable } from '../hooks/useDismissable';
 import { useMenuKeyboard } from '../hooks/useMenuKeyboard';
 import { SearchBox } from '../components/ui/SearchBox';
+import { globalSearchHints } from '../lib/searchHints';
 import {
   ChevronDown,
   ChartColumn as BarChartIcon,
@@ -68,6 +69,8 @@ export function UtilityHeader() {
         onValueChange={setTopSearch}
         ariaLabel="Search all records"
         placeholder="Search everything"
+        fetchHints={globalSearchHints}
+        onClear={() => setTopSearch('')}
       />
 
       <div className="fo-utility-actions">

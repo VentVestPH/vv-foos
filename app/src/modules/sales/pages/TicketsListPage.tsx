@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Database } from '../../../lib/database.types';
 import { supabase } from '../../../lib/supabase';
 import { useLatestOnly } from '../../../lib/useLatestOnly';
+import { useSubmittedSearch } from '../../../lib/quickSearch';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { ListPage } from '../../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../../components/ui/Table';
@@ -40,7 +41,12 @@ export function TicketsListPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
-  const [search, setSearch] = useState('');
+  const {
+    input: searchInput,
+    setInput: setSearchInput,
+    term: search,
+    submit: submitSearch,
+  } = useSubmittedSearch();
 
   const beginLoad = useLatestOnly();
 
@@ -123,14 +129,15 @@ export function TicketsListPage() {
       title="Tickets"
       icon={<TicketIcon size={32} />}
       description="Tickets are the customer support and account issues your team is tracking in Front Office OS."
-      search={search}
-      onSearchChange={setSearch}
+      search={searchInput}
+      onSearchChange={setSearchInput}
+      onSearchSubmit={submitSearch}
       searchPlaceholder="Search tickets…"
       actions={
         <PlaceholderAction
           label="New Ticket"
           variant="primary"
-          detail="Ticket creation isn't implemented yet — it arrives with the Customer Success module."
+          detail="Ticket creation arrives with the Customer Success module. Until then tickets reach the list through the intake channels."
         />
       }
     >

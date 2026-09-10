@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { useListLink } from '../../../lib/listReturn';
+import { useSubmittedSearch } from '../../../lib/quickSearch';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
@@ -67,7 +68,12 @@ export function ContactsListPage() {
   const [params] = useSearchParams();
 
   const [rows, setRows] = useState<ContactRow[]>([]);
-  const [search, setSearch] = useState('');
+  const {
+    input: searchInput,
+    setInput: setSearchInput,
+    term: search,
+    submit: submitSearch,
+  } = useSubmittedSearch();
   const [companyFilter, setCompanyFilter] = useState(() => params.get('company_id') ?? '');
 
   const [total, setTotal] = useState(0);
@@ -230,8 +236,9 @@ export function ContactsListPage() {
       title="Contacts"
       icon={<ContactCardIcon size={32} />}
       description="Contacts are all of the individuals outside of your organization that you need to track in Front Office OS."
-      search={search}
-      onSearchChange={setSearch}
+      search={searchInput}
+      onSearchChange={setSearchInput}
+      onSearchSubmit={submitSearch}
       searchPlaceholder="Search name or email…"
       actions={
         canEdit ? (
@@ -262,12 +269,12 @@ export function ContactsListPage() {
         <PlaceholderAction
           label="Send Email"
           size="sm"
-          detail="Bulk email from the contact list isn't implemented — open a contact record to send a real email."
+          detail="Open a contact record to send a real email. Sending to a whole selection arrives with the outreach work."
         />
         <PlaceholderAction
           label="Delete"
           size="sm"
-          detail="Bulk delete isn't implemented for contacts yet."
+          detail="Deleting contacts in bulk arrives with the CRM cleanup work. Open a contact to archive it individually."
         />
       </div>
 

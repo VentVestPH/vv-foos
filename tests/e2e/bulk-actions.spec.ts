@@ -71,17 +71,23 @@ async function reselect(page: Page, keys: string[]) {
 }
 
 test.describe('Q1: bulk actions on the candidate list', () => {
-  test('the buttons are disabled until something is selected', async ({ page }) => {
+  test('the buttons are out of reach until something is selected', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page, '/recruit/candidates');
     await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
 
     const status = page.getByRole('button', { name: 'Change Main Status to…' });
-    await expect(status).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Mark as…' })).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Send Email' })).toBeDisabled();
+    const grow = page.locator('.fo-page-toolbar .fo-page-head-grow');
+    await expect(grow).toHaveAttribute('data-open', 'false');
+    for (const name of ['Change Main Status to…', 'Mark as…', 'Send Email']) {
+      await expect(
+        page.getByRole('button', { name }),
+        `${name} must not be reachable with nothing selected`,
+      ).toHaveCount(0);
+    }
 
     await selectTwo(page);
+    await expect(grow).toHaveAttribute('data-open', 'true');
     await expect(status).toBeEnabled();
   });
 

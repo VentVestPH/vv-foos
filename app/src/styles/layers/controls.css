@@ -9,7 +9,7 @@
   border-radius: var(--radius);
   border: 1px solid transparent;
   min-height: var(--control-h);
-  padding: 0 18px;
+  padding: 0 var(--btn-pad-x);
   cursor: pointer;
   line-height: 1;
 }
@@ -133,7 +133,7 @@
 }
 
 .field textarea {
-  padding: 8px var(--cell-pad);
+  padding: var(--sp-1) var(--cell-pad);
 }
 
 textarea {
@@ -142,8 +142,7 @@ textarea {
 
 .field input:focus-visible,
 .field textarea:focus-visible,
-.input:focus-visible,
-.fo-qs-input-row input:focus-visible {
+.input:focus-visible {
   outline: none;
   box-shadow: none;
 }
@@ -178,7 +177,7 @@ input[type='checkbox']::before {
 
 input[type='checkbox']:checked::before {
   height: 5px;
-  margin-top: -2px;
+  margin-top: calc(-1 * var(--sp-quarter));
   border-left: 2px solid var(--fo-surface);
   border-bottom: 2px solid var(--fo-surface);
   transform: rotate(-45deg);
@@ -211,14 +210,14 @@ input[type='checkbox']:disabled:indeterminate {
 .checkbox-list {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  max-height: 180px;
+  max-height: 350px;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
+  gap: var(--sp-1-5);
 }
 
 .checkbox-list > * {
@@ -256,7 +255,7 @@ input[type='checkbox']:disabled:indeterminate {
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 1px 8px;
+  padding: var(--hairline) var(--sp-1);
   border-radius: var(--fo-radius);
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -285,8 +284,8 @@ input[type='checkbox']:disabled:indeterminate {
 .badge-count {
   background: var(--fo-count);
   color: var(--fo-text);
-  border-radius: 999px;
-  padding: 1px 9px;
+  border-radius: var(--radius-pill);
+  padding: var(--hairline) calc(var(--sp-1) + var(--hairline));
 }
 
 .badge-warning {
@@ -338,7 +337,7 @@ input[type='checkbox']:disabled:indeterminate {
   position: absolute;
   width: 1px;
   height: 1px;
-  margin: -1px;
+  margin: calc(-1 * var(--hairline));
   padding: 0;
   border: 0;
   overflow: hidden;
@@ -494,8 +493,11 @@ input[type='number']::-webkit-outer-spin-button {
   cursor: pointer;
 }
 
-.field-select-option[data-active='true'] {
-  background: var(--fo-row-hover);
+.field-select-option[data-active='true'],
+.field-select-option:hover:not([aria-disabled='true']),
+.fo-action-menu-item:hover:not(:disabled),
+.fo-action-menu-item:focus-visible:not(:disabled) {
+  background: var(--fo-option-hover);
 }
 
 .field-select-option[aria-selected='true'] {
@@ -516,12 +518,25 @@ input[type='number']::-webkit-outer-spin-button {
 .date-field-row {
   display: flex;
   align-items: stretch;
-  gap: var(--sp-half);
+  gap: 0;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
-.date-field-input {
+.date-field-row:focus-within {
+  border-color: var(--fo-primary);
+}
+
+.field input.date-field-input {
   flex: 1;
   min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 0 var(--sp-1);
+  height: calc(var(--control-h) - 2px);
+  min-height: calc(var(--control-h) - 2px);
 }
 
 .date-field-btn {
@@ -529,19 +544,19 @@ input[type='number']::-webkit-outer-spin-button {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: var(--control-h);
-  min-height: var(--control-h);
+  width: calc(var(--control-h) - 2px);
+  min-height: calc(var(--control-h) - 2px);
   padding: 0;
-  background: var(--surface);
-  border: 1px solid var(--field-border);
-  border-radius: var(--radius);
+  background: none;
+  border: 0;
+  border-radius: 0;
   color: var(--fo-icon);
   cursor: pointer;
 }
 
 .date-field-btn:disabled {
   cursor: not-allowed;
-  background: var(--canvas);
+  color: var(--fo-text-secondary);
 }
 
 .date-dialog-layer {
@@ -597,7 +612,7 @@ input[type='number']::-webkit-outer-spin-button {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(4, 1fr);
   height: 236px;
-  gap: 2px;
+  gap: var(--sp-quarter);
 }
 
 .date-pick-cell {
@@ -644,13 +659,13 @@ input[type='number']::-webkit-outer-spin-button {
 .date-grid {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-quarter);
 }
 
 .date-grid-row {
   display: grid;
   grid-template-columns: repeat(7, var(--control-h));
-  gap: 2px;
+  gap: var(--sp-quarter);
 }
 
 .date-grid-head {
@@ -693,6 +708,18 @@ input[type='number']::-webkit-outer-spin-button {
   color: var(--text-secondary);
   text-decoration: line-through;
   cursor: not-allowed;
+}
+
+.fo-record-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-half);
+}
+
+.fo-record-pager-pos {
+  font-size: var(--fs-meta);
+  color: var(--fo-text-secondary);
+  white-space: nowrap;
 }
 
 .fo-action-menu-trigger {
@@ -762,6 +789,10 @@ input[type='number']::-webkit-outer-spin-button {
   color: var(--fo-text-secondary);
 }
 
+.fo-action-menu-item:focus-visible {
+  outline: none;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -798,7 +829,7 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 .fo-search-block {
-  margin-top: 12px;
+  margin-top: var(--sp-1-5);
 }
 
 .fo-search-input-wrap {
@@ -816,6 +847,14 @@ input[type='number']::-webkit-outer-spin-button {
   padding-right: var(--control-h);
 }
 
+.fo-search-input-wrap[data-clearable='true'] > input {
+  padding-right: var(--fo-inset-btn);
+}
+
+.fo-search-input-wrap[data-clearable='true'][data-inset='true'] > input {
+  padding-right: calc(var(--control-h) + var(--fo-inset-btn));
+}
+
 .fo-search-input-wrap > input[type='search']::-webkit-search-cancel-button {
   display: none;
 }
@@ -825,7 +864,7 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 .fo-search-status {
-  margin: 12px 0 0;
+  margin: var(--sp-1-5) 0 0;
   color: var(--fo-text-secondary);
   font-size: var(--fs-meta);
 }
@@ -848,22 +887,22 @@ input[type='number']::-webkit-outer-spin-button {
   left: 0;
   z-index: 1;
   display: block;
-  flex: 0 0 24px;
+  flex: 0 0 var(--scroll-shade-size);
   width: 100%;
-  height: 24px;
+  height: var(--scroll-shade-size);
   opacity: 0;
   pointer-events: none;
 }
 
 .fo-scroll-shade::before {
   top: 0;
-  margin-bottom: -24px;
+  margin-bottom: calc(-1 * var(--scroll-shade-size));
   background: linear-gradient(to bottom, var(--scroll-shade), var(--scroll-shade-fade));
 }
 
 .fo-scroll-shade::after {
   bottom: 0;
-  margin-top: -24px;
+  margin-top: calc(-1 * var(--scroll-shade-size));
   background: linear-gradient(to top, var(--scroll-shade), var(--scroll-shade-fade));
 }
 
@@ -873,7 +912,7 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 .checkbox-list.fo-scroll-shade::before {
-  margin-bottom: calc(-24px - var(--sp-1));
+  margin-bottom: calc(-1 * var(--scroll-shade-size) - var(--sp-1));
 }
 
 .checkbox-list.fo-scroll-shade::after {
@@ -881,11 +920,11 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 .checkbox-list:has(> .fo-column-row).fo-scroll-shade::before {
-  margin-bottom: -24px;
+  margin-bottom: calc(-1 * var(--sp-3));
 }
 
 .checkbox-list:has(> .fo-column-row).fo-scroll-shade::after {
-  margin-top: -24px;
+  margin-top: calc(-1 * var(--sp-3));
 }
 
 .fo-hint-list {
@@ -1029,7 +1068,7 @@ select:focus-visible {
   border: 1px solid var(--fo-border);
   border-radius: var(--radius);
   background: var(--fo-canvas);
-  padding: 2px;
+  padding: var(--sp-quarter);
 }
 
 .fo-segmented-thumb {

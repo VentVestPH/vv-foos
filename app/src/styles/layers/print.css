@@ -171,7 +171,7 @@
   .table th,
   .table td {
     border-bottom: 1px solid #cccccc;
-    padding: 4px 6px;
+    padding: var(--sp-half) var(--sp-tight);
   }
 
   .table thead {

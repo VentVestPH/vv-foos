@@ -207,4 +207,47 @@ test.describe('QA-007: reminder.due and tasks have an interface', () => {
     await expect(panel).toBeVisible({ timeout: 20000 });
     await expect(panel.getByText(`${TAG} someone else`)).toHaveCount(0);
   });
+
+  test('F23: the reminder sweep only touches what the caller may already update', async () => {
+    const admin = await apiAs(PERSONA_EMAILS.admin);
+    const sourcer = await apiAs(PERSONA_EMAILS.sourcer);
+    await cleanup(admin);
+
+    const { data: me } = await sourcer.auth.getUser();
+    const sourcerId = me.user?.id;
+    expect(sourcerId).toBeTruthy();
+
+    const due = new Date(Date.now() - 60000).toISOString();
+    const { error: insErr } = await admin.from('reminders').insert([
+      { staff_id: RECRUITER_STAFF_ID, subject: `${TAG} someone elses`, remind_at: due, status: 'pending' },
+      { staff_id: sourcerId, subject: `${TAG} the callers own`, remind_at: due, status: 'pending' },
+    ]);
+    expect(insErr).toBeNull();
+
+    const { error: sweepErr } = await sourcer.rpc('fn_fire_due_reminders');
+    expect(sweepErr).toBeNull();
+
+    const { data: afterSourcer } = await admin
+      .from('reminders')
+      .select('subject, status')
+      .ilike('subject', `${TAG}%`);
+    const status = (suffix: string) =>
+      afterSourcer?.find((r) => r.subject.endsWith(suffix))?.status;
+    expect(status('the callers own'), 'a sourcer may fire their own due reminder').toBe('fired');
+    expect(
+      status('someone elses'),
+      'a sourcer must not be able to fire a reminder belonging to someone else',
+    ).toBe('pending');
+
+    const { error: adminErr } = await admin.rpc('fn_fire_due_reminders');
+    expect(adminErr).toBeNull();
+    const { data: afterAdmin } = await admin
+      .from('reminders')
+      .select('status')
+      .ilike('subject', `${TAG}%`);
+    expect(
+      afterAdmin?.every((r) => r.status === 'fired'),
+      'an admin sweeps everything, matching the reminders_update policy',
+    ).toBe(true);
+  });
 });

@@ -12,7 +12,8 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useAdvancedSearch, usePublishAdvancedSearch } from '../../shell/AdvancedSearch';
 import { Button } from './Button';
 import { Breadcrumbs, type BreadcrumbItem } from './Breadcrumbs';
-import { SearchField } from './SearchField';
+import { SearchBox } from './SearchBox';
+import type { SearchHintFetcher } from '../../lib/searchHints';
 import { downloadCsv } from '../../lib/csv';
 
 interface ListPageFiltersApi {
@@ -41,7 +42,7 @@ interface ListPageProps {
   onSearchSubmit?: (value: string) => void;
   searchPlaceholder?: string;
 
-  secondSearchRow?: ReactNode;
+  searchHints?: SearchHintFetcher;
 
   filterRail?: ReactNode;
 
@@ -72,7 +73,7 @@ export function ListPage({
   onSearchChange,
   onSearchSubmit,
   searchPlaceholder = 'Search…',
-  secondSearchRow,
+  searchHints,
   filterRail,
   savedViewsSlot,
   actions,
@@ -160,15 +161,27 @@ export function ListPage({
       </div>
       <div className="fo-page-toolbar">
       <div className="list-page-toolbar fo-search-row">
-        <SearchField
+        <SearchBox
           ref={searchRef}
           className="list-page-search"
           type="search"
           value={search}
           onValueChange={onSearchChange}
-          onSubmitTerm={onSearchSubmit}
+          onSubmitTerm={(term) =>
+            onSearchSubmit ? onSearchSubmit(term) : onSearchChange(term)
+          }
+          onClear={() => {
+            onSearchChange('');
+            if (onSearchSubmit) onSearchSubmit('');
+          }}
           placeholder={searchPlaceholder}
           ariaLabel={`Search ${title}`}
+          fetchHints={searchHints}
+          allLabel={(term, total) =>
+            `Search all ${title.toLowerCase()} for “${term}” · ${total.toLocaleString()} ${
+              total === 1 ? 'match' : 'matches'
+            }`
+          }
         />
         {filterRail && advanced.narrow && (
           <Button
@@ -218,11 +231,6 @@ export function ListPage({
           </Button>
         )}
       </div>
-      {secondSearchRow && (
-        <div className="list-page-toolbar fo-search-row fo-second-search-row">
-          {secondSearchRow}
-        </div>
-      )}
       {bulkBar && (
         <div className="fo-page-head-foot" data-open={bulkBarOpen ? 'true' : 'false'}>
           {bulkBar && (

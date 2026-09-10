@@ -15,7 +15,9 @@ export interface TableColumn<T> {
 
   capped?: boolean;
   width?: string;
+  minWidth?: string;
   nowrap?: boolean;
+  align?: 'center';
 
   hideWhenEmpty?: boolean;
 }
@@ -252,8 +254,19 @@ export function Table<T>({
             {visibleColumns.map((col) => (
               <th
                 key={col.key}
-                className={col.sortable ? 'sortable' : undefined}
-                style={col.width ? { width: col.width } : undefined}
+                className={
+                  [col.sortable ? 'sortable' : '', col.align === 'center' ? 'cell-center' : '']
+                    .filter(Boolean)
+                    .join(' ') || undefined
+                }
+                style={
+                  col.width || col.minWidth
+                    ? {
+                        ...(col.width ? { width: col.width } : {}),
+                        ...(col.minWidth ? { minWidth: col.minWidth } : {}),
+                      }
+                    : undefined
+                }
                 aria-sort={
                   sortKey === col.key
                     ? sortDir === 'asc'
@@ -335,7 +348,14 @@ export function Table<T>({
                 {visibleColumns.map((col) => {
                   const raw = (row as Record<string, unknown>)[col.key];
                   return (
-                    <td key={col.key} className={col.nowrap ? 'cell-nowrap' : undefined}>
+                    <td
+                      key={col.key}
+                      className={
+                        [col.nowrap ? 'cell-nowrap' : '', col.align === 'center' ? 'cell-center' : '']
+                          .filter(Boolean)
+                          .join(' ') || undefined
+                      }
+                    >
                       {col.render ? (
                         col.render(row)
                       ) : col.capped ? (

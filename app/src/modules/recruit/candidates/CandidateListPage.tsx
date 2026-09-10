@@ -1,20 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useListLink } from '../../../lib/listReturn';
+import { useSubmittedSearch, searchWords } from '../../../lib/quickSearch';
+import { candidateSearchHints } from '../../../lib/searchHints';
+import { EMPTY_CELL } from '../../../lib/format';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
-import { Badge } from '../../../components/ui/Badge';
-import { ListPage, useListPageFilters } from '../../../components/ui/ListPage';
+import { ListPage } from '../../../components/ui/ListPage';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
+import { Skeleton } from '../../../components/ui/Skeleton';
+import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialog';
+import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { PlaceholderAction } from '../../../shell/Placeholder';
-import {
-  FileText as ResumeIcon,
-  Flag as FlagIcon,
-  Settings as GearIcon,
-  User as PersonIcon,
-} from 'lucide-react';
+import { FileText as ResumeIcon, Flag as FlagIcon, User as PersonIcon } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import { StarGrade } from '../../../components/ui/StarGrade';
 import { realtimeChannel } from '../../../lib/realtimeChannel';
@@ -29,6 +28,7 @@ import {
   fmtDate,
 } from '../lib';
 import {
+  ALL_COLUMN_KEYS,
   DEFAULT_COLUMN_KEYS,
   COLUMN_DEFS,
   EMPTY_FILTERS,
@@ -38,10 +38,8 @@ import {
   type CandRow,
   type CandidateListRow,
 } from './candidateRows';
-import {
-  useIsMobile,
-  useLookups,
-} from '../hooks';
+import { useIsMobile, useLookups } from '../hooks';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
 import { CandidateBulkActions } from './CandidateBulkActions';
 import { CandidateFilterRail } from './CandidateFilterRail';
@@ -80,10 +78,13 @@ export function CandidateListPage() {
   const savedViews = useSavedViews('candidate');
   const [params] = useSearchParams();
 
-  const [search, setSearch] = useState('');
+  const {
+    input: searchInput,
+    setInput: setSearchInput,
+    term: search,
+    submit: submitSearch,
+  } = useSubmittedSearch();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [filters, setFilters] = useState<CandFilters>(() => ({
     statusId: params.get('status') ?? '',
     starGrade: params.get('star_grade') ?? '',
@@ -93,7 +94,15 @@ export function CandidateListPage() {
     dateTo: params.get('date_to') ?? '',
   }));
   const [sort, setSort] = useState<SortState | null>(null);
-  const [visibleCols, setVisibleCols] = useState<string[]>(DEFAULT_COLUMN_KEYS);
+  const [columnOrder, setColumnOrder] = useState<string[]>(ALL_COLUMN_KEYS);
+  const [hiddenCols, setHiddenCols] = useState<string[]>(
+    ALL_COLUMN_KEYS.filter((k) => !DEFAULT_COLUMN_KEYS.includes(k)),
+  );
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const visibleCols = useMemo(
+    () => columnOrder.filter((k) => !hiddenCols.includes(k)),
+    [columnOrder, hiddenCols],
+  );
 
   const [profiles, setProfiles] = useState<CandidateListRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,17 +124,12 @@ export function CandidateListPage() {
       if (filters.sourcerId) out = out.eq('sourcer_id', filters.sourcerId);
       if (filters.dateFrom) out = out.gte('initial_date', filters.dateFrom);
       if (filters.dateTo) out = out.lte('initial_date', filters.dateTo);
-      const term = search.trim().toLowerCase();
-      if (term) out = out.ilike('search_text', `%${likeLiteral(term)}%`);
-      if (firstName.trim()) {
-        out = out.ilike('first_name', `%${likeLiteral(firstName.trim())}%`);
-      }
-      if (lastName.trim()) {
-        out = out.ilike('last_name', `%${likeLiteral(lastName.trim())}%`);
+      for (const word of searchWords(search)) {
+        out = out.ilike('search_text', `%${likeLiteral(word)}%`);
       }
       return out;
     },
-    [filters, search, firstName, lastName],
+    [filters, search],
   );
 
   const applyOrder = useCallback(
@@ -202,7 +206,7 @@ export function CandidateListPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [filters, search, firstName, lastName, sort]);
+  }, [filters, search, sort]);
 
   const beginCount = useLatestOnly();
 
@@ -255,6 +259,7 @@ export function CandidateListPage() {
   );
 
   const canBulkEdit = !mobile && (role === 'admin' || role === 'recruiter');
+  const showSkeleton = useMinimumVisible(loading);
 
   const canGrade = useCallback(
     (profile: CandidateListRow) =>
@@ -331,6 +336,8 @@ export function CandidateListPage() {
     [profiles, apps, reqCode],
   );
 
+  const pageIds = useMemo(() => rows.map((r) => r.id), [rows]);
+
   const updateGrade = useCallback(
     async (personId: string, patch: { star_grade?: number | null; grade_comment?: string | null }) => {
       const { error: err } = await supabase
@@ -344,28 +351,36 @@ export function CandidateListPage() {
   );
 
   const columns = useMemo<TableColumn<CandRow>[]>(() => {
-    const flagCol: TableColumn<CandRow> = {
-      key: 'flagcol',
-      header: (
-        <span className="cand-flag-col" role="img" aria-label="Flag" title="Flag">
-          <FlagIcon size={20} />
-        </span>
-      ),
-      width: '32px',
-      render: () => null,
-    };
     const defs: TableColumn<CandRow>[] = [
+      {
+        key: 'flags',
+        header: (
+          <span className="cand-flag-col" role="img" aria-label="Flags" title="Flags">
+            <FlagIcon size={20} />
+          </span>
+        ),
+        sortable: true,
+        sortValue: (r) => (r.flags ? 1 : 0),
+        width: '32px',
+        render: (r) =>
+          r.flags ? (
+            <span className="cand-flag-set" role="img" aria-label={r.flags} title={r.flags}>
+              <FlagIcon size={20} />
+            </span>
+          ) : null,
+      },
       {
         key: 'name',
         header: 'Name',
         sortable: true,
+        nowrap: true,
         render: (r) => (
           <button
             type="button"
             className="link-btn"
             onClick={(e) => {
               e.stopPropagation();
-              openRecord(`/recruit/candidates/${r.id}`);
+              openRecord(`/recruit/candidates/${r.id}`, pageIds);
             }}
           >
             {r.name}
@@ -381,6 +396,8 @@ export function CandidateListPage() {
       {
         key: 'has_resume',
         header: 'Resume',
+        sortable: true,
+        align: 'center',
         sortValue: (r) => (r.has_resume ? 1 : 0),
         render: (r) => (
           <span
@@ -395,7 +412,7 @@ export function CandidateListPage() {
           </span>
         ),
       },
-      { key: 'location', header: 'Location', sortable: true },
+      { key: 'location', header: 'Location', sortable: true, minWidth: '200px' },
       { key: 'source', header: 'Source', sortable: true },
       {
         key: 'initial_date',
@@ -425,11 +442,14 @@ export function CandidateListPage() {
       {
         key: 'grade_comment',
         header: 'Grade comment',
+        sortable: true,
         render: (r) => {
           const prof = profiles.find((p) => p.person_id === r.id);
           return (
             <span className="grade-comment-cell" onClick={(e) => e.stopPropagation()}>
-              <CappedCell text={r.grade_comment} />
+              <span className="grade-comment-text">
+                {r.grade_comment ? <CappedCell text={r.grade_comment} /> : EMPTY_CELL}
+              </span>
               {prof && canGrade(prof) && (
                 <Button
                   size="sm"
@@ -451,6 +471,7 @@ export function CandidateListPage() {
       {
         key: 'requisitions',
         header: 'Requisitions',
+        sortable: true,
         render: (r) => (
           <span className="chip-row">
             {r.requisitions
@@ -466,20 +487,13 @@ export function CandidateListPage() {
       },
       { key: 'current_title', header: 'Current title', sortable: true },
       { key: 'current_employer', header: 'Current employer', sortable: true },
-      { key: 'sourcer', header: 'Sourcer', sortable: true },
-      {
-        key: 'flags',
-        header: 'Flags',
-        render: (r) =>
-          r.flags ? (
-            <Badge tone={r.flags.includes('Do not contact') ? 'danger' : 'warning'}>
-              {r.flags}
-            </Badge>
-          ) : null,
-      },
+      { key: 'sourcer', header: 'Sourcer', sortable: true, nowrap: true },
     ];
-    return [flagCol, ...defs.filter((c) => visibleCols.includes(c.key))];
-  }, [visibleCols, profiles, canGrade, updateGrade, openRecord]);
+    const byKey = new Map(defs.map((c) => [c.key, c]));
+    return visibleCols
+      .map((key) => byKey.get(key))
+      .filter((c): c is TableColumn<CandRow> => c !== undefined);
+  }, [visibleCols, profiles, canGrade, updateGrade, openRecord, pageIds]);
 
   const pageCount =
     total === null
@@ -510,39 +524,41 @@ export function CandidateListPage() {
 
   const applyView = useCallback((state: ViewState) => {
     setFilters({ ...EMPTY_FILTERS, ...(state.filters as Partial<CandFilters>) });
-    if (state.columns.length > 0) setVisibleCols(state.columns);
+    if (state.columns.length > 0) {
+      const saved = state.columns.filter((k) => ALL_COLUMN_KEYS.includes(k));
+      setColumnOrder([...saved, ...ALL_COLUMN_KEYS.filter((k) => !saved.includes(k))]);
+      setHiddenCols(ALL_COLUMN_KEYS.filter((k) => !saved.includes(k)));
+    }
     setSort(state.sort);
   }, []);
 
-  const exportColumns = COLUMN_DEFS.filter((c) => visibleCols.includes(c.key));
+  const columnHeader = useMemo(
+    () => new Map(COLUMN_DEFS.map((c) => [c.key, c.header])),
+    [],
+  );
+  const exportColumns = visibleCols.map((key) => ({
+    key,
+    header: columnHeader.get(key) ?? key,
+  }));
 
   return (
     <ListPage
       breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Candidates' }]}
+      flush
       title="Candidates"
       icon={<PersonIcon size={32} />}
       description="Candidates are all of the people you want to track in Front Office OS who are either applicants, employee referrals, sourced prospects, agency submissions, etc."
-      search={search}
-      onSearchChange={setSearch}
+      search={searchInput}
+      onSearchChange={setSearchInput}
+      onSearchSubmit={submitSearch}
       searchPlaceholder="Search name, email, title, employer…"
-      secondSearchRow={
-        <div className="cand-second-search-fields">
-          <span className="fo-search-label">First Name:</span>
-          <Input
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            aria-label="First name"
-          />
-          <span className="fo-search-label">Last Name:</span>
-          <Input
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            aria-label="Last name"
-          />
-          <button type="button" className="btn btn-secondary btn-sm fo-go-btn">
-            Search
-          </button>
-        </div>
+      searchHints={candidateSearchHints}
+      actions={
+        <SettingsButton
+          label="Column settings"
+          title="Choose the column order and which columns show"
+          onClick={() => setSettingsOpen(true)}
+        />
       }
       savedViewsSlot={
         <SavedViewsControl
@@ -558,36 +574,38 @@ export function CandidateListPage() {
       exportCount={total ?? profiles.length}
       exportColumns={exportColumns}
       exportFilename="candidates.csv"
+      bulkBarOpen={selected.size > 0}
+      bulkBar={
+        <div className="record-action-bar fo-list-action-bar">
+          <CandidateBulkActions
+            selected={selected}
+            profiles={profiles}
+            statuses={lookups.statuses}
+            canEdit={canBulkEdit}
+            onDone={load}
+            onClear={() => setSelected(new Set())}
+          />
+          <PlaceholderAction label="View Resume" size="sm" />
+          <PlaceholderAction label="Print Resume" size="sm" />
+          <PlaceholderAction label="Submit" size="sm" />
+          <PlaceholderAction label="More" size="sm" caret />
+        </div>
+      }
       filterRail={
         <CandidateFilterRail
           lookups={lookups}
           filters={filters}
           setFilters={setFilters}
           setSort={setSort}
-          visibleCols={visibleCols}
-          setVisibleCols={setVisibleCols}
+          hiddenCols={hiddenCols}
+          setHiddenCols={setHiddenCols}
+          setColumnOrder={setColumnOrder}
         />
       }
     >
       {(error || savedViews.error) && (
         <p className="form-error" role="alert">{error ?? savedViews.error}</p>
       )}
-
-      <div className="record-action-bar fo-list-action-bar">
-        <CandidateBulkActions
-          selected={selected}
-          profiles={profiles}
-          statuses={lookups.statuses}
-          canEdit={canBulkEdit}
-          onDone={load}
-          onClear={() => setSelected(new Set())}
-        />
-        <PlaceholderAction label="View Resume" size="sm" />
-        <PlaceholderAction label="Print Resume" size="sm" />
-        <PlaceholderAction label="Submit" size="sm" />
-        <PlaceholderAction label="More" size="sm" caret />
-        <CandidateGearButton />
-      </div>
 
       <Pager
         from={pager.from}
@@ -599,6 +617,11 @@ export function CandidateListPage() {
         onPage={pager.setPage}
       />
 
+      {showSkeleton ? (
+        <div className="fo-skeleton-card">
+          <Skeleton rows={8} label="Loading candidates" />
+        </div>
+      ) : (
       <Table
         columns={columns}
         rows={pager.pageRows}
@@ -611,9 +634,11 @@ export function CandidateListPage() {
         selectable
         selected={selected}
         onSelectionChange={setSelected}
-        onRowClick={(r) => openRecord(`/recruit/candidates/${r.id}`)}
+        onRowClick={(r) => openRecord(`/recruit/candidates/${r.id}`, pageIds)}
         emptyText="No candidates match."
+        emptyIcon={<PersonIcon size={32} />}
       />
+      )}
 
       <Pager
         from={pager.from}
@@ -624,6 +649,29 @@ export function CandidateListPage() {
         pageCount={pager.pageCount}
         onPage={pager.setPage}
       />
+
+      {settingsOpen && (
+        <ColumnSettingsDialog
+          title="Column settings"
+          hint="Drag a column to change where it sits, or untick it to hide it. Save a view to keep this arrangement."
+          columns={COLUMN_DEFS.map((c) => ({ key: c.key, header: c.header }))}
+          order={columnOrder}
+          hidden={hiddenCols}
+          onOrderChange={setColumnOrder}
+          onToggle={(key) =>
+            setHiddenCols(
+              hiddenCols.includes(key)
+                ? hiddenCols.filter((k) => k !== key)
+                : [...hiddenCols, key],
+            )
+          }
+          onReset={() => {
+            setColumnOrder(ALL_COLUMN_KEYS);
+            setHiddenCols(ALL_COLUMN_KEYS.filter((k) => !DEFAULT_COLUMN_KEYS.includes(k)));
+          }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
 
       {commentEdit && (
         <Dialog
@@ -656,19 +704,5 @@ export function CandidateListPage() {
         </Dialog>
       )}
     </ListPage>
-  );
-}
-
-function CandidateGearButton() {
-  const { openFilters } = useListPageFilters();
-  return (
-    <button
-      type="button"
-      className="fo-gear-btn"
-      aria-label="Configure candidate list columns"
-      onClick={() => openFilters({ focusColumns: true })}
-    >
-      <GearIcon size={20} />
-    </button>
   );
 }

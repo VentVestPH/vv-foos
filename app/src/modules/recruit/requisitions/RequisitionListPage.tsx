@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useListLink } from '../../../lib/listReturn';
+import { useSubmittedSearch } from '../../../lib/quickSearch';
+import { requisitionSearchHints } from '../../../lib/searchHints';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import { REQUISITION_STATUSES } from '../../../lib/database.types';
 import { Button } from '../../../components/ui/Button';
@@ -112,8 +114,6 @@ const COLUMN_DEFS: { key: keyof ReqRow & string; header: string }[] = [
   { key: 'opened_date', header: 'Opened' },
 ];
 
-const SEARCH_DEBOUNCE_MS = 2000;
-
 const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
 const COLUMN_HEADER: Record<string, string> = Object.fromEntries(
@@ -140,8 +140,12 @@ export function RequisitionListPage() {
   const savedViews = useSavedViews('requisition');
   const [params] = useSearchParams();
 
-  const [search, setSearch] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const {
+    input: searchInput,
+    setInput: setSearchInput,
+    term: searchTerm,
+    submit: submitSearch,
+  } = useSubmittedSearch();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filters, setFilters] = useState<ReqFilters>(() => ({
     status: params.get('status') ?? '',
@@ -215,12 +219,6 @@ export function RequisitionListPage() {
       if (isCurrent()) setLoading(false);
     }
   }, [applyReqFilters, page, beginLoad]);
-
-  useEffect(() => {
-    if (search === searchTerm) return undefined;
-    const timer = window.setTimeout(() => setSearchTerm(search), SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [search, searchTerm]);
 
   useEffect(() => {
     setPage(0);
@@ -524,9 +522,10 @@ export function RequisitionListPage() {
       description="Requisitions are all of the job openings you want to track in Front Office OS and post on your careers website."
       breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Requisitions' }]}
       flush
-      search={search}
-      onSearchChange={setSearch}
-      onSearchSubmit={setSearchTerm}
+      search={searchInput}
+      onSearchChange={setSearchInput}
+      onSearchSubmit={submitSearch}
+      searchHints={requisitionSearchHints}
       searchPlaceholder="Search code, title, company, location…"
       savedViewsSlot={
         <SavedViewsControl

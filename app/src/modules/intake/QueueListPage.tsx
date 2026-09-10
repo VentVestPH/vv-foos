@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useSubmittedSearch } from '../../lib/quickSearch';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { ListPage, useListPageFilters } from '../../components/ui/ListPage';
@@ -29,7 +30,12 @@ const QUEUE_COLUMN_DEFS = [
 const QUEUE_ALL_COLUMN_KEYS = QUEUE_COLUMN_DEFS.map((c) => c.key);
 
 export function QueueListPage() {
-  const [search, setSearch] = useState('');
+  const {
+    input: searchInput,
+    setInput: setSearchInput,
+    term: search,
+    submit: submitSearch,
+  } = useSubmittedSearch();
   const [params] = useSearchParams();
   const [channel, setChannel] = useState(() => params.get('channel') ?? '');
   const [targetType, setTargetType] = useState('');
@@ -118,8 +124,9 @@ export function QueueListPage() {
       title="Intake"
       icon={<InboxIcon size={32} />}
       description="Intake is where new candidates and contacts arrive from LinkedIn, spreadsheets, email, and the careers page before they're merged or imported."
-      search={search}
-      onSearchChange={setSearch}
+      search={searchInput}
+      onSearchChange={setSearchInput}
+      onSearchSubmit={submitSearch}
       searchPlaceholder="Search name, company, title, batch…"
       actions={
         <>

@@ -12,7 +12,7 @@
   left: 0;
   width: 1px;
   height: 1px;
-  margin: -1px;
+  margin: calc(-1 * var(--hairline));
   padding: 0;
   overflow: hidden;
   clip: rect(0 0 0 0);
@@ -45,7 +45,7 @@
 }
 
 .fo-bookmark button {
-  padding: 2px var(--sp-1);
+  padding: var(--sp-quarter) var(--sp-1);
   font-family: inherit;
   font-size: var(--fs-meta);
   color: var(--fo-link);
@@ -57,7 +57,7 @@
 .fo-bookmark-remove {
   display: inline-flex;
   align-items: center;
-  padding: 2px 4px !important;
+  padding: var(--sp-quarter) var(--sp-half) !important;
   color: var(--text-secondary) !important;
 }
 
@@ -68,9 +68,9 @@
 .dash-gate-tag {
   display: inline-block;
   margin-left: var(--sp-1);
-  padding: 0 4px;
+  padding: 0 var(--sp-half);
   border: 1px solid var(--fo-control-border);
-  border-radius: 2px;
+  border-radius: var(--radius);
   background: var(--fo-row-alt);
   color: var(--text-secondary);
   font-size: var(--fs-xs);
@@ -82,8 +82,8 @@
 .fo-nav-badge {
   display: inline-block;
   min-width: 16px;
-  margin-left: 5px;
-  padding: 0 4px;
+  margin-left: calc(var(--sp-half) + var(--hairline));
+  padding: 0 var(--sp-half);
   border-radius: 8px;
   background: var(--fo-surface);
   color: var(--fo-nav);
@@ -105,7 +105,7 @@
   display: inline-block;
   min-width: 16px;
   margin-left: var(--sp-1);
-  padding: 0 4px;
+  padding: 0 var(--sp-half);
   border-radius: 8px;
   background: var(--status-danger-bg);
   color: var(--danger);
@@ -164,7 +164,7 @@
 
 .star-grade {
   display: inline-flex;
-  gap: 2px;
+  gap: var(--sp-quarter);
   white-space: nowrap;
 }
 
@@ -182,7 +182,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 1px;
+  padding: 0 var(--hairline);
 }
 
 .file-pending-name {
@@ -204,10 +204,16 @@
   gap: var(--sp-1);
 }
 
-.grade-comment-cell .cell-capped,
-.grade-comment-cell .cell-expanded {
+.grade-comment-cell > .grade-comment-text {
   flex: 1;
   min-width: 0;
+  color: var(--fo-text-secondary);
+}
+
+.grade-comment-text .cell-capped,
+.grade-comment-text .cell-expanded {
+  width: 100%;
+  color: var(--fo-text);
 }
 
 .skip-link {
@@ -293,7 +299,7 @@
 .skeleton-row,
 .skeleton-card {
   display: block;
-  border-radius: 2px;
+  border-radius: var(--radius);
   background: linear-gradient(
     90deg,
     var(--fo-row-hover) 0%,

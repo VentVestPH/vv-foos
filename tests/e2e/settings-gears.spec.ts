@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
-import { clientAs } from '../env';
+import { deleteOwnSettings } from '../env';
 
 const SEEDED_REQUISITION = 'd0000000-0000-4000-8000-000000000001';
 const PREF_KEYS = [
@@ -10,8 +10,7 @@ const PREF_KEYS = [
 ];
 
 test.afterAll(async () => {
-  const client = await clientAs('admin');
-  await client.from('integration_settings').delete().in('key', PREF_KEYS);
+  await deleteOwnSettings('admin', PREF_KEYS);
 });
 
 test.beforeEach(async ({ page }) => {
@@ -54,7 +53,6 @@ test('the header Reports gear navigates in the SPA without a full document load'
 });
 
 for (const [label, path, gear] of [
-  ['candidates', '/recruit/candidates', 'Configure candidate list columns'],
   ['intake queue', '/intake', 'Configure columns'],
 ] as const) {
   test(`the ${label} gear opens the filter rail and puts focus on the first column checkbox`, async ({
@@ -72,6 +70,18 @@ for (const [label, path, gear] of [
     await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
   });
 }
+
+test('the candidates gear opens column settings, not the filter rail', async ({ page }) => {
+  await gotoAsSignedIn(page, '/recruit/candidates');
+  await expect(page.locator('.filter-rail')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Column settings' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Column settings' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('checkbox', { name: 'Name', exact: true })).toBeChecked();
+  await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
+});
 
 test('the dashboard settings gear hides a section, and the choice survives a reload', async ({
   page,
@@ -172,7 +182,7 @@ test('no gear anywhere in the shell opens the not-part-of-FOOS placeholder', asy
   const gears: [string, string][] = [
     ['/', 'Dashboard settings'],
     ['/reports', 'Configure report categories'],
-    ['/recruit/candidates', 'Configure candidate list columns'],
+    ['/recruit/candidates', 'Column settings'],
     ['/intake', 'Configure columns'],
     ['/recruit/requisitions', 'Configure Recently Viewed'],
   ];

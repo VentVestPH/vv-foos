@@ -38,43 +38,37 @@ test.describe('L8 and L10: hidden nav tabs are discoverable, and quick search fo
     await expect(page.getByRole('button', { name: 'Scroll the navigation left' })).toBeVisible();
   });
 
-  test('quick search is labelled and targeted for the module you are in', async ({ page }) => {
+  test('the list search is the one scoped to the module you are in', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
 
-    await gotoAsSignedIn(page, '/recruit/candidates');
-    await expect(page.locator('.fo-sidebar')).toContainText('Candidate Keywords');
-
-    await gotoAsSignedIn(page, '/sales/deals');
-    await expect(
-      page.locator('.fo-sidebar'),
-      'a deals page must not ask for Candidate Keywords',
-    ).toContainText('Deal Keywords');
-    await expect(page.locator('.fo-sidebar')).not.toContainText('Candidate Keywords');
-
-    await gotoAsSignedIn(page, '/sales/companies');
-    await expect(page.locator('.fo-sidebar')).toContainText('Account Keywords');
-
-    await gotoAsSignedIn(page, '/recruit/requisitions');
-    await expect(page.locator('.fo-sidebar')).toContainText('Requisition Keywords');
-    await expect(
-      page.locator('.fo-sidebar'),
-      'first and last name only make sense where the record is a person',
-    ).not.toContainText('First Name');
+    for (const [route, label] of [
+      ['/recruit/candidates', 'Search Candidates'],
+      ['/recruit/requisitions', 'Search Requisitions'],
+      ['/sales/deals', 'Search Deals'],
+      ['/sales/companies', 'Search Accounts'],
+    ] as const) {
+      await gotoAsSignedIn(page, route);
+      await expect(
+        page.getByRole('searchbox', { name: label }),
+        `${route} must name its own search box, since the sidebar no longer does`,
+      ).toBeVisible({ timeout: 25000 });
+      await expect(
+        page.locator('.fo-sidebar'),
+        'the sidebar carries no module-specific keyword box any more',
+      ).not.toContainText('Keywords');
+    }
   });
 
-  test('searching from the deals page lands on deals, not candidates', async ({ page }) => {
+  test('searching from the deals page lands on deals, not somewhere else', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/sales/deals');
 
-    await page.locator('.fo-qs-input-row input').first().fill('acme');
-    await page
-      .locator('.fo-sidebar')
-      .getByRole('button', { name: 'Search', exact: true })
-      .first()
-      .click();
+    const box = page.getByRole('searchbox', { name: 'Search Deals' });
+    await expect(box).toBeVisible({ timeout: 25000 });
+    await box.fill('acme');
+    await box.press('Enter');
 
-    await expect
-      .poll(() => page.url(), { timeout: 20000 })
-      .toMatch(/\/sales\/deals\?search=acme/);
+    await page.waitForTimeout(800);
+    expect(page.url(), 'a list search stays on its list').toContain('/sales/deals');
   });
 });

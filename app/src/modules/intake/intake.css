@@ -13,7 +13,7 @@
   background: var(--section-tint);
   color: var(--text);
   border-radius: var(--radius);
-  padding: 2px 8px;
+  padding: var(--sp-quarter) var(--sp-1);
   font-size: var(--fs-meta);
   margin-right: var(--sp-half);
 }

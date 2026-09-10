@@ -41,6 +41,7 @@
   opacity: 0;
 }
 
+.table th.sortable:hover .sort-arrow,
 .th-sort-btn:hover .sort-arrow,
 .th-sort-btn:focus-visible .sort-arrow {
   opacity: 0.55;
@@ -56,6 +57,16 @@
 
 .table td.cell-nowrap {
   white-space: nowrap;
+}
+
+.table th.cell-center,
+.table td.cell-center {
+  text-align: center;
+}
+
+.table th.cell-center .th-sort-btn {
+  justify-content: center;
+  gap: var(--sp-half);
 }
 
 .table td {
@@ -124,7 +135,7 @@
   width: 100%;
 }
 
-.table-empty {
+.table td.table-empty {
   padding: var(--sp-3);
   text-align: center;
   color: var(--text-secondary);

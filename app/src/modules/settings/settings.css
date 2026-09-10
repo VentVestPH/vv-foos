@@ -23,7 +23,7 @@
 
 .settings-status-pill {
   font-size: var(--fs-meta);
-  padding: 2px 10px;
+  padding: var(--sp-quarter) var(--cell-pad);
   border-radius: var(--radius);
 }
 
@@ -91,7 +91,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-2);
-  padding: 6px 0;
+  padding: var(--sp-tight) 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -102,7 +102,7 @@
 .template-list li div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-quarter);
   min-width: 0;
 }
 
@@ -122,7 +122,7 @@
 .template-form textarea {
   font-family: inherit;
   font-size: var(--fs-body);
-  padding: 8px var(--cell-pad);
+  padding: var(--sp-1) var(--cell-pad);
   border: 1px solid var(--control-border);
   border-radius: var(--radius);
 }

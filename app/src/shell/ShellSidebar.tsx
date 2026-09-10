@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { useDismissable } from '../hooks/useDismissable';
 import { useOutsideClose } from '../hooks/useOutsideClose';
@@ -13,7 +13,6 @@ import {
   FileText as RecordIcon,
   History as HistoryIcon,
   Handshake as DealIcon,
-  Search as SearchIcon,
   Settings as GearIcon,
   User as PersonIcon,
 } from 'lucide-react';
@@ -28,37 +27,11 @@ const RECENT_ICONS: Record<string, typeof PersonIcon> = {
   deal: DealIcon,
 };
 
-interface SearchScope {
-  noun: string;
-  to: string;
-  namedFields: boolean;
-}
-
-const SCOPES: Array<[RegExp, SearchScope]> = [
-  [/^\/recruit\/requisitions/, { noun: 'Requisition', to: '/recruit/requisitions', namedFields: false }],
-  [/^\/recruit/, { noun: 'Candidate', to: '/recruit/candidates', namedFields: true }],
-  [/^\/sales\/companies/, { noun: 'Account', to: '/sales/companies', namedFields: false }],
-  [/^\/sales\/deals/, { noun: 'Deal', to: '/sales/deals', namedFields: false }],
-  [/^\/sales\/tickets/, { noun: 'Ticket', to: '/sales/tickets', namedFields: false }],
-  [/^\/sales/, { noun: 'Contact', to: '/sales/contacts', namedFields: true }],
-  [/^\/intake/, { noun: 'Intake', to: '/intake', namedFields: false }],
-];
-
-function searchScope(pathname: string): SearchScope {
-  for (const [pattern, scope] of SCOPES) {
-    if (pattern.test(pathname)) return scope;
-  }
-  return { noun: 'Candidate', to: '/recruit/candidates', namedFields: true };
-}
-
 export function ShellSidebar() {
   const recentListRef = useScrollShadow<HTMLDivElement>();
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches,
   );
-  const [keywords, setKeywords] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const { items: recent, clear, limit, setLimit } = useRecentlyViewed();
   const [recentSettingsOpen, setRecentSettingsOpen] = useState(false);
   const [limitDraft, setLimitDraft] = useState('');
@@ -77,8 +50,6 @@ export function ShellSidebar() {
   const advanced = useAdvancedSearch();
   const [grown, setGrown] = useState(false);
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const scope = searchScope(pathname);
 
   useEffect(() => {
     if (!advanced.open || advanced.closing) {
@@ -95,18 +66,9 @@ export function ShellSidebar() {
     };
   }, [advanced.open, advanced.closing]);
 
-  const quickSearchTerm = (keywords || [firstName, lastName].filter(Boolean).join(' ')).trim();
-
-  const runQuickSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickSearchTerm) return;
-    navigate(`${scope.to}?search=${encodeURIComponent(quickSearchTerm)}`);
-  };
-
   return (
     <aside
       className={collapsed ? 'fo-sidebar collapsed' : 'fo-sidebar'}
-      data-named-fields={scope.namedFields ? 'true' : 'false'}
       aria-label="Quick search and recently viewed"
     >
       <div className="fo-sidebar-panel">
@@ -124,41 +86,13 @@ export function ShellSidebar() {
           </button>
         </div>
         <div className="fo-sidebar-panel-collapse">
-        <form className="fo-sidebar-panel-form" onSubmit={runQuickSearch}>
+        <div className="fo-sidebar-panel-form">
         <div className="fo-sidebar-panel-body">
-          <div className="fo-qs-field">
-            <span className="fo-qs-label">{scope.noun} Keywords</span>
-            <div className="fo-qs-input-row">
-              <input
-                type="text"
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                aria-label={`${scope.noun} keywords`}
-              />
-              <button
-                type="submit"
-                className="fo-icon-btn fo-qs-search-btn"
-                aria-label="Search"
-                disabled={quickSearchTerm.length === 0}
-                title={
-                  quickSearchTerm.length === 0
-                    ? 'Type something to search for'
-                    : `Search ${scope.noun.toLowerCase()}s for "${quickSearchTerm}"`
-                }
-              >
-                <SearchIcon size={20} />
-              </button>
-            </div>
-          </div>
           <div className="fo-qs-actions">
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() =>
-                navigate(
-                  quickSearchTerm ? `/search?q=${encodeURIComponent(quickSearchTerm)}` : '/search',
-                )
-              }
+              onClick={() => navigate('/search')}
             >
               Search everything
             </button>
@@ -193,44 +127,7 @@ export function ShellSidebar() {
               </div>
             </div>
           )}
-          {scope.namedFields && (
-            <div className="fo-sidebar-panel-body fo-qs-name-section">
-            <div className="fo-qs-name-group">
-              <div className="fo-qs-field fo-qs-name-field">
-                <span className="fo-qs-label">{scope.noun} First Name</span>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  aria-label={`${scope.noun} first name`}
-                />
-              </div>
-              <div className="fo-qs-field fo-qs-name-field">
-                <span className="fo-qs-label">{scope.noun} Last Name</span>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  aria-label={`${scope.noun} last name`}
-                />
-              </div>
-              <button
-                type="submit"
-                className="fo-icon-btn fo-qs-search-btn fo-qs-name-search"
-                aria-label="Search by name"
-                disabled={quickSearchTerm.length === 0}
-                title={
-                  quickSearchTerm.length === 0
-                    ? 'Type a first or last name to search for'
-                    : `Search ${scope.noun.toLowerCase()}s for "${quickSearchTerm}"`
-                }
-              >
-                <SearchIcon size={20} className="fo-qs-search-icon" />
-              </button>
-            </div>
-            </div>
-          )}
-        </form>
+        </div>
         </div>
       </div>
 
