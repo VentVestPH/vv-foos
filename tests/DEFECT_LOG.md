@@ -16,7 +16,7 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 
 ## Tally, 2026-09-07
 
-**60 entries covering 59 distinct ids, 54 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**63 entries covering 62 distinct ids, 57 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
 
 **Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
 
@@ -1123,6 +1123,48 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **This is QA-049 again, self-inflicted.** The rule was already written down after the C7/Q10/Q14 failures: a test may not assume a row it did not create. Seeded demo data is not an exception
 - **Fix:** `beforeAll` inserts three intake items across three channels, two target types and two statuses under a run-unique `batch_label`, and `afterAll` deletes by that label. `intake_items` has no `is_test` column, which is why the label is the marker. I14 now searches for its own seeded name instead of reading whatever row happened to be first
 - **Evidence:** `15 passed (42.9s)` for the spec, then both full shards green
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-059: four motion assertions read a sampled frame, and three of them only fail on a slow runner
+
+- **Found:** 2026-09-11, CI run 34569689398, then by auditing every spec touched that day after Klent asked *"have you been reviewing your fucking test cases?"*
+- **Module:** `tests/e2e/bulk-actions.spec.ts`, `interaction-motion.spec.ts`, `intake-list.spec.ts`
+- **Severity:** **High** for the loop. Five CI cycles at about 14 minutes each went to this class
+- **The class:** an assertion that reads an intermediate animation value. On this machine `requestAnimationFrame` fires every 16ms and catches eight frames of a 140ms fade; on CI, 2 vCPU with two Chromium workers, the whole fade can complete **between two samples**. A local pass proves nothing, which is why running both shards locally and then failing in CI happened twice
+- **The four sites:** `bulk-actions` counted frames with opacity between 0.02 and 0.98 (`Expected: > 2 / Received: 0`); `interaction-motion:233` read a closing overlay's opacity and asserted it above zero, which is the **same pattern I had fixed at line 308 that morning without checking whether it appeared twice** — it did, and it failed in the same run; `intake-list` I9 counted distinct box-shadows over three seconds; I13 counted transform frames while the drawer closed
+- **Fix:** every one now asserts the **declaration** — `transitionProperty`, `transitionDuration`, `transitionDelay`, `animationName`, `animationIterationCount`. Those are identical on any machine and still express the contract: the fade exists and is staggered behind the height reveal, the badge beats forever without scaling the number, the drawer leaves by its own keyframe. `grep -rn "opacity).toBeGreaterThan" tests/e2e` now returns nothing
+- **The rule already existed** in CLAUDE.md, written that same morning after C11 and R7 failed this way. I then wrote three new violations of it. Writing a rule down is not the same as applying it to the code in front of you
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-060: two of the day's new tests could not run, or could not pass, on CI's data
+
+- **Found:** 2026-09-11, auditing every spec touched that day before pushing
+- **Module:** `tests/e2e/select-combobox.spec.ts`, `tests/e2e/scroll-reset.spec.ts`
+- **Severity:** **Medium.** One was a silent skip, which is worse than a failure because it reports green
+- **The hover test skipped on CI.** The test proving the option list no longer scrolls under the cursor began `test.skip(!scrollable, 'this lookup is short enough not to scroll')`. CI's Company lookup holds five seeded companies and never overflows, so the test guarding that fix **never ran on the only machine that reports to Klent**. It now seeds 24 `is_test` companies in `beforeAll`, asserts the list actually overflows rather than skipping, and deletes them by name prefix
+- **Two scroll tests assumed a page taller than the viewport.** S1 scrolled the candidate list to 600px and required the offset above 100; on seed data that list is about 550px tall in a 720px viewport and cannot scroll at all. S3 scrolled a record page to a fixed 400px, and a record with every accordion collapsed has roughly 95px of range, so the clamp would have failed the same assertion. S1 now seeds 24 candidates and asserts the scroller has range before using it; S2 and S3 scroll to the bottom and assert against what that turned out to be
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-061: adding tests re-sharded the suite and broke a test that shares a persona row
+
+- **Found:** 2026-09-11, running shard 2 at CI's settings after the fixes above
+- **Module:** `tests/e2e/record-ui.spec.ts`
+- **Severity:** **Medium**
+- **Actual:** `2.10 the Recently Viewed rail records opens across modules, newest first` passed alone and had passed in shard 2 an hour earlier. Adding tests to `scroll-reset` and `select-combobox` moved the `--shard` boundary, because the split is by test count, so `record-ui` ran beside different files. One of those signs in as the same `recruiter` persona and opens records, and the rail is a single `integration_settings` row per staff, so the neighbour's opens evicted one of the two records this test measures and `indexOf` returned -1
+- **Fix:** `beforeEach` seeds `{ items: [], limit: 50 }` for that persona, so the window is large enough that a neighbour cannot push either record out. The failure message now says so
+- **The general point:** `--shard` is not a stable partition. Adding a test anywhere changes which files run concurrently, so a test that depends on being alone in a shared row is a time bomb rather than a passing test
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-11

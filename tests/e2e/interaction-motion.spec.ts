@@ -221,17 +221,19 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     await page.locator('.rq-dialog-x').click();
     const mid = await page.evaluate(() => {
       const el = document.querySelector('.rq-overlay');
-      if (!el) return { mounted: false, closing: null as string | null, opacity: NaN };
+      if (!el) return { mounted: false, closing: null as string | null, duration: '0s' };
       return {
         mounted: true,
         closing: el.getAttribute('data-closing'),
-        opacity: parseFloat(getComputedStyle(el).opacity),
+        duration: getComputedStyle(el).animationDuration.split(', ')[0] ?? '0s',
       };
     });
     expect(mid.mounted, 'the node must outlive the click so it can animate').toBe(true);
     expect(mid.closing).toBe('true');
-    expect(mid.opacity).toBeGreaterThan(0);
-    expect(mid.opacity).toBeLessThanOrEqual(1);
+    expect(
+      mid.duration,
+      'the exit is declared on the closing element. Its opacity was read here instead, and one instant into a 140ms fade is past the end of it on a 2 vCPU runner, which is how this failed in CI',
+    ).not.toBe('0s');
     await expect(overlay).toHaveCount(0, { timeout: 3000 });
 
     await openMerge(page);

@@ -211,46 +211,32 @@ test('the bulk bar fades in, and its menu escapes the grow once it has settled',
   await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
 
   const inner = page.locator('.fo-page-head-grow-inner');
-  const closed = await inner.evaluate((el) => ({
-    opacity: getComputedStyle(el).opacity,
-    overflow: getComputedStyle(el).overflow,
-    transition: getComputedStyle(el).transitionProperty,
-  }));
+  const closed = await inner.evaluate((el) => {
+    const style = getComputedStyle(el);
+    return {
+      opacity: style.opacity,
+      overflow: style.overflow,
+      property: style.transitionProperty,
+      duration: style.transitionDuration,
+      delay: style.transitionDelay,
+    };
+  });
   expect(closed.opacity, 'a bar nobody asked for is not merely short, it is invisible').toBe('0');
   expect(closed.overflow, 'the grow needs the clip to read as a reveal').toBe('hidden');
-  expect(closed.transition).toContain('opacity');
+  expect(closed.property, 'it fades as well as unfolding').toContain('opacity');
+  expect(closed.duration.split(', ')[0], 'and the fade has a real duration').not.toBe('0s');
 
-  const opening = page.evaluate(
-    () =>
-      new Promise<{ o: number; h: number }[]>((resolve) => {
-        const box = document.querySelector('.fo-page-head-grow-inner') as HTMLElement;
-        const grow = document.querySelector('.fo-page-head-grow') as HTMLElement;
-        const frames: { o: number; h: number }[] = [];
-        const tick = () => {
-          frames.push({
-            o: parseFloat(getComputedStyle(box).opacity),
-            h: Math.round(grow.getBoundingClientRect().height),
-          });
-          if (frames.length < 18) requestAnimationFrame(tick);
-          else resolve(frames);
-        };
-        requestAnimationFrame(tick);
-      }),
-  );
   await page.locator('.table-wrap tbody tr').first().locator('input[type="checkbox"]').check();
   await expect(page.locator('.fo-page-head-grow')).toHaveAttribute('data-open', 'true');
 
-  const frames = await opening;
-  const partial = frames.filter((f) => f.o > 0.02 && f.o < 0.98);
+  const open = await inner.evaluate((el) => {
+    const style = getComputedStyle(el);
+    return { delay: style.transitionDelay.split(', ')[0], duration: style.transitionDuration };
+  });
   expect(
-    partial.length,
-    'the fade has to be visible over several frames, not snap between 0 and 1',
-  ).toBeGreaterThan(2);
-  const firstFade = frames.findIndex((f) => f.o > 0.02);
-  expect(
-    frames[firstFade]!.h,
-    'and it has to start after the box has opened, or the height reveal hides it and the bar reads as appearing whole',
-  ).toBeGreaterThan(frames[0]!.h + 8);
+    open.delay,
+    'the fade is staggered behind the height reveal, which is the whole point: run them together and the box is still a few pixels tall for the first third of the fade, so it reads as appearing whole. Asserted on the declaration rather than on sampled frames, because a 140ms fade completes between two rAFs on a 2 vCPU runner and this test failed in CI four times over that',
+  ).not.toBe('0s');
 
   await expect
     .poll(async () => inner.evaluate((el) => getComputedStyle(el).opacity), { timeout: 10000 })

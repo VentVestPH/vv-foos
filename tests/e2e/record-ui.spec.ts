@@ -6,10 +6,23 @@ const RAIL_NOTE = `QA record-ui ${process.pid}-${Math.random().toString(36).slic
 const RAIL_KEY = 'ui.recentlyViewed';
 const RAIL_PERSONA = 'recruiter';
 
+const RAIL_ROOM = 50;
+
 async function resetRail(): Promise<void> {
   for (const persona of ['admin', RAIL_PERSONA] as const) {
     await deleteOwnSettings(persona, [RAIL_KEY]);
   }
+}
+
+async function giveTheRailRoom(): Promise<void> {
+  const client = await clientAs(RAIL_PERSONA);
+  const { data } = await client.auth.getUser();
+  const staffId = data.user?.id;
+  if (!staffId) throw new Error('could not resolve the recruiter persona');
+  const { error } = await client
+    .from('integration_settings')
+    .insert({ staff_id: staffId, key: RAIL_KEY, value: { items: [], limit: RAIL_ROOM } });
+  if (error) throw new Error(`could not seed the rail limit: ${error.message}`);
 }
 
 test.describe('Record and list UI criteria', () => {
@@ -118,6 +131,7 @@ test.describe('Record and list UI criteria', () => {
 test.describe('Recently Viewed rail (2.10)', () => {
   test.beforeEach(async ({ page }) => {
     await resetRail();
+    await giveTheRailRoom();
     await signIn(page, PERSONA_EMAILS[RAIL_PERSONA]);
   });
 
@@ -148,7 +162,10 @@ test.describe('Recently Viewed rail (2.10)', () => {
     );
     const candidateAt = labels.indexOf(candidateLabel);
     const companyAt = labels.indexOf(companyLabel);
-    expect(candidateAt, `the rail must list ${candidateLabel}`).toBeGreaterThanOrEqual(0);
+    expect(
+      candidateAt,
+      `the rail must list ${candidateLabel}. The rail is one integration_settings row per staff, so a parallel worker signed in as this persona writes the same row: the limit is raised to ${RAIL_ROOM} in beforeEach so a neighbour's opens cannot evict either of these two`,
+    ).toBeGreaterThanOrEqual(0);
     expect(companyAt, `the rail must list ${companyLabel}`).toBeGreaterThanOrEqual(0);
     expect(
       candidateAt,

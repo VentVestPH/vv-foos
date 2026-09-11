@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { clientAs } from '../env';
 import { NEEDS_IMPORT, PERSONA_EMAILS, gotoAsSignedIn, hasImportedDataset, openFilterRail, optionNames, signIn } from './helpers';
 
 const STAGES = ['All stages', 'Lead', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
@@ -223,7 +224,28 @@ test.describe('the select replacement honours the APG combobox contract', () => 
   });
 });
 
-test('hovering an option never scrolls the list; only the keyboard does', async ({ page }) => {
+const HOVER_RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+const HOVER_COMPANY = `Hvco${HOVER_RUN}`;
+
+test.describe('hover never scrolls an option list', () => {
+  test.beforeAll(async () => {
+    const admin = await clientAs('admin');
+    const { error } = await admin.from('companies').insert(
+      Array.from({ length: 24 }, (_, i) => ({
+        name: `${HOVER_COMPANY}-${String(i).padStart(2, '0')}`,
+        is_test: true,
+      })),
+    );
+    if (error) throw error;
+  });
+
+  test.afterAll(async () => {
+    const admin = await clientAs('admin');
+    const { error } = await admin.from('companies').delete().like('name', `${HOVER_COMPANY}%`);
+    if (error) throw new Error(`could not remove the hover fixture: ${error.message}`);
+  });
+
+  test('hovering an option never scrolls the list; only the keyboard does', async ({ page }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, '/recruit/requisitions');
   await openFilterRail(page);
@@ -232,8 +254,10 @@ test('hovering an option never scrolls the list; only the keyboard does', async 
   await box.click();
   const menu = page.locator('.field-select-menu');
   await expect(menu).toBeVisible();
-  const scrollable = await menu.evaluate((el) => el.scrollHeight > el.clientHeight + 1);
-  test.skip(!scrollable, 'this lookup is short enough not to scroll');
+  expect(
+    await menu.evaluate((el) => el.scrollHeight > el.clientHeight + 1),
+    'the list has to overflow for hover-scrolling to be possible at all, so this seeds two dozen companies rather than skipping when the seed database only has five. It skipped on CI and therefore never ran where it mattered',
+  ).toBe(true);
 
   const options = menu.locator('.field-select-option');
   const last = Math.min(await options.count(), 8) - 1;
@@ -258,4 +282,5 @@ test('hovering an option never scrolls the list; only the keyboard does', async 
       message: 'the keyboard still has to bring its option into view, which the APG requires',
     })
     .toBeGreaterThan(before);
+  });
 });
