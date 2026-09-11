@@ -38,7 +38,7 @@ export function CandidateEraseDialog({ person, onClose, onErased }: CandidateEra
 
   return (
     <Dialog
-      title="Delete this candidate permanently"
+      title="Delete candidate"
       onClose={onClose}
       footer={(close) => (
         <>

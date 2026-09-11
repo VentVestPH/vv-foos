@@ -34,7 +34,7 @@ test.describe('the erasure path a candidate can ask for', () => {
     await page.getByRole('button', { name: /^More/ }).first().click();
     await page.getByRole('menuitem', { name: 'Delete permanently…' }).click();
 
-    const dialog = page.getByRole('dialog', { name: 'Delete this candidate permanently' });
+    const dialog = page.getByRole('dialog', { name: 'Delete candidate' });
     const confirm = dialog.getByRole('button', { name: 'Delete permanently', exact: true });
     await expect(confirm).toBeDisabled();
 

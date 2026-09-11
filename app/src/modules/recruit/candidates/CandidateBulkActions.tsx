@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/Button';
+import { EMPTY_CELL } from '../../../lib/format';
 import { ActionMenu, type ActionMenuItem } from '../../../components/ui/ActionMenu';
+import { CandidateBulkSubmitDialog } from './CandidateBulkSubmitDialog';
 import { usePlaceholder } from '../../../shell/Placeholder';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
@@ -50,6 +52,8 @@ export function CandidateBulkActions({
   const [body, setBody] = useState('');
   const templates = useEmailTemplates();
   const { show } = usePlaceholder();
+  const [submitting, setSubmitting] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const ids = useMemo(() => [...selected], [selected]);
   const count = ids.length;
@@ -154,6 +158,19 @@ export function CandidateBulkActions({
     ? 'Only an admin or a recruiter can change candidates in bulk'
     : 'Select at least one candidate first';
 
+  useEffect(() => {
+    if (!printing) return undefined;
+    document.body.dataset.printScope = 'selection';
+    const done = () => setPrinting(false);
+    window.addEventListener('afterprint', done);
+    const frame = requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('afterprint', done);
+      delete document.body.dataset.printScope;
+    };
+  }, [printing]);
+
   const overflowItems: ActionMenuItem[] = [
     {
       label: 'Mark as…',
@@ -172,21 +189,15 @@ export function CandidateBulkActions({
     },
     {
       label: 'Print profile',
-      onSelect: () =>
-        show(
-          'Print profile',
-          'Open a candidate and use Print profile there to print one.',
-          'Printing a whole selection is still in development.',
-        ),
+      onSelect: () => setPrinting(true),
+      disabled: count === 0,
+      ...(count === 0 ? { title: 'Select at least one candidate first' } : {}),
     },
     {
       label: 'Submit',
-      onSelect: () =>
-        show(
-          'Submit',
-          'Open a candidate and use Submit there to put one forward on a requisition.',
-          'Submitting a whole selection is still in development.',
-        ),
+      onSelect: () => setSubmitting(true),
+      disabled,
+      ...(disabled ? { title: disabledReason } : {}),
     },
   ];
 
@@ -201,7 +212,7 @@ export function CandidateBulkActions({
           setPending('status');
         }}
       >
-        Change Main Status to…
+        Change status
       </Button>
       <Button
         size="sm"
@@ -217,9 +228,65 @@ export function CandidateBulkActions({
       </Button>
       <ActionMenu label="More actions" items={overflowItems} iconOnly />
 
+      {printing && (
+        <section className="cand-print-sheet" aria-hidden="true">
+          <h1>Candidate profiles</h1>
+          {recipients.map((r) => {
+            const profile = profiles.find((p) => p.person_id === r.personId);
+            return (
+              <article key={r.personId} className="cand-print-card">
+                <h2>{r.name}</h2>
+                <dl className="info-grid">
+                  <div className="info-item">
+                    <dt>Title</dt>
+                    <dd>{profile?.current_title ?? EMPTY_CELL}</dd>
+                  </div>
+                  <div className="info-item">
+                    <dt>Employer</dt>
+                    <dd>{profile?.current_employer ?? EMPTY_CELL}</dd>
+                  </div>
+                  <div className="info-item">
+                    <dt>Location</dt>
+                    <dd>
+                      {[profile?.city, profile?.country].filter(Boolean).join(', ') || EMPTY_CELL}
+                    </dd>
+                  </div>
+                  <div className="info-item">
+                    <dt>Email</dt>
+                    <dd>{r.email ?? EMPTY_CELL}</dd>
+                  </div>
+                  <div className="info-item">
+                    <dt>Status</dt>
+                    <dd>{profile?.status_label ?? EMPTY_CELL}</dd>
+                  </div>
+                  <div className="info-item">
+                    <dt>Amir Grade</dt>
+                    <dd>{profile?.star_grade != null ? `${profile.star_grade} of 3` : EMPTY_CELL}</dd>
+                  </div>
+                </dl>
+                {profile?.grade_comment != null && profile.grade_comment !== '' && (
+                  <p className="cand-print-note">{profile.grade_comment}</p>
+                )}
+              </article>
+            );
+          })}
+        </section>
+      )}
+
+      {submitting && (
+        <CandidateBulkSubmitDialog
+          personIds={ids}
+          onClose={() => setSubmitting(false)}
+          onSubmitted={async () => {
+            onClear();
+            await onDone();
+          }}
+        />
+      )}
+
       {pending === 'status' && (
         <Dialog
-          title={`Change the main status of ${count} candidate${count === 1 ? '' : 's'}`}
+          title="Change status"
           onClose={close}
           footer={(dismiss) => (
             <>
@@ -229,7 +296,7 @@ export function CandidateBulkActions({
                 disabled={busy || !statusId}
                 onClick={() => void applyStatus()}
               >
-                {busy ? 'Updating…' : 'Update status'}
+                {busy ? 'Updating…' : 'Update'}
               </Button>
             </>
           )}
@@ -251,7 +318,7 @@ export function CandidateBulkActions({
 
       {(pending === 'flag-on' || pending === 'flag-off') && (
         <Dialog
-          title={`Mark ${count} candidate${count === 1 ? '' : 's'}`}
+          title="Mark candidates"
           onClose={close}
           footer={(dismiss) => (
             <>
@@ -261,11 +328,7 @@ export function CandidateBulkActions({
                 disabled={busy}
                 onClick={() => void applyFlag(pending === 'flag-on')}
               >
-                {busy
-                  ? 'Applying…'
-                  : pending === 'flag-on'
-                    ? 'Mark do not contact'
-                    : 'Clear do not contact'}
+                {busy ? 'Saving…' : 'Save'}
               </Button>
             </>
           )}
@@ -300,7 +363,7 @@ export function CandidateBulkActions({
 
       {pending === 'email' && (
         <Dialog
-          title={`Email ${mailable.length} candidate${mailable.length === 1 ? '' : 's'}`}
+          title="Send email"
           onClose={close}
           footer={(dismiss) => (
             <>
@@ -310,7 +373,7 @@ export function CandidateBulkActions({
                 disabled={busy || mailable.length === 0 || !subject.trim() || !body.trim()}
                 onClick={() => void applyEmail()}
               >
-                {busy ? 'Sending…' : `Send to ${mailable.length}`}
+                {busy ? 'Sending…' : 'Send'}
               </Button>
             </>
           )}

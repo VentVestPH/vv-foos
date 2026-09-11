@@ -133,15 +133,20 @@ and marks that application viewed for the current staff user.
   name, emails, phones, address and LinkedIn URLs have no edit path anywhere, so
   the majority of the record it appeared to unlock is read-only by omission, not
   by permission. `canEditProfile` still gates every field it always gated.
-- **The bulk bar is three controls and an ellipsis.** Change Main Status to…,
-  Send Email, and `ActionMenu label="More actions" iconOnly` holding Mark as…,
+- **The bulk bar is three controls and an ellipsis.** Change status, Send Email,
+  and `ActionMenu label="More actions" iconOnly` holding Mark as…,
   View Resume, Print profile and Submit. Putting a dropdown in there needed one
   fix: `.fo-page-head-grow-inner` is `overflow: hidden` so the grow reads as a
   reveal, which clipped the menu and handed its clicks to the pager. `ListPage`
   now sets `data-settled` on `transitionend` and the clip lifts then.
-- **The bulk status dialog confirms with "Update status".** It used to read
-  `Set to <the whole status label>`, which repeated the value the select above it
-  already showed and stretched the button to the width of the longest status.
+- **A dialog title names the thing; its primary button names the verb, in one or
+  two words, and neither is computed.** Change status / Update, Mark candidates /
+  Save, Send email / Send, Merge duplicate / Merge, Delete candidate / Delete
+  permanently, Submit to a requisition, Add candidate. Klent's rule, 2026-09-11:
+  *"why make everything a senmtence on you"*. Titles used to interpolate the
+  selection count and the record name, and buttons used to restate the value the
+  control above them already showed (`Set to <the whole status label>`, `Send to
+  5`), which also made every button a different width.
 - **Submit is real, and it runs candidate-to-requisition.** `CandidateSubmitDialog`
   searches `requisition_list` for open, waiting-approval and on-hold roles, then
   either inserts an `applications` row at stage `submitted` or, when one already

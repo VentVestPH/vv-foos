@@ -16,7 +16,7 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 
 ## Tally, 2026-09-07
 
-**52 entries covering 51 distinct ids, 46 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**53 entries covering 52 distinct ids, 47 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
 
 **Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
 
@@ -1006,6 +1006,19 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **Actual:** `.fo-page-head-grow-inner` is `overflow: hidden`, which is what makes the 0fr to 1fr grow read as a reveal rather than a jump. Any dropdown inside it is cut off at the bar's own height, and the click lands on whatever is underneath: `<div class="fo-pager"> ... intercepts pointer events`
 - **Fix:** the grow reports `transitionend` for `grid-template-rows` and sets `data-settled`, and `[data-settled='true'] > .fo-page-head-grow-inner` is `overflow: visible`. The clip is present for the whole animation and lifts only once the bar has finished growing, so the reveal is unchanged and the menu can leave the box
 - **Guard:** `bulk-actions.spec.ts` asserts opacity 0 and `overflow: hidden` while closed, opacity 1 and `overflow: visible` once open, that all four moved items are in the menu, and that the bar itself is at most three controls wide
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-051: two motion assertions could only fail on a slow runner
+
+- **Found:** 2026-09-11, CI run 34555711852, the run after QA-049 was fixed
+- **Module:** `tests/e2e/candidate-record.spec.ts`, `tests/e2e/interaction-motion.spec.ts`
+- **Severity:** **Low**, and the same shape as QA-049: an environment difference local runs cannot reproduce. CI is 2 vCPU against this machine's 10
+- **C11** polled until the option highlight *stopped changing*, which CLAUDE.md already warns against. On CI two consecutive frames returned the same mid-fade value and the poll called it settled: `- "background": "rgba(240, 246, 251, 0.96)"` against `+ "background": "rgb(240, 246, 251)"`. Fixed by reading the target once from a probe element styled `background-color: var(--fo-option-hover)` and polling each option until it equals that exact string
+- **R7** read the closing menu's `opacity` one instant after the click and asserted it was above 0. `Expected: > 0 / Received: 0`: on a slow runner the 150ms exit had already finished. Fixed by asserting the exit is **declared** (`animationDuration` is not `0s`) on the element that carries `data-closing`, which is the actual contract
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-11

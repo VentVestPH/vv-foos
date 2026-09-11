@@ -3,7 +3,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { supabase } from '../../../lib/supabase';
 import { Dialog } from '../components/Dialog';
-import { type Person, errMsg, personName } from '../lib';
+import { type Person, errMsg } from '../lib';
 
 export interface CandidateSubmitDialogProps {
   person: Person;
@@ -119,7 +119,7 @@ export function CandidateSubmitDialog({ person, onClose, onSubmitted }: Candidat
 
   return (
     <Dialog
-      title={`Submit ${personName(person)} to a requisition`}
+      title="Submit to a requisition"
       className="cand-submit-dialog"
       onClose={onClose}
     >

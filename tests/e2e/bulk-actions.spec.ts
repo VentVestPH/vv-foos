@@ -89,10 +89,10 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
 
-    const status = page.getByRole('button', { name: 'Change Main Status to…' });
+    const status = page.getByRole('button', { name: 'Change status' });
     const grow = page.locator('.fo-page-toolbar .fo-page-head-grow');
     await expect(grow).toHaveAttribute('data-open', 'false');
-    for (const name of ['Change Main Status to…', 'Send Email', 'More actions']) {
+    for (const name of ['Change status', 'Send Email', 'More actions']) {
       await expect(
         page.getByRole('button', { name }),
         `${name} must not be reachable with nothing selected`,
@@ -120,11 +120,11 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     expect(target, 'need a status neither candidate already has').toBeTruthy();
     const since = new Date(Date.now() - 60000).toISOString();
 
-    await page.getByRole('button', { name: 'Change Main Status to…' }).click();
+    await page.getByRole('button', { name: 'Change status' }).click();
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Change the main status of 2 candidates');
+    await expect(dialog).toContainText('Change status');
     await chooseOption(page, dialog.getByRole('combobox', { name: 'Main status' }), target!.label);
-    await dialog.getByRole('button', { name: 'Update status' }).click();
+    await dialog.getByRole('button', { name: 'Update', exact: true }).click();
     await expect(dialog).toBeHidden({ timeout: 20000 });
 
     const { data: rows } = await admin
@@ -155,8 +155,8 @@ test.describe('Q1: bulk actions on the candidate list', () => {
 
     await openBulkOverflow(page, 'Mark as…');
     let dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Mark 2 candidates');
-    await dialog.getByRole('button', { name: 'Mark do not contact' }).click();
+    await expect(dialog).toContainText('Mark candidates');
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog).toBeHidden({ timeout: 20000 });
 
     const admin = await clientAs('admin');
@@ -171,14 +171,14 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('Not emailed');
     await expect(dialog).toContainText('marked do not contact');
-    await expect(dialog.getByRole('button', { name: 'Send to 0' })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Send', exact: true })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Cancel' }).click();
 
     await reselect(page, keys);
     await openBulkOverflow(page, 'Mark as…');
     dialog = page.getByRole('dialog');
     await dialog.getByRole('radio', { name: 'Contactable again' }).check();
-    await dialog.getByRole('button', { name: 'Clear do not contact' }).click();
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog).toBeHidden({ timeout: 20000 });
 
     const { data: cleared } = await admin
@@ -194,7 +194,7 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
     await page.locator('.table-wrap tbody tr').first().locator('input[type="checkbox"]').check();
 
-    const status = page.getByRole('button', { name: 'Change Main Status to…' });
+    const status = page.getByRole('button', { name: 'Change status' });
     await expect(status).toBeDisabled();
     await expect(status).toHaveAttribute(
       'title',
@@ -243,4 +243,61 @@ test('the bulk bar fades in, and its menu escapes the grow once it has settled',
     .locator('.fo-list-action-bar')
     .evaluate((el) => Array.from(el.querySelectorAll(':scope > button')).map((b) => b.textContent));
   expect(bar.length, `the bar itself stays small; got ${bar.join(', ')}`).toBeLessThanOrEqual(3);
+});
+
+test('the bulk menu prints the selection and submits it, rather than explaining itself', async ({
+  page,
+}) => {
+  const admin = await clientAs('admin');
+  const req = await admin
+    .from('requisitions')
+    .insert({ title: `Bareq${Date.now()}`, status: 'open', num_openings: 1, is_test: true })
+    .select('id, title')
+    .single();
+  if (req.error) throw req.error;
+
+  try {
+    await page.addInitScript(() => {
+      (window as unknown as { __printed: number }).__printed = 0;
+      window.print = () => {
+        (window as unknown as { __printed: number }).__printed += 1;
+        window.dispatchEvent(new Event('afterprint'));
+      };
+    });
+    await signIn(page, PERSONA_EMAILS.recruiter);
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    const keys = await selectTwo(page);
+
+    await openBulkOverflow(page, 'Print profile');
+    await expect(
+      page.locator('.fo-placeholder-modal'),
+      'Print profile is a feature now, not an apology',
+    ).toHaveCount(0);
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __printed: number }).__printed), {
+        timeout: 10000,
+      })
+      .toBe(1);
+
+    await reselect(page, keys);
+    await openBulkOverflow(page, 'Submit');
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('Submit to a requisition');
+    await expect(dialog).toContainText('2 selected');
+    await dialog.getByLabel('Search requisitions').fill(req.data.title);
+    const row = dialog.locator('.panel-item', { hasText: req.data.title });
+    await expect(row).toBeVisible({ timeout: 15000 });
+    await row.getByRole('button', { name: 'Submit', exact: true }).click();
+    await expect(dialog).toHaveCount(0, { timeout: 20000 });
+
+    const { data: apps } = await admin
+      .from('applications')
+      .select('person_id, stage')
+      .eq('requisition_id', req.data.id);
+    expect(apps?.length, 'one application per selected candidate').toBe(keys.length);
+    expect(apps?.every((a) => a.stage === 'submitted')).toBe(true);
+  } finally {
+    await admin.from('applications').delete().eq('requisition_id', req.data.id);
+    await admin.from('requisitions').delete().eq('id', req.data.id);
+  }
 });

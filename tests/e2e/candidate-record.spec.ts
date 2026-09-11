@@ -248,34 +248,31 @@ test.describe('C: paging and the date field', () => {
     await signIn(page, PERSONA_EMAILS.admin);
 
     const settled = async (locator: import('@playwright/test').Locator) => {
-      const rest = await locator.evaluate((el) => getComputedStyle(el).backgroundColor);
       await locator.hover();
-      return locator.evaluate(
-        (el, before) =>
-          new Promise<{ background: string; property: string; duration: string }>((resolve) => {
-            const deadline = Date.now() + 5000;
-            let previous = '';
-            const sample = () => {
-              const now = getComputedStyle(el).backgroundColor;
-              const done = now !== before && now === previous;
-              if (done || Date.now() > deadline) {
-                resolve({
-                  background: now,
-                  property: getComputedStyle(el).transitionProperty.split(', ')[0],
-                  duration: getComputedStyle(el).transitionDuration.split(', ')[0],
-                });
-                return;
-              }
-              previous = now;
-              requestAnimationFrame(sample);
-            };
-            requestAnimationFrame(sample);
-          }),
-        rest,
-      );
+      await expect
+        .poll(async () => locator.evaluate((el) => getComputedStyle(el).backgroundColor), {
+          timeout: 5000,
+          message:
+            'poll for the token the rule names, never for "it changed": a fade sampled twice on a slow runner can read the same mid-transition value twice and look settled at rgba(…, 0.96)',
+        })
+        .toBe(target);
+      return locator.evaluate((el) => ({
+        background: getComputedStyle(el).backgroundColor,
+        property: getComputedStyle(el).transitionProperty.split(', ')[0],
+        duration: getComputedStyle(el).transitionDuration.split(', ')[0],
+      }));
     };
 
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
+    const target = await page.evaluate(() => {
+      const probe = document.createElement('div');
+      probe.style.backgroundColor = 'var(--fo-option-hover)';
+      document.body.appendChild(probe);
+      const value = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return value;
+    });
+
     await page.waitForSelector('.record-action-bar');
     await page.getByLabel('Main status').click();
     const option = page.locator('.field-select-option').nth(1);
@@ -750,7 +747,7 @@ test.describe('C: submit and print', () => {
     await page.getByRole('menuitem', { name: 'Submit' }).click();
 
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText(/Submit .* to a requisition/);
+    await expect(dialog).toContainText('Submit to a requisition');
     await dialog.getByLabel('Search requisitions').fill(REQ_TITLE);
 
     const row = dialog.locator('.panel-item', { hasText: REQ_TITLE });

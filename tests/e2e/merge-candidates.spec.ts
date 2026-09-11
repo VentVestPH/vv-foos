@@ -50,7 +50,7 @@ test.describe('Q2: merging two candidate records', () => {
     const merge = page.getByRole('menuitem', { name: 'Merge duplicate…' });
     await expect(merge).toBeEnabled({ timeout: 25000 });
     await merge.click();
-    const dialog = page.getByRole('dialog', { name: 'Merge a duplicate into this record' });
+    const dialog = page.getByRole('dialog', { name: 'Merge duplicate' });
     await dialog.getByLabel('Find the duplicate by name').fill(tag);
 
     const option = dialog.getByRole('radio');
@@ -60,7 +60,7 @@ test.describe('Q2: merging two candidate records', () => {
     await expect(dialog.locator('.merge-compare')).toContainText('Manila');
     await expect(dialog.locator('.merge-compare')).toContainText('Only on the duplicate');
 
-    await dialog.getByRole('button', { name: 'Merge and delete the duplicate' }).click();
+    await dialog.getByRole('button', { name: 'Merge', exact: true }).click();
     await expect(dialog).toBeHidden({ timeout: 25000 });
 
     const admin = await clientAs('admin');

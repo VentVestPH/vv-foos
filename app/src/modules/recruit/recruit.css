@@ -705,4 +705,8 @@
 #requisition-summary .approver-line {
   padding-block: var(--sp-1);
 }
+
+.cand-print-sheet {
+  display: none;
+}
 }

@@ -222,3 +222,40 @@ test.describe('the select replacement honours the APG combobox contract', () => 
     expect(scrolled).toBeGreaterThan(0);
   });
 });
+
+test('hovering an option never scrolls the list; only the keyboard does', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await gotoAsSignedIn(page, '/recruit/requisitions');
+  await openFilterRail(page);
+
+  const box = page.getByRole('combobox', { name: 'Company' });
+  await box.click();
+  const menu = page.locator('.field-select-menu');
+  await expect(menu).toBeVisible();
+  const scrollable = await menu.evaluate((el) => el.scrollHeight > el.clientHeight + 1);
+  test.skip(!scrollable, 'this lookup is short enough not to scroll');
+
+  const options = menu.locator('.field-select-option');
+  const last = Math.min(await options.count(), 8) - 1;
+  const before = await menu.evaluate((el) => el.scrollTop);
+
+  for (let i = 0; i <= last; i += 1) {
+    await options.nth(i).hover();
+  }
+  const box2 = await menu.boundingBox();
+  await page.mouse.move(box2!.x + box2!.width / 2, box2!.y + 2);
+  await page.mouse.move(box2!.x + box2!.width / 2, box2!.y + box2!.height - 2);
+
+  expect(
+    await menu.evaluate((el) => el.scrollTop),
+    'the list scrolled itself under the cursor. Only the scrollbar, the wheel and a drag may scroll it',
+  ).toBe(before);
+
+  await page.keyboard.press('End');
+  await expect
+    .poll(async () => menu.evaluate((el) => el.scrollTop), {
+      timeout: 5000,
+      message: 'the keyboard still has to bring its option into view, which the APG requires',
+    })
+    .toBeGreaterThan(before);
+});

@@ -124,6 +124,7 @@ export function Select({
     (index: number) => {
       if (disabled === true) return;
       typed.current = { buffer: '', at: 0 };
+      keyboardNav.current = true;
       setActiveIndex(index);
       measure();
       setOpen(true);
@@ -167,8 +168,10 @@ export function Select({
     [closeMenu, current, items, name, onChange],
   );
 
+  const keyboardNav = useRef(false);
+
   useLayoutEffect(() => {
-    if (!open || items.length === 0) return;
+    if (!open || items.length === 0 || !keyboardNav.current) return;
     const list = menuRef.current;
     if (list === null) return;
     const el = list.children[activeIndex];
@@ -226,6 +229,7 @@ export function Select({
   );
 
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    keyboardNav.current = true;
     const last = items.length - 1;
     const alt = event.altKey;
 
@@ -382,7 +386,10 @@ export function Select({
                 data-active={i === activeIndex ? 'true' : 'false'}
                 onPointerDown={(event) => event.preventDefault()}
                 onClick={() => commit(i, true)}
-                onPointerMove={() => setActiveIndex(i)}
+                onPointerMove={() => {
+                  keyboardNav.current = false;
+                  setActiveIndex(i);
+                }}
               >
                 {o.label}
               </li>

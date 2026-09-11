@@ -100,6 +100,34 @@
     break-inside: auto;
   }
 
+  .cand-print-sheet {
+    display: block !important;
+  }
+
+  body[data-print-scope='selection'] .fo-page-head,
+  body[data-print-scope='selection'] .fo-page-toolbar,
+  body[data-print-scope='selection'] .list-page-body,
+  body[data-print-scope='selection'] .fo-breadcrumbs {
+    display: none !important;
+  }
+
+  .cand-print-card {
+    break-inside: avoid;
+    margin-bottom: 14pt;
+  }
+
+  .cand-print-card h2 {
+    font-size: 12pt;
+    font-weight: 700;
+    margin: 0 0 4pt;
+    border-bottom: 1pt solid var(--print-ink);
+  }
+
+  .cand-print-note {
+    margin: 4pt 0 0;
+    color: var(--print-ink-soft);
+  }
+
   .record-section-collapse {
     grid-template-rows: 1fr !important;
   }

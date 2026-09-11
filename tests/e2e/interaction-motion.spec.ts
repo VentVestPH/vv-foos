@@ -298,15 +298,19 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     const menuMid = await page.evaluate(() => {
       const el = document.querySelector('.fo-utility-menu');
       if (!el) return { mounted: false, closing: null as string | null, opacity: NaN };
+      const style = getComputedStyle(el);
       return {
         mounted: true,
         closing: el.getAttribute('data-closing'),
-        opacity: parseFloat(getComputedStyle(el).opacity),
+        duration: style.animationDuration.split(', ')[0] ?? '0s',
       };
     });
     expect(menuMid.mounted, 'the menu must outlive the click so it can animate out').toBe(true);
     expect(menuMid.closing).toBe('true');
-    expect(menuMid.opacity).toBeGreaterThan(0);
+    expect(
+      menuMid.duration,
+      'the exit is declared on the closing element. Reading its opacity instead sampled one instant, and on a 2 vCPU runner that instant is often after the 150ms exit has already finished, which reads as 0',
+    ).not.toBe('0s');
     await expect(menu).toHaveCount(0, { timeout: 3000 });
   });
 
