@@ -35,7 +35,7 @@
   body {
     font-size: 11pt;
     line-height: 1.45;
-    color: #000000;
+    color: var(--print-ink);
   }
 
   h1 {
@@ -68,7 +68,7 @@
   a[href^='http']::after {
     content: ' (' attr(href) ')';
     font-size: 9pt;
-    color: #555555;
+    color: var(--print-ink-muted);
     word-break: break-all;
   }
 
@@ -84,7 +84,7 @@
   .fo-breadcrumbs [aria-current='page'] {
     font-size: 12pt;
     font-weight: 700;
-    color: #000000;
+    color: var(--print-ink);
     letter-spacing: 0.04em;
   }
 
@@ -100,12 +100,48 @@
     break-inside: auto;
   }
 
+  .cand-print-sheet {
+    display: block !important;
+  }
+
+  body[data-print-scope='selection'] .fo-page-head,
+  body[data-print-scope='selection'] .fo-page-toolbar,
+  body[data-print-scope='selection'] .list-page-body,
+  body[data-print-scope='selection'] .fo-breadcrumbs {
+    display: none !important;
+  }
+
+  .cand-print-card {
+    break-inside: avoid;
+    margin-bottom: 14pt;
+  }
+
+  .cand-print-card h2 {
+    font-size: 12pt;
+    font-weight: 700;
+    margin: 0 0 4pt;
+    border-bottom: 1pt solid var(--print-ink);
+  }
+
+  .cand-print-note {
+    margin: 4pt 0 0;
+    color: var(--print-ink-soft);
+  }
+
+  .record-section-collapse {
+    grid-template-rows: 1fr !important;
+  }
+
+  .record-section-clip {
+    overflow: visible !important;
+  }
+
   .record-section-header {
     padding: 0;
     margin: 14pt 0 0;
     font-size: 12pt;
     font-weight: 700;
-    border-bottom: 1pt solid #000000;
+    border-bottom: 1pt solid var(--print-ink);
   }
 
   .record-section-body {
@@ -113,18 +149,18 @@
   }
 
   .info-item dt {
-    color: #333333;
+    color: var(--print-ink-soft);
   }
 
   .badge,
   .chip {
-    color: #000000 !important;
-    border: 1px solid #777777 !important;
-    background: #ffffff !important;
+    color: var(--print-ink) !important;
+    border: 1px solid var(--print-border) !important;
+    background: var(--print-paper) !important;
   }
 
   .table tbody tr {
-    background: #ffffff !important;
+    background: var(--print-paper) !important;
   }
 
   .fo-rich-text {
@@ -140,19 +176,19 @@
     display: block;
     height: auto;
     overflow: visible;
-    background: #ffffff;
+    background: var(--print-paper);
   }
 
   .shell-content {
     padding: 0;
-    background: #ffffff !important;
+    background: var(--print-paper) !important;
   }
 
   .record-section-header,
   .table th,
   .side-tabs-bar {
-    background: #ffffff !important;
-    border-bottom: 1px solid #999999;
+    background: var(--print-paper) !important;
+    border-bottom: 1px solid var(--print-rule);
   }
 
   .record-section-body {
@@ -170,8 +206,8 @@
 
   .table th,
   .table td {
-    border-bottom: 1px solid #cccccc;
-    padding: 4px 6px;
+    border-bottom: 1px solid var(--print-rule-soft);
+    padding: var(--sp-half) var(--sp-tight);
   }
 
   .table thead {
@@ -190,7 +226,7 @@
 
   .link-btn,
   a {
-    color: #000000;
+    color: var(--print-ink);
     text-decoration: none;
   }
 

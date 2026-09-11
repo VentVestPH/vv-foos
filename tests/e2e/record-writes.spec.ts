@@ -170,8 +170,14 @@ test.describe('Record write paths (criteria 2.4, 2.5, 3.2)', () => {
       await expect(olderItem).not.toContainText('Current');
       await expect(resumesSection.locator('.panel-item', { hasText: 'Current' })).toHaveCount(1);
 
-      const previewSection = recordSection(page, 'Resume Preview');
-      await expect(previewSection).toBeVisible();
+      await expect(
+        recordSection(page, 'Resume Preview'),
+        'the Resume Preview accordion was removed on 2026-09-10: the action bar already opens the current resume, and the accordion rendered the same file a second time',
+      ).toHaveCount(0);
+      await expect(
+        page.locator('.record-action-bar').getByRole('button', { name: 'View Resume' }),
+        'and that button is the surface it was replaced by',
+      ).toBeEnabled();
     } finally {
       await admin.storage.from('attachments').remove([older, newer]);
       for (const id of made) await admin.from('attachments').delete().eq('id', id);

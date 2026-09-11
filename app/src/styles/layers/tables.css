@@ -27,6 +27,7 @@
 .table th.sortable {
   cursor: pointer;
   user-select: none;
+  padding: 0;
 }
 
 .table th.sortable:hover {
@@ -41,6 +42,7 @@
   opacity: 0;
 }
 
+.table th.sortable:hover .sort-arrow,
 .th-sort-btn:hover .sort-arrow,
 .th-sort-btn:focus-visible .sort-arrow {
   opacity: 0.55;
@@ -56,6 +58,16 @@
 
 .table td.cell-nowrap {
   white-space: nowrap;
+}
+
+.table th.cell-center,
+.table td.cell-center {
+  text-align: center;
+}
+
+.table th.cell-center .th-sort-btn {
+  justify-content: center;
+  gap: var(--sp-half);
 }
 
 .table td {
@@ -108,7 +120,13 @@
   align-items: center;
   gap: var(--sp-half);
   width: 100%;
+  height: 100%;
+  padding: var(--cell-pad);
   justify-content: space-between;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
 }
 
 .cell-capped {
@@ -124,7 +142,7 @@
   width: 100%;
 }
 
-.table-empty {
+.table td.table-empty {
   padding: var(--sp-3);
   text-align: center;
   color: var(--text-secondary);

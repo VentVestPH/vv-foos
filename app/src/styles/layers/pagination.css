@@ -4,7 +4,7 @@
   justify-content: flex-end;
   gap: var(--sp-2);
   margin-left: auto;
-  padding: 4px 0;
+  padding: var(--sp-half) 0;
   font-size: var(--fs-meta);
   color: var(--text-secondary);
   white-space: nowrap;
@@ -66,7 +66,7 @@
 .fo-calendar-when {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-quarter);
   margin: 0;
 }
 

@@ -47,7 +47,7 @@
 .login-divider::after {
   content: '';
   flex: 1;
-  height: 1px;
+  height: var(--hairline);
   background: var(--border);
 }
 
@@ -66,7 +66,7 @@
 .fo-boot {
   position: fixed;
   inset: 0;
-  z-index: 500;
+  z-index: var(--z-boot);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -108,7 +108,7 @@
 .fo-boot-bar {
   margin-top: var(--sp-3);
   height: var(--sp-half);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--fo-row-hover);
   overflow: hidden;
 }
@@ -117,7 +117,7 @@
   display: block;
   height: 100%;
   width: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: linear-gradient(
     90deg,
     var(--fo-row-hover) 0%,

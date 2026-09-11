@@ -42,6 +42,14 @@ export function useEngagement(parentType: EngagementParentType, parentId: string
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!parentId) {
+      setActivities([]);
+      setTasks([]);
+      setReminders([]);
+      setAttachments([]);
+      setError(null);
+      return;
+    }
     try {
       const activityCol =
         parentType === 'person'
@@ -694,7 +702,7 @@ export function AttachmentsPanel({
   );
 }
 
-export function ResumePreview({ attachment }: { attachment: Attachment }) {
+function ResumePreview({ attachment }: { attachment: Attachment }) {
   const pending = isPendingFile(attachment.storage_path);
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);

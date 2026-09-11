@@ -8,6 +8,8 @@
 .fo-pager-controls button,
 .date-dialog-scope,
 .date-pick-cell,
+.field-select-option,
+.fo-action-menu-item,
 .fo-filter-group-header,
 .fo-recent-item,
 .fo-recent-name,
@@ -45,7 +47,6 @@
 .field select,
 .field textarea,
 .input,
-.fo-qs-input-row input,
 .template-form textarea,
 .fo-result,
 .fo-hint {
@@ -84,7 +85,17 @@
 }
 
 .fo-page-head-grow {
-  transition: grid-template-rows var(--motion-panel) var(--ease-out);
+  transition: grid-template-rows var(--motion-quick) var(--ease-out);
+}
+
+.fo-page-head-grow > .fo-page-head-grow-inner {
+  transition:
+    opacity var(--motion-quick) var(--ease-out),
+    transform var(--motion-quick) var(--ease-out);
+}
+
+.fo-page-head-grow[data-open='true'] > .fo-page-head-grow-inner {
+  transition-delay: var(--motion-instant);
 }
 
 .fo-page-head-foot {
@@ -162,7 +173,7 @@ input[type='radio'] {
 }
 
 .intake-drawer {
-  animation: panel-slide-in var(--motion-panel) var(--ease-out);
+  animation: drawer-slide-in var(--motion-panel) var(--ease-out);
 }
 
 .intake-drawer-overlay,
@@ -319,7 +330,7 @@ input[type='radio'] {
 }
 
 .intake-drawer[data-closing='true'] {
-  animation: panel-slide-out var(--motion-quick) var(--ease-exit) forwards;
+  animation: drawer-slide-out var(--motion-panel) var(--ease-exit) forwards;
 }
 
 .sales-promote-banner,
@@ -405,4 +416,42 @@ input[type='radio'] {
 .fo-scroll-shade::before,
 .fo-scroll-shade::after {
   transition: opacity var(--motion-quick) var(--ease-out);
+}
+
+@keyframes fo-badge-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--badge-alert-ring);
+  }
+
+  14% {
+    box-shadow: 0 0 0 var(--sp-1) transparent;
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.fo-nav-badge {
+  animation: fo-badge-pulse var(--motion-attention) var(--ease-out) infinite;
+}
+
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawer-slide-out {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
 }

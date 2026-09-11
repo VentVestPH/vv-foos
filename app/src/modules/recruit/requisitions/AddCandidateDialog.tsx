@@ -95,7 +95,7 @@ export function AddCandidateDialog({
   };
 
   return (
-    <Dialog title={`Add candidate to ${requisition.display_code}`} onClose={onClose}>
+    <Dialog title="Add candidate" onClose={onClose}>
       <Input
         label="Search candidates"
         value={query}

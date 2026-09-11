@@ -1,13 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
-import { clientAs } from '../env';
+import { deleteOwnSettings } from '../env';
 
 const SEEDED_REQUISITION = 'd0000000-0000-4000-8000-000000000001';
 const PREF_KEYS = ['ui.sections.recruit.requisition.record'];
 
 test.afterAll(async () => {
-  const client = await clientAs('admin');
-  await client.from('integration_settings').delete().in('key', PREF_KEYS);
+  await deleteOwnSettings('admin', PREF_KEYS);
 });
 
 test.beforeEach(async ({ page }) => {

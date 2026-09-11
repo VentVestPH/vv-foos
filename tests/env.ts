@@ -42,3 +42,21 @@ export async function clientAs(persona: Persona) {
   }
   return client;
 }
+
+export async function deleteOwnSettings(
+  persona: Persona,
+  keys: string[],
+): Promise<void> {
+  const client = await clientAs(persona);
+  const { data } = await client.auth.getUser();
+  const staffId = data.user?.id;
+  if (!staffId) {
+    throw new Error(`could not resolve the staff id for ${persona}, so a settings delete would hit every user`);
+  }
+  const { error } = await client
+    .from('integration_settings')
+    .delete()
+    .in('key', keys)
+    .eq('staff_id', staffId);
+  if (error) throw new Error(`could not clear ${persona} settings: ${error.message}`);
+}

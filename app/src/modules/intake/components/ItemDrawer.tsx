@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { RecordSection } from '../../../components/ui/RecordPage';
+import { SectionSkeleton } from '../../../components/ui/RecordSkeleton';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
+import { Info as InfoIcon, UserCheck as UserCheckIcon } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { checkDedup, type DedupMatch } from '../hooks';
 import {
@@ -48,6 +52,9 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
       });
     }
   }, [item]);
+
+  const checkingDedup = !isReadOnly(item) && item.status !== 'imported' && dedup === undefined;
+  const showSkeleton = useMinimumVisible(checkingDedup);
 
   const needsGrading = requiresGradingBeforeImport(item);
   const alreadyGraded = item.status === 'graded';
@@ -107,6 +114,14 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
     }
   }
 
+  if (showSkeleton) {
+    return (
+      <Drawer title={item.full_name || 'Intake item'} onClose={onClose}>
+        <SectionSkeleton label="Loading the intake item" sections={4} />
+      </Drawer>
+    );
+  }
+
   return (
     <Drawer title={item.full_name || 'Intake item'} onClose={onClose}>
       <div className="intake-drawer-meta">
@@ -118,8 +133,11 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
 
       {isReadOnly(item) && (
         <p className="intake-readonly-note">
-          Careers-page applications auto-import on submission (Agent 4). This row is read-only — the
-          recruiter's action signal lives on the application's unviewed counter in the ATS module, not here.
+          <InfoIcon size={20} aria-hidden="true" />
+          <span>
+            Careers-page applications import themselves on submission, so this row is read-only. The
+            signal a recruiter acts on is the application's unviewed counter in the ATS, not this queue.
+          </span>
         </p>
       )}
 
@@ -166,14 +184,14 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
             </>
           )}
         </dl>
-        <button type="button" className="intake-raw-toggle" onClick={() => setShowRaw((v) => !v)}>
+        <button type="button" className="link-btn" onClick={() => setShowRaw((v) => !v)}>
           {showRaw ? 'Hide raw payload' : 'Show raw payload'}
         </button>
         {showRaw && <pre className="intake-raw-payload intake-inline-panel">{JSON.stringify(item.raw_payload, null, 2)}</pre>}
       </RecordSection>
 
-      {dedup !== undefined && !isReadOnly(item) && item.status !== 'imported' && (
-        <RecordSection title="Dedup check">
+      {!isReadOnly(item) && item.status !== 'imported' && (
+        <RecordSection title="Possible duplicates">
           {dedup ? (
             <div className="intake-dedup-match">
               <p>
@@ -212,7 +230,12 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
               </div>
             </div>
           ) : (
-            <p className="text-secondary">No match found by email or LinkedIn URL.</p>
+            <EmptyState
+              compact
+              icon={<UserCheckIcon size={32} />}
+              title="No existing person matches"
+              hint="Nothing shares this email or LinkedIn URL, so importing creates a new record."
+            />
           )}
         </RecordSection>
       )}

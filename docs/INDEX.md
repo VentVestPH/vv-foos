@@ -1,6 +1,6 @@
 # VV-FOOS Documentation Index
 
-**Project:** VentVest Front Office OS (VV-FOOS) · **Last updated:** 2026-09-01 (test suites executed for the first time; 25 acceptance criteria closed; Gate 5 UAT scripts added)
+**Project:** VentVest Front Office OS (VV-FOOS) · **Last updated:** 2026-09-10 (candidates pass recorded: the Quick Search contract no list page implemented, F23 closed with a caller guard, and the CI browser job sharded two ways)
 
 Documentation for the FOOS CRM and ATS improvement programme. Project documents follow the VVPH ISO naming convention (`VVPH_<ProjectCode>_<DocType>_<Descriptive-Name>_<YYYY-MM-DD>_v<major.minor>_<Status>.<ext>`). Folders are numbered in reading order.
 
@@ -18,6 +18,11 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | Exactly what to change, with values | `02-taleo-fidelity/…Spec_Taleo-Fidelity-Gap-Closure…` |
 | Which icons Kappa uses, and whether to copy them | `04-research/…Report_Icon-Strategy-and-Kappa-Comparison…` |
 | How to add polish without breaking the replica | `06-ux-and-motion/…Spec_UX-and-Motion-Discovery…` |
+| What the requisitions UI pass changed, and the four CSS traps it paid for | `06-ux-and-motion/…Record_Requisitions-UI-Pass…` |
+| Why the browser suite takes as long as it does, measured | `06-ux-and-motion/…Record_Requisitions-UI-Pass…` section 4 |
+| Why CI is sharded two ways and not three | `06-ux-and-motion/…Record_Candidates-Pass-And-Quick-Search…` section 3 |
+| Why a signed-in user could fire someone else's reminders, and the guard | `06-ux-and-motion/…Record_Candidates-Pass-And-Quick-Search…` section 2 |
+| What the candidates pass changed, and the search contract it found dead | `06-ux-and-motion/…Record_Candidates-Pass-And-Quick-Search…` |
 | How to run the app locally without touching live data | `07-environments/…Doc_Local-Development-Environment…` |
 | What was measured and what got faster | `08-performance/…Report_Performance-Baseline-and-Optimisation…` |
 | The human checks left before cutover | `09-uat/…Script_Gate-5-UAT…` |
@@ -58,6 +63,8 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | Document | Contents |
 | :---- | :---- |
 | `VVPH_VV-FOOS_Spec_UX-and-Motion-Discovery_2026-09-01_v1.0_Draft.md` | Whole-application discovery (76 files, 13,792 lines) finding zero motion and zero reduced-motion handling; the three-category discipline that decides when motion diverges from Taleo and when it cannot; motion tokens with a 220ms ceiling; per-component specification; eight UX fixes needing no motion; and five verification checks |
+| `VVPH_VV-FOOS_Record_Requisitions-UI-Pass_2026-09-10_v1.0_Final.md` | What the requisition list, record and edit pages became; the nine shared components it produced; nine product defects with their evidence; the StrictMode, sticky-clamp, overflow and layer-order traps; the CI contrast failure that did not reproduce locally; and the measured cost of the browser suite |
+| `VVPH_VV-FOOS_Record_Candidates-Pass-And-Quick-Search_2026-09-10_v1.0_Final.md` | The candidate list header, page-head skeleton and column settings; the sidebar Quick Search navigating with a `?search=` parameter no list page had ever read, plus the name search that could not match across a middle name; the two flag columns where the one asked to be removed held the only data; F23's caller guard on `fn_fire_due_reminders`; and why the CI browser job is sharded two ways rather than three or weakened |
 
 ## 07-environments
 

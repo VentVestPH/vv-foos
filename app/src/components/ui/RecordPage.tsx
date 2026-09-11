@@ -106,6 +106,9 @@ export function RecordSection({
     if (startOpen) setEverOpened(true);
   }, [startOpen]);
 
+  const openState = useRef(open);
+  openState.current = open;
+
   useEffect(() => {
     if (!bus) return undefined;
     return bus.register(
@@ -115,7 +118,7 @@ export function RecordSection({
         setOpen(next);
         if (next) setEverOpened(true);
       },
-      startOpen,
+      () => openState.current,
     );
   }, [bus, key, startOpen]);
 

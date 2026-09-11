@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: var(--z-overlay);
   padding: var(--sp-2);
 }
 
@@ -15,7 +15,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  width: 440px;
+  width: var(--dialog-w);
   max-width: 100%;
   max-height: 90vh;
   display: flex;
@@ -49,6 +49,10 @@
   gap: var(--sp-2);
 }
 
+.rq-dialog-body > * {
+  margin: 0;
+}
+
 .rq-dialog-foot {
   display: flex;
   justify-content: flex-end;
@@ -70,8 +74,8 @@
   background: var(--surface);
   border: 1px solid var(--control-border);
   color: var(--fo-link);
-  border-radius: 999px;
-  padding: 2px var(--sp-1);
+  border-radius: var(--radius-pill);
+  padding: var(--sp-quarter) var(--sp-1);
   font-size: var(--fs-sm);
   white-space: nowrap;
 }
@@ -144,9 +148,56 @@
     max-content minmax(0, 320px);
   justify-content: start;
   column-gap: var(--sp-1);
-  row-gap: 0;
+  row-gap: var(--sp-quarter);
   padding-left: 0;
   margin: 0;
+}
+
+#candidate-information .info-grid {
+  padding-left: var(--sp-2);
+}
+
+.info-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-1-5) 0;
+}
+
+.info-group:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding-top: 0;
+}
+
+.info-group + .info-group {
+  border-top: 1px solid var(--fo-rule);
+}
+
+.info-group-label {
+  margin: 0;
+  font-size: var(--fs-meta);
+  font-weight: 700;
+  color: var(--fo-text-secondary);
+}
+
+.info-group-hint {
+  margin: 0;
+  font-size: var(--fs-meta);
+  color: var(--fo-text-secondary);
+}
+
+.info-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sp-2);
+  align-items: start;
+  margin-top: var(--sp-1);
+}
+
+.info-form-grid > .field-wide {
+  grid-column: 1 / -1;
 }
 
 .info-item {
@@ -223,8 +274,8 @@
 .panel-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-bottom: var(--sp-1);
+  gap: var(--sp-1-5);
+  padding-bottom: var(--sp-1-5);
   border-bottom: 1px solid var(--border);
 }
 
@@ -275,7 +326,6 @@
   align-items: center;
   gap: var(--sp-1);
   flex-wrap: wrap;
-  margin-bottom: var(--sp-2);
 }
 
 .rq-pipeline-view {
@@ -353,7 +403,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--sp-quarter);
 }
 
 .fo-list-action-bar {
@@ -410,7 +460,7 @@
 .rq-editor-tools {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: var(--sp-quarter);
 }
 
 .rq-editor-view {
@@ -434,7 +484,7 @@
 
 .rq-editor-toolbar-btn {
   min-width: 32px;
-  padding: 2px 6px !important;
+  padding: var(--sp-quarter) var(--sp-tight) !important;
   font-size: var(--fs-xs) !important;
 }
 
@@ -448,6 +498,103 @@
   align-items: center;
 }
 
+.cand-flag-set {
+  color: var(--danger);
+  display: inline-flex;
+  align-items: center;
+}
+
+.cand-header-grade {
+  display: inline-flex;
+  align-items: center;
+}
+
+.cand-grade-row {
+  padding-top: var(--sp-1);
+}
+
+.cand-flag-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  color: var(--fo-icon);
+}
+
+.cand-flag-toggle svg {
+  fill: none;
+}
+
+.cand-flag-toggle[data-on='true'] {
+  color: var(--danger);
+}
+
+.cand-flag-toggle[data-on='true'] svg {
+  fill: currentColor;
+}
+
+.cand-flag-toggle:disabled {
+  cursor: default;
+  color: var(--fo-text-secondary);
+}
+
+.fo-link-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.fo-link-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  background: var(--fo-surface);
+  color: var(--fo-link);
+  text-decoration: none;
+}
+
+.fo-link-card:hover {
+  background: var(--fo-row-hover);
+  border-color: var(--fo-primary);
+}
+
+.fo-link-card-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--fo-icon);
+}
+
+.fo-link-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.fo-link-card-title {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.fo-link-card-meta {
+  font-size: var(--fs-meta);
+  color: var(--fo-text-secondary);
+}
+
+.fo-link-card-go {
+  flex: 0 0 auto;
+  color: var(--fo-text-secondary);
+}
+
 .cand-resume-icon {
   color: var(--fo-icon, var(--primary));
   display: inline-flex;
@@ -457,26 +604,14 @@
   color: var(--fo-border, var(--border));
 }
 
-.cand-second-search-fields {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  flex-wrap: wrap;
-}
-
-.cand-second-search-fields input {
-  min-width: 160px;
-}
-
 .bulk-recipient-list {
   list-style: none;
   margin: 0;
-  padding: var(--sp-half) 0 0;
+  padding: 0;
   max-height: 180px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
   font-size: var(--fs-meta);
 }
 
@@ -484,12 +619,13 @@
   display: flex;
   gap: var(--sp-1);
   justify-content: space-between;
-  padding: 2px 0;
   border-bottom: 1px solid var(--border);
+  padding: var(--sp-1) 0;
 }
 
 .bulk-recipient-list li:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .merge-match-list {
@@ -510,13 +646,13 @@
 
 .merge-match-list .checkline {
   align-items: flex-start;
-  padding: 6px 0;
+  padding: var(--sp-tight) 0;
 }
 
 .merge-match-list .checkline > span {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-quarter);
   min-width: 0;
 }
 
@@ -535,5 +671,47 @@
   .panel-form {
     display: none;
   }
+}
+
+.cand-submit-dialog {
+  width: var(--dialog-w-wide);
+}
+
+.cand-submit-dialog .panel-stack {
+  gap: var(--sp-1-5);
+}
+
+.cand-submit-dialog .panel-item {
+  padding-bottom: var(--sp-1-5);
+}
+
+.cand-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+
+.cand-submit-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#requisition-summary .record-section-body {
+  gap: 0;
+}
+
+#requisition-summary .approver-line {
+  padding-block: var(--sp-1);
+}
+
+.cand-print-sheet {
+  display: none;
+}
+
+.fo-bulk-outcome {
+  align-self: center;
+  font-size: var(--fs-meta);
 }
 }

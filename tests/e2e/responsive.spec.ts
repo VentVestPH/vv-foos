@@ -64,6 +64,14 @@ test.describe('L9: the layout stays usable down to 768px', () => {
     await page.locator('.table-wrap tbody tr .link-btn').first().click();
     await expect(page.locator('.record-section').first()).toBeVisible({ timeout: 25000 });
 
+    if ((await page.locator('.info-grid').count()) === 0) {
+      await page.getByRole('button', { name: /^Requisition Information/ }).click();
+    }
+    await expect(
+      page.locator('.info-grid').first(),
+      'which section opens on load is a per-staff preference another spec can have changed, so this one opens the section it measures',
+    ).toBeVisible({ timeout: 20000 });
+
     const grid = await page.evaluate(() => {
       const el = document.querySelector('.info-grid');
       if (!el) return null;

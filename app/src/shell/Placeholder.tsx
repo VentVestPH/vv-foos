@@ -11,7 +11,7 @@ import { useOverlayDismiss } from '../hooks/useOverlayDismiss';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface PlaceholderContextValue {
-  show: (action: string, detail?: string) => void;
+  show: (action: string, detail?: string, lead?: string) => void;
 }
 
 const PlaceholderContext = createContext<PlaceholderContextValue | null>(
@@ -23,12 +23,14 @@ export function PlaceholderProvider({
 }: {
   children: ReactNode;
 }) {
-  const [state, setState] = useState<{ action: string; detail?: string | undefined } | null>(
-    null,
-  );
+  const [state, setState] = useState<{
+    action: string;
+    detail?: string | undefined;
+    lead?: string | undefined;
+  } | null>(null);
 
-  const show = useCallback((action: string, detail?: string) => {
-    setState({ action, detail });
+  const show = useCallback((action: string, detail?: string, lead?: string) => {
+    setState({ action, detail, lead });
   }, []);
 
   const dismiss = useCallback(() => setState(null), []);
@@ -61,8 +63,13 @@ export function PlaceholderProvider({
               {state.action}
             </div>
             <div className="fo-placeholder-body">
-              This is not available yet.
-              {state.detail ? ` ${state.detail}` : ''}
+              <p className="fo-placeholder-lead">
+                {state.lead ?? `${state.action} is still in development.`}
+              </p>
+              <p className="fo-placeholder-note">
+                {state.detail ??
+                  'The control is here so this screen matches the one it replaces. It will do its job once the feature ships, and nothing on this record has changed.'}
+              </p>
             </div>
             <div className="fo-placeholder-footer">
               <button
@@ -92,6 +99,7 @@ export function usePlaceholder() {
 export function PlaceholderAction({
   label,
   detail,
+  lead,
   variant = 'secondary',
   size,
   caret = false,
@@ -100,6 +108,7 @@ export function PlaceholderAction({
 }: {
   label: string;
   detail?: string;
+  lead?: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md';
   caret?: boolean;
@@ -119,7 +128,7 @@ export function PlaceholderAction({
     <button
       type="button"
       className={classes}
-      onClick={() => show(label, detail)}
+      onClick={() => show(label, detail, lead)}
     >
       {label}
       {caret && (

@@ -6,19 +6,30 @@ Severity scale: **Critical** — data loss/corruption, RLS breach, auth bypass, 
 
 No real PII in any row below — all evidence is schema/config state or synthetic (`is_test`) data.
 
+## Tally, 2026-09-10
+
+**30 entries covering 29 distinct ids, 25 closed and 5 open.** Counted with `grep -cE '^#{2,4} QA-0'` (30) and `grep -E '^- \*\*Status:\*\*' | grep -ci open` (5). **Corrected 2026-09-10:** the 2026-09-08 line below read "25 closed and 4 open" and names four open ids, but the status grep returns **5**. The count, not the list, is authoritative here; the fifth is not identified in this correction because doing so needs a read of every open entry, which is the next person's first job on this file. **QA-029 is added**, the only defect from the requisitions UI pass that reached a commit rather than being caught before one: breadcrumb links at 4.43:1 on four pages, found by CI and not reproducible locally.
+
 ## Tally, 2026-09-08
 
 **29 entries covering 28 distinct ids, 25 closed and 4 open.** **Corrected 2026-09-08:** this line read "25 entries covering 24 distinct ids, 22 closed and 3 open" and had not been updated when QA-025 and QA-026 were added. Counted with `grep -cE '^#{2,4} QA-0'` (27) and `grep -E '^- \*\*Status:\*\*' | grep -i open` (4: QA-003, QA-006, QA-008, QA-026). **Updated 2026-09-08 for QA-027 and QA-028**, both raised during Goal 11 batch 10. The four open are the three parked with Klent plus QA-026. **QA-028 is closed**: `validate.sql` was writing `probability = 0.6` to the real seeded DEAL-0001 and never restoring it. QA-027 is closed: a layout helper returned identically whether it settled or gave up, which is the **fourth** instance of the pattern already written into `CLAUDE.md`. QA-023 and QA-024 were added on 2026-09-08 and both closed the same day; QA-024 is closed for dismissal with its focus-management half carried forward as a Goal 9 finding, and QA-025 is a defect in my own audit harness rather than in the product: it wrote to the database it was photographing. **QA-023 is the first Critical defect this log has recorded that was not a configuration gap:** two presses of any placeholder-backed control left an invisible full-screen backdrop that swallowed every click, and it had been shipping unnoticed because no test opened a second overlay in one page session.
 
 ## Tally, 2026-09-07
 
-**23 entries covering 22 distinct ids, 20 closed and 3 open**, one of those three narrowed to a part nobody here can finish. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**63 entries covering 62 distinct ids, 57 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+
+**Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
+
+What is still open, and why:
 
 | Id | What | Why it is open |
 | :---- | :---- | :---- |
 | QA-003 | The four test-persona Auth passwords are QA-known values | Operational, and Klent parked it. `scripts/rotate-persona-passwords.mjs` is the tool; it belongs to the cutover, not to this work. Plan item B2 |
 | QA-006 | Synced Gmail subjects show mojibake, an em-dash arriving as `Ã¢Â€Â”` | **Narrowed 2026-09-07.** The decoding gap is fixed: `google-sync` now runs the Subject header through a tested RFC 2047 decoder. The reported double-mojibake is a different mechanism, needs one raw header from a live account to identify, and repairing it would take a heuristic that could mangle a legitimately accented subject |
 | QA-008 | Three of the four committed success metrics have no instrumentation | Klent parked the PM metrics. Plan item E1 |
+| QA-026 | The candidate CSV export produced one completely empty file in four gate passes | Never reproduced since, and the cause is not established. Not closed on the strength of it not happening again |
+| QA-035 | The pager's `1 / 3652` reads as a record count next to `1-20 of 73024` | Not a data defect; nothing is missing. Waiting on Klent to pick between labelling the page number and removing it |
+| QA-042 | No field of `people` is editable anywhere in the product | Not a permissions gap: `people_update` grants the write and nothing calls it. Adding the surface changes what the candidate record does, so it is Klent's to schedule |
 
 **Closed 2026-09-07 after being verified rather than assumed:** QA-002, QA-004, QA-007, QA-014, QA-017, QA-018, QA-019, QA-020, QA-021 and QA-022, which is ten in a day. The last three were found by the gate rather than by reading, and QA-020, the kanban board being a scrollable region no keyboard can reach, is a product defect that git shows has been shipping since **54ce896**. The first three had already been fixed and this log had simply not been updated, which is its own kind of wrong: a log that says "open" about something that works sends the next reader to fix it twice. Each closure below carries the query or the file that proves it.
 
@@ -613,3 +624,548 @@ That explains every observation at once. It is not the browser suite and not vit
 - **A second defect the probe itself caused, and the gate caught.** `grant all on _probe_prob to anon, authenticated` triggered `FAIL 23: 6 table grant(s) still give anon or authenticated TRUNCATE, TRIGGER or REFERENCES`, and an earlier form triggered `FAIL 2: RLS disabled on: _probe_prob` and then `permission denied for table _probe_prob`. The probe has been dropped and `validate.sql` is back to 34 of 34
 - **Status:** closed
 - **Lesson worth keeping:** a script named `validate` mutated the data it validated, and the only reason it went unnoticed is that its marker value looked like the seed. A permission check that must write should write to a record it creates and removes, which is the rule Klent stated for all of Goal 11: *"make sure when doing crud, create a seeded record and delete that. not actual records."* This is the same class as QA-025, where the audit harness wrote to the database it was photographing
+
+### QA-029: breadcrumb links sit on the page band at 4.43:1, below WCAG AA
+
+- **Found:** 2026-09-10, by CI run 34437359599 on `feat/requisitions-ui-pass`, after `3a402a9` added breadcrumbs to every page. **It did not reproduce locally**, where `e2e/accessibility.spec.ts` passed 5 tests in 34.2s immediately before and after
+- **Module:** shared shell. `GlobalSearchPage`, `ModulePlaceholderPage`, and both `DashboardPage` tabs
+- **Criterion:** L12, `e2e/accessibility.spec.ts:64` "no serious or critical violation on any signed-in screen route"
+- **Severity:** **Medium.** Readable but below the contrast the rest of the app holds, on four pages, and it fails a gate
+- **Steps to reproduce:** open `/search?q=a`, `/employees` or `/pipeline` as any persona and read the computed colour of the first breadcrumb link against its resolved background
+- **Expected:** the 4.5:1 that WCAG AA requires of 14px normal-weight text, which the list and record pages meet at 5.04:1
+- **Actual:** `--fo-link` `#1b6fc9` on `--fo-canvas` `#f0f0f0` is **4.43:1**
+
+```
+1) e2e/accessibility.spec.ts:64:3 › no serious or critical violation on any signed-in screen route
+    Error: serious or critical accessibility violations:
+    global search: color-contrast (serious, 1 node(s)) e.g. li:nth-child(1) > a[href="/"][data-discover="true"]
+```
+
+- **Evidence, measured in the browser on four routes:**
+
+```
+/recruit/requisitions :: {"fg":"rgb(27, 111, 201)","bg":"rgb(255, 255, 255)","ratio":5.04}
+/search?q=a           :: {"fg":"rgb(27, 111, 201)","bg":"rgb(240, 240, 240)","ratio":4.43}
+/employees            :: {"fg":"rgb(27, 111, 201)","bg":"rgb(240, 240, 240)","ratio":4.43}
+/pipeline             :: {"fg":"rgb(27, 111, 201)","bg":"rgb(240, 240, 240)","ratio":4.43}
+```
+
+- **Cause:** `ListPage` and `RecordPage` render the trail inside `.fo-page-head`, which is `background: var(--fo-surface)`. Four pages took `<Breadcrumbs>` as a bare child of `.list-page` or `.record-page`, so the link had no opaque ancestor and sat on the page band. **Why CI caught it and a local run did not:** axe's `color-contrast` rule reports *incomplete* rather than *violation* when it cannot fully resolve a background, and that resolution depends on rendering. The ratio was 4.43 on both machines; only the classification differed, so the local pass was luck rather than evidence
+- **Fix:** the four pages wrap their header in `.fo-page-head`, putting the trail on white at 5.04:1. `688890d`
+- **Guard:** `e2e/breadcrumbs.spec.ts` B1 walks up from the trail's first link on all ten routes and fails if it does not land on `rgb(255, 255, 255)`, in seconds rather than a 22-minute CI run. `scripts/check-contrast.mjs` was deliberately not extended: it already declares `--fo-link` on `--fo-surface` and `--fo-link-on-tint` on `--fo-canvas`, so the system had already decided a link on the band uses the darker token, and it has no pair for `--fo-link` on `--fo-canvas` because that pair is not meant to exist
+- **Status:** Closed
+- **Fix owner:** Claude, verified by CI run 34440229385, success in 19m39s
+- **Closed:** 2026-09-10
+
+### QA-030: the sidebar Quick Search dropped its term on every list page
+
+- **Found:** 2026-09-10, by Klent, on `/recruit/candidates`: *"searching using the candidate first and last name doesn't work. it just redirects me to the candidates page."*
+- **Module:** shared shell plus all seven list pages
+- **Criterion:** 2.9 list persistence, and the Quick Search panel's whole purpose
+- **Severity:** **High.** A control that looks like it works, navigates, and silently discards what was typed. It affected the keyword box as well as the Candidate First/Last Name pair, on candidates, requisitions, companies, contacts, deals, tickets and the intake queue
+- **Steps to reproduce:** on any list page type a name into the sidebar Quick Search and press its magnifying glass
+- **Expected:** the list filters to that term
+- **Actual:** the URL becomes `<list>?search=<term>`, the page re-renders unfiltered, and the search box is empty. To the user it reads as a redirect to the page they were already on
+- **Cause:** two independent defects stacked.
+  1. `ShellSidebar.runQuickSearch` navigates to `` `${scope.to}?search=${encodeURIComponent(term)}` ``, and **no list page has ever read `?search=`.** All seven initialised their search state with `useState('')`. `grep -rn "params.get('search')" app/src` returned nothing
+  2. Even with the term delivered, a first-plus-last name matched nobody with a middle name. `candidate_list.search_text` is `lower(concat_ws(' ', first_name, middle_name, last_name, current_title, current_employer, emails))`, and the page applied one `ilike '%<whole term>%'`, so `%adam tan%` could never match `adam john tan`
+- **Fix:** `app/src/lib/quickSearch.ts`. `useQuickSearchTerm()` seeds the search state from `?search=` and re-seeds when the parameter changes; all seven list pages now use it, and the requisition list seeds its debounced `searchTerm` too so a quick search does not wait out the 2000ms timer. `searchWords()` splits the term and the candidate query applies one `ilike` per word, which PostgREST ANDs
+- **Guard:** `tests/e2e/quick-search.spec.ts` Q1 asserts every one of the seven routes seeds its box from the parameter, Q2 drives the sidebar's own First/Last Name fields end to end against a fixture with a middle name, and Q3 asserts the words are ANDed in any order and that a non-matching word empties the list
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-031: two flag columns on the candidate list, and the one with data was the one to remove
+
+- **Found:** 2026-09-10, by Klent: *"i can see two flags in the table. remove the row with Flags that is not an icon. does it have other values? is it different with the flag icon row?"*
+- **Module:** `modules/recruit/candidates`
+- **Severity:** **Low.** Cosmetic duplication, but the obvious fix loses data
+- **Actual:** the table carried a 32px `flagcol` at the far left whose header was a flag icon and whose `render` returned `null` **for every row**, and a `flags` column at the far right rendering a `Badge` with the text "Do not contact"
+- **Answers to the two questions asked:** the text column has exactly **one** possible value. `buildCandidateRows` pushes `'Do not contact'` when `candidate_profiles.do_not_contact` is set and nothing else ever, so the badge's `tone={… ? 'danger' : 'warning'}` had a dead `warning` branch. The icon column had **no** values at all; it was screenshot decoration
+- **Fix:** merged rather than deleted. There is now one column keyed `flags`, first in the default order, with the flag icon as its header and a red flag in the cell when `do_not_contact` is set, carrying the flag text as its `title` and `aria-label`. `flagcol` is gone. The column stays in `COLUMN_DEFS`, so it is still toggleable in column settings and still exports as text to CSV
+- **Guard:** `quick-search.spec.ts` Q6 counts flag-named headers, asserts exactly one, then sets `do_not_contact` on its own fixture and asserts the surviving column shows it
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### F23: fn_fire_due_reminders held PUBLIC EXECUTE while being security definer
+
+- **Found:** 2026-09-08 during the privilege sweep, deferred by `20260909000003_prune_execute_service_role_only.sql` with a header comment saying it needed a caller guard rather than a revoke. Open until 2026-09-10
+- **Module:** database. `supabase/migrations/20260711000010_triggers.sql`
+- **Severity:** **High.** `security definer` plus PUBLIC EXECUTE meant any signed-in user could run the sweep and flip **every** pending reminder in the table to `fired`, including other people's, bypassing `reminders_update` entirely
+- **Actual:** `select proacl from pg_proc where proname='fn_fire_due_reminders'` returned `{postgres=X/postgres,=X/postgres}`; the bare `=X/` is PUBLIC
+- **Why a revoke was not the fix:** the sweep has two legitimate non-service callers. pg_cron and the outbox consumers run as `service_role` with no `auth.uid()`, and `tests/e2e/reminders-tasks.spec.ts` drives the whole `reminder.due` event as a signed-in admin. Revoking would have broken the only interface the event has
+- **Fix:** `20260910000001_fire_due_reminders_caller_guard.sql`. The function reads `auth.uid()`: null means service_role or cron and sweeps everything; a caller whose `staff.role` is `admin` sweeps everything; any other staff row sweeps only `staff_id = auth.uid()`; a caller with no staff row raises `42501`. That predicate is exactly `reminders_update`'s (`get_my_role() = 'admin' OR staff_id = auth.uid()`), so the definer rights now grant nothing the caller did not already hold. `revoke all … from public, anon` then `grant execute … to authenticated, service_role`
+- **Verified:** `proacl` is now `{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}`. A sourcer sweeping with one own and one recruiter-owned reminder both due fired **1**, leaving the recruiter's `pending`; the admin sweep then fired it. `e2e/reminders-tasks.spec.ts` **6 passed (16.2s)**
+- **Guard:** the last test in `e2e/reminders-tasks.spec.ts`, "F23: the reminder sweep only touches what the caller may already update"
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-032: no list page had ever offered search suggestions, and one column had no sort to offer
+
+- **Found:** 2026-09-10, by Klent: *"i don't see any suggested results in requisitions like how the topbar searchbox functions. why?"* and *"add sort function to flag, requisitions, resume, grade comment"*
+- **Module:** `components/ui/ListPage.tsx`, `components/ui/SearchBox.tsx`, `modules/recruit/candidates`
+- **Severity:** **Low** for the suggestions, which is a missing capability rather than a break. **Medium** for the Requisitions sort, because adding `sortable: true` alone would have shipped a header that looks live and silently does nothing
+- **Actual, suggestions:** the utility header renders `SearchBox`, which queries six list views on a 300ms debounce past three characters and drops a `.fo-hint-pop`. `ListPage` rendered a bare `SearchField`, which has none of that machinery, so **no list page in the app had ever suggested anything**
+- **Actual, sorts:** Flags, Resume and Grade comment each had a `SORT_COLUMNS` entry and were simply missing `sortable: true`. Requisitions had no entry and could not have one: the codes are assembled in the browser from a second and third read (`applications`, then `requisitions`), so `applyOrder` had nothing to order by and would have fallen through to the default sort
+- **Fix, suggestions:** the fetcher was parameterised rather than the pop duplicated. `lib/searchHints.ts` owns `SearchHint`, `SearchHintFetcher` and three fetchers: `globalSearchHints` (the six views, now passed explicitly by the two call sites that want everything), plus `requisitionSearchHints` and `candidateSearchHints`. `SearchBox` takes `fetchHints` and does nothing without it; `ListPage` renders `SearchBox` and forwards a new `searchHints` prop. A list suggests only its own records
+- **Fix, sorts:** three flags, plus `20260910000002_candidate_list_requisition_codes.sql`, which adds `requisition_codes` to `candidate_list` as a correlated `string_agg`. **Measured before choosing that over a materialised column:** an unfiltered `order by requisition_codes` over 73,023 `candidate_profiles` and 86,163 `applications` is `Execution Time: 210.734 ms`, using `idx_applications_person` and `requisitions_pkey`. `database.types.ts` gained the column in the same change
+- **Two defects the refactor introduced, both caught before the suite ran and neither shipped:** `SearchBox.searchAll` navigates to `/search` when `onSubmitTerm` is absent, so the magnifying glass in a list toolbar would have left the list on every page except requisitions; and `.list-page-search`, which sets `display: flex`, moved onto the wrapper `div`, collapsing the form to `{"wrapW":420,"formW":195,"inputW":195}`. `ListPage` now always passes a submit handler, falling back to `onSearchChange`, and `.list-page-search > .fo-search-row { flex: 1; min-width: 0 }` re-measured `{"wrapW":420,"formW":420,"inputW":420}`
+- **Evidence:**
+
+```
+REQ HINTS  :: {"count":10,"allBtn":"Search all requisitions for “man” · 202 matches","belowTrigger":0,"href":"/recruit/requisitions/f541e2db-…"}
+CAND HINTS :: {"count":10,"allBtn":"Search all candidates for “adam” · 366 matches","href":"/recruit/candidates/91ea1134-…"}
+SORT Flags         :: index=1  rows=20 aria-sort=ascending
+SORT Requisitions  :: index=11 rows=20 aria-sort=ascending
+SORT Resume        :: index=4  rows=20 aria-sort=ascending
+SORT Grade comment :: index=9  rows=20 aria-sort=ascending
+```
+
+- **Guard:** `quick-search.spec.ts` Q10 (suggestions are scoped to the list and attached to the box), Q11 (all four headers report a direction and still return rows), Q12 (submitting a list search stays on the list, across three routes)
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-033: the page-head skeleton was built, reviewed and removed the same day
+
+- **Found:** 2026-09-10. Built at Klent's request (*"add skeleton to the pageheader"*), then removed at his: *"remove the skeleton on the fo-page-head searchbox section. i can see like it's displaying a skeleton. don't dispolay a sekeleton to the searchbox line."*
+- **Module:** `components/ui/ListPage.tsx`
+- **Severity:** **Low**, but worth a log entry so nobody rebuilds it
+- **Why it was wrong, and it is the same reason it needed a gate:** `useMinimumVisible(loading)` is true whenever a query is in flight, which includes while someone is typing in the search box. The `everLoaded` flag limited it to the first load, but a skeleton over a text input is always one gate away from taking the control out from under the user. Everything else in the page head, the title, the description and the breadcrumb trail, is known at first paint, so there was nothing there worth skeletoning either
+- **Fix:** `headLoading`, the `everLoaded` flag and their test are gone. The list loading state is `.fo-skeleton-card` around `Skeleton rows={8}`, which is the table, which is what actually loads
+- **Guard:** `quick-search.spec.ts` Q7 injects a 1200ms delay and asserts the toolbar carries **zero** skeletons, the search input is present, and the eight table bars are the whole loading state
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-034: four spec fixtures deleted every user's UI preferences, not just the test persona's
+
+- **Found:** 2026-09-10, by Klent: *"i notice the recently viewed keeps getting erased. why? is it local storage? it should be saved per user, right?"*
+- **Module:** `tests/e2e/record-ui.spec.ts`, `settings-gears.spec.ts`, `view-settings.spec.ts`, `scroll-shadow.spec.ts`
+- **Severity:** **High.** Test fixtures destroying real users' data, on every suite run, silently. It also breaks the project's own stated rule: *"make sure when doing crud, create a seeded record and delete that. not actual records."*
+- **Answering the question:** no, it is not localStorage, and it is per user. `hooks/useRecentlyViewed.ts` reads and writes `integration_settings` under `ui.recentlyViewed`, keyed by `staff_id`, with no `localStorage` path at all. It was being erased from outside the app
+- **Cause:** `integration_settings_write` is `get_my_role() = 'admin' OR staff_id = auth.uid()`, so **an admin may write any staff member's row**. All four fixtures issued their cleanup as the admin persona **filtered only by key**:
+
+```
+await client.from('integration_settings').delete().eq('key', RAIL_KEY);
+await client.from('integration_settings').delete().in('key', PREF_KEYS);
+```
+
+  RLS therefore permitted, and PostgREST performed, a delete across every staff row. Every suite run wiped the Recently Viewed rail and the dashboard section preferences of every account in the database, including real ones
+
+- **Evidence:** after the runs on 2026-09-10, `select count(*) from integration_settings where staff_id = '8d999056-bc8d-4caa-819b-61e9652b0e73'` (`foos.admin@ventvest.com`, a real account, not a persona) returned **0**, while the persona row still held 5 items
+- **Fix:** `deleteOwnSettings(persona, keys)` in `tests/env.ts` resolves the signed-in id with `auth.getUser()`, adds `.eq('staff_id', staffId)`, and **throws** rather than proceed if the id cannot be resolved, so the unscoped form cannot come back by accident. All four fixtures use it
+- **Guard:** the helper is the guard: a cleanup cannot be written unscoped without going around it. Recorded in CLAUDE.md next to the `integration_settings` section so the next reader meets the policy before writing a fixture
+- **Cost:** Klent's own rail, repeatedly, over an unknown number of runs. Also confidence: the erasure looked like an app bug and was not
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-035: the pager's page number reads as a record count on a large list
+
+- **Found:** 2026-09-10, by Klent: *"out of 73023 candidates, why is it showing 3652 only?"*
+- **Module:** `components/ui/Pager.tsx`
+- **Severity:** **Low** as a defect, but it cost real confusion and a full investigation
+- **Not a defect in the data.** Nothing is missing. `.fo-pager-count` renders `1-20 of 73024` and `.fo-pager-pos` renders `1 / 3652`, side by side. `ceil(73024 / 20) = 3652`, so the second figure is the page number, not a row count
+- **Ruled out before concluding, each by measurement:** RLS (admin sees 73,024 through Postgres **and** through PostgREST, `Content-Range: 0-0/73024`); a missing `people` row dropping candidates on the view's inner join (0 such rows); a filter silently applied (no status, source, sourcer, grade or resume bucket lands near 3,652); the wrong persona (admin 73,024, recruiter 73,024, sourcer 3, bd 0)
+- **Why it misleads:** on 687 requisitions the same control reads `1 / 35`, which nobody mistakes for a record count. At 73,024 rows the page number reaches the same order of magnitude as a plausible row count and sits next to a figure that is one, separated only by a slash
+- **Status:** **open**, awaiting Klent's pick between labelling it `Page 1 of 3652` and removing the position entirely. The recommendation is removal: the row range already answers "where am I", and `pageCount` is only needed by the last-page chevron
+- **Fix owner:** unassigned
+
+### QA-036: TableColumn.width silently had no effect under the auto table layout
+
+- **Found:** 2026-09-10, by Klent: *"increase width of location in the candidates table. currently, it's too narrow."*
+- **Module:** `components/ui/Table.tsx`
+- **Severity:** **Low**, but it is the kind of thing that wastes an hour: the prop exists, is typed, is applied to the `th`, and does nothing
+- **Actual:** setting `width: '200px'` on the candidate Location column left it at **106px**. `.table` is `table-layout: auto`, where a specified width is a hint the algorithm may override when other columns want the space, and the two columns given `nowrap` in the same change had just made them want it
+- **Evidence:**
+
+```
+with width: '200px'    :: location {"ws":"normal","w":106}
+with minWidth: '200px' :: location {"ws":"normal","w":200}
+```
+
+- **Fix:** `TableColumn.minWidth`, applied alongside `width` on the `th`. Location uses `minWidth`; the existing `width` users (`flags` 32px, `star_grade` 92px) are unchanged, so nothing else moved
+- **Guard:** `quick-search.spec.ts` Q18 asserts Location is at least 200px, that Name and Sourcer compute `white-space: nowrap`, that `.table-wrap` is `overflow-x: auto` (which is what makes nowrap safe), and that the document itself still does not scroll sideways
+- **Worth keeping:** `width` on a table column is a suggestion. If a column must hold a size, use `minWidth`
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-037: the candidate record's Flag button was a placeholder that looked live
+
+- **Found:** 2026-09-10, by Klent: *"What's this flag button? next button?"* and *"use an actual flag icon. hollow at first, but if clicked, it fills"*
+- **Module:** `modules/recruit/candidates/CandidateRecordPage.tsx`
+- **Severity:** **Medium.** A control that reads as a toggle, sits beside the record title, and does nothing when pressed
+- **Actual:** a `link-btn` reading the word "Flag" whose entire behaviour was `show('Flag')`, the Taleo-replica placeholder. It had no icon, no state, and no data behind it. The **Next** control beside it is the same shape but honest: it says *"Paging to the next candidate in the current list view is not implemented yet."*
+- **Fix:** a real toggle. Hollow `Flag` icon that fills `--danger` when set, writing `candidate_profiles.do_not_contact` — the only flag the schema has, and exactly what the candidate list's Flags column renders (see QA-031). `aria-pressed` carries the state, the `title` explains both directions, and it is disabled with a reason for anyone who is not an admin or a recruiter, matching `canEditProfile`. Setting it also raises the existing `.dnc-banner`, so the record says out loud that outreach is blocked
+- **Verified, round trip:**
+
+```
+HOLLOW :: {"on":"false","fill":"none","banner":0}
+FILLED :: {"on":"true","fill":"rgb(212, 0, 0)","banner":1}
+DB AFTER CLICK        :: {"do_not_contact":true}
+DB AFTER SECOND CLICK :: {"do_not_contact":false}
+```
+
+- **Guard:** `candidate-record.spec.ts` C2 asserts hollow, clicks, asserts filled plus the banner plus the database row, clicks again and asserts it cleared. C3 assigns the fixture to the sourcer so they can see it under RLS, then asserts the control is disabled and says why
+- **Left alone deliberately:** **Next** is still a placeholder. Paging to the next record in the current list view needs the list's ordering and cursor carried into the record page, which is a feature rather than a fix
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-038: two candidate accordions rendered the same data, and the action bar was eight controls wide
+
+- **Found:** 2026-09-10, by Klent: *"too many buttons in fo-page-head"*, *"change more into ... it is already existing in requisitions. follow it"*, *"why is there too possibly similar accordions requisition summary and requisition details?"*
+- **Module:** `modules/recruit/candidates/CandidateRecordPage.tsx`
+- **Severity:** **Low**, but the duplicate accordion is a correctness smell: two sections claiming to be different views of the same rows
+- **Actual, the duplicate:** `Requisition Summary` and `Requisition Details` both mapped the same `apps` array and both rendered a `StatusBadge`, the rank and the shortlisted badge. The **only** difference was that Summary wrapped the requisition in a `<Link>` and Details rendered it as plain text with an em-dash. Details also had a different empty-state wording, which is the only thing that made them look intentional
+- **Actual, the action bar:** Edit, Send Email, Schedule meeting, View Resume, Print Resume, Submit, a `More` dropdown with a caret, and Save profile. Eight controls, three of them placeholders
+- **Fix:** `Requisition Details` deleted; Summary survives because it links. The bar is now Edit, Send Email, View Resume and Save profile, with Schedule meeting, Print Resume, Submit, Merge duplicate and Erase moved into `<ActionMenu label="More actions" iconOnly />`, which is the exact shape `RequisitionRecordPage` already used
+- **Evidence:** `ACTION BAR :: {"buttons":["Edit","Send Email","View Resume","More actions","Save profile"],"overflowIsIcon":true}`
+- **Guard:** `candidate-record.spec.ts` C1 caps the bar at five controls, asserts the trigger is `.fo-action-menu-trigger`, asserts the three moved labels are no longer in the bar and are in the menu. C5 asserts `Requisition Summary` exists and `Requisition Details` has count 0
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-039: Candidate Information poured 21 field kinds into one flat grid
+
+- **Found:** 2026-09-10, by Klent: *"fix candidate information accordion content. it's a bit too crowded. search the internet for better edesign"*
+- **Module:** `modules/recruit/candidates/CandidateRecordPage.tsx`, `components/ui/InfoGroup.tsx`
+- **Severity:** **Low**, cosmetic, but it was the largest section on the page and the least readable
+- **Actual:** one `dl.info-grid` holding **21 distinct `<dt>` kinds** and more with repeats (every email, every phone, every education entry), at `row-gap: 0`, in a four-column label/value grid. Then an eleven-field editable form squeezed into that **same** label/value grid via `.info-grid-form`, then two sub-headings written as `<h2 style={{ marginTop: 'var(--sp-2)' }}>` inline styles
+- **Research, as asked:** Salesforce's and Zoho's own layout guidance both land on the same answer — group fields logically rather than alphabetically, give every group a label that says what it is, keep two columns, and drop fields nobody updates. A single unlabelled block is the case they name as hardest to scan
+- **Fix:** `components/ui/InfoGroup.tsx`, a labelled and ruled group. Candidate Information is now Name, Contact, Location, Profiles, Education, Experience, Assessment scores and Grading and salary, each group conditional on having data. `row-gap` went 0 to 2px. The editable fields moved to a real form grid, `.info-form-grid` at `repeat(auto-fit, minmax(240px, 1fr))`, with `field-wide` giving the grade-comment textarea a full row. Both inline `style` attributes are gone
+- **Evidence:** `INFO GROUPS :: {"groups":["Name","Contact","Location","Experience","Grading and salary"],"inlineStyledH2":0,"formGrid":1}` on a fixture with no education, profile links or assessment scores, which is why those three groups correctly do not render
+- **Guard:** `candidate-record.spec.ts` C4 asserts the named groups exist, that no `h2[style]` survives, that there is exactly one `.info-form-grid`, and that the textarea sits in a `field-wide` cell
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+### QA-040: Google search results cannot be embedded, so Web Links became cards
+
+- **Found:** 2026-09-10, by Klent: *"make web links look nice, is there a google results iframe or something? search the web"*
+- **Module:** `modules/recruit/candidates/CandidateRecordPage.tsx`
+- **Severity:** **Low**
+- **The answer to the question is no, and it is not a limitation of this app.** Google sends `X-Frame-Options` on search results as clickjacking protection. That header is set by the responding site and cannot be relaxed from the client; the documented workarounds are all server-side proxies that re-fetch and re-serve the page, which would mean routing a recruiter's searches through our own infrastructure. LinkedIn does the same
+- **Actual, before:** two bare anchors in `.approver-line` divs, reading "Search Google for …" and "Search LinkedIn for …", plus a paragraph of explanation
+- **Fix:** `.fo-link-card`s — icon, title, and the **target host** as a meta line, with an external-link glyph on the right. The card also surfaces the candidate's real `linkedin_public_url`, `linkedin_recruiter_url` and `online_resume_url` when present, so the section shows what is on file next to what can be searched for. `linkHost()` in `lib/format.ts` derives the host and falls back to the raw URL on a parse failure
+- **Guard:** `candidate-record.spec.ts` C6 asserts at least three cards, that `google.com` and `linkedin.com` appear as hosts, that every card is `target="_blank"` with `rel` containing `noreferrer`, and that a card is not underlined
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-10
+
+---
+
+### QA-041: the Edit button was a jump link wearing the label of a mode
+
+- **Found:** 2026-09-11, by Klent: *"what's the point of edit button if i can already edit it anyway? should we just remove the edit button?"*
+- **Module:** `modules/recruit/candidates/CandidateRecordPage.tsx`
+- **Severity:** **Low**
+- **Actual:** `startEditing` expanded `#candidate-information` if it was collapsed and focused the first enabled control in `.info-form-grid`. It changed no state. Every field it reached was already editable, on every visit, for anyone `canEditProfile` allowed. So the control offered a transition into an editing state the page does not have, and a person who had the section open and the cursor in a field had already done everything pressing it would do
+- **Fix:** the button and `startEditing` deleted. The bar is now Save profile, Send Email, View Resume and the `More actions` menu. `canEditProfile` is untouched and still gates all 15 controls it gated before
+- **Guard:** `candidate-record.spec.ts` C10, rewritten from *"Edit opens the editable fields and puts the cursor in one"* to assert the button is absent from `.record-action-bar` and that the profile fields are live without it
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-042: no field of `people` is editable anywhere in the product
+
+- **Found:** 2026-09-11, while answering QA-041. Klent did not report this; it is what the Edit button was standing in front of
+- **Module:** application-wide. It reads as a candidate defect because that is where it was noticed, but `people` is shared: a **contact's** name, emails and phones are equally uneditable on `/sales/contacts/<id>`
+- **Severity:** **Medium**
+- **Actual:** there are **10** `from('people')` call sites in `app/src`. Nine are selects; the tenth is the insert in `ContactNewPage.tsx:118`. `grep -rn "from('people')" app/src | grep -iE "update|upsert"` returns **nothing**, so a `people` row can be created and then never amended, and only the contact form can create one. The only writer of a candidate's own record is `saveProfile` in `useCandidateProfileDraft.ts`, and it writes `candidate_profiles` alone. So `first_name`, `middle_name`, `last_name`, `emails`, `phones`, `city`, `country`, `linkedin_public_url`, `linkedin_recruiter_url` and `online_resume_url` are readable on the record, exported to CSV, searched over by `candidate_list.search_text`, and correctable by no one. A typo imported from Zoho is permanent from inside the app
+- **Not a permissions gap:** `people_update` exists (`20260711000011_rls.sql:135`) and is `using (public.can_write_person(id))`, which returns true for any admin and, for a recruiter, for any person who has a `candidate_profiles` row. Every candidate on this list is therefore writable by the roles that open the page. Nothing calls it. This is a missing surface, not a denied one
+- **Why it matters more than it looks:** 73,023 of these rows arrived by import, `parsePartialDate` guessed a year on every `Initial Date` that had none, and `backfill-zoho-candidate-fields.mjs` exists precisely because imported fields needed repair. The repair path is a script run by an engineer
+- **Status:** **open.** The fix is an editable Name/Contact/Location group writing `people`, which is a change to what the page does rather than to how it looks, so it is Klent's to schedule
+- **Fix owner:** unassigned
+
+---
+
+### QA-043: placeholders told users a shipped feature was unbuilt, and pointed at one that never existed
+
+- **Found:** 2026-09-11, by Klent: *"why for candidates without resumes, it says View Resume is still in development. that doesn't make a lot of sense"*, then *"any other modals that have that message but is actually already working?"*
+- **Module:** `shell/Placeholder.tsx` and five call sites
+- **Severity:** **Medium.** Nothing breaks, but the product misreports its own state, and two of the six cases send a person looking for a control that is not there
+- **The mechanism:** the modal's lead line was hardcoded `{action} is still in development.` A call site could pass a `detail` saying something truer, but the false headline sat above it and was the sentence people read
+- **Actual, case 1 (the one Klent hit):** the candidate record rendered `<PlaceholderAction label="View Resume">` whenever `resumes.length === 0`. `viewResume()` is real and works. The candidate simply had no resume on file, which is a data state. The detail line already said "Upload a resume…", so the honest message was present and overridden
+- **Actual, case 2:** four bulk controls where the singular ships and only the selection version is unbuilt: `CandidateListPage` View Resume, Print Resume and Submit, and `ContactsListPage` Send Email. "Send Email is still in development" is false in an app that sends email from every contact and candidate record
+- **Actual, case 3, the worst one:** the bulk Delete placeholders on companies, contacts and deals all read "Open a *X* to archive it individually." **`grep -rni archive app/src/modules/sales` matches nothing but those three strings.** There is no archive control, no `is_archived` column and no `archived_at` column anywhere in the schema. The advice described a feature that has never existed
+- **Fix:** `show()` and `PlaceholderAction` take an optional `lead`, so a placeholder can name what is actually missing. View Resume is no longer a placeholder at all: it is a disabled `Button` with `title="No resume on file…"`, matching the pattern Send Email already used for do-not-contact. The four bulk controls now lead with "…for a whole selection is still in development." and point at the record that can do it. The three archive sentences are replaced with what is true: a deal closes to Closed Won or Closed Lost, and nothing archives or deletes a contact or an account
+- **Guard:** `candidate-record.spec.ts` C16 asserts View Resume is disabled with that title and that no placeholder modal opens
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-044: Print Resume was a placeholder sitting on top of a finished print stylesheet
+
+- **Found:** 2026-09-11, by Klent: *"why need to print resume if you can already download it? unless it is autogenerated by the system? the reusme it means is the candidate profile"*
+- **Module:** `modules/recruit/candidates/CandidateRecordPage.tsx`, `styles/layers/print.css`
+- **Severity:** **Low**
+- **Klent's reading is the correct one.** Taleo's Print Resume does not print the uploaded file; it prints the system-formatted candidate profile, which is the document a recruiter sends a client. The label pointed at the attachment that View Resume already downloads, so as written it was both a placeholder and a duplicate
+- **Actual:** `onSelect: () => show('Print Resume')`, while `styles/layers/print.css` is **205 lines** that already strip the utility header, primary nav, sidebar, bookmark bar, toolbar, action bar, pager, segmented controls, action menu and chevrons, then flatten `.record-section` and `.fo-page-head` onto paper. Nothing in the app called `window.print()`
+- **Fix:** relabelled **Print profile** and wired to `window.print()`. One line, and the stylesheet that was written for it finally runs
+- **Guard:** `candidate-record.spec.ts` C17 stubs `window.print` through `addInitScript`, asserts the old `Print Resume` menu item is gone and that the new one calls print exactly once
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-045: printing a record printed whatever was collapsed on screen
+
+- **Found:** 2026-09-11, by Klent: *"if all accordions is closed, the print also shows closed. i want every single accordion and its detials in the print"*
+- **Module:** `components/ui/SectionCollapse.tsx`, `components/ui/RecordPage.tsx`, `styles/layers/print.css`
+- **Severity:** **Medium.** The printed document silently omitted content, and the omission depended on how the reader had left the page
+- **There was already a `beforeprint` listener calling `setAll(true)`, and it did not work, for three separate reasons:**
+- **One:** a section that has never been opened renders `{everOpened ? children : null}`, so its body is empty in the DOM. Opening it during `beforeprint` is a React state update, which is asynchronous, so the browser could snapshot the page before the children existed. `flushSync` is the fix
+- **Two:** `.record-section-collapse` is a grid whose `grid-template-rows` is set as an **inline style**, and `.record-section-clip` is `overflow: hidden`. `print.css` overrode neither, so even a mounted section stayed clipped to `0px`. Two `!important` rules in the print layer now force `1fr` and `visible`
+- **Three, the one that took the longest to find:** the snapshot taken so the sections could be restored after printing read the provider's `openByKey` state, and that state was **stale**. Collapsing all 15 sections produced 15 `report(key, false)` calls and **no provider re-render**, so `openByKey` still said every section was open while the DOM showed every one closed. Restoring from it was a no-op. The fix does not depend on that state at all: `register` now takes a `read: () => boolean` alongside the setter, and the print snapshot asks each section for its own live value. `openByKey` keeps its one honest job, labelling the maximize/minimize button
+- **Fix:** `beforeprint` reads each section's live state, `flushSync`es every section open, and `afterprint` restores the snapshot the same way, so printing no longer leaves the page rearranged
+- **Also:** the snapshot is taken by `prepareForPrint()`, which both print buttons call **before** the settle-poll, and `beforeprint` only snapshots when one is not already pending. Without that, a button that expands first would have `beforeprint` snapshot the expanded state and `afterprint` restore nothing, which is exactly what Klent asked for when he said *"i want the accordion getting back to it's original state if i close print"*. Chrome fires `afterprint` on cancel as well as on print, so closing the preview restores either way
+- **Guard:** `candidate-record.spec.ts` C20 collapses all 15 sections, dispatches `beforeprint`, and asserts all 15 are open with non-empty bodies, then dispatches `afterprint` and asserts all 15 are closed again. It also allows the one section that legitimately renders nothing: `SidePanelTabs` returns null when every tab count is 0, so an untouched Contact Log is absent rather than empty
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-046: opening a candidate fired four queries comparing a uuid with an empty string
+
+- **Found:** 2026-09-11, while investigating why Recently Viewed appeared to reset. Not the cause of that, but four rejected requests on every candidate record open
+- **Module:** `modules/recruit/components/engagement.tsx`, called from `CandidateRecordPage.tsx:110`
+- **Severity:** **Low**
+- **Actual:** `useEngagement('application', viewedApplicationId ?? '')` passes an empty string whenever no application is being viewed, which is the default. `refresh()` then issued four reads with `eq.` and no value, and Postgres rejected each: `{"code":"22P02","message":"invalid input syntax for type uuid: \"\""}` on `activities?application_id=eq.`, `tasks?related_id=eq.`, `reminders?related_id=eq.` and `attachments?parent_id=eq.`
+- **Fix:** `refresh()` returns early with empty state when `parentId` is falsy
+- **Evidence:** a probe recording every 4xx on `/rest/v1/` while opening a candidate returned four entries before the fix and `BAD []` after
+- **Guard:** `candidate-record.spec.ts` C22 records every 4xx REST response while opening a candidate and asserts the list is empty
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-047: nothing reset the scroll position, so a record opened from a scrolled list rendered scrolled
+
+- **Found:** 2026-09-11, by Klent: *"clicking a candidate in kanban of requisition/<id> redirects user to that candidate, but not the top. why?"*
+- **Module:** `shell/AppShell.tsx`, new `shell/useScrollReset.ts`
+- **Severity:** **Medium**
+- **Why it was never noticed as a general bug:** the shell scrolls inside `main#main-content` (`.shell-content { overflow: auto }`), not the document, so the browser's own per-navigation scroll handling never applied, and `grep -rn "scrollTo\|ScrollToTop\|scrollTop = 0" app/src/shell app/src/App.tsx app/src/components` returned **one** unrelated match in `useStickyFocusGuard`. There was no scroll reset anywhere in the app. It only reads as a kanban bug because the kanban is the thing people click from far down a tall page
+- **Fix:** `useScrollReset()` in `AppShell`, setting `scrollTop = 0` on every `location.key` change, skipping hash navigations so in-page anchors keep working
+- **Rejected, and why it matters:** restoring the previous offset on Back. Built and abandoned. The list clamps its own scroll height while data loads, so a continuous scroll listener records the clamped value rather than where the reader was, and the restore landed at **1px** instead of 700 across several attempts (filtering clamped values and widening the retry window to 3s did not fix it). A restore that works sometimes is worse than a reset that always works, so Back now lands at the top like every other navigation. Worth revisiting only with a real scroll-anchoring approach
+- **Guard:** `tests/e2e/scroll-reset.spec.ts` S1 opens a record from a list scrolled to 600px, S2 does the same from the requisition kanban with its own seeded requisition, person and application, S3 asserts a hash navigation is left alone
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-048: "Erase" is a legal term, not a button label
+
+- **Found:** 2026-09-11, by Klent: *"the erase message doesn't seem to be common. search the web for a better replacement. if it is comment, let's retain erase label."*
+- **Module:** `modules/recruit/candidates/CandidateEraseDialog.tsx`, `CandidateRecordPage.tsx`
+- **Severity:** **Low**
+- **The answer is split, which is why it looked common.** GDPR Article 17 is titled "Right to erasure" and the regulation uses *erasure* and *erase* throughout, so the word is correct for the concept this feature implements. It is not what products put on controls: destructive-action guidance is consistently verb plus noun naming the object, with the consequence stated in the button itself rather than only in the body, because people in a hurry read the button and skip the prose
+- **Fix:** the menu item is `Delete permanently…`, the dialog is `Delete this candidate permanently`, the confirm button is `Delete permanently` and its busy state is `Deleting…`. The body copy still describes the erasure and the receipt, and `fn_erase_person`, `person_erasures`, `erased_by` and `erased_at` keep their names: the schema is where the legal term belongs
+- **Guard:** `erase-candidate.spec.ts` and `record-action-bar.spec.ts` updated to the new labels
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-049: three tests could only ever fail in CI, because CI has different data
+
+- **Found:** 2026-09-11, by Klent, after the third CI failure on this branch: *"ci still failed. why can we not capture this in local? we're wasting time here... this keeps happening multiple times already."*
+- **Module:** `tests/e2e/quick-search.spec.ts`, `tests/e2e/candidate-record.spec.ts`
+- **Severity:** **Medium.** No product defect. A process defect that cost three CI runs and the time to read each
+- **The cause is one thing, and it is not flakiness.** This checkout's local stack carries the **Zoho copy: 73,024 candidates, 690 requisitions**. CI runs the suite against `supabase db reset`: migrations, `seed.sql`, the four personas, nothing else, so a list there has single digits of rows. Three assertions were true only of a large database:
+- **Q14** polled for exactly **20** rows after clearing a search. CI: `Expected: 20 / Received: 8`
+- **Q10** typed the literal string `man` and waited for the suggestion pop. No seeded requisition contains it: `/recruit/requisitions offers no suggestions ... element(s) not found`
+- **C7** expected the cold-URL pager title `Next candidate by name`, and got `Next candidate`. Subtler than the other two: on a small database the C-series fixture is on **page one of the list**, so the URL the test "arrives cold" at is a history entry React Router restores siblings state from, and the pager then knows its position
+- **Why three CI runs and not one:** each time the specific assertion was repaired without naming the class. Running the browser suite locally was asked for and done, and it cannot reproduce any of this
+- **Fix:** Q14 records the unfiltered count before filtering and compares against that; Q10 takes its term from the first row the list is already showing and asserts it is at least `HINT_MIN_CHARS`; C7 opens the cold URL in `context.newPage()`, which has no history to restore from
+- **Prevention:** `scripts/ci-parity.sh` (snapshot, run, restore) pg_dumps the local database, resets it to CI's shape, runs the suite and puts the data back. CLAUDE.md's test-caveat list gains the rule: a test may not assume a row it did not create
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-050: the bulk bar's overflow menu was clipped by the animation that reveals the bar
+
+- **Found:** 2026-09-11, while moving four bulk buttons behind an `ActionMenu` at Klent's request
+- **Module:** `components/ui/ListPage.tsx`, `styles/layers/taleo.css`
+- **Severity:** **Medium.** The menu opened and could not be clicked
+- **Actual:** `.fo-page-head-grow-inner` is `overflow: hidden`, which is what makes the 0fr to 1fr grow read as a reveal rather than a jump. Any dropdown inside it is cut off at the bar's own height, and the click lands on whatever is underneath: `<div class="fo-pager"> ... intercepts pointer events`
+- **Fix:** the grow reports `transitionend` for `grid-template-rows` and sets `data-settled`, and `[data-settled='true'] > .fo-page-head-grow-inner` is `overflow: visible`. The clip is present for the whole animation and lifts only once the bar has finished growing, so the reveal is unchanged and the menu can leave the box
+- **Guard:** `bulk-actions.spec.ts` asserts opacity 0 and `overflow: hidden` while closed, opacity 1 and `overflow: visible` once open, that all four moved items are in the menu, and that the bar itself is at most three controls wide
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-051: two motion assertions could only fail on a slow runner
+
+- **Found:** 2026-09-11, CI run 34555711852, the run after QA-049 was fixed
+- **Module:** `tests/e2e/candidate-record.spec.ts`, `tests/e2e/interaction-motion.spec.ts`
+- **Severity:** **Low**, and the same shape as QA-049: an environment difference local runs cannot reproduce. CI is 2 vCPU against this machine's 10
+- **C11** polled until the option highlight *stopped changing*, which CLAUDE.md already warns against. On CI two consecutive frames returned the same mid-fade value and the poll called it settled: `- "background": "rgba(240, 246, 251, 0.96)"` against `+ "background": "rgb(240, 246, 251)"`. Fixed by reading the target once from a probe element styled `background-color: var(--fo-option-hover)` and polling each option until it equals that exact string
+- **R7** read the closing menu's `opacity` one instant after the click and asserted it was above 0. `Expected: > 0 / Received: 0`: on a slow runner the 150ms exit had already finished. Fixed by asserting the exit is **declared** (`animationDuration` is not `0s`) on the element that carries `data-closing`, which is the actual contract
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-052: the bulk print sheet printed a blank page, and the Selected list read uuids
+
+- **Found:** 2026-09-11, by Klent, on the features shipped in `3335827`: *"print selected profiles only shows a blank page"*, *"clickign view resume to selected candidates shows it's in development modal"*, *"why is this showing ids?"*
+- **Module:** `modules/recruit/candidates/CandidateBulkActions.tsx`, `components/ui/ListPage.tsx`
+- **Severity:** **Medium**
+- **Blank page:** the sheet is rendered by `CandidateBulkActions`, which lives inside the bulk bar, inside `.fo-page-head`, which is exactly what `body[data-print-scope='selection']` hides. The sheet hid itself. It is portalled to `document.body` now
+- **Uuids:** `recipients` resolved names with `profiles.find(...)`, and `profiles` holds only the rows on the **loaded page**. Selection persists across pages, so anyone ticked on page one and viewed from page two fell back to `personId`. Missing rows are fetched from `candidate_list` by id, bounded at 200 and guarded by a `requested` ref so the effect cannot loop on its own result. (`Adam -` in the same screenshot is real data: that candidate's last name is `-`)
+- **View Resume:** was still a placeholder; it now reads the newest non-pending resume per selected person in one query, signs each url, opens what it can and reports what it could not, including pop-ups the browser blocked. `outcome` had only ever been rendered inside the email dialog, so the bar needed a `.fo-bulk-outcome` line for a message raised from the menu
+- **Guard:** `bulk-actions.spec.ts` asserts `body > .cand-print-sheet` exists with one card per selection and more than 40 characters of text, that View Resume opens no placeholder and reports an outcome, and that no 36-character uuid appears in the Mark dialog after selecting across two pages
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-053: the closed bulk bar was aria-hidden with focusable buttons inside it
+
+- **Found:** 2026-09-11, CI run 34556895461: `candidates: aria-hidden-focus (serious, 1 node(s)) e.g. .fo-page-head-grow`
+- **Module:** `components/ui/ListPage.tsx`
+- **Severity:** **Medium.** A real product defect, not a test artefact: a keyboard user could tab into a toolbar nobody can see
+- **Actual:** `.fo-page-head-grow` carried `aria-hidden` while closed, and its buttons stayed in the tab order. Adding the `ActionMenu` gave it one more focusable child and axe flagged it
+- **Fix:** `inert` when closed, the same shape `RecordSection` already uses for a collapsed section
+- **Why local did not catch it:** `accessibility.spec.ts` walks every route, so any markup change is inside its blast radius, and the run before this commit was scoped to the specs that had been edited. Running only the changed specs is the right default for a CSS tweak and the wrong one for a markup change
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-054: the intake queue and drawer were the only surfaces the shared components had passed by
+
+- **Found:** 2026-09-11, by Klent, page by page across `/intake`
+- **Module:** `modules/intake/*`, `components/ui/ListPage.tsx`, `styles/layers/*`
+- **Severity:** **Low** individually, **Medium** as a pattern: every item was a shared component or token existing and not being used
+- **The list:** no `flush`, so the search row read as a separate card; a hand-rolled `.fo-gear-btn` with the old cog instead of `SettingsButton`; a `PlaceholderAction label="More"` holding nothing; `Target` printing its raw enum while Channel and Status had label maps; no sort on the channel, headline or batch columns; no suggestions, where every other list had them since 2026-09-10; no skeleton; a Columns section in the filter rail that a dialog does better
+- **The drawer:** the duplicate check was hidden until it resolved, so it appeared underneath a body that had already rendered; `Dedup check` used a database word for a panel of possible duplicates; its empty case was a bare sentence rather than `EmptyState`; `--section-tint` painted the badges, the read-only note **and** the accordion headers, so the panel was three shades of one blue; the close button travelled 16px on exit, which reads as a fade rather than a drawer leaving
+- **Two that were genuinely dead, not just inconsistent:** `.fo-dialog-close` had a transition and **no hover rule**, so every dialog cross in the app was inert, and `.intake-raw-toggle` had neither, having reinvented `.link-btn`. Klent: *"do icon buttons have transition? it doesn't look like it... why do we keep missing this"*. The cause is that hover states live beside each class while the hover transition lives in one opt-in list in `motion.css`, so a control needs an entry in two hand-maintained places
+- **A guard for that was written and abandoned.** It flagged any `:hover` that recolours without a transition and produced **20+ false positives**, because hover and transition are declared against different classes on the same element (`.btn-primary:hover` against `.btn`). A static check cannot resolve which rules apply without a DOM. The rule is in CLAUDE.md instead
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-055: a local suite run ground through 339 tests before reporting the first failure
+
+- **Found:** 2026-09-11, by Klent: *"optimze browser tests as well since currently, it takes quite a while just to encoutnre a fucking error. wasting both of our times."*
+- **Module:** `tests/playwright.config.ts`
+- **Severity:** **Low** for the product, real for the loop
+- **Actual:** `workers` defaulted to **2** and nothing stopped the run early, so a failure in an early file still cost the full ~6 minutes, and a failure in a late one cost the same before it was even visible
+- **Fix:** `workers` defaults to **4**, which was measured safe on 2026-09-10 (263 passed at 4.4m against 8.5m at two, with the Realtime rate limit firing 25 times and failing nothing), and `maxFailures` defaults to **1** so a local run stops at the first failure. `reporter` is pinned to `line` rather than the default `list`, which prints a line per test
+- **CI keeps the full picture:** `FOOS_PW_MAX_FAILURES: '0'` in `ci.yml`, because one failure per run is one round trip per defect, and that is what made the 2026-09-11 CI sequence take four pushes
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-056: a local default silently raised CI to four Playwright workers, and CI went from 1 failure to 16
+
+- **Found:** 2026-09-11, by Klent: *"got another error in the fucking ci"*
+- **Module:** `tests/playwright.config.ts`, `.github/workflows/ci.yml`
+- **Severity:** **High** for the loop. No product defect, and it cost a whole CI cycle plus the time to read it
+- **Actual:** QA-055 changed `workers` to `Number(process.env.FOOS_PW_WORKERS ?? 4)`. **`ci.yml` never set that variable**, so the default was the value CI used, and CI went from 2 workers to 4 on a 2-vCPU runner
+- **The runs say it plainly:** 34553317947 failed 1 and 2, 34555711852 failed 2, 34556895461 failed 1, 34558935229 failed 1. The first run after the change, 34566074636, failed **12 on one shard and 4 on the other**, with `page.goto: Test timeout`, `Target page, context or browser has been closed` and `locator.innerText: Test timeout`. That is a starved runner, not sixteen new defects
+- **The warning was already written down, twice.** CLAUDE.md's test-caveat list says "Do not raise it in CI: `ubuntu-latest` on a private repo is 2 vCPU against this machine's 10", and the `integration` job in `ci.yml` carries the same sentence in a comment directly above the step. I read neither before changing the default
+- **Fix:** `FOOS_PW_WORKERS: '2'` set explicitly in `ci.yml`, so no local default can move CI again. The lesson is narrower than "read the docs": **a shared config's default is a production value.** Changing a default changes every environment that does not override it, and the ones that do not override are exactly the ones nobody is thinking about
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-057: the browser suite gated every pull request during a redesign, so it measured assertion churn
+
+- **Found:** 2026-09-11, by Klent: *"i don't understand why we're doing browser tests in github. is this even a standard? what is this testing? we have a couple more pages to update. obviously it will have an error."*
+- **Module:** `.github/workflows/ci.yml`
+- **Severity:** **Medium** as a process defect
+- **He is right about the shape.** 339 browser specs on every push is not the common split. The usual one is lint, typecheck, build and unit/API tests per push, with end-to-end runs before a merge, nightly, or on demand. During a UI redesign these specs assert the interface **as it was before the change under review**, so every push turns red and the fix for each failure is to rewrite the assertion to match a decision made minutes earlier. Over 2026-09-11 that pattern cost five CI cycles at 14 minutes each
+- **What the suite is still worth:** it found two real defects nobody would have found by looking, the breadcrumb contrast failure (QA-029) and `aria-hidden-focus` on the closed bulk bar (QA-053). That value does not have to be paid on every push
+- **Proposed fix, and Klent rejected it:** gating `integration` off the pull-request trigger. *"why can't we enable integration and just make it fucking work? is that really that hard?"* He was right to push back. It was not hard: fifteen of the sixteen failures were the single worker-count regression in QA-056, and the sixteenth was already fixed in `a1c3633`. Removing the gate would have hidden a problem that took one line to solve
+- **Actual fix:** `FOOS_PW_WORKERS: '2'` pinned in CI, `workflow_dispatch` kept as an extra trigger, and the pull-request trigger left in place. Then both shards run locally under CI's exact settings to prove it: `172 passed (5.0m)` and `167 passed (5.0m)`, 339 in total, plus `269 passed` from vitest
+- **What actually keeps it green** is a discipline rather than a trigger: a UI change and the spec asserting the old UI belong in the **same edit**. Every red run on 2026-09-11 was either that regression or a spec still describing a decision reversed minutes earlier
+- **Status:** Closed, by fixing rather than by disabling
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-058: a spec was written against sample data that was then deleted
+
+- **Found:** 2026-09-11, running the suite at CI's settings after re-enabling `integration`
+- **Module:** `tests/e2e/intake-list.spec.ts`
+- **Severity:** **Medium.** Six of fifteen tests failed, and they would have failed on CI from the moment they were written
+- **Actual:** the spec was built against the 130 demo intake rows seeded so Klent could see the page. Removing those rows as sample data left the queue with one `imported` item, which the default filter hides, so the list was empty: I4 found no Target column, I9 no nav badge, I11/I12/I13 no row to open, I14 nothing to suggest
+- **This is QA-049 again, self-inflicted.** The rule was already written down after the C7/Q10/Q14 failures: a test may not assume a row it did not create. Seeded demo data is not an exception
+- **Fix:** `beforeAll` inserts three intake items across three channels, two target types and two statuses under a run-unique `batch_label`, and `afterAll` deletes by that label. `intake_items` has no `is_test` column, which is why the label is the marker. I14 now searches for its own seeded name instead of reading whatever row happened to be first
+- **Evidence:** `15 passed (42.9s)` for the spec, then both full shards green
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-059: four motion assertions read a sampled frame, and three of them only fail on a slow runner
+
+- **Found:** 2026-09-11, CI run 34569689398, then by auditing every spec touched that day after Klent asked *"have you been reviewing your fucking test cases?"*
+- **Module:** `tests/e2e/bulk-actions.spec.ts`, `interaction-motion.spec.ts`, `intake-list.spec.ts`
+- **Severity:** **High** for the loop. Five CI cycles at about 14 minutes each went to this class
+- **The class:** an assertion that reads an intermediate animation value. On this machine `requestAnimationFrame` fires every 16ms and catches eight frames of a 140ms fade; on CI, 2 vCPU with two Chromium workers, the whole fade can complete **between two samples**. A local pass proves nothing, which is why running both shards locally and then failing in CI happened twice
+- **The four sites:** `bulk-actions` counted frames with opacity between 0.02 and 0.98 (`Expected: > 2 / Received: 0`); `interaction-motion:233` read a closing overlay's opacity and asserted it above zero, which is the **same pattern I had fixed at line 308 that morning without checking whether it appeared twice** — it did, and it failed in the same run; `intake-list` I9 counted distinct box-shadows over three seconds; I13 counted transform frames while the drawer closed
+- **Fix:** every one now asserts the **declaration** — `transitionProperty`, `transitionDuration`, `transitionDelay`, `animationName`, `animationIterationCount`. Those are identical on any machine and still express the contract: the fade exists and is staggered behind the height reveal, the badge beats forever without scaling the number, the drawer leaves by its own keyframe. `grep -rn "opacity).toBeGreaterThan" tests/e2e` now returns nothing
+- **The rule already existed** in CLAUDE.md, written that same morning after C11 and R7 failed this way. I then wrote three new violations of it. Writing a rule down is not the same as applying it to the code in front of you
+- **A fifth site, found only by CI run 34573009783:** `interaction-motion` had **four** places reading `mounted: !!el` immediately after the click that dismisses the element, and converting the opacity half of three of them left that half in place. On a slow runner the exit completes before the round trip lands, so `Received: false`. The pattern is now gone entirely: `watchExit()` installs a `MutationObserver` on `data-closing` **before** the click and `exitSeen()` reads what it recorded **after** the element is gone. That asks the DOM what happened rather than sampling what is true now, so no machine speed can hide it. `grep -rn "mounted: !!el" tests/e2e` returns nothing
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-060: two of the day's new tests could not run, or could not pass, on CI's data
+
+- **Found:** 2026-09-11, auditing every spec touched that day before pushing
+- **Module:** `tests/e2e/select-combobox.spec.ts`, `tests/e2e/scroll-reset.spec.ts`
+- **Severity:** **Medium.** One was a silent skip, which is worse than a failure because it reports green
+- **The hover test skipped on CI.** The test proving the option list no longer scrolls under the cursor began `test.skip(!scrollable, 'this lookup is short enough not to scroll')`. CI's Company lookup holds five seeded companies and never overflows, so the test guarding that fix **never ran on the only machine that reports to Klent**. It now seeds 24 `is_test` companies in `beforeAll`, asserts the list actually overflows rather than skipping, and deletes them by name prefix
+- **Two scroll tests assumed a page taller than the viewport.** S1 scrolled the candidate list to 600px and required the offset above 100; on seed data that list is about 550px tall in a 720px viewport and cannot scroll at all. S3 scrolled a record page to a fixed 400px, and a record with every accordion collapsed has roughly 95px of range, so the clamp would have failed the same assertion. S1 now seeds 24 candidates and asserts the scroller has range before using it; S2 and S3 scroll to the bottom and assert against what that turned out to be
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-061: adding tests re-sharded the suite and broke a test that shares a persona row
+
+- **Found:** 2026-09-11, running shard 2 at CI's settings after the fixes above
+- **Module:** `tests/e2e/record-ui.spec.ts`
+- **Severity:** **Medium**
+- **Actual:** `2.10 the Recently Viewed rail records opens across modules, newest first` passed alone and had passed in shard 2 an hour earlier. Adding tests to `scroll-reset` and `select-combobox` moved the `--shard` boundary, because the split is by test count, so `record-ui` ran beside different files. One of those signs in as the same `recruiter` persona and opens records, and the rail is a single `integration_settings` row per staff, so the neighbour's opens evicted one of the two records this test measures and `indexOf` returned -1
+- **Fix:** `beforeEach` seeds `{ items: [], limit: 50 }` for that persona, so the window is large enough that a neighbour cannot push either record out. The failure message now says so
+- **The general point:** `--shard` is not a stable partition. Adding a test anywhere changes which files run concurrently, so a test that depends on being alone in a shared row is a time bomb rather than a passing test
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11

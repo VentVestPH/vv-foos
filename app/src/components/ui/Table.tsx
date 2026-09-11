@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Inbox } from 'lucide-react';
 import { EMPTY_CELL } from '../../lib/format';
 import { EmptyState } from './EmptyState';
+import { Skeleton } from './Skeleton';
 
 export interface TableColumn<T> {
   key: string;
@@ -15,7 +16,9 @@ export interface TableColumn<T> {
 
   capped?: boolean;
   width?: string;
+  minWidth?: string;
   nowrap?: boolean;
+  align?: 'center';
 
   hideWhenEmpty?: boolean;
 }
@@ -252,8 +255,19 @@ export function Table<T>({
             {visibleColumns.map((col) => (
               <th
                 key={col.key}
-                className={col.sortable ? 'sortable' : undefined}
-                style={col.width ? { width: col.width } : undefined}
+                className={
+                  [col.sortable ? 'sortable' : '', col.align === 'center' ? 'cell-center' : '']
+                    .filter(Boolean)
+                    .join(' ') || undefined
+                }
+                style={
+                  col.width || col.minWidth
+                    ? {
+                        ...(col.width ? { width: col.width } : {}),
+                        ...(col.minWidth ? { minWidth: col.minWidth } : {}),
+                      }
+                    : undefined
+                }
                 aria-sort={
                   sortKey === col.key
                     ? sortDir === 'asc'
@@ -293,7 +307,7 @@ export function Table<T>({
                 colSpan={visibleColumns.length + (selectable ? 1 : 0)}
               >
                 {busy === true ? (
-                  'Loading…'
+                  <Skeleton rows={5} label="Loading rows" />
                 ) : (
                   <EmptyState
                     compact
@@ -335,7 +349,14 @@ export function Table<T>({
                 {visibleColumns.map((col) => {
                   const raw = (row as Record<string, unknown>)[col.key];
                   return (
-                    <td key={col.key} className={col.nowrap ? 'cell-nowrap' : undefined}>
+                    <td
+                      key={col.key}
+                      className={
+                        [col.nowrap ? 'cell-nowrap' : '', col.align === 'center' ? 'cell-center' : '']
+                          .filter(Boolean)
+                          .join(' ') || undefined
+                      }
+                    >
                       {col.render ? (
                         col.render(row)
                       ) : col.capped ? (

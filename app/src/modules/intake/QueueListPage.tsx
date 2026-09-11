@@ -1,18 +1,29 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useSubmittedSearch } from '../../lib/quickSearch';
+import { intakeSearchHints } from '../../lib/searchHints';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
-import { ListPage, useListPageFilters } from '../../components/ui/ListPage';
+import { ListPage } from '../../components/ui/ListPage';
 import { Table, type TableColumn } from '../../components/ui/Table';
 import { Pager, usePagination } from '../../components/ui/Pager';
-import { PlaceholderAction } from '../../shell/Placeholder';
-import { Inbox as InboxIcon, Settings as GearIcon } from 'lucide-react';
+import { SettingsButton } from '../../components/ui/SettingsButton';
+import { ColumnSettingsDialog } from '../../components/ui/ColumnSettingsDialog';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { useMinimumVisible } from '../../hooks/useMinimumVisible';
+import {
+  Inbox as InboxIcon,
+  Link2 as LinkIcon,
+  RefreshCw as RefreshIcon,
+  Sheet as SheetIcon,
+} from 'lucide-react';
 import { useIntakeQueue } from './hooks';
 import {
   CHANNEL_ICON,
   CHANNEL_LABEL,
   parsedOf,
   STATUS_LABEL,
+  TARGET_LABEL,
   type IntakeItem,
 } from './lib';
 import { ItemDrawer } from './components/ItemDrawer';
@@ -29,14 +40,21 @@ const QUEUE_COLUMN_DEFS = [
 const QUEUE_ALL_COLUMN_KEYS = QUEUE_COLUMN_DEFS.map((c) => c.key);
 
 export function QueueListPage() {
-  const [search, setSearch] = useState('');
+  const {
+    input: searchInput,
+    setInput: setSearchInput,
+    term: search,
+    submit: submitSearch,
+  } = useSubmittedSearch();
   const [params] = useSearchParams();
   const [channel, setChannel] = useState(() => params.get('channel') ?? '');
   const [targetType, setTargetType] = useState('');
   const [status, setStatus] = useState('');
   const [showAll, setShowAll] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [visibleCols, setVisibleCols] = useState<string[]>(QUEUE_ALL_COLUMN_KEYS);
+  const [selectedId, setSelectedId] = useState<string | null>(() => params.get('item'));
+  const [hiddenCols, setHiddenCols] = useState<string[]>([]);
+  const [columnOrder, setColumnOrder] = useState<string[]>(QUEUE_ALL_COLUMN_KEYS);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { items, loading, reload } = useIntakeQueue({
     channel: channel || undefined,
@@ -63,6 +81,8 @@ export function QueueListPage() {
       key: 'channel',
       header: '',
       width: '36px',
+      sortable: true,
+      sortValue: (r) => CHANNEL_LABEL[r.channel],
       render: (r) => {
         const Icon = CHANNEL_ICON[r.channel];
         return (
@@ -79,13 +99,23 @@ export function QueueListPage() {
       key: 'headline',
       header: 'Headline / role',
       capped: true,
+      sortable: true,
+      sortValue: (r) => {
+        const p = parsedOf(r);
+        return [p.headline, p.company, p.title].filter(Boolean).join(' · ').toLowerCase();
+      },
       render: (r) => {
         const p = parsedOf(r);
         return [p.headline, p.company, p.title].filter(Boolean).join(' · ');
       },
     },
-    { key: 'target_type', header: 'Target', sortable: true },
-    { key: 'batch_label', header: 'Batch' },
+    {
+      key: 'target_type',
+      header: 'Target',
+      sortable: true,
+      render: (r) => TARGET_LABEL[r.target_type],
+    },
+    { key: 'batch_label', header: 'Batch', sortable: true },
     {
       key: 'status',
       header: 'Status',
@@ -105,38 +135,61 @@ export function QueueListPage() {
     },
   ];
 
+  const byKey = new Map(optionalColumns.map((c) => [c.key, c]));
   const columns: TableColumn<IntakeItem>[] = [
     channelColumn,
-    ...optionalColumns.filter((c) => visibleCols.includes(c.key)),
+    ...columnOrder.flatMap((key) => {
+      const col = byKey.get(key);
+      return col && !hiddenCols.includes(key) ? [col] : [];
+    }),
   ];
+
+  const showSkeleton = useMinimumVisible(loading);
 
   const pager = usePagination(filtered);
 
   return (
     <ListPage
+      flush
       breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Intake' }]}
       title="Intake"
       icon={<InboxIcon size={32} />}
       description="Intake is where new candidates and contacts arrive from LinkedIn, spreadsheets, email, and the careers page before they're merged or imported."
-      search={search}
-      onSearchChange={setSearch}
+      search={searchInput}
+      onSearchChange={setSearchInput}
+      onSearchSubmit={submitSearch}
       searchPlaceholder="Search name, company, title, batch…"
+      searchHints={intakeSearchHints}
       actions={
         <>
+          <RefreshButton onClick={reload} />
           <Link to="/intake/linkedin">
             <Button size="sm" variant="primary">
-              Paste LinkedIn URLs
+              <LinkIcon size={20} aria-hidden="true" />
+              Paste URLs
             </Button>
           </Link>
           <Link to="/intake/sheet">
-            <Button size="sm">Import a sheet</Button>
+            <Button size="sm">
+              <SheetIcon size={20} aria-hidden="true" />
+              Import
+            </Button>
           </Link>
-          <PlaceholderAction label="More" caret size="sm" />
-          <IntakeGearButton />
+          <IntakeGearButton onOpen={() => setSettingsOpen(true)} />
         </>
       }
+      toolbarActions={
+        <label className="intake-showall-toggle">
+          <input
+            type="checkbox"
+            checked={showAll}
+            onChange={(e) => setShowAll(e.target.checked)}
+          />
+          Show imported / rejected
+        </label>
+      }
       filterRail={
-          <div className="fo-advanced-search-body">
+          <div className="fo-advanced-search-body intake-advanced-search">
             <Select
               label="Channel"
               placeholder="All channels"
@@ -173,35 +226,6 @@ export function QueueListPage() {
                 { value: 'rejected', label: 'Rejected' },
               ]}
             />
-            <div className="field">
-              <span className="field-label">Columns</span>
-              <div className="checkbox-list">
-                {QUEUE_COLUMN_DEFS.map((c) => (
-                  <label key={c.key} className="checkline">
-                    <input
-                      type="checkbox"
-                      checked={visibleCols.includes(c.key)}
-                      onChange={(e) =>
-                        setVisibleCols(
-                          e.target.checked
-                            ? [...visibleCols, c.key]
-                            : visibleCols.filter((k) => k !== c.key),
-                        )
-                      }
-                    />
-                    {c.header}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <label className="intake-showall-toggle">
-              <input
-                type="checkbox"
-                checked={showAll}
-                onChange={(e) => setShowAll(e.target.checked)}
-              />
-              Show imported &amp; rejected
-            </label>
           </div>
       }
       exportRows={filtered}
@@ -223,14 +247,42 @@ export function QueueListPage() {
         pageCount={pager.pageCount}
         onPage={pager.setPage}
       />
+      {showSkeleton ? (
+        <div className="fo-skeleton-card">
+          <Skeleton rows={8} label="Loading the intake queue" />
+        </div>
+      ) : (
       <Table
-        busy={loading}
         columns={columns}
         rows={pager.pageRows}
         rowKey={(r) => r.id}
         onRowClick={(r) => setSelectedId(r.id)}
         emptyText="Nothing in the queue."
       />
+      )}
+
+      {settingsOpen && (
+        <ColumnSettingsDialog
+          title="Column settings"
+          hint="Drag a column to change where it sits, or untick it to hide it."
+          columns={QUEUE_COLUMN_DEFS}
+          order={columnOrder}
+          hidden={hiddenCols}
+          onOrderChange={setColumnOrder}
+          onToggle={(key) =>
+            setHiddenCols(
+              hiddenCols.includes(key)
+                ? hiddenCols.filter((k) => k !== key)
+                : [...hiddenCols, key],
+            )
+          }
+          onReset={() => {
+            setColumnOrder(QUEUE_ALL_COLUMN_KEYS);
+            setHiddenCols([]);
+          }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
 
       <Pager
         from={pager.from}
@@ -260,16 +312,26 @@ export function QueueListPage() {
   );
 }
 
-function IntakeGearButton() {
-  const { openFilters } = useListPageFilters();
+function RefreshButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       className="fo-gear-btn"
-      aria-label="Configure columns"
-      onClick={() => openFilters({ focusColumns: true })}
+      aria-label="Refresh the queue"
+      title="Refresh the queue"
+      onClick={onClick}
     >
-      <GearIcon size={20} />
+      <RefreshIcon size={20} aria-hidden="true" />
     </button>
+  );
+}
+
+function IntakeGearButton({ onOpen }: { onOpen: () => void }) {
+  return (
+    <SettingsButton
+      label="Column settings"
+      title="Choose the column order and which columns show"
+      onClick={onOpen}
+    />
   );
 }

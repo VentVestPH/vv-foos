@@ -62,3 +62,11 @@ export function sentenceCase(value: string): string {
   if (words === '') return words;
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+export function linkHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}

@@ -7,6 +7,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Search as SearchIcon, SearchX as NoResultsIcon } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
 import { SearchBox } from '../components/ui/SearchBox';
+import { globalSearchHints } from '../lib/searchHints';
 import { useMinimumVisible } from '../hooks/useMinimumVisible';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
@@ -391,6 +392,11 @@ export function GlobalSearchPage() {
                 onSubmitTerm={(next) => setParams(next ? { q: next } : {})}
                 submitLabel="Search"
                 autoFocus
+                fetchHints={globalSearchHints}
+                onClear={() => {
+                  setDraft('');
+                  setParams({});
+                }}
               />
               <p className="fo-search-status">
                 {term.length === 0

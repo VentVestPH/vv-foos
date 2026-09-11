@@ -8,7 +8,7 @@ summary:focus-visible,
 input[type='checkbox']:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--fo-ink);
-  outline-offset: 1px;
+  outline-offset: var(--hairline);
   box-shadow: 0 0 0 4px var(--fo-surface);
 }
 

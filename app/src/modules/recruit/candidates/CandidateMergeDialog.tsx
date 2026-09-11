@@ -97,13 +97,13 @@ export function CandidateMergeDialog({ survivor, onClose, onMerged }: CandidateM
 
   return (
     <Dialog
-      title="Merge a duplicate into this record"
+      title="Merge duplicate"
       onClose={onClose}
       footer={(close) => (
         <>
           <Button onClick={close}>Cancel</Button>
           <Button variant="danger" disabled={!chosen || busy} onClick={() => void merge()}>
-            {busy ? 'Merging…' : 'Merge and delete the duplicate'}
+            {busy ? 'Merging…' : 'Merge'}
           </Button>
         </>
       )}

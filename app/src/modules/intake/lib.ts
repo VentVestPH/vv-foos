@@ -26,6 +26,11 @@ export const CHANNEL_LABEL: Record<IntakeItem['channel'], string> = {
   manual: 'Manual',
 };
 
+export const TARGET_LABEL: Record<IntakeItem['target_type'], string> = {
+  candidate: 'Candidate',
+  contact: 'Contact',
+};
+
 export const STATUS_LABEL: Record<IntakeItem['status'], string> = {
   pending: 'Pending',
   parsed: 'Parsed',

@@ -45,19 +45,22 @@ function subscribeIntakeItems(listener: IntakeItemsListener): () => void {
 }
 
 export function useIntakeBadge() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState<number | null>(null);
 
   const refresh = useCallback(() => {
-    supabase
+    void supabase
       .from('intake_items')
       .select('id', { count: 'exact', head: true })
       .in('status', ['pending', 'parsed'])
-      .then(({ count: c }) => setCount(c ?? 0));
+      .then(({ count: c, error }) => {
+        if (error !== null || c === null) return;
+        setCount(c);
+      });
   }, []);
 
   useEffect(() => subscribeIntakeItems(refresh), [refresh]);
 
-  return count;
+  return count ?? 0;
 }
 
 export interface IntakeFilters {

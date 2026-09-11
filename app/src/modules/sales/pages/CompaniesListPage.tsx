@@ -9,6 +9,7 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { useListLink } from '../../../lib/listReturn';
+import { useSubmittedSearch } from '../../../lib/quickSearch';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
 import { PlaceholderAction } from '../../../shell/Placeholder';
@@ -64,7 +65,12 @@ export function CompaniesListPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
-  const [search, setSearch] = useState('');
+  const {
+    input: searchInput,
+    setInput: setSearchInput,
+    term: search,
+    submit: submitSearch,
+  } = useSubmittedSearch();
   const [typeFilter, setTypeFilter] = useState('');
   const [ownerFilter, setOwnerFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
@@ -243,8 +249,9 @@ export function CompaniesListPage() {
       title="Accounts"
       icon={<HandshakeIcon size={32} />}
       description="Accounts are the companies and organizations involved with your business such as employers, customers, search firms, agencies, etc."
-      search={search}
-      onSearchChange={setSearch}
+      search={searchInput}
+      onSearchChange={setSearchInput}
+      onSearchSubmit={submitSearch}
       searchPlaceholder="Search companies…"
       actions={
         canEdit ? (
@@ -285,7 +292,8 @@ export function CompaniesListPage() {
       <div className="record-action-bar fo-list-action-bar">
         <PlaceholderAction
           label="Delete"
-          detail="Bulk delete isn't implemented for accounts yet."
+          lead="Deleting accounts in bulk is still in development."
+          detail="There is no single-account delete either, and nothing in the app archives an account. Removing one is a database job until the CRM cleanup work lands."
         />
       </div>
 

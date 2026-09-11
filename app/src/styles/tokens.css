@@ -33,6 +33,7 @@
   --fo-status-ok-text: #2e7d32;
   --fo-status-ok-bg: #ecfdf5;
   --fo-status-danger-bg: #fef2f2;
+  --fo-danger-border: #f3b4b4;
   --fo-muted: #999999;
   --fo-rule: #dddddd;
   --fo-canvas-alt: #eeeeee;
@@ -50,11 +51,15 @@
   --shell-action-bar-h: 48px;
 
   --scrim: rgba(31, 41, 55, 0.45);
+  --fo-option-hover: var(--fo-row-hover);
+  --fo-inset-btn: 30px;
   --fo-scroll-shade: #ffffff;
   --fo-scroll-shade-fade: rgb(255 255 255 / 0);
+  --fo-scroll-shade-size: 24px;
   --tint-on-dark: rgba(255, 255, 255, 0.12);
   --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.15);
   --shadow-overlay: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 4px 6px rgba(32, 33, 36, 0.28);
 
   --motion-instant: 90ms;
   --motion-quick: 140ms;
@@ -65,6 +70,7 @@
   --ease-exit: cubic-bezier(0.2, 0, 1, 0.9);
   --motion-spin: 900ms;
   --motion-skeleton: 1800ms;
+  --motion-attention: 2400ms;
 
   --primary: var(--fo-link);
   --primary-deep: var(--fo-primary-hover);
@@ -86,12 +92,43 @@
   --status-ok-text: var(--fo-status-ok-text);
   --status-ok-bg: var(--fo-status-ok-bg);
   --status-danger-bg: var(--fo-status-danger-bg);
+  --danger-border: var(--fo-danger-border);
+  --badge-alert-bg: var(--fo-danger);
+  --badge-alert-fg: #ffffff;
+  --badge-alert-ring: rgba(212, 0, 0, 0.35);
+  --scrim-light: rgba(255, 255, 255, 0.18);
   --muted: var(--fo-muted);
   --scroll-shade: var(--fo-scroll-shade);
   --scroll-shade-fade: var(--fo-scroll-shade-fade);
+  --scroll-shade-size: var(--fo-scroll-shade-size);
   --rule: var(--fo-rule);
 
   --radius: var(--fo-radius);
+  --radius-pill: 999px;
+  --z-raise: 1;
+  --z-sticky: 2;
+  --z-page-toolbar: 8;
+  --z-action-bar: 10;
+  --z-menu: 40;
+  --z-overlay: 50;
+  --z-overlay-module: 60;
+  --z-toast: 70;
+  --z-dialog: 100;
+  --z-field-layer: 130;
+  --z-utility-hint: 300;
+  --z-recent-settings: 400;
+  --z-boot: 500;
+  --print-ink: #000000;
+  --print-ink-soft: #333333;
+  --print-ink-muted: #555555;
+  --print-paper: #ffffff;
+  --print-rule: #999999;
+  --print-rule-soft: #cccccc;
+  --print-border: #777777;
+  --menu-min-w: 220px;
+  --menu-max-h: 320px;
+  --dialog-w: 440px;
+  --dialog-w-wide: 500px;
   --shadow: none;
 
   --font: var(--fo-font);
@@ -104,17 +141,23 @@
   --fs-xs: 11px;
   --fs-2xs: 10px;
 
+  --btn-pad-x: 18px;
   --control-h: 32px;
+  --textarea-min-h: 88px;
   --field-h: 32px;
   --section-pad: 24px;
   --shell-content-pad: 24px;
   --field-gap: 16px;
   --field-label-gap: 8px;
 
+  --hairline: 1px;
+  --sp-tight: 6px;
+  --sp-quarter: 2px;
+  --sp-half: 4px;
   --sp-1: 8px;
+  --sp-1-5: 12px;
   --sp-2: 16px;
   --sp-3: 24px;
   --sp-4: 32px;
-  --sp-half: 4px;
   --cell-pad: 10px;
 }

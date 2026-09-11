@@ -31,8 +31,8 @@ test('U1: the destructive actions sit behind a real menu, and Save profile is th
   await expect(bar).toBeVisible({ timeout: 25000 });
 
   await expect(
-    bar.getByRole('button', { name: 'Erase…' }),
-    'Erase must not sit loose in the bar',
+    bar.getByRole('button', { name: 'Delete permanently…' }),
+    'the permanent delete must not sit loose in the bar',
   ).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Merge duplicate…' })).toHaveCount(0);
 
@@ -44,7 +44,7 @@ test('U1: the destructive actions sit behind a real menu, and Save profile is th
   await expect(menu, 'More must open a real menu, not a placeholder').toBeVisible();
   await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
   await expect(menu.getByRole('menuitem', { name: 'Merge duplicate…' })).toBeVisible();
-  await expect(menu.getByRole('menuitem', { name: 'Erase…' })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: 'Delete permanently…' })).toBeVisible();
 
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);
@@ -58,6 +58,10 @@ test('K18: the page head is opaque and holds the one action bar, so sticky would
 }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, CANDIDATE);
+  await expect(
+    page.locator('.record-action-bar'),
+    'RecordSkeleton renders its own head bars, so waiting on .fo-page-head alone can measure the loading state',
+  ).toBeVisible({ timeout: 25000 });
   const head = page.locator('.fo-page-head');
   await expect(head).toBeVisible({ timeout: 25000 });
 

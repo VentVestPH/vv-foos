@@ -201,3 +201,13 @@ export async function watchOverlayExit(
       key,
     );
 }
+
+export async function searchList(
+  page: Page,
+  boxName: string | RegExp,
+  term: string,
+): Promise<void> {
+  const box = page.getByRole('searchbox', { name: boxName });
+  await box.fill(term);
+  await box.press('Enter');
+}

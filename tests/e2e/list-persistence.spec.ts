@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, optionNames, signIn } from './helpers';
+import { gotoAsSignedIn, openFilterRail, optionNames, PERSONA_EMAILS, searchList, signIn } from './helpers';
 
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
@@ -176,7 +176,7 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
       const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
       await expect(rows.first()).toBeVisible({ timeout: 25000 });
 
-      await page.getByRole('searchbox', { name: 'Search Candidates' }).fill(token);
+      await searchList(page, 'Search Candidates', token);
 
       await expect(rows, 'the search narrows to exactly this run\'s three candidates').toHaveCount(
         created.length,
@@ -200,7 +200,7 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
 
       const download = await Promise.all([
         page.waitForEvent('download', { timeout: 25000 }),
-        page.getByRole('button', { name: 'Export CSV', exact: true }).click(),
+        page.getByRole('button', { name: 'Export', exact: true }).click(),
       ]).then(([d]) => d);
 
       expect(download.suggestedFilename()).toMatch(/\.csv$/);
@@ -221,7 +221,9 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
         `a header plus one record per visible row; got ${records.length} records for ${onScreen.length} rows`,
       ).toBe(onScreen.length + 1);
 
-      const exportedNames = records.slice(1).map((r) => r[0]?.trim() ?? '');
+      const nameColumn = records[0]?.findIndex((h) => h.trim() === 'Name') ?? -1;
+      expect(nameColumn, 'the export must carry a Name column whatever order it sits in').toBeGreaterThan(-1);
+      const exportedNames = records.slice(1).map((r) => r[nameColumn]?.trim() ?? '');
       expect(new Set(exportedNames), 'the export names are exactly the names on screen').toEqual(
         new Set(onScreen),
       );
@@ -268,7 +270,7 @@ test.describe('a slow first response must not overwrite a search', () => {
 
       await signIn(page, PERSONA_EMAILS.recruiter);
       await gotoAsSignedIn(page, '/recruit/candidates');
-      await page.getByRole('searchbox', { name: 'Search Candidates' }).fill(token);
+      await searchList(page, 'Search Candidates', token);
 
       const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
       await expect(

@@ -1,16 +1,28 @@
 import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
-import { clientAs } from '../env';
+import { clientAs, deleteOwnSettings } from '../env';
 
 const RAIL_NOTE = `QA record-ui ${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const RAIL_KEY = 'ui.recentlyViewed';
 const RAIL_PERSONA = 'recruiter';
 
+const RAIL_ROOM = 50;
+
 async function resetRail(): Promise<void> {
   for (const persona of ['admin', RAIL_PERSONA] as const) {
-    const client = await clientAs(persona);
-    await client.from('integration_settings').delete().eq('key', RAIL_KEY);
+    await deleteOwnSettings(persona, [RAIL_KEY]);
   }
+}
+
+async function giveTheRailRoom(): Promise<void> {
+  const client = await clientAs(RAIL_PERSONA);
+  const { data } = await client.auth.getUser();
+  const staffId = data.user?.id;
+  if (!staffId) throw new Error('could not resolve the recruiter persona');
+  const { error } = await client
+    .from('integration_settings')
+    .insert({ staff_id: staffId, key: RAIL_KEY, value: { items: [], limit: RAIL_ROOM } });
+  if (error) throw new Error(`could not seed the rail limit: ${error.message}`);
 }
 
 test.describe('Record and list UI criteria', () => {
@@ -31,8 +43,12 @@ test.describe('Record and list UI criteria', () => {
     await expect(newTicket).toBeVisible();
     await newTicket.click();
     await expect(page.locator('.fo-placeholder-modal')).toContainText(
-      /not available yet/i,
+      /still in development/i,
     );
+    await expect(
+      page.locator('.fo-placeholder-modal'),
+      'the copy says what happens next, not just that something is missing',
+    ).toContainText(/Customer Success module/i);
     await page.keyboard.press('Escape');
     await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
     await expect(page.locator('.table-wrap input:not([disabled]), .table-wrap select:not([disabled])')).toHaveCount(0);
@@ -73,7 +89,7 @@ test.describe('Record and list UI criteria', () => {
   test('2.9 and 2.11 the candidate list offers a saved view and a CSV export', async ({ page }) => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     await expect(page.getByRole('button', { name: 'Save view', exact: true })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Export CSV', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeEnabled();
     await openFilterRail(page);
   });
 
@@ -115,6 +131,7 @@ test.describe('Record and list UI criteria', () => {
 test.describe('Recently Viewed rail (2.10)', () => {
   test.beforeEach(async ({ page }) => {
     await resetRail();
+    await giveTheRailRoom();
     await signIn(page, PERSONA_EMAILS[RAIL_PERSONA]);
   });
 
@@ -126,20 +143,34 @@ test.describe('Recently Viewed rail (2.10)', () => {
     const rail = page.locator('aside, .fo-sidebar').first();
 
     await gotoAsSignedIn(page, '/sales/companies');
-    await page.locator('.table-wrap .link-btn').first().click();
+    const companyLink = page.locator('.table-wrap .link-btn').first();
+    const companyLabel = (await companyLink.innerText()).trim();
+    await companyLink.click();
     await expect(page).toHaveURL(/\/sales\/companies\/[0-9a-f-]{36}/);
     await expect(rail).toContainText(/Recently Viewed/);
-    await expect(rail.locator('.fo-recent-item')).toHaveCount(1, { timeout: 15000 });
+    await expect(rail.getByText(companyLabel, { exact: true })).toBeVisible({ timeout: 15000 });
 
     await gotoAsSignedIn(page, '/recruit/candidates');
-    await page.locator('.table-wrap .link-btn').first().click();
+    const candidateLink = page.locator('.table-wrap .link-btn').first();
+    const candidateLabel = (await candidateLink.innerText()).trim();
+    await candidateLink.click();
     await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);
-    await expect(rail.locator('.fo-recent-item')).toHaveCount(2, { timeout: 15000 });
+    await expect(rail.getByText(candidateLabel, { exact: true })).toBeVisible({ timeout: 15000 });
 
-    const types = (
-      await rail.locator('.fo-recent-item .fo-recent-type').allInnerTexts()
-    ).map((text) => text.trim());
-    expect(types, 'the rail lists the newest open first').toEqual(['Candidate', 'Company']);
+    const labels = (await rail.locator('.fo-recent-item .fo-recent-name').allInnerTexts()).map(
+      (text) => text.trim(),
+    );
+    const candidateAt = labels.indexOf(candidateLabel);
+    const companyAt = labels.indexOf(companyLabel);
+    expect(
+      candidateAt,
+      `the rail must list ${candidateLabel}. The rail is one integration_settings row per staff, so a parallel worker signed in as this persona writes the same row: the limit is raised to ${RAIL_ROOM} in beforeEach so a neighbour's opens cannot evict either of these two`,
+    ).toBeGreaterThanOrEqual(0);
+    expect(companyAt, `the rail must list ${companyLabel}`).toBeGreaterThanOrEqual(0);
+    expect(
+      candidateAt,
+      'the record opened later must sit above the one opened before it. The rail is stored per staff in integration_settings, so a parallel worker signed in as the same persona writes to the same row: assert the order of this test\'s own two records, never the whole list',
+    ).toBeLessThan(companyAt);
   });
 
   test('2.10 the rail never shows more than the records-to-keep setting', async ({ page }) => {
@@ -160,4 +191,99 @@ test.describe('Recently Viewed rail (2.10)', () => {
       .poll(async () => page.locator('.fo-recent-item').count(), { timeout: 15000 })
       .toBeLessThanOrEqual(limit);
   });
+});
+
+test('an empty table cell keeps its own padding, not the row padding', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await gotoAsSignedIn(page, '/recruit/candidates?search=zzzznomatchzzzz');
+  const cell = page.locator('.table-empty');
+  await expect(cell).toBeVisible({ timeout: 25000 });
+
+  const shape = await cell.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { tag: el.tagName, padding: cs.paddingTop, align: cs.textAlign };
+  });
+  expect(shape.tag, 'the empty state renders as a table cell').toBe('TD');
+  expect(
+    shape.padding,
+    'a bare .table-empty is (0,1,0) and loses to .table td (0,1,1) in the same layer, so the rule was dead and the cell used --cell-pad',
+  ).toBe('24px');
+  expect(shape.align).toBe('center');
+});
+
+test.describe('sorting from anywhere in the header cell', () => {
+  const TABLES: [string, string][] = [
+    ['candidates', '/recruit/candidates'],
+    ['requisitions', '/recruit/requisitions'],
+    ['intake', '/intake'],
+  ];
+
+  for (const [label, route] of TABLES) {
+    test(`a click in the ${label} header padding sorts, not just one on the text`, async ({
+      page,
+    }) => {
+      await signIn(page, PERSONA_EMAILS.admin);
+      await gotoAsSignedIn(page, route);
+      await page.waitForSelector('.table-wrap thead th.sortable');
+
+      const th = page.locator('.table-wrap thead th.sortable').first();
+      const fills = await th.evaluate((el) => {
+        const cell = el.getBoundingClientRect();
+        const btn = (el.querySelector('.th-sort-btn') as HTMLElement).getBoundingClientRect();
+        return {
+          dx: Math.round(cell.width - btn.width),
+          dy: Math.round(cell.height - btn.height),
+        };
+      });
+      expect(
+        Math.max(fills.dx, fills.dy),
+        'the button has to own the whole cell; while the padding belonged to the th it looked clickable and was not',
+      ).toBeLessThanOrEqual(1);
+
+      const before = await th.getAttribute('aria-sort');
+      await th.click({ position: { x: 3, y: 3 } });
+      await expect
+        .poll(async () => th.getAttribute('aria-sort'), {
+          timeout: 15000,
+          message: 'clicking the top-left corner of the cell must sort',
+        })
+        .not.toBe(before);
+    });
+  }
+});
+
+test.describe('sortable headers', () => {
+  const TABLES: [string, string][] = [
+    ['candidates', '/recruit/candidates'],
+    ['requisitions', '/recruit/requisitions'],
+    ['accounts', '/sales/companies'],
+    ['contacts', '/sales/contacts'],
+    ['tickets', '/sales/tickets'],
+  ];
+
+  for (const [label, route] of TABLES) {
+    test(`the sort chevron appears on hovering anywhere in a ${label} header cell`, async ({
+      page,
+    }) => {
+      await signIn(page, PERSONA_EMAILS.admin);
+      await gotoAsSignedIn(page, route);
+      await page.waitForSelector('.table-wrap thead th.sortable', { timeout: 25000 });
+
+      const th = page.locator('.table-wrap thead th.sortable').first();
+      const arrow = th.locator('.sort-arrow');
+      expect(
+        await arrow.evaluate((el) => getComputedStyle(el).opacity),
+        'the chevron is hidden until the cell is pointed at',
+      ).toBe('0');
+
+      await th.hover({ position: { x: 3, y: 3 } });
+      await expect
+        .poll(async () => arrow.evaluate((el) => getComputedStyle(el).opacity), {
+          timeout: 10000,
+          message:
+            'the cell padding is part of the th but outside the button, so hovering there must still reveal the chevron',
+        })
+        .toBe('0.55');
+    });
+  }
 });

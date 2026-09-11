@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { NEEDS_IMPORT, PERSONA_EMAILS, expandSection, gotoAsSignedIn, hasImportedDataset, signIn } from './helpers';
+import { expandSection, gotoAsSignedIn, hasImportedDataset, NEEDS_IMPORT, PERSONA_EMAILS, searchList, signIn } from './helpers';
 
 async function pagerText(page: Page, selector = '.fo-pager-count'): Promise<string> {
   const el = page.locator(selector).first();
@@ -99,7 +99,7 @@ test.describe('the candidate list pages in the database, not the browser', () =>
     const term = (await rows.first().locator('.link-btn').innerText()).trim().split(' ')[0] ?? '';
     expect(term.length).toBeGreaterThan(2);
 
-    await page.getByRole('searchbox', { name: 'Search Candidates' }).fill(term);
+    await searchList(page, 'Search Candidates', term);
 
     await expect
       .poll(totalOf, {
@@ -422,13 +422,23 @@ test.describe('U1.9: the application pipeline is bounded per stage', () => {
   });
 });
 
-test('U1.10: the requisition search waits for the typing to stop', async ({ page }) => {
+async function requisitionTotal(page: Page): Promise<number> {
+  const m = /of (\d+)/.exec(await pagerText(page));
+  return m ? Number(m[1]) : -1;
+}
+
+test('U1.10: the requisition search runs only when it is submitted', async ({ page }) => {
   test.setTimeout(120000);
   await signIn(page, PERSONA_EMAILS.admin);
 
-  const searches: number[] = [];
+  const searches: string[] = [];
+  const suggestions: string[] = [];
   await page.route('**/rest/v1/requisition_list?*', async (route) => {
-    if (route.request().url().includes('search_text')) searches.push(Date.now());
+    const url = route.request().url();
+    if (url.includes('search_text')) {
+      if (url.includes('limit=10')) suggestions.push(url);
+      else searches.push(url);
+    }
     await route.continue().catch(() => undefined);
   });
 
@@ -436,41 +446,58 @@ test('U1.10: the requisition search waits for the typing to stop', async ({ page
   await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
 
   const box = page.getByRole('searchbox', { name: /Search Requisitions/i });
-  const typed = [...'REQ-000'];
-  for (let i = 0; i < typed.length; i += 1) {
-    if (i > 0) await page.waitForTimeout(250);
-    await box.press(typed[i] === '-' ? 'Minus' : typed[i]!);
-  }
-  const lastKeystroke = Date.now();
+  await box.pressSequentially('REQ-000', { delay: 120 });
+  await page.waitForTimeout(2500);
 
-  expect(searches, 'no query may fire while the user is still typing').toEqual([]);
-  await page.waitForTimeout(1000);
   expect(
     searches,
-    'and none within a second of the last keystroke either',
+    'typing must not filter the table, however long the user pauses',
   ).toEqual([]);
+  expect(
+    suggestions.length,
+    'typing must still fetch suggestions, which is the separate capped query',
+  ).toBeGreaterThan(0);
+  await expect(
+    page.locator('.fo-hint-pop'),
+    'and those suggestions are on screen while typing',
+  ).toBeVisible();
 
-  await expect
-    .poll(() => searches.length, {
-      timeout: 6000,
-      message: 'one query must fire once the typing settles',
-    })
-    .toBe(1);
-  expect(searches[0]! - lastKeystroke, 'it waits about two seconds').toBeGreaterThan(1500);
-
-  await box.press('Backspace');
-  await expect
-    .poll(() => searches.length, { timeout: 6000, message: 'a deletion searches again' })
-    .toBe(2);
-
-  const beforeSubmit = searches.length;
-  await box.press('1');
   await box.press('Enter');
   await expect
     .poll(() => searches.length, {
-      timeout: 1200,
-      message: 'submitting must search at once rather than waiting out the debounce',
+      timeout: 6000,
+      message: 'Enter is what runs the search',
     })
-    .toBe(beforeSubmit + 1);
+    .toBe(1);
+  await expect(
+    page.locator('.fo-hint-pop'),
+    'submitting dismisses the suggestions rather than leaving them over the results',
+  ).toHaveCount(0);
+
+  await box.fill('REQ-0001');
+  await page.locator('.list-page-search .fo-searchbox-submit').click();
+  await expect
+    .poll(() => searches.length, {
+      timeout: 6000,
+      message: 'the magnifying glass runs it too',
+    })
+    .toBe(2);
+
+  const filtered = await requisitionTotal(page);
+  expect(filtered, 'the submitted search narrowed the list').toBeGreaterThan(-1);
+
+  await page.locator('.list-page-search .fo-searchbox-clear').click();
+  await expect(box, 'the X empties the box').toHaveValue('');
+  await expect
+    .poll(async () => requisitionTotal(page), {
+      timeout: 10000,
+      message: 'clearing the box has to put the unfiltered list back, not just empty the input',
+    })
+    .toBeGreaterThan(filtered);
+  expect(
+    searches.length,
+    'and clearing issues no further search-filtered request, because there is no term left',
+  ).toBe(2);
+
   await page.unroute('**/rest/v1/requisition_list?*');
 });

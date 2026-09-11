@@ -35,6 +35,11 @@
   gap: var(--sp-1);
 }
 
+.list-page-search > .fo-search-row {
+  flex: 1;
+  min-width: 0;
+}
+
 .list-page-search input {
   width: 100%;
 }
@@ -92,6 +97,10 @@
   min-width: 0;
 }
 
+.fo-breadcrumbs li > * {
+  font-size: 12px !important;
+}
+
 .fo-breadcrumbs a {
   color: var(--fo-link);
   font-size: var(--fs-body);
@@ -100,7 +109,6 @@
 
 .fo-breadcrumbs a:hover {
   color: var(--fo-link-on-tint);
-  text-decoration: underline;
 }
 
 .fo-breadcrumbs [aria-current='page'] {
@@ -142,7 +150,7 @@
 .record-action-bar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-action-bar);
   display: flex;
   align-items: center;
   gap: var(--sp-1);
@@ -158,7 +166,7 @@
 .record-section-header {
   position: sticky;
   top: calc(-1 * var(--shell-content-pad));
-  z-index: 2;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   width: 100%;
@@ -198,12 +206,13 @@
 
 .record-section-body {
   padding: var(--section-pad);
-  gap: 16px;
+  gap: var(--sp-2);
   display: grid;
 }
 
 .record-section-body > * {
   min-width: 0;
+  margin: 0;
 }
 
 
@@ -227,7 +236,7 @@
 .fo-result-link {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-quarter);
   padding: var(--sp-1);
   text-decoration: none;
   cursor: pointer;

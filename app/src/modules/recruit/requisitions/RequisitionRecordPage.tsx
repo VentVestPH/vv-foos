@@ -6,7 +6,6 @@ import { Button } from '../../../components/ui/Button';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { ActionMenu, type ActionMenuItem } from '../../../components/ui/ActionMenu';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
-import { useSectionCollapse } from '../../../components/ui/SectionCollapse';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { looksLikeHtml, sanitizeHtml } from '../../../lib/sanitizeHtml';
 import { StatusHistory } from '../../../components/ui/StatusHistory';
@@ -31,7 +30,7 @@ import {
 import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { useListReturnHref } from '../../../lib/listReturn';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
-import { printExpanded } from '../../../lib/printRecord';
+import { usePrintRecord } from '../../../hooks/usePrintRecord';
 import { RecordSkeleton } from '../../../components/ui/RecordSkeleton';
 import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { SectionSettingsDialog } from '../../../components/ui/SectionSettingsDialog';
@@ -71,7 +70,7 @@ export function RequisitionRecordPage() {
   const lookups = useLookups();
   const { record } = useRecentlyViewed();
   const listHref = useListReturnHref('/recruit/requisitions');
-  const collapse = useSectionCollapse();
+  const printAll = usePrintRecord();
 
   const [req, setReq] = useState<Requisition | null>(null);
   const [owners, setOwners] = useState<OwnerRow[]>([]);
@@ -317,9 +316,7 @@ export function RequisitionRecordPage() {
     pipelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const printAll = () => {
-    printExpanded(() => collapse?.setAll(true));
-  };
+
 
   const primaryTarget = REQ_PRIMARY_ACTION[req.status];
   const primaryGated = primaryTarget === 'open' && !allApproved;

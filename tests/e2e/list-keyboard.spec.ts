@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { gotoAsSignedIn, PERSONA_EMAILS, searchList, signIn } from './helpers';
 
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
@@ -39,7 +39,7 @@ async function openOwnRows(page: Page, expected: number) {
   await gotoAsSignedIn(page, '/recruit/candidates');
   const rows = page.locator('.table-wrap tbody tr[data-row-key]');
   await expect(rows.first()).toBeVisible({ timeout: 25000 });
-  await page.getByRole('searchbox', { name: 'Search Candidates' }).fill(OWN_TOKEN);
+  await searchList(page, 'Search Candidates', OWN_TOKEN);
   await expect(rows, 'the search narrows to this run\'s own rows').toHaveCount(expected, {
     timeout: 25000,
   });

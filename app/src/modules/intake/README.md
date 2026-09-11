@@ -9,6 +9,44 @@ recruiters work candidate rows, bd works contact rows. RLS on `intake_items`
 (architecture section 5) is the real boundary; the route accepts all four
 roles and lets Postgres decide what each one sees.
 
+## The queue page, after the 2026-09-11 pass
+
+- The head is `flush`, so the search row and Export share one sticky band joined to
+  the title row, as on requisitions and candidates. Before that the toolbar drew its
+  own border and read as a separate card.
+- The gear is `SettingsButton` opening `ColumnSettingsDialog`, so columns are
+  arranged in a dialog rather than in the filter rail. The rail keeps Channel,
+  Target and Status; its Columns section is gone.
+- `Refresh the queue` and `Show imported / rejected` are controls on the page, not
+  entries in an overflow menu. Both are 32-square `.fo-gear-btn` and a plain
+  checkbox respectively.
+- `intakeSearchHints` in `lib/searchHints.ts` suggests **only** `intake_items`,
+  matching name, batch label and LinkedIn URL. A suggestion links to
+  `/intake?item=<id>` and the queue seeds its open drawer from that param.
+- `.intake-advanced-search` wraps the rail's fields so intake can change their
+  spacing without reaching the other four rails.
+- `Target` renders through `TARGET_LABEL`. It was the one column printing its raw
+  enum while Channel and Status had label maps.
+- The drawer waits behind `SectionSkeleton` while the duplicate check runs, so the
+  body lands complete instead of growing a section underneath itself. `Dedup check`
+  is `Possible duplicates`, and its empty case is the shared `EmptyState`.
+- `.badge-tone` is a neutral outlined chip and the read-only note is a warning
+  callout. Both used `--section-tint`, which also paints accordion headers, so the
+  drawer was three shades of the same blue.
+
+## Why the queue was empty
+
+The Zoho migration never went through intake, by design. `migration/import.mjs`
+wrote straight to `people`, `candidate_profiles`, `applications` and the rest,
+and `zoho_id_map` proves it: 72,939 candidates, 86,155 applications, 211,040
+notes, 1,747 attachments, 687 requisitions, and **no intake entity type at
+all**. The table held one row. Intake is the front door for new arrivals; a bulk
+migration is not an arrival. There is no Zoho intake data to recover.
+
+`intake_items` has no `is_test` column, so seeded rows are marked by a
+`DEMO-` prefix on `batch_label` and are removed with
+`delete from intake_items where batch_label like 'DEMO-%'`.
+
 ## Routes
 
 | Route | Screen |

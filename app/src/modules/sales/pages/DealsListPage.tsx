@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
 import { useListLink } from '../../../lib/listReturn';
+import { useSubmittedSearch } from '../../../lib/quickSearch';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
@@ -68,7 +69,12 @@ export function DealsListPage() {
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
   const [view, setView] = useState<ViewMode>('kanban');
-  const [search, setSearch] = useState('');
+  const {
+    input: searchInput,
+    setInput: setSearchInput,
+    term: search,
+    submit: submitSearch,
+  } = useSubmittedSearch();
   const [stageFilter, setStageFilter] = useState(() => params.get('stage') ?? '');
   const [ownerFilter, setOwnerFilter] = useState(() => params.get('owner_id') ?? '');
   const [companyFilter] = useState(() => params.get('company_id') ?? '');
@@ -367,8 +373,9 @@ export function DealsListPage() {
         title="Deals"
         icon={<BriefcaseIcon size={32} />}
         description="Deals are the sales opportunities you are working with companies and contacts to close."
-        search={search}
-        onSearchChange={setSearch}
+        search={searchInput}
+        onSearchChange={setSearchInput}
+        onSearchSubmit={submitSearch}
         searchPlaceholder="Search deals…"
         actions={
           <span className="sales-badges">
@@ -426,7 +433,8 @@ export function DealsListPage() {
         <div className="record-action-bar fo-list-action-bar">
           <PlaceholderAction
             label="Delete"
-            detail="Bulk delete isn't implemented for deals yet."
+            lead="Deleting deals in bulk is still in development."
+            detail="Open a deal to move it to Closed Won or Closed Lost, which is the intended end state. Nothing in the app archives or deletes a deal."
           />
         </div>
 

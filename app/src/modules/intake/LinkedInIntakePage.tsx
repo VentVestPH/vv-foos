@@ -230,8 +230,6 @@ export function LinkedInIntakePage() {
         <h1>Intake: Paste LinkedIn URLs</h1>
       </div>
 
-      {actionButtons}
-
       <RecordSection title="Batch Details:">
         <ErrorSummary errors={problems} />
         <p className="text-secondary">

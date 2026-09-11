@@ -1,13 +1,7 @@
 import { Skeleton } from './Skeleton';
 
-interface RecordSkeletonProps {
-  label: string;
-  sections: number;
-  panel?: boolean;
-}
-
-export function RecordSkeleton({ label, sections, panel = false }: RecordSkeletonProps) {
-  const list = (
+export function SectionSkeleton({ label, sections }: { label: string; sections: number }) {
+  return (
     <div className="fo-skeleton-sections" role="status" aria-label={label}>
       {Array.from({ length: Math.max(1, sections) }, (_, index) => (
         <div key={index} className="fo-skeleton-section" aria-hidden="true">
@@ -22,6 +16,16 @@ export function RecordSkeleton({ label, sections, panel = false }: RecordSkeleto
       ))}
     </div>
   );
+}
+
+interface RecordSkeletonProps {
+  label: string;
+  sections: number;
+  panel?: boolean;
+}
+
+export function RecordSkeleton({ label, sections, panel = false }: RecordSkeletonProps) {
+  const list = <SectionSkeleton label={label} sections={sections} />;
 
   return (
     <div className="record-page">

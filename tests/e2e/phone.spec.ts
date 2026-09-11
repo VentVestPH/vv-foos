@@ -102,7 +102,10 @@ test.describe('Q8: usable on a phone', () => {
 
     await page.getByRole('button', { name: 'Expand sidebar' }).click();
     await expect(sidebar).not.toHaveClass(/collapsed/);
-    await expect(page.getByLabel('Candidate keywords')).toBeVisible();
+    await expect(
+      sidebar.getByRole('button', { name: 'Search everything' }),
+      'expanding the rail reveals its contents',
+    ).toBeVisible();
   });
 
   test('the sidebar still starts open on a desktop width', async ({ page }) => {
