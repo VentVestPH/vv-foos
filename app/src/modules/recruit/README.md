@@ -133,6 +133,15 @@ and marks that application viewed for the current staff user.
   name, emails, phones, address and LinkedIn URLs have no edit path anywhere, so
   the majority of the record it appeared to unlock is read-only by omission, not
   by permission. `canEditProfile` still gates every field it always gated.
+- **The bulk bar is three controls and an ellipsis.** Change Main Status to…,
+  Send Email, and `ActionMenu label="More actions" iconOnly` holding Mark as…,
+  View Resume, Print profile and Submit. Putting a dropdown in there needed one
+  fix: `.fo-page-head-grow-inner` is `overflow: hidden` so the grow reads as a
+  reveal, which clipped the menu and handed its clicks to the pager. `ListPage`
+  now sets `data-settled` on `transitionend` and the clip lifts then.
+- **The bulk status dialog confirms with "Update status".** It used to read
+  `Set to <the whole status label>`, which repeated the value the select above it
+  already showed and stretched the button to the width of the longest status.
 - **Submit is real, and it runs candidate-to-requisition.** `CandidateSubmitDialog`
   searches `requisition_list` for open, waiting-approval and on-hold roles, then
   either inserts an `applications` row at stage `submitted` or, when one already

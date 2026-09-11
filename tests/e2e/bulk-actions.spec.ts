@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, signIn, waitForAnimations } from './helpers';
 
 interface Snapshot {
   person_id: string;
@@ -70,6 +70,19 @@ async function reselect(page: Page, keys: string[]) {
   }
 }
 
+async function openBulkOverflow(
+  page: import('@playwright/test').Page,
+  item: string,
+): Promise<void> {
+  await expect(page.locator('.fo-page-head-grow')).toHaveAttribute('data-open', 'true');
+  await waitForAnimations(page);
+  await page.locator('.fo-list-action-bar').getByRole('button', { name: 'More actions' }).click();
+  const entry = page.getByRole('menuitem', { name: item });
+  await expect(entry).toBeVisible();
+  await waitForAnimations(page);
+  await entry.click();
+}
+
 test.describe('Q1: bulk actions on the candidate list', () => {
   test('the buttons are out of reach until something is selected', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.recruiter);
@@ -79,7 +92,7 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     const status = page.getByRole('button', { name: 'Change Main Status to…' });
     const grow = page.locator('.fo-page-toolbar .fo-page-head-grow');
     await expect(grow).toHaveAttribute('data-open', 'false');
-    for (const name of ['Change Main Status to…', 'Mark as…', 'Send Email']) {
+    for (const name of ['Change Main Status to…', 'Send Email', 'More actions']) {
       await expect(
         page.getByRole('button', { name }),
         `${name} must not be reachable with nothing selected`,
@@ -111,7 +124,7 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     const dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('Change the main status of 2 candidates');
     await chooseOption(page, dialog.getByRole('combobox', { name: 'Main status' }), target!.label);
-    await dialog.getByRole('button', { name: /^Set to / }).click();
+    await dialog.getByRole('button', { name: 'Update status' }).click();
     await expect(dialog).toBeHidden({ timeout: 20000 });
 
     const { data: rows } = await admin
@@ -140,7 +153,7 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     const keys = await selectTwo(page);
 
-    await page.getByRole('button', { name: 'Mark as…' }).click();
+    await openBulkOverflow(page, 'Mark as…');
     let dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('Mark 2 candidates');
     await dialog.getByRole('button', { name: 'Mark do not contact' }).click();
@@ -162,7 +175,7 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     await dialog.getByRole('button', { name: 'Cancel' }).click();
 
     await reselect(page, keys);
-    await page.getByRole('button', { name: 'Mark as…' }).click();
+    await openBulkOverflow(page, 'Mark as…');
     dialog = page.getByRole('dialog');
     await dialog.getByRole('radio', { name: 'Contactable again' }).check();
     await dialog.getByRole('button', { name: 'Clear do not contact' }).click();
@@ -188,4 +201,46 @@ test.describe('Q1: bulk actions on the candidate list', () => {
       'Only an admin or a recruiter can change candidates in bulk',
     );
   });
+});
+
+test('the bulk bar fades in, and its menu escapes the grow once it has settled', async ({
+  page,
+}) => {
+  await signIn(page, PERSONA_EMAILS.recruiter);
+  await gotoAsSignedIn(page, '/recruit/candidates');
+  await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
+
+  const inner = page.locator('.fo-page-head-grow-inner');
+  const closed = await inner.evaluate((el) => ({
+    opacity: getComputedStyle(el).opacity,
+    overflow: getComputedStyle(el).overflow,
+    transition: getComputedStyle(el).transitionProperty,
+  }));
+  expect(closed.opacity, 'a bar nobody asked for is not merely short, it is invisible').toBe('0');
+  expect(closed.overflow, 'the grow needs the clip to read as a reveal').toBe('hidden');
+  expect(closed.transition).toContain('opacity');
+
+  await page.locator('.table-wrap tbody tr').first().locator('input[type="checkbox"]').check();
+  await expect(page.locator('.fo-page-head-grow')).toHaveAttribute('data-open', 'true');
+  await expect
+    .poll(async () => inner.evaluate((el) => getComputedStyle(el).opacity), { timeout: 10000 })
+    .toBe('1');
+  await expect
+    .poll(async () => inner.evaluate((el) => getComputedStyle(el).overflow), {
+      timeout: 10000,
+      message:
+        'the ellipsis menu is a child of this box, so the clip has to lift once the grow finishes or the dropdown is cut off and the pager takes its clicks',
+    })
+    .toBe('visible');
+
+  await page.locator('.fo-list-action-bar').getByRole('button', { name: 'More actions' }).click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  for (const item of ['Mark as…', 'View Resume', 'Print profile', 'Submit']) {
+    await expect(menu.getByRole('menuitem', { name: item })).toBeVisible();
+  }
+  const bar = await page
+    .locator('.fo-list-action-bar')
+    .evaluate((el) => Array.from(el.querySelectorAll(':scope > button')).map((b) => b.textContent));
+  expect(bar.length, `the bar itself stays small; got ${bar.join(', ')}`).toBeLessThanOrEqual(3);
 });

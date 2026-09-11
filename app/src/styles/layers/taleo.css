@@ -299,10 +299,17 @@
 .fo-page-head-grow > .fo-page-head-grow-inner {
   overflow: hidden;
   min-height: 0;
+  opacity: 0;
+  transform: translateY(calc(-1 * var(--sp-half)));
 }
 
-.fo-page-head-grow .fo-list-action-bar {
-  margin: var(--sp-1) 0 0;
+.fo-page-head-grow[data-open='true'] > .fo-page-head-grow-inner {
+  opacity: 1;
+  transform: none;
+}
+
+.fo-page-head-grow[data-settled='true'] > .fo-page-head-grow-inner {
+  overflow: visible;
 }
 
 .fo-gear-btn {

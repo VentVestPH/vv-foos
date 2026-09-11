@@ -88,6 +88,7 @@ export function ListPage({
   exportFilename,
 }: ListPageProps) {
   const [exporting, setExporting] = useState(false);
+  const [bulkBarSettled, setBulkBarSettled] = useState(false);
   useDocumentTitle(title);
   const advanced = useAdvancedSearch();
   usePublishAdvancedSearch(filterRail ?? null);
@@ -107,6 +108,10 @@ export function ListPage({
     () => ({ filtersOpen, openFilters }),
     [filtersOpen, openFilters],
   );
+
+  useEffect(() => {
+    if (!bulkBarOpen) setBulkBarSettled(false);
+  }, [bulkBarOpen]);
 
   useEffect(() => {
     if (columnFocusRequest === 0 || !filtersOpen) return;
@@ -213,17 +218,12 @@ export function ListPage({
                 }
               })();
             }}
-            disabled={
-              exporting ||
-              (typeof exportRows === 'function'
-                ? exportCount === 0
-                : exportRows.length === 0)
-            }
+            disabled={exporting}
             title={
               exporting
                 ? 'Building the file'
                 : (typeof exportRows === 'function' ? exportCount === 0 : exportRows.length === 0)
-                  ? 'There is nothing in this list to export'
+                  ? 'There is nothing in this list to export yet'
                   : undefined
             }
           >
@@ -237,7 +237,11 @@ export function ListPage({
             <div
               className="fo-page-head-grow"
               data-open={bulkBarOpen ? 'true' : 'false'}
+              data-settled={bulkBarOpen && bulkBarSettled ? 'true' : undefined}
               aria-hidden={bulkBarOpen ? undefined : true}
+              onTransitionEnd={(event) => {
+                if (event.propertyName === 'grid-template-rows') setBulkBarSettled(bulkBarOpen);
+              }}
             >
               <div className="fo-page-head-grow-inner">{bulkBar}</div>
             </div>

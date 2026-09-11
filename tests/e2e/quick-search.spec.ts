@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
 import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, signIn } from './helpers';
 
+const HINT_MIN_CHARS = 3;
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const FIRST = `Qsfirst${RUN}`;
 const MIDDLE = `Qsmiddle${RUN}`;
@@ -267,7 +268,15 @@ test.describe('Q: the candidate list header holds its own controls', () => {
     ] as const) {
       await gotoAsSignedIn(page, route);
       await page.waitForSelector('.table-wrap tbody tr');
-      await page.locator('.list-page-search input').pressSequentially('man', { delay: 30 });
+      const firstRow = (
+        await page.locator('.table-wrap tbody tr .link-btn').first().innerText()
+      ).trim();
+      const term = firstRow.replace(/[^A-Za-z]/g, '').slice(0, 4);
+      expect(
+        term.length,
+        `${route}: the suggestion term is taken from a row the list is already showing, because a hardcoded one matches nothing on a freshly seeded database`,
+      ).toBeGreaterThanOrEqual(HINT_MIN_CHARS);
+      await page.locator('.list-page-search input').pressSequentially(term, { delay: 30 });
 
       const pop = page.locator('.fo-hint-pop');
       await expect(pop, `${route} offers no suggestions`).toBeVisible({ timeout: 15000 });
@@ -427,6 +436,7 @@ test.describe('Q: the list search only runs when submitted', () => {
     const box = page.locator('.list-page-search input');
     const clear = page.locator('.list-page-search .fo-searchbox-clear');
     await expect(clear, 'nothing to clear while the box is empty').toHaveCount(0);
+    const unfiltered = await page.locator('.table-wrap tbody tr').count();
 
     await box.fill(FIRST);
     await expect(clear).toBeVisible();
@@ -463,7 +473,7 @@ test.describe('Q: the list search only runs when submitted', () => {
         timeout: 15000,
         message: 'clearing puts the unfiltered list back',
       })
-      .toBe(20);
+      .toBe(unfiltered);
   });
 
   test('Q15: the resume column is centred', async ({ page }) => {
@@ -660,4 +670,23 @@ test.describe('Q: submitting a list search stays on the list', () => {
       expect(page.url(), `${route} left the list on submit`).toContain(route);
     }
   });
+});
+
+test('Q20: Export CSV is clickable from first paint, not after the count arrives', async ({
+  page,
+}) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await page.route('**/rest/v1/candidate_list*', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await route.continue();
+  });
+  await gotoAsSignedIn(page, '/recruit/candidates');
+
+  const button = page.getByRole('button', { name: 'Export CSV' });
+  await expect(button).toBeVisible({ timeout: 20000 });
+  await expect(
+    button,
+    'the count starts at 0 while the first page is still in flight, and a control that disables itself for a second reads as broken',
+  ).toBeEnabled();
+  await page.unroute('**/rest/v1/candidate_list*');
 });

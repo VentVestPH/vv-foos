@@ -88,6 +88,12 @@
   transition: grid-template-rows var(--motion-panel) var(--ease-out);
 }
 
+.fo-page-head-grow > .fo-page-head-grow-inner {
+  transition:
+    opacity var(--motion-panel) var(--ease-out),
+    transform var(--motion-panel) var(--ease-out);
+}
+
 .fo-page-head-foot {
   transition: margin-top var(--motion-panel) var(--ease-out);
 }

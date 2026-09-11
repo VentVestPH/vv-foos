@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Button } from '../../../components/ui/Button';
+import { ActionMenu, type ActionMenuItem } from '../../../components/ui/ActionMenu';
+import { usePlaceholder } from '../../../shell/Placeholder';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { useEmailTemplates } from '../../../hooks/useEmailTemplates';
@@ -47,6 +49,7 @@ export function CandidateBulkActions({
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const templates = useEmailTemplates();
+  const { show } = usePlaceholder();
 
   const ids = useMemo(() => [...selected], [selected]);
   const count = ids.length;
@@ -146,22 +149,49 @@ export function CandidateBulkActions({
     await onDone();
   };
 
-  const statusLabel = statuses.find((s) => s.id === statusId)?.label ?? '';
   const disabled = count === 0 || !canEdit;
   const disabledReason = !canEdit
     ? 'Only an admin or a recruiter can change candidates in bulk'
     : 'Select at least one candidate first';
 
+  const overflowItems: ActionMenuItem[] = [
+    {
+      label: 'Mark as…',
+      onSelect: () => setPending('flag-on'),
+      disabled,
+      ...(disabled ? { title: disabledReason } : {}),
+    },
+    {
+      label: 'View Resume',
+      onSelect: () =>
+        show(
+          'View Resume',
+          'Open a candidate and use View Resume there, or use the Resume column to see who has one on file.',
+          'Opening resumes for a whole selection is still in development.',
+        ),
+    },
+    {
+      label: 'Print profile',
+      onSelect: () =>
+        show(
+          'Print profile',
+          'Open a candidate and use Print profile there to print one.',
+          'Printing a whole selection is still in development.',
+        ),
+    },
+    {
+      label: 'Submit',
+      onSelect: () =>
+        show(
+          'Submit',
+          'Open a candidate and use Submit there to put one forward on a requisition.',
+          'Submitting a whole selection is still in development.',
+        ),
+    },
+  ];
+
   return (
     <>
-      <Button
-        size="sm"
-        disabled={disabled}
-        title={disabled ? disabledReason : `Mark ${count} selected`}
-        onClick={() => setPending('flag-on')}
-      >
-        Mark as…
-      </Button>
       <Button
         size="sm"
         disabled={disabled}
@@ -185,6 +215,7 @@ export function CandidateBulkActions({
       >
         Send Email
       </Button>
+      <ActionMenu label="More actions" items={overflowItems} iconOnly />
 
       {pending === 'status' && (
         <Dialog
@@ -198,7 +229,7 @@ export function CandidateBulkActions({
                 disabled={busy || !statusId}
                 onClick={() => void applyStatus()}
               >
-                {busy ? 'Applying…' : `Set to ${statusLabel || '…'}`}
+                {busy ? 'Updating…' : 'Update status'}
               </Button>
             </>
           )}

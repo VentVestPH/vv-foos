@@ -16,7 +16,7 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 
 ## Tally, 2026-09-07
 
-**50 entries covering 49 distinct ids, 44 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**52 entries covering 51 distinct ids, 46 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
 
 **Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
 
@@ -974,6 +974,38 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **The answer is split, which is why it looked common.** GDPR Article 17 is titled "Right to erasure" and the regulation uses *erasure* and *erase* throughout, so the word is correct for the concept this feature implements. It is not what products put on controls: destructive-action guidance is consistently verb plus noun naming the object, with the consequence stated in the button itself rather than only in the body, because people in a hurry read the button and skip the prose
 - **Fix:** the menu item is `Delete permanently…`, the dialog is `Delete this candidate permanently`, the confirm button is `Delete permanently` and its busy state is `Deleting…`. The body copy still describes the erasure and the receipt, and `fn_erase_person`, `person_erasures`, `erased_by` and `erased_at` keep their names: the schema is where the legal term belongs
 - **Guard:** `erase-candidate.spec.ts` and `record-action-bar.spec.ts` updated to the new labels
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-049: three tests could only ever fail in CI, because CI has different data
+
+- **Found:** 2026-09-11, by Klent, after the third CI failure on this branch: *"ci still failed. why can we not capture this in local? we're wasting time here... this keeps happening multiple times already."*
+- **Module:** `tests/e2e/quick-search.spec.ts`, `tests/e2e/candidate-record.spec.ts`
+- **Severity:** **Medium.** No product defect. A process defect that cost three CI runs and the time to read each
+- **The cause is one thing, and it is not flakiness.** This checkout's local stack carries the **Zoho copy: 73,024 candidates, 690 requisitions**. CI runs the suite against `supabase db reset`: migrations, `seed.sql`, the four personas, nothing else, so a list there has single digits of rows. Three assertions were true only of a large database:
+- **Q14** polled for exactly **20** rows after clearing a search. CI: `Expected: 20 / Received: 8`
+- **Q10** typed the literal string `man` and waited for the suggestion pop. No seeded requisition contains it: `/recruit/requisitions offers no suggestions ... element(s) not found`
+- **C7** expected the cold-URL pager title `Next candidate by name`, and got `Next candidate`. Subtler than the other two: on a small database the C-series fixture is on **page one of the list**, so the URL the test "arrives cold" at is a history entry React Router restores siblings state from, and the pager then knows its position
+- **Why three CI runs and not one:** each time the specific assertion was repaired without naming the class. Running the browser suite locally was asked for and done, and it cannot reproduce any of this
+- **Fix:** Q14 records the unfiltered count before filtering and compares against that; Q10 takes its term from the first row the list is already showing and asserts it is at least `HINT_MIN_CHARS`; C7 opens the cold URL in `context.newPage()`, which has no history to restore from
+- **Prevention:** `scripts/ci-parity.sh` (snapshot, run, restore) pg_dumps the local database, resets it to CI's shape, runs the suite and puts the data back. CLAUDE.md's test-caveat list gains the rule: a test may not assume a row it did not create
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-050: the bulk bar's overflow menu was clipped by the animation that reveals the bar
+
+- **Found:** 2026-09-11, while moving four bulk buttons behind an `ActionMenu` at Klent's request
+- **Module:** `components/ui/ListPage.tsx`, `styles/layers/taleo.css`
+- **Severity:** **Medium.** The menu opened and could not be clicked
+- **Actual:** `.fo-page-head-grow-inner` is `overflow: hidden`, which is what makes the 0fr to 1fr grow read as a reveal rather than a jump. Any dropdown inside it is cut off at the bar's own height, and the click lands on whatever is underneath: `<div class="fo-pager"> ... intercepts pointer events`
+- **Fix:** the grow reports `transitionend` for `grid-template-rows` and sets `data-settled`, and `[data-settled='true'] > .fo-page-head-grow-inner` is `overflow: visible`. The clip is present for the whole animation and lifts only once the bar has finished growing, so the reveal is unchanged and the menu can leave the box
+- **Guard:** `bulk-actions.spec.ts` asserts opacity 0 and `overflow: hidden` while closed, opacity 1 and `overflow: visible` once open, that all four moved items are in the menu, and that the bar itself is at most three controls wide
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-11

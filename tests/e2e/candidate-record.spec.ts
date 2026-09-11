@@ -214,30 +214,32 @@ test.describe('C: paging and the date field', () => {
       'Previous returns to the record it came from',
     ).toHaveText(names[0]!.trim(), { timeout: 15000 });
 
-    await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
-    const cold = page.locator('.fo-record-pager');
+    const fresh = await page.context().newPage();
+    await gotoAsSignedIn(fresh, `/recruit/candidates/${person}`);
+    const cold = fresh.locator('.fo-record-pager');
     await expect(cold).toHaveCount(1);
     await expect(
       cold.getByRole('button', { name: 'Next candidate' }),
       'arriving by URL there are no siblings, so both directions fall back to a keyset query',
     ).toBeEnabled({ timeout: 15000 });
-    await expect(cold.getByRole('button', { name: 'Next candidate' })).toHaveAttribute(
-      'title',
-      'Next candidate by name',
-    );
+    await expect(
+      cold.getByRole('button', { name: 'Next candidate' }),
+      'a second page in the same context has no history entry for this URL, so React Router cannot restore the siblings state a goto would have brought back. On a small database the fixture is on page one of the list, which is how this passed locally and failed in CI',
+    ).toHaveAttribute('title', 'Next candidate by name');
     await expect(
       cold.locator('.fo-record-pager-pos'),
       'the position is unknown without a list, so it is not claimed',
     ).toHaveCount(0);
 
-    const before = await page.locator('.fo-page-head h1').innerText();
+    const before = await fresh.locator('.fo-page-head h1').innerText();
     await cold.getByRole('button', { name: 'Next candidate' }).click();
     await expect
-      .poll(async () => page.locator('.fo-page-head h1').innerText(), {
+      .poll(async () => fresh.locator('.fo-page-head h1').innerText(), {
         timeout: 15000,
         message: 'and it actually moves to another candidate',
       })
       .not.toBe(before);
+    await fresh.close();
   });
 
   test('C11: a menu option highlights exactly like a select option, on both records', async ({
