@@ -433,7 +433,8 @@ export function DealsListPage() {
         <div className="record-action-bar fo-list-action-bar">
           <PlaceholderAction
             label="Delete"
-            detail="Deleting deals in bulk arrives with the CRM cleanup work. Open a deal to close or archive it individually."
+            lead="Deleting deals in bulk is still in development."
+            detail="Open a deal to move it to Closed Won or Closed Lost, which is the intended end state. Nothing in the app archives or deletes a deal."
           />
         </div>
 

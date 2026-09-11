@@ -107,6 +107,7 @@ Four module-local `db.ts` shims used to work around that missing field. They wer
 - `components/ui/RecordPage.tsx` — `RecordSection` takes an optional `id`. Use it to scroll to a section; **do not** add an empty anchor `<div>` as a sibling, because a zero-height flex child costs two `gap` steps and shows up as a 32px hole
 - `pages/calendarData.ts` — range maths plus one read across `activities`, `tasks` and `reminders`, behind all six dashboard calendar views
 - `components/ui/SettingsDialog.tsx` — the `fo-dialog-*` shell both settings dialogs sit on. `SectionSettingsDialog` is per-staff accordion visibility **plus** a second column choosing which sections open on page load; `ColumnSettingsDialog` is drag-to-reorder plus show/hide, on `@dnd-kit/core` so it works on touch, with Arrow Up/Down on the grip for the keyboard. `SettingsButton` is the borderless sliders icon that opens any of them
+- `components/ui/SectionCollapse.tsx` — the maximize/minimize-all bus, and the thing that makes **printing** whole. `register(key, set, read, open)` takes a **reader** as well as a setter, because the provider's own `openByKey` is only reliable enough to label the button: collapsing every section can produce a full set of `report(key, false)` calls with no provider re-render, leaving that state claiming everything is open. On `beforeprint` the bus asks each section to `read()` its live value, `flushSync`es them all open, and `afterprint` restores the snapshot. `flushSync` is not optional: a section that has never been opened renders `{everOpened ? children : null}`, so without a synchronous flush the browser can snapshot the page before the children exist. `print.css` carries the other half, forcing `.record-section-collapse { grid-template-rows: 1fr }` and `.record-section-clip { overflow: visible }`, because the collapse height is an **inline style** and the clip is `overflow: hidden`
 - `components/ui/RecordSkeleton.tsx` — a record page's loading state: two head bars then collapsed-accordion shapes, `panel` for the white form wrapper. Both requisition pages use it; do not hand-roll a third
 - `components/ui/SegmentedToggle.tsx` — two or three segments with a sliding thumb. `label: ''` plus `title` gives an icon-only segment
 - `lib/listReturn.ts` — `useListLink()(to, siblings?)` carries the list URL **and optionally the current page's ordered ids** in router state; `useRecordSiblings(basePath, id)` turns that into `position`, `total`, `previousId`, `nextId` and a `go` that re-passes the same state, so paging works more than once. That is what makes the candidate record's **Next** real. A record reached by URL rather than from a list has no siblings, so the control disables itself with a reason
@@ -143,6 +144,8 @@ Bulk action buttons belong in `bulkBar` with `bulkBarOpen`, which grows `.fo-pag
 
 A control rendered in `ListPage`'s `actions` prop can open the filter rail through `useListPageFilters()` from `components/ui/ListPage.tsx`, which also focuses the first column checkbox on request. Before that context existed the two column gears could only tell the user where the picker was.
 
+**Nothing in the app writes to `people`.** Ten `from('people')` call sites, nine selects and one insert (`ContactNewPage.tsx:118`); zero updates or upserts. A candidate's or contact's `first_name`, `last_name`, `emails`, `phones`, `city`, `country` and the three profile URLs are readable, exportable, searchable through `candidate_list.search_text` and correctable by nobody, so a typo that arrived from Zoho is permanent from inside the product. It is not RLS: `people_update` is `using (public.can_write_person(id))`, which is true for any admin and, for a recruiter, any person with a `candidate_profiles` row. `saveProfile` in `useCandidateProfileDraft.ts` writes `candidate_profiles` only, which is why the candidate record's **Edit** button was removed on 2026-09-11: it opened a section and focused an input, it did not open an edit mode, and there was no mode to open. Logged as QA-042, still open.
+
 `app/src/App.tsx` is the whole route map. Everything below `/` renders inside `AppShell` behind `RequireAuth`; each module mount is additionally wrapped in `RequireAuth roles={[...]}`.
 
 | Mount | Module | Roles |
@@ -163,6 +166,8 @@ Each module is self-contained and all five now have the same shape: `index.tsx` 
 Screenshot-accurate controls that have no real FOOS behavior yet must route through `shell/Placeholder.tsx` (`usePlaceholder().show('Send To')` or `<PlaceholderAction label="Send To" />`), currently used in **17 files**, down from 18 on 2026-09-08 when Goal 10 gave every settings gear real behaviour. **No gear in the product opens a placeholder any more**; `show('…')` call sites went 11 to 7. Never substitute an `alert()`, a silent no-op handler, a fake success state, or a link to a nonexistent route.
 
 ### Styling
+
+**Stacking order is a named scale, not a number you pick.** Thirteen `--z-*` tokens in `tokens.css` carry the values that were already in use, so the whole order reads in one place: `--z-raise` 1, `--z-sticky` 2, `--z-page-toolbar` 8, `--z-action-bar` 10, `--z-menu` 40, `--z-overlay` 50, `--z-overlay-module` 60, `--z-toast` 70, `--z-dialog` 100, `--z-field-layer` 130, `--z-utility-hint` 300, `--z-recent-settings` 400, `--z-boot` 500. Naming them exposed a real inconsistency that has **not** been changed, because changing it is a visual decision: the four modal overlays sit at three different levels (`.rq-overlay` 50, `.intake-drawer-overlay` and `.sales-modal-overlay` 60, `.fo-dialog-overlay` and `.fo-placeholder-overlay` 100), and `.fo-action-menu` at 40 is **below** all of them, so an action menu can never open above a dialog. `.field-select-menu` and `.date-dialog-layer` at 130 are above everything on purpose, because a select inside a dialog has to escape it.
 
 `styles/tokens.css` holds the design tokens verbatim from the architecture doc and is the only file that defines custom properties. Everything else lives in **cascade layers**, and `styles/app.css` is now nothing but the layer order: fourteen `@import './layers/<name>.css' layer(<name>)` lines followed by one `@layer` statement that also declares the five `module.*` layers. Layer order is `base, shell, auth, controls, tables, pages, panels, narrow, taleo, states, pagination, motion, widgets, print`, then the modules.
 
@@ -201,11 +206,12 @@ The **visual audit harness is separate and not in the gate**: `tests/audit/visua
 
 **Corrected 2026-09-07:** the two suite counts above read 64 and 39 and had been stale for weeks, and "API/RLS tests" was itself a misnomer, because `tests/vitest.config.ts` includes `api/**`, `mocks/**` and `unit/**` and the unit directory is now the largest of the three. `validate.sql` also read 18 and then 35; it is **34**, because the gate counted `PASS` lines and check 15 prints two, while checks `5b` and `14b` carry letter suffixes so the numbered labels stop at 32.
 
-**The ten guard scripts**, all of which the gate runs:
+**The eleven guard scripts**, all of which the gate runs:
 
 | Script | What it fails on |
 |---|---|
 | `check-comments.mjs` | a comment in `.ts`, `.tsx`, `.js`, `.mjs` or `.css` |
+| `check-design-tokens.mjs` | a raw pixel in a spacing property, a raw `z-index`, or a raw colour in any stylesheet but `tokens.css`. Renamed from `check-spacing-tokens.mjs` on 2026-09-11 when it grew the second and third checks |
 | `check-contrast.mjs` | a token pair below its WCAG ratio; **35 pairs** |
 | `check-motion.mjs` | an animation over `MAX_MS = 220`, or a layout-shifting property; `--motion-spin` is exempt but must be on an `infinite` animation |
 | `check-css-layers.mjs` | an unlayered rule, or a layer file that is not imported |

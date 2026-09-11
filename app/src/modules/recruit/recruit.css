@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: var(--z-overlay);
   padding: var(--sp-2);
 }
 
@@ -15,7 +15,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  width: 440px;
+  width: var(--dialog-w);
   max-width: 100%;
   max-height: 90vh;
   display: flex;
@@ -47,6 +47,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+}
+
+.rq-dialog-body > * {
+  margin: 0;
 }
 
 .rq-dialog-foot {
@@ -322,7 +326,6 @@
   align-items: center;
   gap: var(--sp-1);
   flex-wrap: wrap;
-  margin-bottom: var(--sp-2);
 }
 
 .rq-pipeline-view {
@@ -668,5 +671,38 @@
   .panel-form {
     display: none;
   }
+}
+
+.cand-submit-dialog {
+  width: var(--dialog-w-wide);
+}
+
+.cand-submit-dialog .panel-stack {
+  gap: var(--sp-1-5);
+}
+
+.cand-submit-dialog .panel-item {
+  padding-bottom: var(--sp-1-5);
+}
+
+.cand-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+
+.cand-submit-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#requisition-summary .record-section-body {
+  gap: 0;
+}
+
+#requisition-summary .approver-line {
+  padding-block: var(--sp-1);
 }
 }

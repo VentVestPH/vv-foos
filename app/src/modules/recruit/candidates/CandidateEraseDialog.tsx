@@ -38,13 +38,13 @@ export function CandidateEraseDialog({ person, onClose, onErased }: CandidateEra
 
   return (
     <Dialog
-      title="Erase this candidate"
+      title="Delete this candidate permanently"
       onClose={onClose}
       footer={(close) => (
         <>
           <Button onClick={close}>Cancel</Button>
           <Button variant="danger" disabled={!ready || busy} onClick={() => void erase()}>
-            {busy ? 'Erasing…' : 'Erase permanently'}
+            {busy ? 'Deleting…' : 'Delete permanently'}
           </Button>
         </>
       )}

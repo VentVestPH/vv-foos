@@ -7,7 +7,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 2;
+  z-index: var(--z-sticky);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -47,6 +47,7 @@
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: var(--sp-1);
+  padding-top: var(--sp-2);
   scrollbar-width: thin;
   scrollbar-color: var(--fo-control-border) var(--fo-canvas);
 }
@@ -281,7 +282,7 @@
 
 .kanban-card.grabbed {
   outline: 2px solid var(--fo-primary);
-  outline-offset: 1px;
+  outline-offset: var(--hairline);
   box-shadow: var(--shadow-raised);
 }
 

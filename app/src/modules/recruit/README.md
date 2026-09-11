@@ -121,10 +121,48 @@ and marks that application viewed for the current staff user.
   state, so it keeps working across hops. Arrive by URL instead of from the list
   and there are no siblings, so Next disables itself and says why. Previous is the
   same two lines if it is ever wanted; only Next was asked for.
-- The candidate record's action bar was eight controls wide. It is now Edit, Send
-  Email, View Resume and Save profile, with Schedule meeting, Print Resume,
+- The candidate record's action bar was eight controls wide. It is now Save
+  profile, Send Email and View Resume, with Schedule meeting, Print Resume,
   Submit, Merge duplicate and Erase behind the icon-only `ActionMenu`, the same
   `label="More actions" iconOnly` shape the requisition record uses.
+- **There is no Edit button, and there is no edit mode.** The `candidate_profiles`
+  fields inside Candidate Information are live inputs the moment the section is
+  open, so Edit only expanded that section and focused its first input: a jump
+  link wearing the label of a state change. The larger reason it could not be an
+  edit button is that **nothing in the app writes to `people`** — a candidate's
+  name, emails, phones, address and LinkedIn URLs have no edit path anywhere, so
+  the majority of the record it appeared to unlock is read-only by omission, not
+  by permission. `canEditProfile` still gates every field it always gated.
+- **Submit is real, and it runs candidate-to-requisition.** `CandidateSubmitDialog`
+  searches `requisition_list` for open, waiting-approval and on-hold roles, then
+  either inserts an `applications` row at stage `submitted` or, when one already
+  exists, updates that row's stage. It has to branch: `applications` is
+  `unique (requisition_id, person_id)`, so a second submit is an update or a 23505.
+  The dialog shows the existing stage on the row and offers **Move to submitted**
+  instead of Submit. This is the mirror of `AddCandidateDialog`, which only ever
+  worked requisition-to-candidate and entered at stage `received`; a sourcer works
+  in the other direction. Nothing writes the audit trail by hand: migration 10's
+  triggers own the `status_change` activity, the `audit_log` row and the outbox event.
+- **Nothing resets the scroll position but `useScrollReset`.** The shell scrolls
+  inside `main#main-content`, not the document, so the browser's own scroll
+  handling never applies and, until 2026-09-11, opening a record from halfway down
+  a list rendered halfway down. A candidate opened from the requisition kanban was
+  the case Klent hit. The hook sets `scrollTop = 0` on every `location.key` change
+  and leaves hash navigations alone so in-page anchors still work.
+- **Print profile calls `window.print()`**, and the `SectionCollapse` bus does the
+  rest: every accordion is expanded synchronously on `beforeprint` and put back on
+  `afterprint`, so the document carries the whole record however the page was left.
+  That is all it ever needed to do.
+  `styles/layers/print.css` is 205 lines that already flatten a record page onto
+  paper, and until 2026-09-11 nothing invoked it. The old label was **Print Resume**,
+  which was wrong twice: it was a placeholder, and Taleo's control prints the
+  system-formatted profile rather than the uploaded file that View Resume downloads.
+- **The permanent delete is labelled "Delete permanently…", not "Erase".** GDPR
+  Article 17 calls the right "erasure", and the receipt and the function keep that
+  word (`fn_erase_person`, `person_erasures`), but no mainstream product puts
+  "Erase" on a button: destructive-action guidance is verb plus noun, stating the
+  consequence, and "Delete permanently" does both. The dialog body still explains
+  the erasure, because that is the legal concept being exercised.
 - **Requisition Details is gone.** It rendered the same `apps` array as Requisition
   Summary with the requisition link replaced by plain text; every other element
   was identical. Summary survives because it links.

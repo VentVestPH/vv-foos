@@ -335,8 +335,8 @@ input[type='checkbox']:disabled:indeterminate {
 
 .file-field-input {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: var(--hairline);
+  height: var(--hairline);
   margin: calc(-1 * var(--hairline));
   padding: 0;
   border: 0;
@@ -358,7 +358,7 @@ input[type='checkbox']:disabled:indeterminate {
 
 .file-field-input:focus-visible + .file-field-btn {
   outline: 2px solid var(--fo-ink);
-  outline-offset: 1px;
+  outline-offset: var(--hairline);
   box-shadow: 0 0 0 4px var(--fo-surface);
 }
 
@@ -469,7 +469,7 @@ input[type='number']::-webkit-outer-spin-button {
 
 .field-select-menu {
   position: fixed;
-  z-index: 130;
+  z-index: var(--z-field-layer);
   width: max-content;
   margin: 0;
   padding: 0;
@@ -562,7 +562,7 @@ input[type='number']::-webkit-outer-spin-button {
 .date-dialog-layer {
   position: fixed;
   inset: 0;
-  z-index: 130;
+  z-index: var(--z-field-layer);
   pointer-events: none;
 }
 
@@ -747,16 +747,16 @@ input[type='number']::-webkit-outer-spin-button {
 .fo-action-menu {
   position: absolute;
   left: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--sp-half));
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);
-  min-width: 220px;
-  max-height: 320px;
+  min-width: var(--menu-min-w);
+  max-height: var(--menu-max-h);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding: 0;
-  z-index: 40;
+  z-index: var(--z-menu);
   box-shadow: var(--shadow-raised);
 }
 
@@ -874,10 +874,10 @@ input[type='number']::-webkit-outer-spin-button {
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 60;
+  z-index: var(--z-overlay-module);
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);
-  box-shadow: 0 4px 6px rgba(32, 33, 36, 0.28);
+  box-shadow: var(--shadow-pop);
 }
 
 .fo-scroll-shade::before,
@@ -885,7 +885,7 @@ input[type='number']::-webkit-outer-spin-button {
   content: '';
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: var(--z-raise);
   display: block;
   flex: 0 0 var(--scroll-shade-size);
   width: 100%;
@@ -1098,7 +1098,7 @@ select:focus-visible {
 
 .fo-segmented button {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-raise);
   display: inline-flex;
   align-items: center;
   justify-content: center;

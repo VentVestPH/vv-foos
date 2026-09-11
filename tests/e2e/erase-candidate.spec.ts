@@ -32,10 +32,10 @@ test.describe('the erasure path a candidate can ask for', () => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.getByRole('button', { name: /^More/ }).first().click();
-    await page.getByRole('menuitem', { name: 'Erase…' }).click();
+    await page.getByRole('menuitem', { name: 'Delete permanently…' }).click();
 
-    const dialog = page.getByRole('dialog', { name: 'Erase this candidate' });
-    const confirm = dialog.getByRole('button', { name: 'Erase permanently' });
+    const dialog = page.getByRole('dialog', { name: 'Delete this candidate permanently' });
+    const confirm = dialog.getByRole('button', { name: 'Delete permanently', exact: true });
     await expect(confirm).toBeDisabled();
 
     await dialog.getByLabel('Why (recorded on the receipt)').fill(`${tag} asked to be removed`);
@@ -68,7 +68,7 @@ test.describe('the erasure path a candidate can ask for', () => {
       timeout: 25000,
     });
     await expect(
-      page.getByRole('menuitem', { name: 'Erase…' }),
+      page.getByRole('menuitem', { name: 'Delete permanently…' }),
       'a recruiter must not be offered erase, even inside the menu',
     ).toHaveCount(0);
   });

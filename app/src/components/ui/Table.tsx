@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Inbox } from 'lucide-react';
 import { EMPTY_CELL } from '../../lib/format';
 import { EmptyState } from './EmptyState';
+import { Skeleton } from './Skeleton';
 
 export interface TableColumn<T> {
   key: string;
@@ -306,7 +307,7 @@ export function Table<T>({
                 colSpan={visibleColumns.length + (selectable ? 1 : 0)}
               >
                 {busy === true ? (
-                  'Loading…'
+                  <Skeleton rows={5} label="Loading rows" />
                 ) : (
                   <EmptyState
                     compact

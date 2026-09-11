@@ -269,12 +269,14 @@ export function ContactsListPage() {
         <PlaceholderAction
           label="Send Email"
           size="sm"
-          detail="Open a contact record to send a real email. Sending to a whole selection arrives with the outreach work."
+          lead="Sending to a whole selection is still in development."
+          detail="Email itself works. Open a contact record and use Send Email there to send one now."
         />
         <PlaceholderAction
           label="Delete"
           size="sm"
-          detail="Deleting contacts in bulk arrives with the CRM cleanup work. Open a contact to archive it individually."
+          lead="Deleting contacts in bulk is still in development."
+          detail="There is no single-contact delete either, and nothing in the app archives a contact. Removing a person is a database job until the CRM cleanup work lands."
         />
       </div>
 

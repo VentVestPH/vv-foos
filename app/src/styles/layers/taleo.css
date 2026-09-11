@@ -21,7 +21,7 @@
 .fo-page-toolbar {
   position: sticky;
   top: calc(-1 * var(--shell-content-pad));
-  z-index: 8;
+  z-index: var(--z-page-toolbar);
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);
   border-top: 0;
@@ -330,7 +330,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-dialog);
 }
 
 .fo-placeholder-modal {
@@ -382,7 +382,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-dialog);
 }
 
 .fo-dialog-panel {

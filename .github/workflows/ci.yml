@@ -23,7 +23,7 @@ jobs:
       - run: node scripts/check-contrast.mjs
       - run: node scripts/check-motion.mjs
       - run: node scripts/check-css-layers.mjs
-      - run: node scripts/check-spacing-tokens.mjs
+      - run: node scripts/check-design-tokens.mjs
       - run: node scripts/check-icons.mjs
       - run: node scripts/check-unbounded-queries.mjs
       - run: node scripts/check-paged-order.mjs

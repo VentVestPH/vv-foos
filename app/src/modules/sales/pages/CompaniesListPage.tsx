@@ -292,7 +292,8 @@ export function CompaniesListPage() {
       <div className="record-action-bar fo-list-action-bar">
         <PlaceholderAction
           label="Delete"
-          detail="Deleting accounts in bulk arrives with the CRM cleanup work. Open an account to archive it individually."
+          lead="Deleting accounts in bulk is still in development."
+          detail="There is no single-account delete either, and nothing in the app archives an account. Removing one is a database job until the CRM cleanup work lands."
         />
       </div>
 

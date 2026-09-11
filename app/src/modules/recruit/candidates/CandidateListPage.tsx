@@ -585,9 +585,24 @@ export function CandidateListPage() {
             onDone={load}
             onClear={() => setSelected(new Set())}
           />
-          <PlaceholderAction label="View Resume" size="sm" />
-          <PlaceholderAction label="Print Resume" size="sm" />
-          <PlaceholderAction label="Submit" size="sm" />
+          <PlaceholderAction
+            label="View Resume"
+            size="sm"
+            lead="Opening resumes for a whole selection is still in development."
+            detail="Open a candidate and use View Resume there, or use the Resume column to see who has one on file."
+          />
+          <PlaceholderAction
+            label="Print profile"
+            size="sm"
+            lead="Printing a whole selection is still in development."
+            detail="Open a candidate and use Print profile there to print one."
+          />
+          <PlaceholderAction
+            label="Submit"
+            size="sm"
+            lead="Submitting a whole selection is still in development."
+            detail="Open a candidate and use Submit there to put one forward on a requisition."
+          />
           <PlaceholderAction label="More" size="sm" caret />
         </div>
       }

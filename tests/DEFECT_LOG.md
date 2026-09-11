@@ -16,7 +16,7 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 
 ## Tally, 2026-09-07
 
-**42 entries covering 41 distinct ids, 36 closed and 5 open**, one of those four narrowed to a part nobody here can finish. Counted 2026-09-10 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**50 entries covering 49 distinct ids, 44 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
 
 **Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
 
@@ -29,6 +29,7 @@ What is still open, and why:
 | QA-008 | Three of the four committed success metrics have no instrumentation | Klent parked the PM metrics. Plan item E1 |
 | QA-026 | The candidate CSV export produced one completely empty file in four gate passes | Never reproduced since, and the cause is not established. Not closed on the strength of it not happening again |
 | QA-035 | The pager's `1 / 3652` reads as a record count next to `1-20 of 73024` | Not a data defect; nothing is missing. Waiting on Klent to pick between labelling the page number and removing it |
+| QA-042 | No field of `people` is editable anywhere in the product | Not a permissions gap: `people_update` grants the write and nothing calls it. Adding the surface changes what the candidate record does, so it is Klent's to schedule |
 
 **Closed 2026-09-07 after being verified rather than assumed:** QA-002, QA-004, QA-007, QA-014, QA-017, QA-018, QA-019, QA-020, QA-021 and QA-022, which is ten in a day. The last three were found by the gate rather than by reading, and QA-020, the kanban board being a scrollable region no keyboard can reach, is a product defect that git shows has been shipping since **54ce896**. The first three had already been fixed and this log had simply not been updated, which is its own kind of wrong: a log that says "open" about something that works sends the next reader to fix it twice. Each closure below carries the query or the file that proves it.
 
@@ -855,3 +856,124 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-10
+
+---
+
+### QA-041: the Edit button was a jump link wearing the label of a mode
+
+- **Found:** 2026-09-11, by Klent: *"what's the point of edit button if i can already edit it anyway? should we just remove the edit button?"*
+- **Module:** `modules/recruit/candidates/CandidateRecordPage.tsx`
+- **Severity:** **Low**
+- **Actual:** `startEditing` expanded `#candidate-information` if it was collapsed and focused the first enabled control in `.info-form-grid`. It changed no state. Every field it reached was already editable, on every visit, for anyone `canEditProfile` allowed. So the control offered a transition into an editing state the page does not have, and a person who had the section open and the cursor in a field had already done everything pressing it would do
+- **Fix:** the button and `startEditing` deleted. The bar is now Save profile, Send Email, View Resume and the `More actions` menu. `canEditProfile` is untouched and still gates all 15 controls it gated before
+- **Guard:** `candidate-record.spec.ts` C10, rewritten from *"Edit opens the editable fields and puts the cursor in one"* to assert the button is absent from `.record-action-bar` and that the profile fields are live without it
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-042: no field of `people` is editable anywhere in the product
+
+- **Found:** 2026-09-11, while answering QA-041. Klent did not report this; it is what the Edit button was standing in front of
+- **Module:** application-wide. It reads as a candidate defect because that is where it was noticed, but `people` is shared: a **contact's** name, emails and phones are equally uneditable on `/sales/contacts/<id>`
+- **Severity:** **Medium**
+- **Actual:** there are **10** `from('people')` call sites in `app/src`. Nine are selects; the tenth is the insert in `ContactNewPage.tsx:118`. `grep -rn "from('people')" app/src | grep -iE "update|upsert"` returns **nothing**, so a `people` row can be created and then never amended, and only the contact form can create one. The only writer of a candidate's own record is `saveProfile` in `useCandidateProfileDraft.ts`, and it writes `candidate_profiles` alone. So `first_name`, `middle_name`, `last_name`, `emails`, `phones`, `city`, `country`, `linkedin_public_url`, `linkedin_recruiter_url` and `online_resume_url` are readable on the record, exported to CSV, searched over by `candidate_list.search_text`, and correctable by no one. A typo imported from Zoho is permanent from inside the app
+- **Not a permissions gap:** `people_update` exists (`20260711000011_rls.sql:135`) and is `using (public.can_write_person(id))`, which returns true for any admin and, for a recruiter, for any person who has a `candidate_profiles` row. Every candidate on this list is therefore writable by the roles that open the page. Nothing calls it. This is a missing surface, not a denied one
+- **Why it matters more than it looks:** 73,023 of these rows arrived by import, `parsePartialDate` guessed a year on every `Initial Date` that had none, and `backfill-zoho-candidate-fields.mjs` exists precisely because imported fields needed repair. The repair path is a script run by an engineer
+- **Status:** **open.** The fix is an editable Name/Contact/Location group writing `people`, which is a change to what the page does rather than to how it looks, so it is Klent's to schedule
+- **Fix owner:** unassigned
+
+---
+
+### QA-043: placeholders told users a shipped feature was unbuilt, and pointed at one that never existed
+
+- **Found:** 2026-09-11, by Klent: *"why for candidates without resumes, it says View Resume is still in development. that doesn't make a lot of sense"*, then *"any other modals that have that message but is actually already working?"*
+- **Module:** `shell/Placeholder.tsx` and five call sites
+- **Severity:** **Medium.** Nothing breaks, but the product misreports its own state, and two of the six cases send a person looking for a control that is not there
+- **The mechanism:** the modal's lead line was hardcoded `{action} is still in development.` A call site could pass a `detail` saying something truer, but the false headline sat above it and was the sentence people read
+- **Actual, case 1 (the one Klent hit):** the candidate record rendered `<PlaceholderAction label="View Resume">` whenever `resumes.length === 0`. `viewResume()` is real and works. The candidate simply had no resume on file, which is a data state. The detail line already said "Upload a resume…", so the honest message was present and overridden
+- **Actual, case 2:** four bulk controls where the singular ships and only the selection version is unbuilt: `CandidateListPage` View Resume, Print Resume and Submit, and `ContactsListPage` Send Email. "Send Email is still in development" is false in an app that sends email from every contact and candidate record
+- **Actual, case 3, the worst one:** the bulk Delete placeholders on companies, contacts and deals all read "Open a *X* to archive it individually." **`grep -rni archive app/src/modules/sales` matches nothing but those three strings.** There is no archive control, no `is_archived` column and no `archived_at` column anywhere in the schema. The advice described a feature that has never existed
+- **Fix:** `show()` and `PlaceholderAction` take an optional `lead`, so a placeholder can name what is actually missing. View Resume is no longer a placeholder at all: it is a disabled `Button` with `title="No resume on file…"`, matching the pattern Send Email already used for do-not-contact. The four bulk controls now lead with "…for a whole selection is still in development." and point at the record that can do it. The three archive sentences are replaced with what is true: a deal closes to Closed Won or Closed Lost, and nothing archives or deletes a contact or an account
+- **Guard:** `candidate-record.spec.ts` C16 asserts View Resume is disabled with that title and that no placeholder modal opens
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-044: Print Resume was a placeholder sitting on top of a finished print stylesheet
+
+- **Found:** 2026-09-11, by Klent: *"why need to print resume if you can already download it? unless it is autogenerated by the system? the reusme it means is the candidate profile"*
+- **Module:** `modules/recruit/candidates/CandidateRecordPage.tsx`, `styles/layers/print.css`
+- **Severity:** **Low**
+- **Klent's reading is the correct one.** Taleo's Print Resume does not print the uploaded file; it prints the system-formatted candidate profile, which is the document a recruiter sends a client. The label pointed at the attachment that View Resume already downloads, so as written it was both a placeholder and a duplicate
+- **Actual:** `onSelect: () => show('Print Resume')`, while `styles/layers/print.css` is **205 lines** that already strip the utility header, primary nav, sidebar, bookmark bar, toolbar, action bar, pager, segmented controls, action menu and chevrons, then flatten `.record-section` and `.fo-page-head` onto paper. Nothing in the app called `window.print()`
+- **Fix:** relabelled **Print profile** and wired to `window.print()`. One line, and the stylesheet that was written for it finally runs
+- **Guard:** `candidate-record.spec.ts` C17 stubs `window.print` through `addInitScript`, asserts the old `Print Resume` menu item is gone and that the new one calls print exactly once
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-045: printing a record printed whatever was collapsed on screen
+
+- **Found:** 2026-09-11, by Klent: *"if all accordions is closed, the print also shows closed. i want every single accordion and its detials in the print"*
+- **Module:** `components/ui/SectionCollapse.tsx`, `components/ui/RecordPage.tsx`, `styles/layers/print.css`
+- **Severity:** **Medium.** The printed document silently omitted content, and the omission depended on how the reader had left the page
+- **There was already a `beforeprint` listener calling `setAll(true)`, and it did not work, for three separate reasons:**
+- **One:** a section that has never been opened renders `{everOpened ? children : null}`, so its body is empty in the DOM. Opening it during `beforeprint` is a React state update, which is asynchronous, so the browser could snapshot the page before the children existed. `flushSync` is the fix
+- **Two:** `.record-section-collapse` is a grid whose `grid-template-rows` is set as an **inline style**, and `.record-section-clip` is `overflow: hidden`. `print.css` overrode neither, so even a mounted section stayed clipped to `0px`. Two `!important` rules in the print layer now force `1fr` and `visible`
+- **Three, the one that took the longest to find:** the snapshot taken so the sections could be restored after printing read the provider's `openByKey` state, and that state was **stale**. Collapsing all 15 sections produced 15 `report(key, false)` calls and **no provider re-render**, so `openByKey` still said every section was open while the DOM showed every one closed. Restoring from it was a no-op. The fix does not depend on that state at all: `register` now takes a `read: () => boolean` alongside the setter, and the print snapshot asks each section for its own live value. `openByKey` keeps its one honest job, labelling the maximize/minimize button
+- **Fix:** `beforeprint` reads each section's live state, `flushSync`es every section open, and `afterprint` restores the snapshot the same way, so printing no longer leaves the page rearranged
+- **Also:** the snapshot is taken by `prepareForPrint()`, which both print buttons call **before** the settle-poll, and `beforeprint` only snapshots when one is not already pending. Without that, a button that expands first would have `beforeprint` snapshot the expanded state and `afterprint` restore nothing, which is exactly what Klent asked for when he said *"i want the accordion getting back to it's original state if i close print"*. Chrome fires `afterprint` on cancel as well as on print, so closing the preview restores either way
+- **Guard:** `candidate-record.spec.ts` C20 collapses all 15 sections, dispatches `beforeprint`, and asserts all 15 are open with non-empty bodies, then dispatches `afterprint` and asserts all 15 are closed again. It also allows the one section that legitimately renders nothing: `SidePanelTabs` returns null when every tab count is 0, so an untouched Contact Log is absent rather than empty
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-046: opening a candidate fired four queries comparing a uuid with an empty string
+
+- **Found:** 2026-09-11, while investigating why Recently Viewed appeared to reset. Not the cause of that, but four rejected requests on every candidate record open
+- **Module:** `modules/recruit/components/engagement.tsx`, called from `CandidateRecordPage.tsx:110`
+- **Severity:** **Low**
+- **Actual:** `useEngagement('application', viewedApplicationId ?? '')` passes an empty string whenever no application is being viewed, which is the default. `refresh()` then issued four reads with `eq.` and no value, and Postgres rejected each: `{"code":"22P02","message":"invalid input syntax for type uuid: \"\""}` on `activities?application_id=eq.`, `tasks?related_id=eq.`, `reminders?related_id=eq.` and `attachments?parent_id=eq.`
+- **Fix:** `refresh()` returns early with empty state when `parentId` is falsy
+- **Evidence:** a probe recording every 4xx on `/rest/v1/` while opening a candidate returned four entries before the fix and `BAD []` after
+- **Guard:** `candidate-record.spec.ts` C22 records every 4xx REST response while opening a candidate and asserts the list is empty
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-047: nothing reset the scroll position, so a record opened from a scrolled list rendered scrolled
+
+- **Found:** 2026-09-11, by Klent: *"clicking a candidate in kanban of requisition/<id> redirects user to that candidate, but not the top. why?"*
+- **Module:** `shell/AppShell.tsx`, new `shell/useScrollReset.ts`
+- **Severity:** **Medium**
+- **Why it was never noticed as a general bug:** the shell scrolls inside `main#main-content` (`.shell-content { overflow: auto }`), not the document, so the browser's own per-navigation scroll handling never applied, and `grep -rn "scrollTo\|ScrollToTop\|scrollTop = 0" app/src/shell app/src/App.tsx app/src/components` returned **one** unrelated match in `useStickyFocusGuard`. There was no scroll reset anywhere in the app. It only reads as a kanban bug because the kanban is the thing people click from far down a tall page
+- **Fix:** `useScrollReset()` in `AppShell`, setting `scrollTop = 0` on every `location.key` change, skipping hash navigations so in-page anchors keep working
+- **Rejected, and why it matters:** restoring the previous offset on Back. Built and abandoned. The list clamps its own scroll height while data loads, so a continuous scroll listener records the clamped value rather than where the reader was, and the restore landed at **1px** instead of 700 across several attempts (filtering clamped values and widening the retry window to 3s did not fix it). A restore that works sometimes is worse than a reset that always works, so Back now lands at the top like every other navigation. Worth revisiting only with a real scroll-anchoring approach
+- **Guard:** `tests/e2e/scroll-reset.spec.ts` S1 opens a record from a list scrolled to 600px, S2 does the same from the requisition kanban with its own seeded requisition, person and application, S3 asserts a hash navigation is left alone
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-048: "Erase" is a legal term, not a button label
+
+- **Found:** 2026-09-11, by Klent: *"the erase message doesn't seem to be common. search the web for a better replacement. if it is comment, let's retain erase label."*
+- **Module:** `modules/recruit/candidates/CandidateEraseDialog.tsx`, `CandidateRecordPage.tsx`
+- **Severity:** **Low**
+- **The answer is split, which is why it looked common.** GDPR Article 17 is titled "Right to erasure" and the regulation uses *erasure* and *erase* throughout, so the word is correct for the concept this feature implements. It is not what products put on controls: destructive-action guidance is consistently verb plus noun naming the object, with the consequence stated in the button itself rather than only in the body, because people in a hurry read the button and skip the prose
+- **Fix:** the menu item is `Delete permanently…`, the dialog is `Delete this candidate permanently`, the confirm button is `Delete permanently` and its busy state is `Deleting…`. The body copy still describes the erasure and the receipt, and `fn_erase_person`, `person_erasures`, `erased_by` and `erased_at` keep their names: the schema is where the legal term belongs
+- **Guard:** `erase-candidate.spec.ts` and `record-action-bar.spec.ts` updated to the new labels
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11

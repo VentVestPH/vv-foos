@@ -178,7 +178,7 @@ export function UtilityHeader() {
               data-closing={help.closing ? 'true' : undefined}
               role="menu"
             >
-              <div className="fo-utility-menu-item is-placeholder" style={{ cursor: 'default' }}>
+              <div className="fo-utility-menu-item is-placeholder">
                 Signed in as {staff?.full_name ?? 'Account'}
               </div>
               <button

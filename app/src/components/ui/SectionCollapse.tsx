@@ -8,14 +8,22 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { flushSync } from 'react-dom';
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 
 type Setter = (open: boolean) => void;
+type Reader = () => boolean;
+
+interface Section {
+  set: Setter;
+  read: Reader;
+}
 
 interface SectionCollapseValue {
-  register: (key: string, setter: Setter, open: boolean) => () => void;
+  register: (key: string, setter: Setter, read: Reader) => () => void;
   report: (key: string, open: boolean) => void;
   setAll: (open: boolean) => void;
+  prepareForPrint: () => void;
 }
 
 interface SectionCollapseState {
@@ -30,12 +38,12 @@ const SectionCollapseStateContext = createContext<SectionCollapseState>({
 });
 
 export function SectionCollapseProvider({ children }: { children: ReactNode }) {
-  const setters = useRef(new Map<string, Setter>());
+  const setters = useRef(new Map<string, Section>());
   const [openByKey, setOpenByKey] = useState<Record<string, boolean>>({});
 
-  const register = useCallback((key: string, setter: Setter, open: boolean) => {
-    setters.current.set(key, setter);
-    setOpenByKey((prev) => ({ ...prev, [key]: open }));
+  const register = useCallback((key: string, setter: Setter, read: Reader) => {
+    setters.current.set(key, { set: setter, read });
+    setOpenByKey((prev) => ({ ...prev, [key]: read() }));
     return () => {
       setters.current.delete(key);
       setOpenByKey((prev) => {
@@ -52,19 +60,44 @@ export function SectionCollapseProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setAll = useCallback((open: boolean) => {
-    for (const setter of setters.current.values()) setter(open);
+    for (const section of setters.current.values()) section.set(open);
   }, []);
 
+  const beforePrint = useRef<Record<string, boolean> | null>(null);
+
+  const prepareForPrint = useCallback(() => {
+    if (beforePrint.current === null) {
+      const snapshot: Record<string, boolean> = {};
+      for (const [key, section] of setters.current.entries()) snapshot[key] = section.read();
+      beforePrint.current = snapshot;
+    }
+    flushSync(() => setAll(true));
+  }, [setAll]);
+
   const api = useMemo<SectionCollapseValue>(
-    () => ({ register, report, setAll }),
-    [register, report, setAll],
+    () => ({ register, report, setAll, prepareForPrint }),
+    [register, report, setAll, prepareForPrint],
   );
 
   useEffect(() => {
-    const expand = () => setAll(true);
-    window.addEventListener('beforeprint', expand);
-    return () => window.removeEventListener('beforeprint', expand);
-  }, [setAll]);
+    const restore = () => {
+      const snapshot = beforePrint.current;
+      beforePrint.current = null;
+      if (!snapshot) return;
+      flushSync(() => {
+        for (const [key, section] of setters.current.entries()) {
+          const was = snapshot[key];
+          if (was !== undefined) section.set(was);
+        }
+      });
+    };
+    window.addEventListener('beforeprint', prepareForPrint);
+    window.addEventListener('afterprint', restore);
+    return () => {
+      window.removeEventListener('beforeprint', prepareForPrint);
+      window.removeEventListener('afterprint', restore);
+    };
+  }, [prepareForPrint]);
 
   const state = useMemo<SectionCollapseState>(() => {
     const keys = Object.keys(openByKey);

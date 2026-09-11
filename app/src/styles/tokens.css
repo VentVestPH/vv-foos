@@ -58,6 +58,7 @@
   --tint-on-dark: rgba(255, 255, 255, 0.12);
   --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.15);
   --shadow-overlay: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 4px 6px rgba(32, 33, 36, 0.28);
 
   --motion-instant: 90ms;
   --motion-quick: 140ms;
@@ -97,6 +98,30 @@
 
   --radius: var(--fo-radius);
   --radius-pill: 999px;
+  --z-raise: 1;
+  --z-sticky: 2;
+  --z-page-toolbar: 8;
+  --z-action-bar: 10;
+  --z-menu: 40;
+  --z-overlay: 50;
+  --z-overlay-module: 60;
+  --z-toast: 70;
+  --z-dialog: 100;
+  --z-field-layer: 130;
+  --z-utility-hint: 300;
+  --z-recent-settings: 400;
+  --z-boot: 500;
+  --print-ink: #000000;
+  --print-ink-soft: #333333;
+  --print-ink-muted: #555555;
+  --print-paper: #ffffff;
+  --print-rule: #999999;
+  --print-rule-soft: #cccccc;
+  --print-border: #777777;
+  --menu-min-w: 220px;
+  --menu-max-h: 320px;
+  --dialog-w: 440px;
+  --dialog-w-wide: 500px;
   --shadow: none;
 
   --font: var(--fo-font);

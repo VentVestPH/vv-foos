@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { IdleSignOut } from '../auth/IdleSignOut';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { SectionCollapseProvider } from '../components/ui/SectionCollapse';
+import { useScrollReset } from './useScrollReset';
 import { UtilityHeader } from './UtilityHeader';
 import { PrimaryNav } from './PrimaryNav';
 import { ShellSidebar } from './ShellSidebar';
@@ -11,6 +12,7 @@ import { useStickyFocusGuard } from './useStickyFocusGuard';
 
 export function AppShell() {
   useStickyFocusGuard();
+  useScrollReset();
   const location = useLocation();
 
   return (

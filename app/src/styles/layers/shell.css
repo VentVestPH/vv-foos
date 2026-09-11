@@ -42,7 +42,7 @@
 }
 
 .fo-utility-search .fo-hint-pop {
-  z-index: 300;
+  z-index: var(--z-utility-hint);
 }
 
 .fo-searchbox-submit {
@@ -141,16 +141,16 @@
 .fo-utility-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--sp-half));
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);
-  min-width: 220px;
-  max-height: 320px;
+  min-width: var(--menu-min-w);
+  max-height: var(--menu-max-h);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding: 0;
-  z-index: 40;
+  z-index: var(--z-menu);
   box-shadow: var(--shadow-raised);
 }
 
@@ -173,6 +173,10 @@
   color: var(--fo-text);
   padding: var(--sp-1) var(--sp-2);
   cursor: pointer;
+}
+
+.fo-utility-menu-item.is-placeholder {
+  cursor: default;
 }
 
 .fo-utility-menu-item:hover {
@@ -215,7 +219,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  z-index: 2;
+  z-index: var(--z-sticky);
   width: 28px;
   display: none;
   align-items: center;
@@ -428,7 +432,7 @@
 .fo-recent-list {
   display: flex;
   flex-direction: column;
-  max-height: 320px;
+  max-height: var(--menu-max-h);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -519,7 +523,7 @@
 
 .fo-recent-settings {
   position: fixed;
-  z-index: 400;
+  z-index: var(--z-recent-settings);
   width: 176px;
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);

@@ -3,7 +3,9 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useListReturnHref, useRecordSiblings } from '../../../lib/listReturn';
 import { candidateNeighbours, type CandidateNeighbours } from './candidateSiblings';
 import { RecordPager } from '../../../components/ui/RecordPager';
+import { RecordSkeleton } from '../../../components/ui/RecordSkeleton';
 import { SectionSettingsDialog } from '../../../components/ui/SectionSettingsDialog';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { useSectionPrefs } from '../../../hooks/useSectionPrefs';
 
@@ -40,7 +42,6 @@ import { StatusHistory } from '../../../components/ui/StatusHistory';
 import { Timeline } from '../../../components/ui/Timeline';
 import { SidePanelTabs } from '../../../components/ui/SidePanelTabs';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
-import { PlaceholderAction, usePlaceholder } from '../../../shell/Placeholder';
 import {
   Briefcase as BriefcaseIcon,
   ExternalLink as ExternalLinkIcon,
@@ -68,6 +69,8 @@ import { EMPTY_CELL } from '../../../lib/format';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
 import { CandidateEraseDialog } from './CandidateEraseDialog';
 import { CandidateMergeDialog } from './CandidateMergeDialog';
+import { CandidateSubmitDialog } from './CandidateSubmitDialog';
+import { usePrintRecord } from '../../../hooks/usePrintRecord';
 import { CandidateOutreachDialogs } from './CandidateOutreachDialogs';
 import { useCandidateOutreach } from './useCandidateOutreach';
 import { toDraft, useCandidateProfileDraft } from './useCandidateProfileDraft';
@@ -83,7 +86,6 @@ export function CandidateRecordPage() {
   const mobile = useIsMobile();
   const lookups = useLookups();
   const { record } = useRecentlyViewed();
-  const { show } = usePlaceholder();
   const siblings = useRecordSiblings('/recruit/candidates', personId);
   const prefs = useSectionPrefs('recruit.candidate.record');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -100,6 +102,7 @@ export function CandidateRecordPage() {
   const [reqs, setReqs] = useState<Requisition[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useMinimumVisible(!loaded);
 
   const engagement = useEngagement('person', personId);
   const viewedApplicationId = params.get('application');
@@ -107,6 +110,8 @@ export function CandidateRecordPage() {
   const outreach = useCandidateOutreach(personId, person, engagement.refresh);
 
   const [merging, setMerging] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const printProfile = usePrintRecord();
   const [erasing, setErasing] = useState(false);
   const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const reload = useCallback(() => loadRef.current(), []);
@@ -218,21 +223,12 @@ export function CandidateRecordPage() {
   const previousId = siblings.previousId ?? byName.previousId;
   const nextId = siblings.nextId ?? byName.nextId;
 
-  const startEditing = useCallback(() => {
-    const section = document.getElementById('candidate-information');
-    if (!section) return;
-    const header = section.querySelector<HTMLButtonElement>('.record-section-header');
-    if (header?.getAttribute('aria-expanded') === 'false') header.click();
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const first = section.querySelector<HTMLElement>(
-          '.info-form-grid input:not([disabled]), .info-form-grid textarea:not([disabled])',
-        );
-        if (first) first.focus();
-        else section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    });
-  }, []);
+
+  if (showSkeleton) {
+    return (
+      <RecordSkeleton label="Loading candidate" sections={CAND_RECORD_SECTIONS.length} />
+    );
+  }
 
   if (!person) {
     if (error) {
@@ -246,7 +242,7 @@ export function CandidateRecordPage() {
         </div>
       );
     }
-    return <p className="text-secondary">Loading…</p>;
+    return null;
   }
 
   const activities = engagement.activities;
@@ -316,8 +312,19 @@ export function CandidateRecordPage() {
       disabled: dnc || personEmails(person).length === 0,
       ...(emailDisabledTitle ? { title: emailDisabledTitle } : {}),
     },
-    { label: 'Print Resume', onSelect: () => show('Print Resume') },
-    { label: 'Submit', onSelect: () => show('Submit') },
+    {
+      label: 'Print profile',
+      onSelect: printProfile,
+      title: 'Print this record as a candidate profile',
+    },
+    {
+      label: 'Submit',
+      onSelect: () => setSubmitting(true),
+      disabled: !canEditProfile,
+      title: canEditProfile
+        ? 'Put this candidate forward on a requisition'
+        : 'Only an admin or a recruiter can submit a candidate',
+    },
     {
       label: 'Merge duplicate…',
       onSelect: () => setMerging(true),
@@ -329,10 +336,10 @@ export function CandidateRecordPage() {
     ...(role === 'admin'
       ? [
           {
-            label: 'Erase…',
+            label: 'Delete permanently…',
             onSelect: () => setErasing(true),
             destructive: true,
-            title: 'Erase this candidate and everything attached to them',
+            title: 'Delete this candidate and everything attached to them, with no way back',
           },
         ]
       : []),
@@ -347,35 +354,24 @@ export function CandidateRecordPage() {
       )}
       <Button
         size="sm"
-        disabled={!canEditProfile}
-        title={
-          canEditProfile
-            ? 'Open Candidate Information and start editing'
-            : 'You do not have edit rights for this candidate'
-        }
-        onClick={startEditing}
-      >
-        Edit
-      </Button>
-      <Button
-        size="sm"
         disabled={dnc || personEmails(person).length === 0}
         title={emailDisabledTitle}
         onClick={outreach.openSendEmail}
       >
         Send Email
       </Button>
-      {resumes.length > 0 ? (
-        <Button size="sm" onClick={() => void viewResume()}>
-          View Resume
-        </Button>
-      ) : (
-        <PlaceholderAction
-          label="View Resume"
-          size="sm"
-          detail="Upload a resume in the Attachments section and it will open from here."
-        />
-      )}
+      <Button
+        size="sm"
+        disabled={resumes.length === 0}
+        title={
+          resumes.length === 0
+            ? 'No resume on file. Upload one in the Resumes section and it will open from here'
+            : undefined
+        }
+        onClick={() => void viewResume()}
+      >
+        View Resume
+      </Button>
       <ActionMenu label="More actions" items={overflowItems} iconOnly />
       {saved && <span className="text-secondary">Saved.</span>}
     </>
@@ -454,7 +450,7 @@ export function CandidateRecordPage() {
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
 
-      <RecordSection title="Requisition Summary" hidden={prefs.isHidden("Requisition Summary")} defaultOpen={opensOnLoad("Requisition Summary")}>
+      <RecordSection title="Requisition Summary" id="requisition-summary" hidden={prefs.isHidden("Requisition Summary")} defaultOpen={opensOnLoad("Requisition Summary")}>
         {apps.length === 0 && (
           <EmptyState
             compact
@@ -1191,6 +1187,14 @@ export function CandidateRecordPage() {
           prefs={prefs}
           defaultOpenFor={(section) => CAND_SECTION_DEFAULT_OPEN[section] ?? true}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {submitting && (
+        <CandidateSubmitDialog
+          person={person}
+          onClose={() => setSubmitting(false)}
+          onSubmitted={load}
         />
       )}
 

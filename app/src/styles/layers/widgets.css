@@ -10,8 +10,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 1px;
-  height: 1px;
+  width: var(--hairline);
+  height: var(--hairline);
   margin: calc(-1 * var(--hairline));
   padding: 0;
   overflow: hidden;
@@ -220,7 +220,7 @@
   position: absolute;
   left: var(--sp-1);
   top: -100px;
-  z-index: 100;
+  z-index: var(--z-dialog);
   padding: var(--sp-1) var(--sp-2);
   background: var(--surface);
   color: var(--fo-link);

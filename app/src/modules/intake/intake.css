@@ -29,7 +29,7 @@
   background: var(--scrim);
   display: flex;
   justify-content: flex-end;
-  z-index: 60;
+  z-index: var(--z-overlay-module);
 }
 
 .intake-drawer.fo-record-overlay {

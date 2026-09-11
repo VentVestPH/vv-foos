@@ -42,6 +42,14 @@ export function useEngagement(parentType: EngagementParentType, parentId: string
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!parentId) {
+      setActivities([]);
+      setTasks([]);
+      setReminders([]);
+      setAttachments([]);
+      setError(null);
+      return;
+    }
     try {
       const activityCol =
         parentType === 'person'
