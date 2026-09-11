@@ -6,25 +6,8 @@ const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 let requisition = '';
 let seededPerson = '';
 
-const FILLER = 24;
-
 test.beforeAll(async () => {
   const admin = await clientAs('admin');
-  const filler = await admin
-    .from('people')
-    .insert(
-      Array.from({ length: FILLER }, (_, i) => ({
-        first_name: `Srfill${RUN}`,
-        last_name: `Row${String(i).padStart(2, '0')}`,
-        is_test: true,
-      })),
-    )
-    .select('id');
-  if (filler.error) throw filler.error;
-  const profiles = await admin
-    .from('candidate_profiles')
-    .insert(filler.data.map((row) => ({ person_id: row.id, do_not_contact: false })));
-  if (profiles.error) throw profiles.error;
   const req = await admin
     .from('requisitions')
     .insert({ title: `Srreq${RUN}`, status: 'open', num_openings: 1, is_test: true })
@@ -51,15 +34,6 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   const admin = await clientAs('admin');
-  const { data: filler } = await admin
-    .from('people')
-    .select('id')
-    .eq('first_name', `Srfill${RUN}`);
-  const fillerIds = (filler ?? []).map((row) => row.id);
-  if (fillerIds.length > 0) {
-    await admin.from('candidate_profiles').delete().in('person_id', fillerIds);
-    await admin.from('people').delete().in('id', fillerIds);
-  }
   await admin.from('applications').delete().eq('requisition_id', requisition);
   await admin.from('candidate_profiles').delete().eq('person_id', seededPerson);
   await admin.from('people').delete().eq('id', seededPerson);
@@ -69,11 +43,6 @@ test.afterAll(async () => {
 
 const SCROLLER = '#main-content';
 
-async function scrollTo(page: import('@playwright/test').Page, top: number): Promise<void> {
-  await page.locator(SCROLLER).evaluate((el, y) => {
-    el.scrollTop = y;
-  }, top);
-}
 
 async function offset(page: import('@playwright/test').Page): Promise<number> {
   return page.locator(SCROLLER).evaluate((el) => el.scrollTop);
@@ -87,15 +56,16 @@ async function scrollToBottom(page: import('@playwright/test').Page): Promise<nu
 }
 
 test('S1: opening a record from a scrolled list lands at the top', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 400 });
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, '/recruit/candidates');
   await page.waitForSelector('.table-wrap .link-btn');
   expect(
     await page.locator(SCROLLER).evaluate((el) => el.scrollHeight - el.clientHeight),
-    `the list has to be taller than the viewport for this to mean anything, which is why ${FILLER} candidates are seeded rather than trusting whatever the database happens to hold`,
-  ).toBeGreaterThan(200);
-  await scrollTo(page, 600);
-  await expect.poll(() => offset(page), { timeout: 10000 }).toBeGreaterThan(100);
+    'the list has to overflow for this to mean anything. A short viewport does that without seeding rows: seeding candidates perturbs every other spec that counts them, which is how quick-search Q14 went red',
+  ).toBeGreaterThan(100);
+  const start = await scrollToBottom(page);
+  expect(start).toBeGreaterThan(50);
 
   await page.locator('.table-wrap .link-btn').first().click();
   await expect(page).toHaveURL(/\/recruit\/candidates\/[0-9a-f-]{36}/);

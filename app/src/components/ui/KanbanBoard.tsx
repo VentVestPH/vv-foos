@@ -269,6 +269,7 @@ export function KanbanBoard({
           className="kanban"
           role="group"
           aria-label="Stage board, scrollable"
+          tabIndex={0}
           ref={boardRef}
           onScroll={syncScroll}
         >
