@@ -607,12 +607,11 @@
 .bulk-recipient-list {
   list-style: none;
   margin: 0;
-  padding: var(--sp-half) 0 0;
+  padding: 0;
   max-height: 180px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-quarter);
   font-size: var(--fs-meta);
 }
 
@@ -620,12 +619,13 @@
   display: flex;
   gap: var(--sp-1);
   justify-content: space-between;
-  padding: var(--sp-quarter) 0;
   border-bottom: 1px solid var(--border);
+  padding: var(--sp-1) 0;
 }
 
 .bulk-recipient-list li:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .merge-match-list {
@@ -708,5 +708,10 @@
 
 .cand-print-sheet {
   display: none;
+}
+
+.fo-bulk-outcome {
+  align-self: center;
+  font-size: var(--fs-meta);
 }
 }

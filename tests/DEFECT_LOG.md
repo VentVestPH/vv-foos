@@ -16,7 +16,7 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 
 ## Tally, 2026-09-07
 
-**53 entries covering 52 distinct ids, 47 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**55 entries covering 54 distinct ids, 49 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
 
 **Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
 
@@ -1019,6 +1019,35 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **Severity:** **Low**, and the same shape as QA-049: an environment difference local runs cannot reproduce. CI is 2 vCPU against this machine's 10
 - **C11** polled until the option highlight *stopped changing*, which CLAUDE.md already warns against. On CI two consecutive frames returned the same mid-fade value and the poll called it settled: `- "background": "rgba(240, 246, 251, 0.96)"` against `+ "background": "rgb(240, 246, 251)"`. Fixed by reading the target once from a probe element styled `background-color: var(--fo-option-hover)` and polling each option until it equals that exact string
 - **R7** read the closing menu's `opacity` one instant after the click and asserted it was above 0. `Expected: > 0 / Received: 0`: on a slow runner the 150ms exit had already finished. Fixed by asserting the exit is **declared** (`animationDuration` is not `0s`) on the element that carries `data-closing`, which is the actual contract
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-052: the bulk print sheet printed a blank page, and the Selected list read uuids
+
+- **Found:** 2026-09-11, by Klent, on the features shipped in `3335827`: *"print selected profiles only shows a blank page"*, *"clickign view resume to selected candidates shows it's in development modal"*, *"why is this showing ids?"*
+- **Module:** `modules/recruit/candidates/CandidateBulkActions.tsx`, `components/ui/ListPage.tsx`
+- **Severity:** **Medium**
+- **Blank page:** the sheet is rendered by `CandidateBulkActions`, which lives inside the bulk bar, inside `.fo-page-head`, which is exactly what `body[data-print-scope='selection']` hides. The sheet hid itself. It is portalled to `document.body` now
+- **Uuids:** `recipients` resolved names with `profiles.find(...)`, and `profiles` holds only the rows on the **loaded page**. Selection persists across pages, so anyone ticked on page one and viewed from page two fell back to `personId`. Missing rows are fetched from `candidate_list` by id, bounded at 200 and guarded by a `requested` ref so the effect cannot loop on its own result. (`Adam -` in the same screenshot is real data: that candidate's last name is `-`)
+- **View Resume:** was still a placeholder; it now reads the newest non-pending resume per selected person in one query, signs each url, opens what it can and reports what it could not, including pop-ups the browser blocked. `outcome` had only ever been rendered inside the email dialog, so the bar needed a `.fo-bulk-outcome` line for a message raised from the menu
+- **Guard:** `bulk-actions.spec.ts` asserts `body > .cand-print-sheet` exists with one card per selection and more than 40 characters of text, that View Resume opens no placeholder and reports an outcome, and that no 36-character uuid appears in the Mark dialog after selecting across two pages
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-053: the closed bulk bar was aria-hidden with focusable buttons inside it
+
+- **Found:** 2026-09-11, CI run 34556895461: `candidates: aria-hidden-focus (serious, 1 node(s)) e.g. .fo-page-head-grow`
+- **Module:** `components/ui/ListPage.tsx`
+- **Severity:** **Medium.** A real product defect, not a test artefact: a keyboard user could tab into a toolbar nobody can see
+- **Actual:** `.fo-page-head-grow` carried `aria-hidden` while closed, and its buttons stayed in the tab order. Adding the `ActionMenu` gave it one more focusable child and axe flagged it
+- **Fix:** `inert` when closed, the same shape `RecordSection` already uses for a collapsed section
+- **Why local did not catch it:** `accessibility.spec.ts` walks every route, so any markup change is inside its blast radius, and the run before this commit was scoped to the specs that had been edited. Running only the changed specs is the right default for a CSS tweak and the wrong one for a markup change
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-11

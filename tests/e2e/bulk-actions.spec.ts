@@ -273,6 +273,21 @@ test('the bulk menu prints the selection and submits it, rather than explaining 
       page.locator('.fo-placeholder-modal'),
       'Print profile is a feature now, not an apology',
     ).toHaveCount(0);
+    const sheet = page.locator('body > .cand-print-sheet');
+    await expect(
+      sheet,
+      'the sheet is portalled to the body, because data-print-scope hides the head the bulk bar lives in and the sheet would go with it',
+    ).toHaveCount(1);
+    const printed = await sheet.evaluate((el) => ({
+      cards: el.querySelectorAll('.cand-print-card').length,
+      text: (el as HTMLElement).textContent?.trim().length ?? 0,
+      hidesTheList:
+        getComputedStyle(document.querySelector('.list-page-body') as HTMLElement).display,
+    }));
+    expect(printed.cards, 'one card per selected candidate').toBe(2);
+    expect(printed.text, 'a page with no text on it is the blank page this replaced').toBeGreaterThan(
+      40,
+    );
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __printed: number }).__printed), {
         timeout: 10000,
@@ -300,4 +315,53 @@ test('the bulk menu prints the selection and submits it, rather than explaining 
     await admin.from('applications').delete().eq('requisition_id', req.data.id);
     await admin.from('requisitions').delete().eq('id', req.data.id);
   }
+});
+
+test('the bulk menu opens the selected resumes and names who has none', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.recruiter);
+  await gotoAsSignedIn(page, '/recruit/candidates');
+  await selectTwo(page);
+
+  const opened: string[] = [];
+  page.on('popup', (popup) => {
+    opened.push(popup.url());
+    void popup.close();
+  });
+
+  await openBulkOverflow(page, 'View Resume');
+  await expect(
+    page.locator('.fo-placeholder-modal'),
+    'View Resume for a selection is a feature now',
+  ).toHaveCount(0);
+  await expect(page.locator('.fo-bulk-outcome')).toBeVisible({ timeout: 20000 });
+  const said = (await page.locator('.fo-bulk-outcome').innerText()).trim();
+  expect(
+    said,
+    'it reports what it opened and how many of the selection had nothing to open',
+  ).toMatch(/resume|none of the selected/i);
+});
+
+test('a candidate selected on another page is named, not shown as a uuid', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.recruiter);
+  await gotoAsSignedIn(page, '/recruit/candidates');
+  await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
+  await page.locator('.table-wrap tbody tr').first().locator('input[type="checkbox"]').check();
+
+  const next = page.getByRole('button', { name: 'Next page' }).first();
+  if ((await next.count()) > 0 && (await next.isEnabled())) {
+    await next.click();
+    await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
+    await page.locator('.table-wrap tbody tr').first().locator('input[type="checkbox"]').check();
+  }
+
+  await openBulkOverflow(page, 'Mark as…');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Mark candidates');
+  await expect
+    .poll(async () => (await dialog.innerText()).match(/[0-9a-f-]{36}/) === null, {
+      timeout: 15000,
+      message:
+        'the Selected list read person_id for anyone not on the loaded page, because the names only ever came from the rows in memory',
+    })
+    .toBe(true);
 });

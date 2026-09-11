@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '../../../components/ui/Button';
 import { EMPTY_CELL } from '../../../lib/format';
 import { ActionMenu, type ActionMenuItem } from '../../../components/ui/ActionMenu';
 import { CandidateBulkSubmitDialog } from './CandidateBulkSubmitDialog';
-import { usePlaceholder } from '../../../shell/Placeholder';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { useEmailTemplates } from '../../../hooks/useEmailTemplates';
 import { applyTemplate } from '../../../lib/emailTemplates';
 import { supabase } from '../../../lib/supabase';
+import { attachmentUrl } from '../components/engagement';
+import { isPendingFile } from '../../../lib/attachments';
 import { sendEmail } from '../../../lib/googleActions';
 import { Dialog } from '../components/Dialog';
 import type { CandidateStatus } from '../lib';
@@ -16,6 +18,29 @@ import type { CandidateListRow } from './candidateRows';
 import { personName } from '../lib';
 
 type Pending = 'status' | 'flag-on' | 'flag-off' | 'email' | null;
+
+const OFF_PAGE_LIMIT = 200;
+const RESUME_SCAN_LIMIT = 500;
+
+const BULK_COLUMNS =
+  'person_id, first_name, middle_name, last_name, emails, do_not_contact, current_title, current_employer, city, country, status_label, star_grade, grade_comment';
+
+type BulkProfile = Pick<
+  CandidateListRow,
+  | 'person_id'
+  | 'first_name'
+  | 'middle_name'
+  | 'last_name'
+  | 'emails'
+  | 'do_not_contact'
+  | 'current_title'
+  | 'current_employer'
+  | 'city'
+  | 'country'
+  | 'status_label'
+  | 'star_grade'
+  | 'grade_comment'
+>;
 
 export interface CandidateBulkActionsProps {
   selected: Set<string>;
@@ -51,30 +76,59 @@ export function CandidateBulkActions({
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const templates = useEmailTemplates();
-  const { show } = usePlaceholder();
   const [submitting, setSubmitting] = useState(false);
   const [printing, setPrinting] = useState(false);
 
   const ids = useMemo(() => [...selected], [selected]);
   const count = ids.length;
 
+  const [offPage, setOffPage] = useState<Record<string, BulkProfile>>({});
+  const requested = useRef(new Set<string>());
+
+  useEffect(() => {
+    const missing = ids.filter(
+      (id) => !profiles.some((p) => p.person_id === id) && !requested.current.has(id),
+    );
+    if (missing.length === 0) return undefined;
+    for (const id of missing) requested.current.add(id);
+
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from('candidate_list')
+        .select(BULK_COLUMNS)
+        .in('person_id', missing.slice(0, OFF_PAGE_LIMIT))
+        .limit(OFF_PAGE_LIMIT);
+      if (cancelled || !data) return;
+      setOffPage((prev) => {
+        const next = { ...prev };
+        for (const row of data) next[row.person_id] = row;
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ids, profiles]);
+
   const recipients = useMemo<Recipient[]>(
     () =>
       ids.map((personId) => {
-        const profile = profiles.find((p) => p.person_id === personId);
+        const profile: BulkProfile | undefined =
+          profiles.find((p) => p.person_id === personId) ?? offPage[personId];
         const emails = Array.isArray(profile?.emails)
           ? (profile.emails as unknown as { address: string }[])
           : [];
         return {
           personId,
-          name: profile ? personName({ ...profile, headline: null }) : personId,
+          name: profile ? personName({ ...profile, headline: null }) : 'Loading…',
           email: emails[0]?.address ?? null,
           doNotContact: profile?.do_not_contact ?? false,
           firstName: profile?.first_name ?? '',
           lastName: profile?.last_name ?? '',
         };
       }),
-    [ids, profiles],
+    [ids, profiles, offPage],
   );
 
   const mailable = recipients.filter((r) => r.email && !r.doNotContact);
@@ -171,6 +225,53 @@ export function CandidateBulkActions({
     };
   }, [printing]);
 
+  const openResumes = async () => {
+    setError(null);
+    const { data, error: err } = await supabase
+      .from('attachments')
+      .select('parent_id, storage_path, uploaded_at')
+      .eq('parent_type', 'person')
+      .eq('kind', 'resume')
+      .in('parent_id', ids)
+      .order('uploaded_at', { ascending: false })
+      .limit(RESUME_SCAN_LIMIT);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+
+    const newest = new Map<string, string>();
+    for (const row of data ?? []) {
+      if (!newest.has(row.parent_id) && !isPendingFile(row.storage_path)) {
+        newest.set(row.parent_id, row.storage_path);
+      }
+    }
+    if (newest.size === 0) {
+      setOutcome('None of the selected candidates has a resume on file.');
+      return;
+    }
+
+    let opened = 0;
+    let blocked = 0;
+    for (const path of newest.values()) {
+      const url = await attachmentUrl(path);
+      if (url === null) continue;
+      if (window.open(url, '_blank', 'noopener') === null) blocked += 1;
+      else opened += 1;
+    }
+
+    const without = count - newest.size;
+    setOutcome(
+      [
+        `Opened ${opened} resume${opened === 1 ? '' : 's'}.`,
+        without > 0 ? `${without} of the selected has none on file.` : '',
+        blocked > 0 ? `${blocked} were blocked by the browser; allow pop-ups for this site.` : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+    );
+  };
+
   const overflowItems: ActionMenuItem[] = [
     {
       label: 'Mark as…',
@@ -180,12 +281,9 @@ export function CandidateBulkActions({
     },
     {
       label: 'View Resume',
-      onSelect: () =>
-        show(
-          'View Resume',
-          'Open a candidate and use View Resume there, or use the Resume column to see who has one on file.',
-          'Opening resumes for a whole selection is still in development.',
-        ),
+      onSelect: () => void openResumes(),
+      disabled: count === 0,
+      ...(count === 0 ? { title: 'Select at least one candidate first' } : {}),
     },
     {
       label: 'Print profile',
@@ -227,9 +325,18 @@ export function CandidateBulkActions({
         Send Email
       </Button>
       <ActionMenu label="More actions" items={overflowItems} iconOnly />
+      {pending === null && outcome !== null && (
+        <span className="text-secondary fo-bulk-outcome">{outcome}</span>
+      )}
+      {pending === null && error !== null && (
+        <span className="field-error-text" role="alert">
+          {error}
+        </span>
+      )}
 
-      {printing && (
-        <section className="cand-print-sheet" aria-hidden="true">
+      {printing &&
+        createPortal(
+          <section className="cand-print-sheet" aria-hidden="true">
           <h1>Candidate profiles</h1>
           {recipients.map((r) => {
             const profile = profiles.find((p) => p.person_id === r.personId);
@@ -270,8 +377,9 @@ export function CandidateBulkActions({
               </article>
             );
           })}
-        </section>
-      )}
+          </section>,
+          document.body,
+        )}
 
       {submitting && (
         <CandidateBulkSubmitDialog

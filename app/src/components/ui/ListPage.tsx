@@ -239,6 +239,7 @@ export function ListPage({
               data-open={bulkBarOpen ? 'true' : 'false'}
               data-settled={bulkBarOpen && bulkBarSettled ? 'true' : undefined}
               aria-hidden={bulkBarOpen ? undefined : true}
+              {...(bulkBarOpen ? {} : { inert: '' })}
               onTransitionEnd={(event) => {
                 if (event.propertyName === 'grid-template-rows') setBulkBarSettled(bulkBarOpen);
               }}
