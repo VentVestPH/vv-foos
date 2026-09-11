@@ -200,7 +200,7 @@ test.describe('List persistence and export (criteria 2.9 and 2.11)', () => {
 
       const download = await Promise.all([
         page.waitForEvent('download', { timeout: 25000 }),
-        page.getByRole('button', { name: 'Export CSV', exact: true }).click(),
+        page.getByRole('button', { name: 'Export', exact: true }).click(),
       ]).then(([d]) => d);
 
       expect(download.suggestedFilename()).toMatch(/\.csv$/);

@@ -4,7 +4,7 @@ import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MAX_MS = 220;
-const CONTINUOUS_TOKENS = ['--motion-spin', '--motion-skeleton'];
+const CONTINUOUS_TOKENS = ['--motion-spin', '--motion-skeleton', '--motion-attention'];
 const OVER_BUDGET_TOKENS = ['--motion-rail'];
 const FORBIDDEN_PROPS = ['width', 'height', 'top', 'left'];
 const SHELL_SELECTORS = [

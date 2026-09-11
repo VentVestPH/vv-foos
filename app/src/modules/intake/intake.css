@@ -2,16 +2,16 @@
 .intake-showall-toggle {
   display: flex;
   align-items: center;
-  gap: var(--sp-half);
+  gap: var(--sp-1);
   font-size: var(--fs-meta);
   color: var(--text-secondary);
-  margin-top: var(--sp-1);
 }
 
 .badge-tone {
   display: inline-block;
-  background: var(--section-tint);
-  color: var(--text);
+  background: var(--surface);
+  border: var(--hairline) solid var(--border);
+  color: var(--text-secondary);
   border-radius: var(--radius);
   padding: var(--sp-quarter) var(--sp-1);
   font-size: var(--fs-meta);
@@ -65,6 +65,11 @@
   color: var(--surface);
 }
 
+.intake-drawer-x:hover:not(:disabled) {
+  background: var(--scrim-light);
+  color: var(--surface);
+}
+
 .intake-drawer-body {
   padding: var(--sp-2);
   display: flex;
@@ -81,7 +86,7 @@
 .intake-field-list {
   display: grid;
   grid-template-columns: 100px 1fr;
-  gap: var(--sp-half) var(--sp-1);
+  gap: var(--sp-1);
   margin: 0;
 }
 
@@ -95,15 +100,6 @@
   font-size: var(--fs-body);
 }
 
-.intake-raw-toggle {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  color: var(--primary);
-  cursor: pointer;
-  font-size: var(--fs-meta);
-  padding: 0;
-}
 
 .intake-raw-payload {
   background: var(--canvas);
@@ -130,11 +126,21 @@
 }
 
 .intake-readonly-note {
-  background: var(--section-tint);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  background: var(--status-warn-bg);
+  border: var(--hairline) solid var(--status-warn-text);
   border-radius: var(--radius);
-  padding: var(--sp-1);
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
+  padding: var(--sp-1-5);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--status-warn-text);
+}
+
+.intake-readonly-note svg {
+  flex: none;
+  margin-top: var(--sp-quarter);
 }
 
 .intake-drawer-actions {
@@ -169,5 +175,15 @@
   border-radius: var(--radius);
   padding: var(--sp-1);
   box-sizing: border-box;
+}
+
+.intake-advanced-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.intake-advanced-search > .field:last-child {
+  padding-bottom: var(--sp-1);
 }
 }

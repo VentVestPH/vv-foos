@@ -97,7 +97,7 @@ export function PrimaryNav() {
             {item.badge === 'intake' ? (
               <span aria-live="polite" aria-atomic="true">
                 {intakeCount > 0 ? (
-                  <span className="fo-nav-badge">
+                  <span className="fo-nav-badge" key={intakeCount}>
                     {intakeCount}
                     <span className="visually-hidden"> items awaiting review</span>
                   </span>

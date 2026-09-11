@@ -18,13 +18,11 @@ interface AdvancedSearchApi {
   open: boolean;
   closing: boolean;
   narrow: boolean;
-  columnFocusRequest: number;
   publish: (node: ReactNode) => void;
   reset: () => void;
   openPanel: () => void;
   requestClose: () => void;
   toggle: () => void;
-  requestColumnFocus: () => void;
 }
 
 const AdvancedSearchContext = createContext<AdvancedSearchApi | null>(null);
@@ -33,7 +31,6 @@ export function AdvancedSearchProvider({ children }: { children: ReactNode }) {
   const [node, setNode] = useState<ReactNode>(null);
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [columnFocusRequest, setColumnFocusRequest] = useState(0);
   const [narrow, setNarrow] = useState(
     () => typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches,
   );
@@ -89,7 +86,6 @@ export function AdvancedSearchProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => clearTimer, [clearTimer]);
 
-  const requestColumnFocus = useCallback(() => setColumnFocusRequest((n) => n + 1), []);
 
   const api = useMemo<AdvancedSearchApi>(
     () => ({
@@ -97,26 +93,22 @@ export function AdvancedSearchProvider({ children }: { children: ReactNode }) {
       open,
       closing,
       narrow,
-      columnFocusRequest,
       publish,
       reset,
       openPanel,
       requestClose,
       toggle,
-      requestColumnFocus,
     }),
     [
       node,
       open,
       closing,
       narrow,
-      columnFocusRequest,
       publish,
       reset,
       openPanel,
       requestClose,
       toggle,
-      requestColumnFocus,
     ],
   );
 

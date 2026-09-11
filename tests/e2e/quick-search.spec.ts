@@ -672,7 +672,7 @@ test.describe('Q: submitting a list search stays on the list', () => {
   });
 });
 
-test('Q20: Export CSV is clickable from first paint, not after the count arrives', async ({
+test('Q20: Export is clickable from first paint, not after the count arrives', async ({
   page,
 }) => {
   await signIn(page, PERSONA_EMAILS.admin);
@@ -682,7 +682,7 @@ test('Q20: Export CSV is clickable from first paint, not after the count arrives
   });
   await gotoAsSignedIn(page, '/recruit/candidates');
 
-  const button = page.getByRole('button', { name: 'Export CSV' });
+  const button = page.getByRole('button', { name: 'Export' });
   await expect(button).toBeVisible({ timeout: 20000 });
   await expect(
     button,

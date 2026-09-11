@@ -2,7 +2,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sp-half);
+  gap: var(--sp-1);
   font-family: inherit;
   font-size: var(--fs-body);
   font-weight: 600;
@@ -138,6 +138,7 @@
 
 textarea {
   resize: vertical;
+  min-height: var(--textarea-min-h);
 }
 
 .field input:focus-visible,
@@ -393,24 +394,28 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 .error-summary {
-  border: 2px solid var(--danger);
+  border: var(--hairline) solid var(--danger-border);
   border-radius: var(--radius);
-  background: var(--surface);
-  padding: var(--sp-2);
+  background: var(--status-danger-bg);
+  padding: var(--sp-1-5);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
+  gap: var(--sp-half);
 }
 
 .error-summary-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
   margin: 0;
-  font-size: var(--fs-section);
-  font-weight: 700;
+  font-size: var(--fs-body);
+  font-weight: 600;
   color: var(--danger);
 }
 
 .error-summary-list {
   margin: 0;
+  font-size: var(--fs-meta);
   padding-left: var(--sp-2);
   display: flex;
   flex-direction: column;
@@ -531,7 +536,7 @@ input[type='number']::-webkit-outer-spin-button {
 .field input.date-field-input {
   flex: 1;
   min-width: 0;
-  border: 0;
+  border: 0 !important;
   border-radius: 0;
   background: none;
   padding: 0 var(--sp-1);
@@ -818,6 +823,10 @@ input[type='number']::-webkit-outer-spin-button {
   color: var(--fo-icon);
   cursor: pointer;
   justify-content: center;
+}
+
+.fo-dialog-close:hover:not(:disabled) {
+  background: var(--fo-option-hover);
 }
 
 .fo-icon-btn:hover:not(:disabled) {

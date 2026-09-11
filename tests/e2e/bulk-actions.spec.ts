@@ -220,8 +220,38 @@ test('the bulk bar fades in, and its menu escapes the grow once it has settled',
   expect(closed.overflow, 'the grow needs the clip to read as a reveal').toBe('hidden');
   expect(closed.transition).toContain('opacity');
 
+  const opening = page.evaluate(
+    () =>
+      new Promise<{ o: number; h: number }[]>((resolve) => {
+        const box = document.querySelector('.fo-page-head-grow-inner') as HTMLElement;
+        const grow = document.querySelector('.fo-page-head-grow') as HTMLElement;
+        const frames: { o: number; h: number }[] = [];
+        const tick = () => {
+          frames.push({
+            o: parseFloat(getComputedStyle(box).opacity),
+            h: Math.round(grow.getBoundingClientRect().height),
+          });
+          if (frames.length < 18) requestAnimationFrame(tick);
+          else resolve(frames);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
   await page.locator('.table-wrap tbody tr').first().locator('input[type="checkbox"]').check();
   await expect(page.locator('.fo-page-head-grow')).toHaveAttribute('data-open', 'true');
+
+  const frames = await opening;
+  const partial = frames.filter((f) => f.o > 0.02 && f.o < 0.98);
+  expect(
+    partial.length,
+    'the fade has to be visible over several frames, not snap between 0 and 1',
+  ).toBeGreaterThan(2);
+  const firstFade = frames.findIndex((f) => f.o > 0.02);
+  expect(
+    frames[firstFade]!.h,
+    'and it has to start after the box has opened, or the height reveal hides it and the bar reads as appearing whole',
+  ).toBeGreaterThan(frames[0]!.h + 8);
+
   await expect
     .poll(async () => inner.evaluate((el) => getComputedStyle(el).opacity), { timeout: 10000 })
     .toBe('1');
@@ -258,9 +288,25 @@ test('the bulk menu prints the selection and submits it, rather than explaining 
 
   try {
     await page.addInitScript(() => {
-      (window as unknown as { __printed: number }).__printed = 0;
+      const probe = window as unknown as {
+        __printed: number;
+        __sheet: { cards: number; text: number; scope: string; hasList: boolean } | null;
+      };
+      probe.__printed = 0;
+      probe.__sheet = null;
       window.print = () => {
-        (window as unknown as { __printed: number }).__printed += 1;
+        const sheet = document.querySelector('body > .cand-print-sheet');
+        const list = document.querySelector('.list-page-body');
+        probe.__sheet =
+          sheet === null
+            ? null
+            : {
+                cards: sheet.querySelectorAll('.cand-print-card').length,
+                text: (sheet.textContent ?? '').trim().length,
+                scope: document.body.dataset.printScope ?? '',
+                hasList: list !== null,
+              };
+        probe.__printed += 1;
         window.dispatchEvent(new Event('afterprint'));
       };
     });
@@ -273,26 +319,34 @@ test('the bulk menu prints the selection and submits it, rather than explaining 
       page.locator('.fo-placeholder-modal'),
       'Print profile is a feature now, not an apology',
     ).toHaveCount(0);
-    const sheet = page.locator('body > .cand-print-sheet');
-    await expect(
-      sheet,
-      'the sheet is portalled to the body, because data-print-scope hides the head the bulk bar lives in and the sheet would go with it',
-    ).toHaveCount(1);
-    const printed = await sheet.evaluate((el) => ({
-      cards: el.querySelectorAll('.cand-print-card').length,
-      text: (el as HTMLElement).textContent?.trim().length ?? 0,
-      hidesTheList:
-        getComputedStyle(document.querySelector('.list-page-body') as HTMLElement).display,
-    }));
-    expect(printed.cards, 'one card per selected candidate').toBe(2);
-    expect(printed.text, 'a page with no text on it is the blank page this replaced').toBeGreaterThan(
-      40,
-    );
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __printed: number }).__printed), {
         timeout: 10000,
       })
       .toBe(1);
+
+    const printed = await page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            __sheet: { cards: number; text: number; scope: string; hasList: boolean } | null;
+          }
+        ).__sheet,
+    );
+    expect(
+      printed,
+      'the sheet must exist on the body at the moment print is called. Reading the DOM afterwards races the afterprint that unmounts it, which is why this passed here and failed in CI',
+    ).not.toBeNull();
+    expect(printed!.cards, 'one card per selected candidate').toBe(2);
+    expect(
+      printed!.text,
+      'a page with no text on it is the blank page this replaced',
+    ).toBeGreaterThan(40);
+    expect(
+      printed!.scope,
+      'the scope attribute is what the print layer keys off to take the list out of the way; the rules themselves only apply in print media, so this is the part a screen run can check',
+    ).toBe('selection');
+    expect(printed!.hasList).toBe(true);
 
     await reselect(page, keys);
     await openBulkOverflow(page, 'Submit');

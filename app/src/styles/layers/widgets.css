@@ -84,9 +84,9 @@
   min-width: 16px;
   margin-left: calc(var(--sp-half) + var(--hairline));
   padding: 0 var(--sp-half);
-  border-radius: 8px;
-  background: var(--fo-surface);
-  color: var(--fo-nav);
+  border-radius: var(--radius-pill);
+  background: var(--badge-alert-bg);
+  color: var(--badge-alert-fg);
   font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 16px;

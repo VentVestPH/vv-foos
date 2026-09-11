@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { CircleAlert } from 'lucide-react';
 
 export interface FieldError {
   field?: string;
@@ -22,7 +23,10 @@ export function ErrorSummary({ errors, title = 'There is a problem' }: ErrorSumm
 
   return (
     <div className="error-summary" role="alert" tabIndex={-1} ref={ref}>
-      <h2 className="error-summary-title">{title}</h2>
+      <h2 className="error-summary-title">
+        <CircleAlert size={20} aria-hidden="true" />
+        {title}
+      </h2>
       <ul className="error-summary-list">
         {errors.map((e) => (
           <li key={`${e.field ?? ''}:${e.message}`}>

@@ -16,7 +16,7 @@ import { FilterFoot, FilterGroup } from '../../../components/ui/FilterGroup';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
 import { Skeleton } from '../../../components/ui/Skeleton';
-import { Briefcase as BriefcaseIcon, User as PersonIcon } from 'lucide-react';
+import { Briefcase as BriefcaseIcon, Plus, User as PersonIcon } from 'lucide-react';
 import type { Database, RequisitionStatus } from '../../../lib/database.types';
 import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { supabase } from '../../../lib/supabase';
@@ -541,6 +541,7 @@ export function RequisitionListPage() {
         <>
           {canCreate && (
             <Button variant="primary" onClick={() => navigate('/recruit/requisitions/new')}>
+              <Plus size={20} aria-hidden="true" />
               New requisition
             </Button>
           )}

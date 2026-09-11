@@ -5,10 +5,21 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { ErrorSummary, type FieldError } from '../../components/ui/ErrorSummary';
-import { Inbox as InboxIcon } from 'lucide-react';
+import { Inbox as InboxIcon, Sheet as SheetIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { downloadCsv } from '../../lib/csv';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { checkDedup } from './hooks';
+
+const TEMPLATE_EXAMPLE: Record<string, string> = {
+  name: 'Marisol Reyes',
+  headline: 'Staff Platform Engineer',
+  email: 'marisol.reyes@example.com',
+  phone: '+63 917 555 0142',
+  company: 'Northwind Logistics',
+  title: 'Staff Platform Engineer',
+  linkedin_url: 'https://www.linkedin.com/in/marisol-reyes',
+};
 
 const PARSED_FIELDS = [
   { key: 'name', label: 'Name' },
@@ -34,6 +45,14 @@ interface MappingTemplate {
   source_hint: string | null;
   column_map: Record<string, string>;
   target_type: 'candidate' | 'contact';
+}
+
+function downloadTemplate(): void {
+  downloadCsv(
+    'intake-sheet-template.csv',
+    [TEMPLATE_EXAMPLE],
+    PARSED_FIELDS.map((f) => ({ key: f.key, header: f.label })),
+  );
 }
 
 export function SheetImportPage() {
@@ -357,6 +376,10 @@ export function SheetImportPage() {
         <div className="intake-form-actions">
           <Button variant="primary" onClick={doFetch} loading={busy}>
             Fetch
+          </Button>
+          <Button onClick={downloadTemplate}>
+            <SheetIcon size={20} aria-hidden="true" />
+            Download template
           </Button>
           <Button onClick={() => navigate('/intake')}>Cancel</Button>
         </div>

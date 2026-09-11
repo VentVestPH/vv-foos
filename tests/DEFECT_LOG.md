@@ -16,7 +16,7 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 
 ## Tally, 2026-09-07
 
-**55 entries covering 54 distinct ids, 49 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**57 entries covering 56 distinct ids, 51 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
 
 **Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
 
@@ -1048,6 +1048,35 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **Actual:** `.fo-page-head-grow` carried `aria-hidden` while closed, and its buttons stayed in the tab order. Adding the `ActionMenu` gave it one more focusable child and axe flagged it
 - **Fix:** `inert` when closed, the same shape `RecordSection` already uses for a collapsed section
 - **Why local did not catch it:** `accessibility.spec.ts` walks every route, so any markup change is inside its blast radius, and the run before this commit was scoped to the specs that had been edited. Running only the changed specs is the right default for a CSS tweak and the wrong one for a markup change
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-054: the intake queue and drawer were the only surfaces the shared components had passed by
+
+- **Found:** 2026-09-11, by Klent, page by page across `/intake`
+- **Module:** `modules/intake/*`, `components/ui/ListPage.tsx`, `styles/layers/*`
+- **Severity:** **Low** individually, **Medium** as a pattern: every item was a shared component or token existing and not being used
+- **The list:** no `flush`, so the search row read as a separate card; a hand-rolled `.fo-gear-btn` with the old cog instead of `SettingsButton`; a `PlaceholderAction label="More"` holding nothing; `Target` printing its raw enum while Channel and Status had label maps; no sort on the channel, headline or batch columns; no suggestions, where every other list had them since 2026-09-10; no skeleton; a Columns section in the filter rail that a dialog does better
+- **The drawer:** the duplicate check was hidden until it resolved, so it appeared underneath a body that had already rendered; `Dedup check` used a database word for a panel of possible duplicates; its empty case was a bare sentence rather than `EmptyState`; `--section-tint` painted the badges, the read-only note **and** the accordion headers, so the panel was three shades of one blue; the close button travelled 16px on exit, which reads as a fade rather than a drawer leaving
+- **Two that were genuinely dead, not just inconsistent:** `.fo-dialog-close` had a transition and **no hover rule**, so every dialog cross in the app was inert, and `.intake-raw-toggle` had neither, having reinvented `.link-btn`. Klent: *"do icon buttons have transition? it doesn't look like it... why do we keep missing this"*. The cause is that hover states live beside each class while the hover transition lives in one opt-in list in `motion.css`, so a control needs an entry in two hand-maintained places
+- **A guard for that was written and abandoned.** It flagged any `:hover` that recolours without a transition and produced **20+ false positives**, because hover and transition are declared against different classes on the same element (`.btn-primary:hover` against `.btn`). A static check cannot resolve which rules apply without a DOM. The rule is in CLAUDE.md instead
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-055: a local suite run ground through 339 tests before reporting the first failure
+
+- **Found:** 2026-09-11, by Klent: *"optimze browser tests as well since currently, it takes quite a while just to encoutnre a fucking error. wasting both of our times."*
+- **Module:** `tests/playwright.config.ts`
+- **Severity:** **Low** for the product, real for the loop
+- **Actual:** `workers` defaulted to **2** and nothing stopped the run early, so a failure in an early file still cost the full ~6 minutes, and a failure in a late one cost the same before it was even visible
+- **Fix:** `workers` defaults to **4**, which was measured safe on 2026-09-10 (263 passed at 4.4m against 8.5m at two, with the Realtime rate limit firing 25 times and failing nothing), and `maxFailures` defaults to **1** so a local run stops at the first failure. `reporter` is pinned to `line` rather than the default `list`, which prints a line per test
+- **CI keeps the full picture:** `FOOS_PW_MAX_FAILURES: '0'` in `ci.yml`, because one failure per run is one round trip per defect, and that is what made the 2026-09-11 CI sequence take four pushes
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-11

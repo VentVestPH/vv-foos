@@ -1,13 +1,10 @@
 import {
-  createContext,
-  useCallback,
-  useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { Download } from 'lucide-react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useAdvancedSearch, usePublishAdvancedSearch } from '../../shell/AdvancedSearch';
 import { Button } from './Button';
@@ -16,18 +13,6 @@ import { SearchBox } from './SearchBox';
 import type { SearchHintFetcher } from '../../lib/searchHints';
 import { downloadCsv } from '../../lib/csv';
 
-interface ListPageFiltersApi {
-  filtersOpen: boolean;
-  openFilters: (options?: { focusColumns?: boolean }) => void;
-}
-
-const ListPageFiltersContext = createContext<ListPageFiltersApi | null>(null);
-
-export function useListPageFilters(): ListPageFiltersApi {
-  const api = useContext(ListPageFiltersContext);
-  if (!api) throw new Error('useListPageFilters requires a ListPage ancestor');
-  return api;
-}
 
 interface ListPageProps {
   title: string;
@@ -63,6 +48,7 @@ interface ListPageProps {
   exportCount?: number;
   exportColumns?: { key: string; header: string }[];
   exportFilename?: string;
+  toolbarActions?: ReactNode;
 }
 
 export function ListPage({
@@ -86,6 +72,7 @@ export function ListPage({
   exportCount,
   exportColumns,
   exportFilename,
+  toolbarActions,
 }: ListPageProps) {
   const [exporting, setExporting] = useState(false);
   const [bulkBarSettled, setBulkBarSettled] = useState(false);
@@ -94,33 +81,11 @@ export function ListPage({
   usePublishAdvancedSearch(filterRail ?? null);
   const filtersOpen = advanced.open;
   const searchRef = useRef<HTMLInputElement>(null);
-  const { columnFocusRequest, requestColumnFocus, openPanel, requestClose } = advanced;
-
-  const openFilters = useCallback(
-    (options?: { focusColumns?: boolean }) => {
-      openPanel();
-      if (options?.focusColumns) requestColumnFocus();
-    },
-    [openPanel, requestColumnFocus],
-  );
-
-  const filtersApi = useMemo<ListPageFiltersApi>(
-    () => ({ filtersOpen, openFilters }),
-    [filtersOpen, openFilters],
-  );
+  const { openPanel, requestClose } = advanced;
 
   useEffect(() => {
     if (!bulkBarOpen) setBulkBarSettled(false);
   }, [bulkBarOpen]);
-
-  useEffect(() => {
-    if (columnFocusRequest === 0 || !filtersOpen) return;
-    const rail = document.getElementById('list-filter-rail');
-    const first = rail?.querySelector<HTMLInputElement>(
-      '.checkbox-list input[type="checkbox"]',
-    );
-    first?.focus();
-  }, [columnFocusRequest, filtersOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -138,7 +103,6 @@ export function ListPage({
   }, []);
 
   return (
-    <ListPageFiltersContext.Provider value={filtersApi}>
     <div className="list-page" data-flush={flush ? 'true' : undefined}>
       <div className="fo-page-head">
       {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
@@ -227,9 +191,11 @@ export function ListPage({
                   : undefined
             }
           >
-            {exporting ? 'Exporting…' : 'Export CSV'}
+            <Download size={20} aria-hidden="true" />
+            {exporting ? 'Exporting…' : 'Export'}
           </Button>
         )}
+        {toolbarActions}
       </div>
       {bulkBar && (
         <div className="fo-page-head-foot" data-open={bulkBarOpen ? 'true' : 'false'}>
@@ -263,6 +229,5 @@ export function ListPage({
         <div className="list-page-table">{children}</div>
       </div>
     </div>
-    </ListPageFiltersContext.Provider>
   );
 }

@@ -140,6 +140,28 @@ export async function requisitionSearchHints(term: string): Promise<SearchHintRe
   };
 }
 
+export async function intakeSearchHints(term: string): Promise<SearchHintResult> {
+  const pattern = like(term);
+  const { data, count } = await supabase
+    .from('intake_items')
+    .select('id, full_name, batch_label, channel, status', { count: 'exact' })
+    .or(
+      `full_name.ilike.${pattern},batch_label.ilike.${pattern},linkedin_url.ilike.${pattern}`,
+    )
+    .order('created_at', { ascending: false })
+    .limit(HINT_LIMIT);
+
+  return {
+    hints: (data ?? []).map((r) => ({
+      key: `intake:${r.id}`,
+      primary: r.full_name ?? 'Unnamed intake item',
+      meta: [r.batch_label, r.channel.replace(/_/g, ' '), r.status].filter(Boolean).join(' · '),
+      href: `/intake?item=${r.id}`,
+    })),
+    total: count ?? 0,
+  };
+}
+
 export async function candidateSearchHints(term: string): Promise<SearchHintResult> {
   let query = supabase
     .from('candidate_list')

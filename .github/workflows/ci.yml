@@ -95,6 +95,7 @@ jobs:
       FOOS_QA_TEST_PASSWORD: ci-only-test-password
       FOOS_INTAKE_PARSER_SECRET: ci-only-intake-secret
       FOOS_PW_SHARD_TOTAL: '2'
+      FOOS_PW_MAX_FAILURES: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

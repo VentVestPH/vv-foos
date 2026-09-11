@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { BookmarkPlus } from 'lucide-react';
 import { useSession } from '../../auth/SessionProvider';
 import type { Json } from '../../lib/database.types';
 import { Button } from '../../components/ui/Button';
@@ -138,6 +139,7 @@ export function SavedViewsControl({
         }}
       />
       <Button size="sm" onClick={() => setNaming(true)}>
+        <BookmarkPlus size={20} aria-hidden="true" />
         Save view
       </Button>
       {selectedId && (

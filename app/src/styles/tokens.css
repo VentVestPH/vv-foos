@@ -33,6 +33,7 @@
   --fo-status-ok-text: #2e7d32;
   --fo-status-ok-bg: #ecfdf5;
   --fo-status-danger-bg: #fef2f2;
+  --fo-danger-border: #f3b4b4;
   --fo-muted: #999999;
   --fo-rule: #dddddd;
   --fo-canvas-alt: #eeeeee;
@@ -69,6 +70,7 @@
   --ease-exit: cubic-bezier(0.2, 0, 1, 0.9);
   --motion-spin: 900ms;
   --motion-skeleton: 1800ms;
+  --motion-attention: 2400ms;
 
   --primary: var(--fo-link);
   --primary-deep: var(--fo-primary-hover);
@@ -90,6 +92,11 @@
   --status-ok-text: var(--fo-status-ok-text);
   --status-ok-bg: var(--fo-status-ok-bg);
   --status-danger-bg: var(--fo-status-danger-bg);
+  --danger-border: var(--fo-danger-border);
+  --badge-alert-bg: var(--fo-danger);
+  --badge-alert-fg: #ffffff;
+  --badge-alert-ring: rgba(212, 0, 0, 0.35);
+  --scrim-light: rgba(255, 255, 255, 0.18);
   --muted: var(--fo-muted);
   --scroll-shade: var(--fo-scroll-shade);
   --scroll-shade-fade: var(--fo-scroll-shade-fade);
@@ -136,6 +143,7 @@
 
   --btn-pad-x: 18px;
   --control-h: 32px;
+  --textarea-min-h: 88px;
   --field-h: 32px;
   --section-pad: 24px;
   --shell-content-pad: 24px;

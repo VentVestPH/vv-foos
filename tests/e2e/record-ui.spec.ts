@@ -76,7 +76,7 @@ test.describe('Record and list UI criteria', () => {
   test('2.9 and 2.11 the candidate list offers a saved view and a CSV export', async ({ page }) => {
     await gotoAsSignedIn(page, '/recruit/candidates');
     await expect(page.getByRole('button', { name: 'Save view', exact: true })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Export CSV', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeEnabled();
     await openFilterRail(page);
   });
 
@@ -192,6 +192,47 @@ test('an empty table cell keeps its own padding, not the row padding', async ({ 
     'a bare .table-empty is (0,1,0) and loses to .table td (0,1,1) in the same layer, so the rule was dead and the cell used --cell-pad',
   ).toBe('24px');
   expect(shape.align).toBe('center');
+});
+
+test.describe('sorting from anywhere in the header cell', () => {
+  const TABLES: [string, string][] = [
+    ['candidates', '/recruit/candidates'],
+    ['requisitions', '/recruit/requisitions'],
+    ['intake', '/intake'],
+  ];
+
+  for (const [label, route] of TABLES) {
+    test(`a click in the ${label} header padding sorts, not just one on the text`, async ({
+      page,
+    }) => {
+      await signIn(page, PERSONA_EMAILS.admin);
+      await gotoAsSignedIn(page, route);
+      await page.waitForSelector('.table-wrap thead th.sortable');
+
+      const th = page.locator('.table-wrap thead th.sortable').first();
+      const fills = await th.evaluate((el) => {
+        const cell = el.getBoundingClientRect();
+        const btn = (el.querySelector('.th-sort-btn') as HTMLElement).getBoundingClientRect();
+        return {
+          dx: Math.round(cell.width - btn.width),
+          dy: Math.round(cell.height - btn.height),
+        };
+      });
+      expect(
+        Math.max(fills.dx, fills.dy),
+        'the button has to own the whole cell; while the padding belonged to the th it looked clickable and was not',
+      ).toBeLessThanOrEqual(1);
+
+      const before = await th.getAttribute('aria-sort');
+      await th.click({ position: { x: 3, y: 3 } });
+      await expect
+        .poll(async () => th.getAttribute('aria-sort'), {
+          timeout: 15000,
+          message: 'clicking the top-left corner of the cell must sort',
+        })
+        .not.toBe(before);
+    });
+  }
 });
 
 test.describe('sortable headers', () => {
