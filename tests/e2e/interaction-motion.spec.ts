@@ -32,6 +32,39 @@ async function openMerge(page: Page): Promise<void> {
   await item.click();
 }
 
+async function watchExit(
+  page: import('@playwright/test').Page,
+  selector: string,
+): Promise<void> {
+  await page.evaluate((sel) => {
+    const probe = window as unknown as { __exit?: { closing: boolean; duration: string } };
+    probe.__exit = { closing: false, duration: '0s' };
+    const observer = new MutationObserver(() => {
+      const el = document.querySelector(sel);
+      if (el === null) return;
+      if (el.getAttribute('data-closing') === 'true' && probe.__exit) {
+        probe.__exit.closing = true;
+        probe.__exit.duration = getComputedStyle(el).animationDuration.split(', ')[0] ?? '0s';
+      }
+    });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['data-closing'],
+    });
+  }, selector);
+}
+
+async function exitSeen(
+  page: import('@playwright/test').Page,
+): Promise<{ closing: boolean; duration: string }> {
+  return page.evaluate(
+    () =>
+      (window as unknown as { __exit: { closing: boolean; duration: string } }).__exit,
+  );
+}
+
 test.describe('R: motion that a user can see, asserted rather than budgeted', () => {
   test('R4 a tab going bold does not change its own width or its neighbour\'s', async ({
     page,
@@ -218,23 +251,15 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     const overlay = page.locator('.rq-overlay');
     await expect(overlay).toHaveCount(1);
 
+    await watchExit(page, '.rq-overlay');
     await page.locator('.rq-dialog-x').click();
-    const mid = await page.evaluate(() => {
-      const el = document.querySelector('.rq-overlay');
-      if (!el) return { mounted: false, closing: null as string | null, duration: '0s' };
-      return {
-        mounted: true,
-        closing: el.getAttribute('data-closing'),
-        duration: getComputedStyle(el).animationDuration.split(', ')[0] ?? '0s',
-      };
-    });
-    expect(mid.mounted, 'the node must outlive the click so it can animate').toBe(true);
-    expect(mid.closing).toBe('true');
-    expect(
-      mid.duration,
-      'the exit is declared on the closing element. Its opacity was read here instead, and one instant into a 140ms fade is past the end of it on a 2 vCPU runner, which is how this failed in CI',
-    ).not.toBe('0s');
     await expect(overlay).toHaveCount(0, { timeout: 3000 });
+    const mid = await exitSeen(page);
+    expect(
+      mid.closing,
+      'the node must outlive the click so it can animate out. A MutationObserver records that it happened rather than sampling for it afterwards, because on a 2 vCPU runner the whole exit finishes before a round trip lands',
+    ).toBe(true);
+    expect(mid.duration, 'and the exit has a real duration').not.toBe('0s');
 
     await openMerge(page);
     await expect(overlay).toHaveCount(1);
@@ -296,24 +321,12 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
       .poll(() => caret.evaluate((el) => getComputedStyle(el).transform), { timeout: 3000 })
       .toBe('matrix(-1, 0, 0, -1, 0, 0)');
 
+    await watchExit(page, '.fo-utility-menu');
     await trigger.click();
-    const menuMid = await page.evaluate(() => {
-      const el = document.querySelector('.fo-utility-menu');
-      if (!el) return { mounted: false, closing: null as string | null, opacity: NaN };
-      const style = getComputedStyle(el);
-      return {
-        mounted: true,
-        closing: el.getAttribute('data-closing'),
-        duration: style.animationDuration.split(', ')[0] ?? '0s',
-      };
-    });
-    expect(menuMid.mounted, 'the menu must outlive the click so it can animate out').toBe(true);
-    expect(menuMid.closing).toBe('true');
-    expect(
-      menuMid.duration,
-      'the exit is declared on the closing element. Reading its opacity instead sampled one instant, and on a 2 vCPU runner that instant is often after the 150ms exit has already finished, which reads as 0',
-    ).not.toBe('0s');
     await expect(menu).toHaveCount(0, { timeout: 3000 });
+    const menuMid = await exitSeen(page);
+    expect(menuMid.closing, 'the menu must outlive the click so it can animate out').toBe(true);
+    expect(menuMid.duration, 'and its exit has a real duration').not.toBe('0s');
   });
 
   test('R7 clicking outside a dropdown animates it out rather than cutting it', async ({ page }) => {
@@ -326,14 +339,15 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     await trigger.click();
     await expect(menu).toHaveCount(1);
 
+    await watchExit(page, '.fo-utility-menu');
     await page.locator('.fo-brand').click();
-    const outside = await page.evaluate(() => {
-      const el = document.querySelector('.fo-utility-menu');
-      return { mounted: !!el, closing: el?.getAttribute('data-closing') ?? null };
-    });
-    expect(outside.mounted).toBe(true);
-    expect(outside.closing).toBe('true');
     await expect(menu).toHaveCount(0, { timeout: 3000 });
+    const outside = await exitSeen(page);
+    expect(
+      outside.closing,
+      'a click outside animates the menu out rather than cutting it',
+    ).toBe(true);
+    expect(outside.duration, 'and that exit has a real duration').not.toBe('0s');
   });
 
   test('R8 the filter rail animates in and out rather than appearing whole', async ({ page }) => {
@@ -351,14 +365,12 @@ test.describe('R: motion that a user can see, asserted rather than budgeted', ()
     await expect(rail).toHaveCount(1);
     expect(await rail.evaluate((el) => getComputedStyle(el).animationName)).toBe('panel-fade-in');
 
+    await watchExit(page, '.filter-rail');
     await toggle.click();
-    const mid = await page.evaluate(() => {
-      const el = document.querySelector('.filter-rail');
-      return { mounted: !!el, closing: el?.getAttribute('data-closing') ?? null };
-    });
-    expect(mid.mounted, 'the rail must outlive the click so it can animate out').toBe(true);
-    expect(mid.closing).toBe('true');
     await expect(rail).toHaveCount(0, { timeout: 3000 });
+    const mid = await exitSeen(page);
+    expect(mid.closing, 'the rail must outlive the click so it can animate out').toBe(true);
+    expect(mid.duration, 'and its exit has a real duration').not.toBe('0s');
   });
 
   test('R7 a toast fades, and the intake panels animate, in the module that owns them', async ({
