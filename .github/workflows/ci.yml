@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
   frontend:
@@ -66,12 +67,26 @@ jobs:
         run: psql -h localhost -U postgres -d foos -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
   integration:
-    # The full stack: Supabase containers, 269 API/RLS tests and 276 browser
+    # The full stack: Supabase containers, 269 API/RLS tests and 339 browser
     # specs. Roughly 40 seconds for frontend and schema against 10 to 15 minutes
-    # for this, so it runs where it decides something: the branch that deploys,
-    # and any pull request into it. A develop push still gets lint, typecheck,
-    # build and the plain-Postgres schema checks, which is what caught the
-    # erasure_log and default-privilege defects on 2026-09-08.
+    # for this.
+    #
+    # It no longer runs on a pull request. Klent's call, 2026-09-11: "i don't
+    # understand why we're doing browser tests in github. is this even a
+    # standard? what is this testing? we have a couple more pages to update.
+    # obviously it will have an error." He is right about the shape. During a
+    # UI redesign these specs assert the interface as it was before the change
+    # being reviewed, so a red X on every push measures assertion churn rather
+    # than risk, and the fix for each one is to rewrite the assertion. It now
+    # runs where it decides something: a push to develop or main, which is the
+    # merge itself, and on demand through workflow_dispatch. A pull request
+    # still gets lint, typecheck, build, the eleven guard scripts and the
+    # plain-Postgres schema checks, which is what caught the erasure_log and
+    # default-privilege defects on 2026-09-08, and they finish in under a
+    # minute.
+    #
+    # Run it yourself before asking for a merge: the Actions tab, CI, Run
+    # workflow. Or locally with npm run e2e --workspace=tests.
     #
     # The browser step is sharded two ways because it is the whole cost: the run
     # on 2026-09-10 spent 17.6 of its 22 minutes there. Raising the worker count
@@ -85,7 +100,7 @@ jobs:
     #
     # Vitest runs on shard 1 only. It is not sharded, so running it on both
     # would pay for it twice and make shard 2 the critical path for no gain.
-    if: github.ref_name == 'main' || github.event_name == 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

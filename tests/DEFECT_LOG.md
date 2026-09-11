@@ -16,7 +16,7 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 
 ## Tally, 2026-09-07
 
-**57 entries covering 56 distinct ids, 51 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**59 entries covering 58 distinct ids, 53 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
 
 **Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
 
@@ -1079,4 +1079,33 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **CI keeps the full picture:** `FOOS_PW_MAX_FAILURES: '0'` in `ci.yml`, because one failure per run is one round trip per defect, and that is what made the 2026-09-11 CI sequence take four pushes
 - **Status:** Closed
 - **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-056: a local default silently raised CI to four Playwright workers, and CI went from 1 failure to 16
+
+- **Found:** 2026-09-11, by Klent: *"got another error in the fucking ci"*
+- **Module:** `tests/playwright.config.ts`, `.github/workflows/ci.yml`
+- **Severity:** **High** for the loop. No product defect, and it cost a whole CI cycle plus the time to read it
+- **Actual:** QA-055 changed `workers` to `Number(process.env.FOOS_PW_WORKERS ?? 4)`. **`ci.yml` never set that variable**, so the default was the value CI used, and CI went from 2 workers to 4 on a 2-vCPU runner
+- **The runs say it plainly:** 34553317947 failed 1 and 2, 34555711852 failed 2, 34556895461 failed 1, 34558935229 failed 1. The first run after the change, 34566074636, failed **12 on one shard and 4 on the other**, with `page.goto: Test timeout`, `Target page, context or browser has been closed` and `locator.innerText: Test timeout`. That is a starved runner, not sixteen new defects
+- **The warning was already written down, twice.** CLAUDE.md's test-caveat list says "Do not raise it in CI: `ubuntu-latest` on a private repo is 2 vCPU against this machine's 10", and the `integration` job in `ci.yml` carries the same sentence in a comment directly above the step. I read neither before changing the default
+- **Fix:** `FOOS_PW_WORKERS: '2'` set explicitly in `ci.yml`, so no local default can move CI again. The lesson is narrower than "read the docs": **a shared config's default is a production value.** Changing a default changes every environment that does not override it, and the ones that do not override are exactly the ones nobody is thinking about
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-057: the browser suite gated every pull request during a redesign, so it measured assertion churn
+
+- **Found:** 2026-09-11, by Klent: *"i don't understand why we're doing browser tests in github. is this even a standard? what is this testing? we have a couple more pages to update. obviously it will have an error."*
+- **Module:** `.github/workflows/ci.yml`
+- **Severity:** **Medium** as a process defect
+- **He is right about the shape.** 339 browser specs on every push is not the common split. The usual one is lint, typecheck, build and unit/API tests per push, with end-to-end runs before a merge, nightly, or on demand. During a UI redesign these specs assert the interface **as it was before the change under review**, so every push turns red and the fix for each failure is to rewrite the assertion to match a decision made minutes earlier. Over 2026-09-11 that pattern cost five CI cycles at 14 minutes each
+- **What the suite is still worth:** it found two real defects nobody would have found by looking, the breadcrumb contrast failure (QA-029) and `aria-hidden-focus` on the closed bulk bar (QA-053). That value does not have to be paid on every push
+- **Fix:** `integration` is gated `if: github.event_name != 'pull_request'`, and `workflow_dispatch` is added to the triggers. It runs on a push to `develop` or `main`, which is the merge itself, and on demand from the Actions tab. A pull request still runs `frontend` and `schema`: lint, both typechecks, the build, the eleven guard scripts and the plain-Postgres schema validation, in under a minute
+- **Status:** Closed
+- **Fix owner:** Claude, on Klent's decision
 - **Closed:** 2026-09-11
