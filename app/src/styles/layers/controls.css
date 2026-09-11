@@ -238,9 +238,14 @@ input[type='checkbox']:disabled:indeterminate {
 }
 
 .form-error {
+  margin: var(--sp-1-5) 0 0;
+  padding: var(--sp-1-5);
+  border: var(--hairline) solid var(--danger-border);
+  border-radius: var(--radius);
+  background: var(--status-danger-bg);
   color: var(--danger);
-  font-size: var(--fs-meta);
-  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.5;
 }
 
 .field-error-text {
