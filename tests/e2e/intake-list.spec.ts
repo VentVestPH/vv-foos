@@ -1,5 +1,48 @@
 import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { clientAs } from '../env';
+
+const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+const BATCH = `Iqbatch${RUN}`;
+const LEAD = `Iqlead${RUN}`;
+
+test.beforeAll(async () => {
+  const admin = await clientAs('admin');
+  const { error } = await admin.from('intake_items').insert([
+    {
+      channel: 'linkedin_url',
+      target_type: 'candidate',
+      full_name: `${LEAD} Alvarez`,
+      linkedin_url: `https://www.linkedin.com/in/${LEAD.toLowerCase()}`,
+      batch_label: BATCH,
+      status: 'pending',
+      parsed: { headline: 'Platform Engineer', company: 'Northwind', title: 'Engineer' },
+    },
+    {
+      channel: 'sheet_import',
+      target_type: 'candidate',
+      full_name: `${LEAD} Bauer`,
+      batch_label: BATCH,
+      status: 'parsed',
+      parsed: { headline: 'Data Analyst', company: 'Aurora', title: 'Analyst' },
+    },
+    {
+      channel: 'email',
+      target_type: 'contact',
+      full_name: `${LEAD} Chen`,
+      batch_label: BATCH,
+      status: 'parsed',
+      parsed: { headline: 'VP Talent', company: 'Harbour Group', title: 'VP Talent' },
+    },
+  ]);
+  if (error) throw error;
+});
+
+test.afterAll(async () => {
+  const admin = await clientAs('admin');
+  const { error } = await admin.from('intake_items').delete().eq('batch_label', BATCH);
+  if (error) throw new Error(`could not remove the intake fixture: ${error.message}`);
+});
 
 test.describe('I: the intake queue head matches the other list pages', () => {
   test.beforeEach(async ({ page }) => {
@@ -370,13 +413,7 @@ test.describe('I: the intake search box', () => {
   });
 
   test('I14: it suggests intake rows, and only intake rows', async ({ page }) => {
-    const first = (
-      await page.locator('.table-wrap tbody tr td').nth(1).innerText()
-    ).trim();
-    const term = first.replace(/[^A-Za-z]/g, '').slice(0, 4);
-    expect(term.length, 'the term comes from a row already on screen').toBeGreaterThanOrEqual(3);
-
-    await page.locator('.list-page-search input').pressSequentially(term, { delay: 30 });
+    await page.locator('.list-page-search input').pressSequentially(LEAD, { delay: 20 });
     const pop = page.locator('.fo-hint-pop');
     await expect(pop, 'intake had no suggestions at all before this').toBeVisible({
       timeout: 15000,

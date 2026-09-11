@@ -71,36 +71,15 @@ jobs:
     # specs. Roughly 40 seconds for frontend and schema against 10 to 15 minutes
     # for this.
     #
-    # It no longer runs on a pull request. Klent's call, 2026-09-11: "i don't
-    # understand why we're doing browser tests in github. is this even a
-    # standard? what is this testing? we have a couple more pages to update.
-    # obviously it will have an error." He is right about the shape. During a
-    # UI redesign these specs assert the interface as it was before the change
-    # being reviewed, so a red X on every push measures assertion churn rather
-    # than risk, and the fix for each one is to rewrite the assertion. It now
-    # runs where it decides something: a push to develop or main, which is the
-    # merge itself, and on demand through workflow_dispatch. A pull request
-    # still gets lint, typecheck, build, the eleven guard scripts and the
-    # plain-Postgres schema checks, which is what caught the erasure_log and
-    # default-privilege defects on 2026-09-08, and they finish in under a
-    # minute.
+    # It runs on a pull request again. Klent, 2026-09-11: "why can't we enable
+    # integration and just make it fucking work? is that really that hard?" It
+    # is not: of the sixteen failures that prompted taking it off, fifteen were
+    # a worker-count regression (QA-056) and the sixteenth was already fixed.
+    # The rule that keeps it green is that a UI change and the spec asserting
+    # the old UI belong in the same edit, not in a follow-up after CI complains.
     #
-    # Run it yourself before asking for a merge: the Actions tab, CI, Run
-    # workflow. Or locally with npm run e2e --workspace=tests.
-    #
-    # The browser step is sharded two ways because it is the whole cost: the run
-    # on 2026-09-10 spent 17.6 of its 22 minutes there. Raising the worker count
-    # is not an option, because ubuntu-latest on a private repo is 2 vCPU and
-    # already about twice as slow per test as a developer machine at 2 workers,
-    # so more Chromium workers contend rather than parallelise. Two shards run
-    # 2 workers each on their own runner and their own Supabase stack. That
-    # trades roughly 20 percent more billable minutes for close to half the wall
-    # clock, and changes nothing about what is tested. Three shards would cut
-    # more wall time for 40 percent more minutes; two is the better ratio.
-    #
-    # Vitest runs on shard 1 only. It is not sharded, so running it on both
-    # would pay for it twice and make shard 2 the critical path for no gain.
-    if: github.event_name != 'pull_request'
+    # The browser step is sharded two ways because it is the whole cost.
+    if: github.ref_name == 'main' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

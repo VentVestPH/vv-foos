@@ -16,7 +16,7 @@ No real PII in any row below — all evidence is schema/config state or syntheti
 
 ## Tally, 2026-09-07
 
-**59 entries covering 58 distinct ids, 53 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
+**60 entries covering 59 distinct ids, 54 closed and 6 open**, one of those narrowed to a part nobody here can finish. Recounted 2026-09-11 with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` and `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l`; every earlier figure in this line had gone stale. The entry count exceeds the id count because QA-011 was reopened and carries two entries. What is still open, and why:
 
 **Corrected 2026-09-10.** An earlier note here said `grep -E '^- \*\*Status:\*\*' | grep -ci open` returns one more open defect than the table listed, and left identifying the extra as the next reader's job. There is no phantom, and there were two separate errors in that note. The extra match is **QA-024**, whose status reads "closed for dismissal, with the focus-management half open as a Goal 9 finding": the grep sees the word `open` inside a sentence that says closed. And the table itself was short one real entry, **QA-026**, whose status is `**open.**` and which had never been listed here. The reliable count is `awk '/^### (QA-|F[0-9])/{h=$0} /^- \*\*Status:\*\*/{ if (tolower($0) ~ /open/ && tolower($0) !~ /closed/) print h }'`, which prints the four below and nothing else.
 
@@ -1105,7 +1105,24 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **Severity:** **Medium** as a process defect
 - **He is right about the shape.** 339 browser specs on every push is not the common split. The usual one is lint, typecheck, build and unit/API tests per push, with end-to-end runs before a merge, nightly, or on demand. During a UI redesign these specs assert the interface **as it was before the change under review**, so every push turns red and the fix for each failure is to rewrite the assertion to match a decision made minutes earlier. Over 2026-09-11 that pattern cost five CI cycles at 14 minutes each
 - **What the suite is still worth:** it found two real defects nobody would have found by looking, the breadcrumb contrast failure (QA-029) and `aria-hidden-focus` on the closed bulk bar (QA-053). That value does not have to be paid on every push
-- **Fix:** `integration` is gated `if: github.event_name != 'pull_request'`, and `workflow_dispatch` is added to the triggers. It runs on a push to `develop` or `main`, which is the merge itself, and on demand from the Actions tab. A pull request still runs `frontend` and `schema`: lint, both typechecks, the build, the eleven guard scripts and the plain-Postgres schema validation, in under a minute
+- **Proposed fix, and Klent rejected it:** gating `integration` off the pull-request trigger. *"why can't we enable integration and just make it fucking work? is that really that hard?"* He was right to push back. It was not hard: fifteen of the sixteen failures were the single worker-count regression in QA-056, and the sixteenth was already fixed in `a1c3633`. Removing the gate would have hidden a problem that took one line to solve
+- **Actual fix:** `FOOS_PW_WORKERS: '2'` pinned in CI, `workflow_dispatch` kept as an extra trigger, and the pull-request trigger left in place. Then both shards run locally under CI's exact settings to prove it: `172 passed (5.0m)` and `167 passed (5.0m)`, 339 in total, plus `269 passed` from vitest
+- **What actually keeps it green** is a discipline rather than a trigger: a UI change and the spec asserting the old UI belong in the **same edit**. Every red run on 2026-09-11 was either that regression or a spec still describing a decision reversed minutes earlier
+- **Status:** Closed, by fixing rather than by disabling
+- **Fix owner:** Claude
+- **Closed:** 2026-09-11
+
+---
+
+### QA-058: a spec was written against sample data that was then deleted
+
+- **Found:** 2026-09-11, running the suite at CI's settings after re-enabling `integration`
+- **Module:** `tests/e2e/intake-list.spec.ts`
+- **Severity:** **Medium.** Six of fifteen tests failed, and they would have failed on CI from the moment they were written
+- **Actual:** the spec was built against the 130 demo intake rows seeded so Klent could see the page. Removing those rows as sample data left the queue with one `imported` item, which the default filter hides, so the list was empty: I4 found no Target column, I9 no nav badge, I11/I12/I13 no row to open, I14 nothing to suggest
+- **This is QA-049 again, self-inflicted.** The rule was already written down after the C7/Q10/Q14 failures: a test may not assume a row it did not create. Seeded demo data is not an exception
+- **Fix:** `beforeAll` inserts three intake items across three channels, two target types and two statuses under a run-unique `batch_label`, and `afterAll` deletes by that label. `intake_items` has no `is_test` column, which is why the label is the marker. I14 now searches for its own seeded name instead of reading whatever row happened to be first
+- **Evidence:** `15 passed (42.9s)` for the spec, then both full shards green
 - **Status:** Closed
-- **Fix owner:** Claude, on Klent's decision
+- **Fix owner:** Claude
 - **Closed:** 2026-09-11
