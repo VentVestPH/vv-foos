@@ -1,18 +1,28 @@
-# Goal 6: the cutover runbook, X1 to X12
+# Goal 6: the cutover runbook
 
-Written from the code and the config rather than from the plan's summary, so every figure here is re-checkable with the command beside it. **X1 has not happened**, so X2 to X7 have no target yet, and what is done here is the part that does not need one.
+Written from the code and the config rather than from the plan's summary, so every figure here is re-checkable with the command beside it.
 
-One correction to how that used to read. This paragraph said "nothing in this document was executed against a hosted project", and the first real run of `scripts/check-cutover.mjs` had already gone to the live project by reading `VITE_SUPABASE_URL` out of `app/.env`. It made read-only requests as `anon`, all refused or informational, and it is written up as QA-017 in `tests/DEFECT_LOG.md` and in the check's own section below. The script now refuses to guess a target at all.
+**Three decisions were open when this was written and are now closed. Recorded 2026-09-14.**
 
-**What is proven, and how far.** X2 was rehearsed into a scratch database, X3's four cron jobs and ten `dash` objects were read from the local stack, X5's `verify_jwt` settings and ten secrets were derived from `config.toml` and every reachable `Deno.env.get`, X9's purge order was checked for coverage against every table carrying `is_test`, and X12's licensing was read from both vendors with their page dates. **Nothing here has served a request from a hosted origin.**
+| Item | Decision |
+| :---- | :---- |
+| Host | **Cloudflare Pages.** Vercel is not used and `vercel.json` is deleted. The vendor comparison that used to occupy this document is removed with it |
+| Supabase plan | **Pro** |
+| Environments | **Two, and only two: a developer's local stack, and the Cloudflare Pages site.** There is no develop project, no staging and no preview environment |
+
+That collapses four of the twelve X items. **X1 and X2** assumed creating a fresh project and applying migrations to it; the existing Singapore project `hilieyehhecrlccdveta` is the one environment and already carries the data. **X12**, the host, is answered above. **X11** is narrowed rather than closed: with no preview environment there are no preview deploys to gain, so the only question left is whether the Cloudflare Pages git integration builds production on push. That is still Klent's.
+
+**What remains is X3 to X10**, and all of it is Supabase-side configuration plus one verification pass. None of it has been done.
+
+One correction to how this used to read. This paragraph said "nothing in this document was executed against a hosted project", and the first real run of `scripts/check-cutover.mjs` had already gone to the live project by reading `VITE_SUPABASE_URL` out of `app/.env`. It made read-only requests as `anon`, all refused or informational, and it is written up as QA-017 in `tests/DEFECT_LOG.md`. The script now refuses to guess a target at all.
+
+**Nothing here has served a request from a hosted origin.**
 
 ## What is settled and is not relitigated
 
-The artefact is a static SPA, **34 files and 955,154 bytes**, largest 215,735. `vercel.json` is committed with `outputDirectory: app/dist`, the SPA rewrite `/((?!assets/).*)` without which every deep link 404s, immutable asset caching, and a header set whose CSP already allows `https://*.supabase.co`, `wss://*.supabase.co` and `https://accounts.google.com`. `script-src` is `'self'` with no `unsafe-inline`, which the Vite production build satisfies.
+The artefact is a static SPA, **34 files and 955,154 bytes**, largest 215,735. The header set and CSP live in `app/public/_headers`, which `vite build` emits into `app/dist/`. The CSP allows `https://*.supabase.co`, `wss://*.supabase.co` and `https://accounts.google.com`; `script-src` is `'self'` with no `unsafe-inline`, which the Vite production build satisfies.
 
-Two row counts in this document are easy to confuse and are both correct: **72,988 `people`** and **72,917 `candidate_profiles`**. A person can exist without a candidate profile, which is why X8's decision is stated against `people` while the plan's privacy language names candidate records.
-
-Fly is ruled out on its own documentation: static files must be packaged as a container image, so it means maintaining a web server to serve a few dozen files.
+Two row counts in this document are easy to confuse and are both correct: **73,096 `people`** and **73,022 `candidate_profiles`**, measured 2026-09-14. A person can exist without a candidate profile, which is why X8's decision is stated against `people` while the plan's privacy language names candidate records.
 
 ## X2: the migration count, and what proves it
 
@@ -43,7 +53,7 @@ ERROR:  FAIL 4: seed requisition REQ-0001 not found
 
 **And the check count itself was wrong.** `scripts/gate.sh` printed `35 check(s) pass` because it counted `PASS` lines, and check 15 prints two, one for the intake-item teardown and one for the reminder teardown. Two checks also carry letter suffixes, `5b` and `14b`, so the numbered labels run to 32 while the distinct checks number **34**. The gate now counts distinct labels and prints 34.
 
-## X5 and X6: the eleven functions, their JWT setting and their secrets
+## X5 and X6: the twelve functions, their JWT setting and their secrets
 
 Derived from `supabase/config.toml` and from every `Deno.env.get` reachable from each function, not from prose. `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are platform-provided and are not listed.
 
@@ -68,7 +78,7 @@ Derived from `supabase/config.toml` and from every `Deno.env.get` reachable from
 **The two origin variables point at different hosts, and swapping them is the easy mistake.**
 
 - `CAREERS_PUBLIC_ORIGIN` is the origin the **careers pages are served from**, which is the Supabase Functions origin unless a custom domain fronts it. **Two** functions fall back to `https://${url.host}` when it is unset, `careers-page/index.ts:320` and `careers-status/index.ts:29`, and the hardcoded `https` is in both because `req.url`'s scheme cannot be trusted behind Supabase's proxy. `CLAUDE.md` and the earlier draft of this section named only `careers-page`. It builds the canonical URL, the sitemap and `robots.txt` from it, so a wrong value produces a site that indexes itself under a hostname that does not serve it.
-- `APP_PRIMARY_ORIGIN` is the **frontend host's** origin, Vercel or Cloudflare. Five authenticated functions use it as their CORS allow-origin, so it has to match the origin the browser is on. `_shared/careers-html.ts:87` also uses it to build `${origin}/og-careers.png`, and `og-careers.png` is one of the 34 files the frontend build emits, so that link only resolves if this points at the frontend and not at Supabase.
+- `APP_PRIMARY_ORIGIN` is the **frontend host's** origin, Cloudflare Pages. Five authenticated functions use it as their CORS allow-origin, so it has to match the origin the browser is on. `_shared/careers-html.ts:87` also uses it to build `${origin}/og-careers.png`, and `og-careers.png` is one of the 34 files the frontend build emits, so that link only resolves if this points at the frontend and not at Supabase.
 
 Setting both to the same value works for CORS and quietly breaks either the careers canonical URLs or the Open Graph image, depending on which value you pick.
 
@@ -168,11 +178,11 @@ The two images the app serves itself, `/ventvest-logo.webp` at `LoginPage.tsx:56
 
 **The two mechanisms are independent.** `.github/workflows/ci.yml` is still committed and still declares `on: push: branches: [main, develop]`; it is disabled at the GitHub repository level rather than in the file, which is why five commits reached `develop` today without it running. A host's git integration is a separate subscription to the same pushes. Enabling one does not enable the other, and enabling both means every push runs the gate on GitHub **and** a build on the host.
 
-**What a push-triggered build would run.** `vercel.json` already names it: `installCommand: npm install` and `buildCommand: npm run build --workspace=app`, and `app/package.json`'s `build` is `tsc --noEmit && vite build`. So a host build type-checks and builds, and **that is all**. It does not run ESLint, the **ten** guard scripts, the **265** vitest tests, the **179** browser tests or `validate.sql`, because none of those is in `buildCommand`. The whole gate is 22 checks and a host build runs two of them. A green deploy therefore means "it compiled", not "it passed".
+**What a push-triggered build would run.** Cloudflare Pages would run the configured build command, `npm run build --workspace=app`, and `app/package.json`'s `build` is `tsc --noEmit && vite build`. So a host build type-checks and builds, and **that is all**. It does not run ESLint, the **ten** guard scripts, the **265** vitest tests, the **179** browser tests or `validate.sql`, because none of those is in `buildCommand`. The whole gate is 22 checks and a host build runs two of them. A green deploy therefore means "it compiled", not "it passed".
 
 **The trade-off, stated once.** Against: a build on every push publishes whatever is on the branch, and this branch takes work-in-progress commits. In favour: preview deployments per branch are the only practical way to look at a change on a real origin, and they are what make X4's redirect-URL question worth solving.
 
-**My recommendation, which is not a decision.** Connect the integration but scope it: production builds from `main` only, previews from other branches, and no automatic production deploy from `develop`. That gives previews without letting a mid-afternoon commit become the live site. If the answer is no integration at all, the deploy is `vercel --prod` or `wrangler pages deploy` by hand, which is fine and one command; the loss is preview origins.
+**My recommendation, which is not a decision.** Build production from `main` only, and never from `develop`, which takes work-in-progress commits. With one environment there are no preview origins to gain, so the alternative costs little: `wrangler pages deploy` by hand is one command.
 
 ## X10: five checks, each proving a different item
 
@@ -193,9 +203,8 @@ The careers check has a known correct-but-surprising outcome: **every seeded req
 ## What is Klent's, and is not decided here
 
 - **X1**, create the develop project and hand over the ref.
-- **X8**, what data the hosted instance carries. The **72,917** imported candidate records are real people. Seed data only is a legitimate answer, and no real data goes up on my judgement.
+- **X8**, what data the hosted instance carries. The **73,022** imported candidate records are real people. Seed data only is a legitimate answer, and no real data goes up on my judgement.
 - **X11**, whether the host's git integration builds on push. The GitHub Actions workflow is disabled at Klent's instruction and stays disabled; a host building on push is a separate mechanism and needs its own yes or no. The X11 section above sets out what such a build would and would not run, and carries a recommendation rather than a decision.
-- **X12**, the host, decided on licensing rather than capability. Vercel Hobby is non-commercial per Vercel's own terms, so Vercel means Pro: a **$20/month platform fee** that includes one deploying seat and $20 of usage credit, with extra deploying seats $20 each and viewer seats free. Cloudflare Pages serves static assets free and, as of the read on 2026-09-07, carries no commercial-use restriction, so the research part of this item is finished and only the choice is left. The Cloudflare port is already committed. Section X12 below has both vendors quoted with their page dates.
 
 ## X8's numbers, measured rather than quoted
 
@@ -235,55 +244,6 @@ company_list|v   contact_list|v   deal_list|v
 ```
 
 The other three hits are views over those tables (`relkind` `v`), so they carry no rows of their own. Nothing with an `is_test` column is missing from the purge, and nothing in the purge lacks the column.
-
-## X12: the host question, answered on licensing, read from the vendors on 2026-09-07
-
-The plan said the Cloudflare terms check had not been done. It has now, and both sides are quoted rather than recalled.
-
-**Vercel Hobby forbids this use, in its own words.** From the Fair Use Guidelines, page last updated 2026-07-29:
-
-> **Hobby teams** are restricted to non-commercial personal use only. All commercial usage of the platform requires either a Pro or Enterprise plan.
-
-and, in the same section, commercial usage is defined as any deployment used "for the purpose of financial gain of **anyone** involved in **any part of the production** of the project, including a paid employee or consultant writing the code", with "Receiving payment to create, update, or host the site" given as an example. A recruitment product built under a paid engagement is commercial on that definition twice over.
-
-**Vercel Pro is a $20 platform fee, not simply $20 a seat.** From the Pro plan page, last updated 2026-09-02: "$20/month Pro platform fee", which includes **1 deploying team seat** and **$20/month in usage credit**, with 1 TB Fast Data Transfer and 10,000,000 Edge Requests included. Additional Owner or Member seats are "$20/month each" and Viewer seats are free. So the plan's shorthand of "$20/seat/month" understates what the first $20 buys and overstates the cost of read-only collaborators, and is corrected here.
-
-**Cloudflare Pages carries no equivalent restriction.** Two things had to be checked separately, because the old answer is widely repeated and is out of date.
-
-- The **non-HTML content limit, the old section 2.8, no longer exists**. Cloudflare retired it on 2023-05-16 and moved the restriction into a CDN-specific section aimed at video and large files hosted outside Cloudflare, rather than at "a disproportionate percentage of pictures, audio files, or other non-HTML content". A 955 KB JavaScript and CSS bundle was never the target and is not now.
-- The **Developer Platform service-specific terms**, last updated 2026-06-02, contain no commercial-use prohibition and no enumeration of permitted content types. The restriction there is on unlawful or harmful content, which is not this.
-
-**And the free tier's numbers are far from binding for this artefact.** Re-read from the Pages limits page on 2026-09-07, its own `dateModified` being 2026-09-05:
-
-| Free-plan limit | Value | What this build uses |
-| :---- | :---- | :---- |
-| Builds per month | 500 | one per deploy |
-| Concurrent builds | 1 at a time | one |
-| Build timeout | 20 minutes | `built in 990ms` |
-| Files per site | 20,000 | **34**, which is 0.17% |
-| Single asset size | 25 MiB | **215,735 bytes**, which is 0.82% |
-| Custom domains per project | 100 | one |
-| `_headers` rules | 100 | **4** |
-| Characters per header | 2,000 | longest is **500** |
-| `_redirects` rules | 2,100 combined | **0** |
-| Projects per account | 100 | one |
-
-Static asset requests are, in Cloudflare's own words, "free and unlimited". Nothing here is within two orders of magnitude of a limit. The old figure of 41 files at 1.0 MB was wrong; the percentages barely move, which is the point.
-
-**So the fact is settled and the decision is still Klent's.** On capability the two are interchangeable for this bundle. On licensing, Vercel requires a paid plan for this engagement and Cloudflare Pages does not. If Cloudflare, the port is already done and committed. The headers moved verbatim, including the CSP; the rewrite did not move at all, because Pages does the SPA fallback itself and a ported `/*` rule would have broken every bundle request, which is QA-018 and the section below.
-
-**Sources**
-- Vercel, Fair Use Guidelines, https://vercel.com/docs/limits/fair-use-guidelines, last updated 2026-07-29
-- Vercel, Pro plan, https://vercel.com/docs/plans/pro, last updated 2026-09-02
-- Cloudflare, Pages limits, https://developers.cloudflare.com/pages/platform/limits/, `dateModified` 2026-09-05, re-read 2026-09-07
-- Cloudflare, Pages `_redirects`, https://developers.cloudflare.com/pages/configuration/redirects/, last updated 2026-08-25, read 2026-09-07
-- Cloudflare, Pages `_headers`, https://developers.cloudflare.com/pages/configuration/headers/, read 2026-09-07
-- Cloudflare, Serving Pages, https://developers.cloudflare.com/pages/configuration/serving-pages/, `dateModified` 2026-04-21, read 2026-09-07
-- Vercel, Build Output API configuration, https://vercel.com/docs/build-output-api/configuration, read 2026-09-07, for the routing phases and `handle: 'filesystem'`
-- Vercel, Rewrites, https://vercel.com/docs/routing/rewrites, last updated 2026-08-11, which documents the negative-lookahead source idiom itself: `"source": "/:path((?!uk/).*)"`
-- Cloudflare, Workers pricing, static assets, https://developers.cloudflare.com/workers/platform/pricing/
-- Cloudflare, "Goodbye, section 2.8 and hello to Cloudflare's new terms of service", https://blog.cloudflare.com/updated-tos/, 2023-05-16
-- Cloudflare, Service-Specific Terms, Developer Platform, https://www.cloudflare.com/service-specific-terms-developer-platform/, last updated 2026-06-02
 
 ## An executable X10, rather than a checklist
 
@@ -384,7 +344,7 @@ The build satisfies the precondition: `find app/dist -maxdepth 1 -name '*.html'`
 
 Against the documented limits: `_headers` uses **4 rules of the 100 allowed** with a longest line of **500 characters of the 2,000 allowed**; `_redirects` uses **0 of 2,100**.
 
-**The honest summary of this section: the Vercel config is verified against Vercel's schema and committed, and the Cloudflare port is verified against Cloudflare's documentation but has never been deployed.** Neither has served a request.
+**The honest summary of this section: the Cloudflare configuration is verified against Cloudflare's own documentation and has never been deployed.** It has not served a request. The Vercel references that remain below are historical, kept only because they explain why the port had to differ.
 
 ## What this runbook does not answer, stated rather than left implied
 
@@ -392,6 +352,6 @@ Against the documented limits: `_headers` uses **4 rules of the 100 allowed** wi
 - ~~**The build's exact output.**~~ **Measured 2026-09-07, re-measured 2026-09-08 after the `dist` rename, and the plan's original figure was wrong.** The total moved from 955,095 to **955,154 bytes** across the rename, 59 bytes, because the entry chunk's content hash changed with the W25 stylesheet edit and the filename length with it. The file count and the largest asset did not move. It recorded "41 files at 1.0 MB with the largest at 212 KB". A fresh `npm run build --workspace=app` writes **34 files** totalling **955,154 bytes** (0.91 MiB, 0.96 MB), largest `assets/vendor-supabase-wIXNjVJv.js` at **215,735 bytes**, in 990ms. Twenty-nine files are in `assets/`; the other five are `index.html`, `favicon.png`, `apple-touch-icon.png`, `og-careers.png` and `ventvest-logo.webp`. Re-measure with `find app/dist -type f | wc -l` and `find app/dist -type f -exec stat -f%z {} + | awk '{s+=$1} END{print s}'`. Fewer files and fewer bytes than claimed, so nothing about either host's limits changes.
 - **Whether the host's git integration should build on push.** X11, and Klent's. The X11 section sets out the mechanism and carries a recommendation; the answer is still his.
 - **Whether Cloudflare's `_headers` and `_redirects` behave as documented.** They are verified against Cloudflare's own pages, with dates, and against the documented limits. Neither file has served a request. The one thing that would have been caught only by deploying was caught by reading instead, which is QA-018, and that is luck as much as method.
-- **Whether the 11 Edge Functions deploy.** Their `verify_jwt` settings and secrets are verified against `config.toml` and every reachable `Deno.env.get`, and all 11 answer `OPTIONS` on the local stack. `supabase functions deploy` has not been run against any project from this checkout.
+- **Whether the 12 Edge Functions deploy.** Their `verify_jwt` settings and secrets are verified against `config.toml` and every reachable `Deno.env.get`, and all of them answer `OPTIONS` on the local stack. `supabase functions deploy` has not been run against any project from this checkout.
 - **Anything about performance or cost under real traffic.** No load figures, no bandwidth estimate, no Supabase compute sizing. The free-tier headroom table is about static-asset limits, not about the database.
 - **What `supabase migration list --linked` says today.** The last reading, on 2026-09-01, showed an empty remote for the ten `20260901*` migrations that existed then. `CLAUDE.md` said "eight" until 2026-09-07 and that was wrong; there are ten of those files, and thirty-six dated 2026-09-01 or later. The command talks to the live project, and this session's standing instruction is that everything happens on the local stack, so it was not re-run: read it yourself before the first deploy.

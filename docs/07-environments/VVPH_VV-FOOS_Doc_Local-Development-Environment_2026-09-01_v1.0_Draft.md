@@ -60,18 +60,18 @@ The sibling repository `Kappa-Omini-typescript` runs its own Supabase stack on t
 
 That `pg_cron` result also confirms the D14 guard added to migration 04 did not change Supabase behaviour: the jobs still schedule where `pg_cron` exists.
 
-## 5. Environment split for hosting on Vercel or Fly
+## 5. Environment split for hosting on Cloudflare Pages or Fly
 
 Vite loads env files in increasing priority: `.env`, then `.env.local`, then `.env.[mode]`, then `.env.[mode].local`.
 
 | Environment | Source | Committed |
 | :---- | :---- | :---- |
 | Development | `app/.env.development` -> local Supabase | Yes. The keys are the standard Supabase local demo keys, byte-identical on every machine and worthless off 127.0.0.1 |
-| Production | Hosting platform environment variables | No. Vercel: Project Settings > Environment Variables. Fly: `fly secrets set` |
+| Production | Hosting platform environment variables | No. Cloudflare Pages: Project Settings > Environment Variables. Fly: `fly secrets set` |
 
 Platform variables override every file, so a deployed build picks up the hosted project without any file change.
 
-**One caveat worth knowing.** `app/.env` still holds the live project's keys and is loaded in every mode. `.env.development` outranks it in dev, so `npm run dev` is safely local. But `npm run build` runs in production mode, where `.env.development` is not loaded, so a **local** build silently targets the live project. On Vercel or Fly this is harmless because platform variables win. Locally, prefer `.env.production.local` (gitignored) if you ever want a local production build pointed somewhere else.
+**One caveat worth knowing.** `app/.env` still holds the live project's keys and is loaded in every mode. `.env.development` outranks it in dev, so `npm run dev` is safely local. But `npm run build` runs in production mode, where `.env.development` is not loaded, so a **local** build silently targets the live project. On Cloudflare Pages or Fly this is harmless because platform variables win. Locally, prefer `.env.production.local` (gitignored) if you ever want a local production build pointed somewhere else.
 
 ## 6. Still outstanding
 
@@ -79,7 +79,7 @@ Platform variables override every file, so a deployed build picks up the hosted 
 
 Now that local works, the moment those definitions are available the migration can be written and tested here before it goes anywhere near production.
 
-**Superseded:** `vercel.json` now exists with the SPA rewrite, immutable asset caching and security headers. Nothing is deployed to it.
+**Superseded:** `app/public/_headers` now exists with the SPA rewrite, immutable asset caching and security headers. Nothing is deployed to it.
 
 
 ## Deployment state, verified 2026-09-01

@@ -201,7 +201,7 @@ No CSS framework and no charting library (dashboard bars are hand-rolled CSS in 
 
 ### Edge Functions
 
-`supabase/functions/` holds **eleven** functions: careers (`careers-page`, `careers-apply`, `careers-status`), intake (`intake-sheet-fetch`, `intake-sheet-commit`, `intake-email-parser`) and Google integration (`google-oauth-start`, `google-oauth-callback`, `google-sync`, `gmail-send`, `calendar-create-meeting`). `README.md` and `README-agent6.md` in that directory record each function's `verify_jwt` setting, deploy state, and secrets. Two rules learned the hard way there: any function a browser calls needs explicit `OPTIONS`/CORS handling, and `req.url`'s scheme cannot be trusted behind Supabase's proxy (`careers-page` hardcodes `https`, overridable via `CAREERS_PUBLIC_ORIGIN`).
+`supabase/functions/` holds **twelve** functions: careers (`careers-page`, `careers-apply`, `careers-status`), intake (`intake-sheet-fetch`, `intake-sheet-commit`, `intake-email-parser`) Google integration (`google-oauth-start`, `google-oauth-callback`, `google-sync`, `gmail-send`, `calendar-create-meeting`) and administration (`admin-users`, `verify_jwt = true`, which re-checks `staff.role = 'admin'` itself). `README.md` and `README-agent6.md` in that directory record each function's `verify_jwt` setting, deploy state, and secrets. Two rules learned the hard way there: any function a browser calls needs explicit `OPTIONS`/CORS handling, and `req.url`'s scheme cannot be trusted behind Supabase's proxy (`careers-page` hardcodes `https`, overridable via `CAREERS_PUBLIC_ORIGIN`).
 
 Functions that write on a user's behalf run under the caller's own JWT where RLS should decide (`intake-sheet-commit`); service-role use is confined to the public careers surface and outbox consumers.
 
@@ -214,7 +214,7 @@ bash scripts/gate.sh 5             # 22 checks, five times; the way to verify a 
 
 npm run test --workspace=tests     # 269 vitest tests, files run serially: 123 api, 144 unit, 2 mocks
 npm run e2e  --workspace=tests     # 312 browser tests in 70 files (playwright, 2 workers)
-psql "$DB_URL" -f supabase/tests/validate.sql   # 34 checks; 3 structural, 31 need the seed
+psql "$DB_URL" -f supabase/tests/validate.sql   # 37 checks; 3 structural, the rest need the seed
 node scripts/check-attachment-queue.mjs         # no orphaned attachment files, no leaked client_errors
 ```
 
@@ -283,7 +283,7 @@ FOOS_NEW_STAFF_PASSWORD='pick-one' npm run db:add-staff -- you@ventvest.com "You
 
 ## Local versus production
 
-**This checkout is linked to the live project.** `supabase/.temp/project-ref` holds `hilieyehhecrlccdveta`, so every `--linked` command targets production. There is no staging project. **Corrected 2026-09-09:** relinking needs `supabase link --project-ref <ref>`, not just writing that file, because `db.<ref>.supabase.co` is AAAA-only and the CLI otherwise answers `LegacyDbConfigIpv6Error`. Bulk work must use the **session pooler on 5432**; the transaction pooler on 6543 breaks `pg_dump`.
+**This checkout is linked to the live project.** `supabase/.temp/project-ref` holds `hilieyehhecrlccdveta`, so every `--linked` command targets production. **Decided 2026-09-14: there are two environments and only two**, a developer's local stack and the Cloudflare Pages site on that project. No staging, no develop project, no preview environment. Supabase is on **Pro**; the host is **Cloudflare Pages**, assets only. **Corrected 2026-09-09:** relinking needs `supabase link --project-ref <ref>`, not just writing that file, because `db.<ref>.supabase.co` is AAAA-only and the CLI otherwise answers `LegacyDbConfigIpv6Error`. Bulk work must use the **session pooler on 5432**; the transaction pooler on 6543 breaks `pg_dump`.
 
 Develop against the local stack: `supabase start`, then `npm run db:reset` (which also seeds the four test personas and restarts the edge runtime, since `db reset` otherwise leaves it holding stale connections to the storage container it just replaced and every upload fails with `StorageApiError 502`).
 

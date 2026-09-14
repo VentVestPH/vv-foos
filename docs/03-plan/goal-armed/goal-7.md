@@ -16,9 +16,9 @@ Housekeeping first, because the next three goals write into it and Klent cannot 
 
 Twelve files reference it and every one must change in the same commit, because a stale reference means the build output goes to one place and the deploy reads another:
 
-`.gitignore`, `app/.gitignore`, `vercel.json`, `app/vite.config.ts`, `app/eslint.config.js`, `CLAUDE.md`, `tests/DEFECT_LOG.md`, `docs/03-plan/VVPH_VV-FOOS_Plan_CRM-ATS-Improvement`, `docs/03-plan/VVPH_VV-FOOS_Goals_Full-Audit-And-Execution`, `docs/03-plan/goal-armed/goal-6.md`, `docs/07-environments/VVPH_VV-FOOS_Runbook_Hosting-And-Cutover`, `docs/07-environments/cloudflare/_redirects`, `docs/01-current-state/VVPH_VV-FOOS_Report_System-Inventory-and-Verified-State`.
+`.gitignore`, `app/.gitignore`, `app/public/_headers`, `app/vite.config.ts`, `app/eslint.config.js`, `CLAUDE.md`, `tests/DEFECT_LOG.md`, `docs/03-plan/VVPH_VV-FOOS_Plan_CRM-ATS-Improvement`, `docs/03-plan/VVPH_VV-FOOS_Goals_Full-Audit-And-Execution`, `docs/03-plan/goal-armed/goal-6.md`, `docs/07-environments/VVPH_VV-FOOS_Runbook_Hosting-And-Cutover`, `docs/07-environments/cloudflare/_redirects`, `docs/01-current-state/VVPH_VV-FOOS_Report_System-Inventory-and-Verified-State`.
 
-**Prove it after:** `grep -rl "dist-redesign-2" . | grep -v node_modules --exclude-dir=.git` returns nothing, `npm run build --workspace=app` writes `app/dist/`, and `vercel.json`'s `outputDirectory` matches. Then re-verify the two facts the runbook depends on: the file count and total bytes, and which Supabase URL the bundle bakes.
+**Prove it after:** `grep -rl "dist-redesign-2" . | grep -v node_modules --exclude-dir=.git` returns nothing, `npm run build --workspace=app` writes `app/dist/`, and `app/public/_headers`'s `outputDirectory` matches. Then re-verify the two facts the runbook depends on: the file count and total bytes, and which Supabase URL the bundle bakes.
 
 ## 7.3 One dated folder for audit output, organised so it can be browsed
 
