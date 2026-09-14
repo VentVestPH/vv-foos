@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, overflowItem, signIn } from './helpers';
 
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const FIRST = `Crfirst${RUN}`;
@@ -332,15 +332,35 @@ test.describe('C: paging and the date field', () => {
     }
   });
 
-  test('C10: there is no Edit button, because the fields were never behind one', async ({ page }) => {
+  test('C10: Edit opens a real edit mode, and what it saves reaches the people row', async ({
+    page,
+  }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.waitForSelector('.record-action-bar');
 
-    await expect(
-      page.locator('.record-action-bar').getByRole('button', { name: 'Edit', exact: true }),
-      'Edit only expanded a section and focused its first input. Nothing on this page has an edit mode, and no field of people is writable anywhere in the app, so the label promised a state change that does not exist',
-    ).toHaveCount(0);
+    await page
+      .locator('.record-action-bar')
+      .getByRole('button', { name: 'Edit', exact: true })
+      .click();
+    const dialog = page.getByRole('dialog', { name: 'Edit person details' });
+    await expect(dialog).toBeVisible({ timeout: 25000 });
+
+    const headline = `Edited by C10 ${RUN}`;
+    await dialog.getByLabel('Headline', { exact: true }).fill(headline);
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(dialog).toHaveCount(0, { timeout: 25000 });
+
+    const admin = await clientAs('admin');
+    const { data } = await admin
+      .from('people')
+      .select('headline')
+      .eq('id', person)
+      .single();
+    expect(
+      data?.headline,
+      'the dialog has to write people, which nothing in the app did until 2026-09-14',
+    ).toBe(headline);
 
     const section = page.locator('#candidate-information');
     await expect(section).toHaveCount(1);
@@ -486,7 +506,7 @@ test.describe('C: loading', () => {
     await signIn(page, PERSONA_EMAILS.admin);
     await page.route('**/rest/v1/people*', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      await route.continue();
+      await route.continue().catch(() => undefined);
     });
 
     const navigation = page.goto(`/recruit/candidates/${person}`);
@@ -695,8 +715,11 @@ test.describe('C: submit and print', () => {
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.waitForSelector('.record-action-bar');
 
-    const view = page.locator('.record-action-bar').getByRole('button', { name: 'View Resume' });
-    await expect(view).toBeDisabled();
+    const view = await overflowItem(page, 'View Resume');
+    await expect(
+      view,
+      'View Resume moved into the overflow menu on 2026-09-14 to thin the action bar',
+    ).toBeDisabled();
     await expect(
       view,
       'the fixture has no resume, which is a data state, not an unshipped feature',

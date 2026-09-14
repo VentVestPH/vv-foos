@@ -199,7 +199,7 @@ test.describe('the deal board is bounded per stage', () => {
     await gotoAsSignedIn(page, DEALS);
     await expect(page.locator('.kanban-col').first()).toBeVisible({ timeout: 30000 });
 
-    await page.getByRole('button', { name: /^Table$/ }).click();
+    await page.getByRole('tab', { name: /^Table$/ }).click();
     await expect(page.locator('.table-wrap')).toBeVisible({ timeout: 20000 });
 
     const label = await pagerText(page);
@@ -444,6 +444,7 @@ test('U1.10: the requisition search runs only when it is submitted', async ({ pa
 
   await gotoAsSignedIn(page, '/recruit/requisitions');
   await expect(page.locator('.table-wrap tbody tr').first()).toBeVisible({ timeout: 25000 });
+  const unfiltered = await requisitionTotal(page);
 
   const box = page.getByRole('searchbox', { name: /Search Requisitions/i });
   await box.pressSequentially('REQ-000', { delay: 120 });
@@ -484,7 +485,10 @@ test('U1.10: the requisition search runs only when it is submitted', async ({ pa
     .toBe(2);
 
   const filtered = await requisitionTotal(page);
-  expect(filtered, 'the submitted search narrowed the list').toBeGreaterThan(-1);
+  expect(
+    filtered,
+    'a submitted search can only ever narrow the list it was run against',
+  ).toBeLessThanOrEqual(unfiltered);
 
   await page.locator('.list-page-search .fo-searchbox-clear').click();
   await expect(box, 'the X empties the box').toHaveValue('');
@@ -493,7 +497,7 @@ test('U1.10: the requisition search runs only when it is submitted', async ({ pa
       timeout: 10000,
       message: 'clearing the box has to put the unfiltered list back, not just empty the input',
     })
-    .toBeGreaterThan(filtered);
+    .toBeGreaterThanOrEqual(unfiltered);
   expect(
     searches.length,
     'and clearing issues no further search-filtered request, because there is no term left',

@@ -2,10 +2,10 @@ import { expect, type Locator, type Page } from '@playwright/test';
 import { clientAs } from '../env';
 
 export const PERSONA_EMAILS = {
-  admin: 'demo-admin@ventvest.test',
-  recruiter: 'rita.demo@ventvest.com',
-  sourcer: 'sam.demo@ventvest.com',
-  bd: 'ben.demo@ventvest.com',
+  admin: 'foos.admin@ventvest.com',
+  recruiter: 'foos.recruiter@ventvest.com',
+  sourcer: 'foos.sourcer@ventvest.com',
+  bd: 'foos.bd@ventvest.com',
 } as const;
 
 export function testPassword(): string {
@@ -166,42 +166,6 @@ export async function openFilterRail(page: Page): Promise<void> {
   await expect(page.locator('.filter-rail')).toBeVisible({ timeout: 25000 });
 }
 
-export async function watchOverlayExit(
-  page: Page,
-  selector: string,
-): Promise<() => Promise<{ sawClosing: boolean; removed: boolean }>> {
-  const key = `__overlayExit${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-  await page.evaluate(
-    ({ sel, k }) => {
-      const log = { sawClosing: false, removed: false };
-      (window as unknown as Record<string, unknown>)[k] = log;
-      let everPresent = false;
-      const seen = () => {
-        const el = document.querySelector(sel);
-        if (el) {
-          everPresent = true;
-          if (el.getAttribute('data-closing') === 'true') log.sawClosing = true;
-        } else if (everPresent) {
-          log.removed = true;
-        }
-      };
-      seen();
-      new MutationObserver(seen).observe(document.body, {
-        subtree: true,
-        childList: true,
-        attributes: true,
-        attributeFilter: ['data-closing'],
-      });
-    },
-    { sel: selector, k: key },
-  );
-  return () =>
-    page.evaluate(
-      (k) => (window as unknown as Record<string, { sawClosing: boolean; removed: boolean }>)[k],
-      key,
-    );
-}
-
 export async function searchList(
   page: Page,
   boxName: string | RegExp,
@@ -210,4 +174,9 @@ export async function searchList(
   const box = page.getByRole('searchbox', { name: boxName });
   await box.fill(term);
   await box.press('Enter');
+}
+
+export async function overflowItem(page: Page, name: string | RegExp): Promise<Locator> {
+  await page.getByRole('button', { name: /^More/ }).first().click();
+  return page.getByRole('menuitem', { name });
 }

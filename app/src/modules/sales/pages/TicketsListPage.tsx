@@ -70,7 +70,7 @@ export function TicketsListPage() {
       setTickets(data ?? []);
       setTotal(count ?? 0);
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [search, sort, page, beginLoad]);
 

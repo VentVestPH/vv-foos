@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../components/ui/Button';
-import { Dialog } from '../components/ui/Dialog';
+import { FoDialog } from '../components/ui/FoDialog';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { supabase } from '../lib/supabase';
@@ -122,16 +122,9 @@ export function NewCalendarEntryDialog({
   };
 
   return (
-    <Dialog
+    <FoDialog
       title={TITLES[mode]}
       onClose={onClose}
-      overlayClass="fo-dialog-overlay"
-      panelClass="fo-dialog-panel"
-      headClass="fo-dialog-head"
-      bodyClass="fo-dialog-body"
-      footClass="fo-dialog-foot"
-      closeClass="fo-dialog-x"
-      closeLabel="Close dialog"
       footer={(dismiss) => (
         <>
           <Button size="sm" variant="secondary" onClick={dismiss}>
@@ -178,6 +171,6 @@ export function NewCalendarEntryDialog({
           {error}
         </p>
       )}
-    </Dialog>
+    </FoDialog>
   );
 }

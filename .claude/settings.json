@@ -34,6 +34,16 @@
             "statusMessage": "Goal reminder..."
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "zsh \"${CLAUDE_PROJECT_DIR:-.}/scripts/ci-status.sh\" 2>/dev/null || true",
+            "timeout": 20,
+            "statusMessage": "Checking CI..."
+          }
+        ]
       }
     ],
     "Stop": [

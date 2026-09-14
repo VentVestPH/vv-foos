@@ -24,6 +24,7 @@ jobs:
       - run: node scripts/check-contrast.mjs
       - run: node scripts/check-motion.mjs
       - run: node scripts/check-css-layers.mjs
+      - run: node scripts/check-css-override-layers.mjs
       - run: node scripts/check-design-tokens.mjs
       - run: node scripts/check-icons.mjs
       - run: node scripts/check-unbounded-queries.mjs
@@ -67,7 +68,7 @@ jobs:
         run: psql -h localhost -U postgres -d foos -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
   integration:
-    # The full stack: Supabase containers, 269 API/RLS tests and 339 browser
+    # The full stack: Supabase containers, 269 API/RLS tests and 312 browser
     # specs. Roughly 40 seconds for frontend and schema against 10 to 15 minutes
     # for this.
     #
@@ -99,7 +100,12 @@ jobs:
           cache: npm
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned rather than "latest". Resolving "latest" is an unauthenticated
+          # GitHub API call, and on 2026-09-14 it failed the whole shard before a
+          # single test ran: "Failed to resolve latest Supabase CLI release: rate
+          # limit exceeded". A pin skips that lookup and matches what this
+          # checkout develops against.
+          version: 2.110.0
       - run: npm ci
 
       - name: Provide Edge Function secrets

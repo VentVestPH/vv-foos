@@ -6,6 +6,7 @@ import {
   gotoAsSignedIn,
   localDateTimeValue,
   recordSection,
+  overflowItem,
   signIn,
 } from './helpers';
 
@@ -175,8 +176,8 @@ test.describe('Record write paths (criteria 2.4, 2.5, 3.2)', () => {
         'the Resume Preview accordion was removed on 2026-09-10: the action bar already opens the current resume, and the accordion rendered the same file a second time',
       ).toHaveCount(0);
       await expect(
-        page.locator('.record-action-bar').getByRole('button', { name: 'View Resume' }),
-        'and that button is the surface it was replaced by',
+        await overflowItem(page, 'View Resume'),
+        'and that control is the surface it was replaced by, now in the overflow menu',
       ).toBeEnabled();
     } finally {
       await admin.storage.from('attachments').remove([older, newer]);
@@ -194,7 +195,7 @@ test.describe('Record write paths (criteria 2.4, 2.5, 3.2)', () => {
     await expect(page).toHaveURL(/\/sales\/contacts\/[0-9a-f-]{36}/);
     const personId = page.url().split('/').pop()!;
 
-    await page.getByRole('button', { name: '+ Note', exact: true }).click();
+    await page.getByRole('button', { name: 'Note', exact: true }).click();
     const dialog = page.locator('[role="dialog"], .modal, .fo-modal').first();
     await expect(dialog).toBeVisible({ timeout: 20000 });
     await dialog.getByLabel(/^Subject/).fill(subject);

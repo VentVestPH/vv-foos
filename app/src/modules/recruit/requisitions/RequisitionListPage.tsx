@@ -32,7 +32,11 @@ import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialog';
 import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { useIsMobile, useLookups } from '../hooks';
-import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
+import {
+  SavedViewsControl,
+  useSavedViews,
+  type ViewState,
+} from '../../../components/ui/SavedViews';
 
 interface ReqFilters {
   status: string;

@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Button } from '../../../components/ui/Button';
 import { EMPTY_CELL } from '../../../lib/format';
 import { ActionMenu, type ActionMenuItem } from '../../../components/ui/ActionMenu';
+import { CandidateBulkEraseDialog } from './CandidateBulkEraseDialog';
+import { useRole } from '../../../auth/SessionProvider';
 import { CandidateBulkSubmitDialog } from './CandidateBulkSubmitDialog';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
@@ -81,6 +83,8 @@ export function CandidateBulkActions({
 
   const ids = useMemo(() => [...selected], [selected]);
   const count = ids.length;
+  const role = useRole();
+  const [erasing, setErasing] = useState(false);
 
   const [offPage, setOffPage] = useState<Record<string, BulkProfile>>({});
   const requested = useRef(new Set<string>());
@@ -297,6 +301,20 @@ export function CandidateBulkActions({
       disabled,
       ...(disabled ? { title: disabledReason } : {}),
     },
+    ...(role === 'admin'
+      ? [
+          {
+            label: 'Delete permanently…',
+            onSelect: () => setErasing(true),
+            destructive: true,
+            disabled: count === 0,
+            title:
+              count === 0
+                ? 'Select at least one candidate first'
+                : `Erase ${count} selected and everything attached to them`,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -325,6 +343,17 @@ export function CandidateBulkActions({
         Send Email
       </Button>
       <ActionMenu label="More actions" items={overflowItems} iconOnly />
+      {erasing && (
+        <CandidateBulkEraseDialog
+          targets={recipients.map((r) => ({ id: r.personId, name: r.name }))}
+          onClose={() => setErasing(false)}
+          onErased={(n) => {
+            setErasing(false);
+            setOutcome(`${n} ${n === 1 ? 'candidate' : 'candidates'} deleted.`);
+            onDone();
+          }}
+        />
+      )}
       {pending === null && outcome !== null && (
         <span className="text-secondary fo-bulk-outcome">{outcome}</span>
       )}

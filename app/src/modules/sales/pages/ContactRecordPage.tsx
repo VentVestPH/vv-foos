@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useListLink, useListReturnHref } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { DateField } from '../../../components/ui/DateField';
-import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
+import { RecordSkeleton } from '../../../components/ui/RecordSkeleton';
+import { SettingsButton } from '../../../components/ui/SettingsButton';
+import { SectionSettingsDialog } from '../../../components/ui/SectionSettingsDialog';
+import { useSectionPrefs } from '../../../hooks/useSectionPrefs';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
+import { ContactDeleteDialog } from '../components/ContactDeleteDialog';
+import { ContactEditDialog } from '../components/ContactEditDialog';
+import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { Table } from '../../../components/ui/Table';
-import { Contact as ContactCardIcon } from 'lucide-react';
+import { Contact as ContactCardIcon, PencilLine } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { Modal } from '../components/Modal';
 import { useCanEditCrm, useCompanyOptions } from '../hooks';
@@ -28,25 +34,41 @@ import {
 import { sendEmail, scheduleMeeting } from '../../../lib/googleActions';
 import { EMPTY_CELL } from '../../../lib/format';
 
+const CONTACT_RECORD_SECTIONS = [
+  'Person Details',
+  'Contact Profile',
+  'Deals',
+  'Engagement',
+];
+
+const CONTACT_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
+  'Person Details': true,
+  'Contact Profile': true,
+  Deals: true,
+  Engagement: true,
+};
+
 export function ContactRecordPage() {
   const { personId } = useParams<{ personId: string }>();
   const canEdit = useCanEditCrm();
   const { record } = useRecentlyViewed();
-  const { companyName, companyOptions } = useCompanyOptions();
+  const { companyName } = useCompanyOptions();
 
   const [person, setPerson] = useState<Person | null>(null);
   const [profile, setProfile] = useState<ContactProfile | null>(null);
   const [deals, setDeals] = useState<Deal[]>([]);
+  const navigate = useNavigate();
   const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useMinimumVisible(!loaded);
+  const prefs = useSectionPrefs('sales.contact.record');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editingPerson, setEditingPerson] = useState(false);
+  const opensOnLoad = (section: string) =>
+    prefs.opensOnLoad(section, CONTACT_SECTION_DEFAULT_OPEN[section] ?? true);
   const listHref = useListReturnHref('/sales/contacts');
   const openRecord = useListLink();
 
-  const [editing, setEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editCompanyId, setEditCompanyId] = useState('');
-  const [editIsPrimary, setEditIsPrimary] = useState(false);
-  const [editSince, setEditSince] = useState('');
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [showSendEmail, setShowSendEmail] = useState(false);
   const [emailTo, setEmailTo] = useState('');
@@ -101,6 +123,9 @@ export function ContactRecordPage() {
   }, [person, record]);
 
   if (!personId) return null;
+  if (showSkeleton) {
+    return <RecordSkeleton label="Loading contact" sections={CONTACT_RECORD_SECTIONS.length} />;
+  }
   if (loaded && (!person || !profile)) {
     return (
       <div className="stub-panel">
@@ -112,33 +137,6 @@ export function ContactRecordPage() {
     );
   }
   if (!person || !profile) return null;
-
-  const openEdit = () => {
-    setEditTitle(profile.title ?? '');
-    setEditCompanyId(profile.company_id ?? '');
-    setEditIsPrimary(profile.is_primary);
-    setEditSince(profile.since_date ?? '');
-    setSaveError(null);
-    setEditing(true);
-  };
-
-  const saveProfile = async () => {
-    const { error } = await supabase
-      .from('contact_profiles')
-      .update({
-        title: editTitle.trim() || null,
-        company_id: editCompanyId || null,
-        is_primary: editIsPrimary,
-        since_date: editSince || null,
-      })
-      .eq('person_id', personId);
-    if (error) {
-      setSaveError(error.message);
-      return;
-    }
-    setEditing(false);
-    await load();
-  };
 
   const emails = emailList(person.emails);
   const phones = phoneList(person.phones);
@@ -228,6 +226,15 @@ export function ContactRecordPage() {
           {person.is_test && <Badge tone="warning">TEST</Badge>}
         </span>
       }
+      headerActions={
+        <>
+          <SettingsButton
+            label="Section settings"
+            title="Choose which sections appear on this contact"
+            onClick={() => setSettingsOpen(true)}
+          />
+        </>
+      }
       actionBar={
         <>
           <Button
@@ -238,23 +245,39 @@ export function ContactRecordPage() {
           >
             Send email
           </Button>
-          <Button
-            size="sm"
-            disabled={emails.length === 0}
-            title={emails.length === 0 ? 'No email on file for this contact' : undefined}
-            onClick={openSchedule}
-          >
-            Schedule meeting
-          </Button>
           {canEdit && (
-            <Button variant="primary" size="sm" onClick={openEdit}>
-              Edit contact profile
-            </Button>
+            <>
+              <Button size="sm" onClick={() => setEditingPerson(true)}>
+                <PencilLine size={20} aria-hidden="true" />
+                Edit
+              </Button>
+              <ActionMenu
+                label="More actions"
+                iconOnly
+                items={[
+                  {
+                    label: 'Schedule meeting',
+                    onSelect: openSchedule,
+                    disabled: emails.length === 0,
+                    title: emails.length === 0 ? 'No email on file for this contact' : undefined,
+                  },
+                  {
+                    label: 'Delete permanently…',
+                    destructive: true,
+                    onSelect: () => setDeleting(true),
+                  },
+                ]}
+              />
+            </>
           )}
         </>
       }
     >
-      <RecordSection title="Person Details">
+      <RecordSection
+        title="Person Details"
+        hidden={prefs.isHidden('Person Details')}
+        defaultOpen={opensOnLoad('Person Details')}
+      >
         <dl className="sales-record-meta">
           <div>
             <dt>Emails</dt>
@@ -295,7 +318,11 @@ export function ContactRecordPage() {
         </dl>
       </RecordSection>
 
-      <RecordSection title="Contact Profile">
+      <RecordSection
+        title="Contact Profile"
+        hidden={prefs.isHidden('Contact Profile')}
+        defaultOpen={opensOnLoad('Contact Profile')}
+      >
         <dl className="sales-record-meta">
           <div>
             <dt>Company</dt>
@@ -317,7 +344,12 @@ export function ContactRecordPage() {
       </RecordSection>
 
       {deals.length > 0 && (
-        <RecordSection title={`Deals (${deals.length})`}>
+        <RecordSection
+          title="Deals"
+          count={deals.length}
+          hidden={prefs.isHidden('Deals')}
+          defaultOpen={opensOnLoad('Deals')}
+        >
           <Table
             columns={[
               { key: 'display_code', header: 'Code' },
@@ -340,7 +372,11 @@ export function ContactRecordPage() {
         </RecordSection>
       )}
 
-      <RecordSection title="Engagement">
+      <RecordSection
+        title="Engagement"
+        hidden={prefs.isHidden('Engagement')}
+        defaultOpen={opensOnLoad('Engagement')}
+      >
         <EngagementPanel relatedType="person" relatedId={person.id} refreshKey={refreshKey} />
       </RecordSection>
 
@@ -430,41 +466,42 @@ export function ContactRecordPage() {
         </Modal>
       )}
 
-      {editing && (
-        <Modal title="Edit contact profile" onClose={() => setEditing(false)}>
-          <Select
-            label="Company"
-            options={companyOptions}
-            placeholder="No company"
-            value={editCompanyId}
-            onChange={(e) => setEditCompanyId(e.target.value)}
-          />
-          <Input
-            label="Title"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-          />
-          <DateField
-            label="Contact since"
-            value={editSince}
-            onChange={(e) => setEditSince(e.target.value)}
-          />
-          <label className="sales-checkbox">
-            <input
-              type="checkbox"
-              checked={editIsPrimary}
-              onChange={(e) => setEditIsPrimary(e.target.checked)}
-            />
-            Primary contact for the company
-          </label>
-          {saveError && <span className="field-error-text" role="alert">{saveError}</span>}
-          <div className="sales-modal-actions">
-            <Button onClick={() => setEditing(false)}>Cancel</Button>
-            <Button variant="primary" onClick={saveProfile}>
-              Save
-            </Button>
-          </div>
-        </Modal>
+      {editingPerson && (
+        <ContactEditDialog
+          person={person}
+          profile={profile}
+          onClose={() => setEditingPerson(false)}
+          onSaved={() => {
+            setEditingPerson(false);
+            void load();
+          }}
+        />
+      )}
+      {deleting && (
+        <ContactDeleteDialog
+          targets={[
+            {
+              personId: person.id,
+              name: personName(person),
+              companyName: profile.company_id ? companyName(profile.company_id) : null,
+            },
+          ]}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => {
+            setDeleting(false);
+            navigate(listHref);
+          }}
+        />
+      )}
+      {settingsOpen && (
+        <SectionSettingsDialog
+          title="Section settings"
+          hint="Choose which sections appear on this contact. The choice is saved to your account."
+          sections={CONTACT_RECORD_SECTIONS}
+          prefs={prefs}
+          defaultOpenFor={(section) => CONTACT_SECTION_DEFAULT_OPEN[section] ?? true}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
     </RecordPage>
   );

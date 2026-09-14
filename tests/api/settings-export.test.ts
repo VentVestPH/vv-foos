@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { EXPORTABLE_MODULES } from '../../app/src/modules/settings/lib';
+import { PERSONA_CREDENTIALS } from '../env';
 
 const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
@@ -18,8 +19,8 @@ let admin: SupabaseClient;
 let bd: SupabaseClient;
 
 beforeAll(async () => {
-  admin = await signIn('demo-admin@ventvest.test');
-  bd = await signIn('ben.demo@ventvest.com');
+  admin = await signIn(PERSONA_CREDENTIALS.admin.email);
+  bd = await signIn(PERSONA_CREDENTIALS.bd.email);
 });
 
 describe('U6: every column the Settings exporter declares actually exists', () => {

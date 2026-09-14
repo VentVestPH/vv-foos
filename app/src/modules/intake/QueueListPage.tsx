@@ -1,14 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSubmittedSearch } from '../../lib/quickSearch';
+import { useSession } from '../../auth/SessionProvider';
 import { intakeSearchHints } from '../../lib/searchHints';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { ListPage } from '../../components/ui/ListPage';
+import { BulkBar } from '../../components/ui/BulkBar';
 import { Table, type TableColumn } from '../../components/ui/Table';
 import { Pager, usePagination } from '../../components/ui/Pager';
 import { SettingsButton } from '../../components/ui/SettingsButton';
 import { ColumnSettingsDialog } from '../../components/ui/ColumnSettingsDialog';
+import {
+  SavedViewsControl,
+  useSavedViews,
+  type ViewState,
+} from '../../components/ui/SavedViews';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useMinimumVisible } from '../../hooks/useMinimumVisible';
 import {
@@ -16,6 +23,7 @@ import {
   Link2 as LinkIcon,
   RefreshCw as RefreshIcon,
   Sheet as SheetIcon,
+  Trash2,
 } from 'lucide-react';
 import { useIntakeQueue } from './hooks';
 import {
@@ -27,6 +35,7 @@ import {
   type IntakeItem,
 } from './lib';
 import { ItemDrawer } from './components/ItemDrawer';
+import { IntakeDeleteDialog } from './components/IntakeDeleteDialog';
 
 const QUEUE_COLUMN_DEFS = [
   { key: 'full_name', header: 'Name' },
@@ -39,6 +48,8 @@ const QUEUE_COLUMN_DEFS = [
 
 const QUEUE_ALL_COLUMN_KEYS = QUEUE_COLUMN_DEFS.map((c) => c.key);
 
+const QUEUE_EMPTY_FILTERS = { channel: '', targetType: '', status: '', showAll: '' };
+
 export function QueueListPage() {
   const {
     input: searchInput,
@@ -47,6 +58,8 @@ export function QueueListPage() {
     submit: submitSearch,
   } = useSubmittedSearch();
   const [params] = useSearchParams();
+  const { staff } = useSession();
+  const savedViews = useSavedViews('intake');
   const [channel, setChannel] = useState(() => params.get('channel') ?? '');
   const [targetType, setTargetType] = useState('');
   const [status, setStatus] = useState('');
@@ -55,6 +68,10 @@ export function QueueListPage() {
   const [hiddenCols, setHiddenCols] = useState<string[]>([]);
   const [columnOrder, setColumnOrder] = useState<string[]>(QUEUE_ALL_COLUMN_KEYS);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState<IntakeItem[] | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const { items, loading, reload } = useIntakeQueue({
     channel: channel || undefined,
@@ -77,6 +94,7 @@ export function QueueListPage() {
     });
   }, [items, search]);
 
+  const columns = useMemo<TableColumn<IntakeItem>[]>(() => {
   const channelColumn: TableColumn<IntakeItem> = {
       key: 'channel',
       header: '',
@@ -136,17 +154,72 @@ export function QueueListPage() {
   ];
 
   const byKey = new Map(optionalColumns.map((c) => [c.key, c]));
-  const columns: TableColumn<IntakeItem>[] = [
+  return [
     channelColumn,
     ...columnOrder.flatMap((key) => {
       const col = byKey.get(key);
       return col && !hiddenCols.includes(key) ? [col] : [];
     }),
   ];
+  }, [columnOrder, hiddenCols]);
+
+  const visibleCols = useMemo(
+    () => columnOrder.filter((key) => !hiddenCols.includes(key)),
+    [columnOrder, hiddenCols],
+  );
+
+  const currentState = useCallback(
+    (): ViewState => ({
+      filters: {
+        channel,
+        targetType,
+        status,
+        showAll: showAll ? 'true' : '',
+      },
+      columns: visibleCols,
+      sort,
+    }),
+    [channel, targetType, status, showAll, visibleCols, sort],
+  );
+
+  const applyView = useCallback((state: ViewState) => {
+    const next = { ...QUEUE_EMPTY_FILTERS, ...state.filters };
+    setChannel(next.channel);
+    setTargetType(next.targetType);
+    setStatus(next.status);
+    setShowAll(next.showAll === 'true');
+    if (state.columns.length > 0) {
+      const saved = state.columns.filter((k) => QUEUE_ALL_COLUMN_KEYS.includes(k));
+      setColumnOrder([...saved, ...QUEUE_ALL_COLUMN_KEYS.filter((k) => !saved.includes(k))]);
+      setHiddenCols(QUEUE_ALL_COLUMN_KEYS.filter((k) => !saved.includes(k)));
+    }
+    setSort(state.sort);
+  }, []);
+
+  const sorted = useMemo(() => {
+    if (!sort) return filtered;
+    const col = columns.find((c) => c.key === sort.key);
+    if (!col) return filtered;
+    const value = (row: IntakeItem): string =>
+      String(
+        (col.sortValue
+          ? col.sortValue(row)
+          : (row as unknown as Record<string, unknown>)[col.key]) ?? '',
+      );
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => value(a).localeCompare(value(b)) * dir);
+  }, [filtered, columns, sort]);
+
+  const changeSelection = useCallback((next: Set<string>) => {
+    setNotice(null);
+    setSelected(next);
+  }, []);
+
+  const selectedItems = items.filter((i) => selected.has(i.id));
 
   const showSkeleton = useMinimumVisible(loading);
 
-  const pager = usePagination(filtered);
+  const pager = usePagination(sorted);
 
   return (
     <ListPage
@@ -160,6 +233,16 @@ export function QueueListPage() {
       onSearchSubmit={submitSearch}
       searchPlaceholder="Search name, company, title, batch…"
       searchHints={intakeSearchHints}
+      savedViewsSlot={
+        <SavedViewsControl
+          views={savedViews.views}
+          currentState={currentState}
+          onApply={applyView}
+          onSave={savedViews.save}
+          onDelete={savedViews.remove}
+          ownStaffId={staff?.id}
+        />
+      }
       actions={
         <>
           <RefreshButton onClick={reload} />
@@ -177,6 +260,20 @@ export function QueueListPage() {
           </Link>
           <IntakeGearButton onOpen={() => setSettingsOpen(true)} />
         </>
+      }
+      bulkBarOpen={selected.size > 0}
+      bulkBar={
+        <BulkBar count={selected.size}>
+          <Button
+            variant="danger"
+            disabled={selectedItems.length === 0}
+            title={selectedItems.length === 0 ? 'Tick an item to delete it.' : undefined}
+            onClick={() => setDeleting(selectedItems)}
+          >
+            <Trash2 size={20} aria-hidden="true" />
+            Delete
+          </Button>
+        </BulkBar>
       }
       toolbarActions={
         <label className="intake-showall-toggle">
@@ -228,7 +325,7 @@ export function QueueListPage() {
             />
           </div>
       }
-      exportRows={filtered}
+      exportRows={sorted}
       exportColumns={[
         { key: 'full_name', header: 'Name' },
         { key: 'channel', header: 'Channel' },
@@ -239,6 +336,16 @@ export function QueueListPage() {
       ]}
       exportFilename="intake-queue.csv"
     >
+      {savedViews.error && (
+        <p className="form-error" role="alert">
+          {savedViews.error}
+        </p>
+      )}
+      {notice && (
+        <p className="text-secondary fo-bulk-notice" role="status">
+          {notice}
+        </p>
+      )}
       <Pager
         from={pager.from}
         to={pager.to}
@@ -256,6 +363,12 @@ export function QueueListPage() {
         columns={columns}
         rows={pager.pageRows}
         rowKey={(r) => r.id}
+        sortKey={sort?.key ?? null}
+        sortDir={sort?.dir ?? 'asc'}
+        onSortChange={(key, dir) => setSort({ key, dir })}
+        selectable
+        selected={selected}
+        onSelectionChange={changeSelection}
         onRowClick={(r) => setSelectedId(r.id)}
         emptyText="Nothing in the queue."
       />
@@ -264,7 +377,7 @@ export function QueueListPage() {
       {settingsOpen && (
         <ColumnSettingsDialog
           title="Column settings"
-          hint="Drag a column to change where it sits, or untick it to hide it."
+          hint="Drag a column to change where it sits, or untick it to hide it. Save a view to keep this arrangement."
           columns={QUEUE_COLUMN_DEFS}
           order={columnOrder}
           hidden={hiddenCols}
@@ -292,6 +405,22 @@ export function QueueListPage() {
         pageCount={pager.pageCount}
         onPage={pager.setPage}
       />
+      {deleting && (
+        <IntakeDeleteDialog
+          items={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={(deleted, refused) => {
+            setDeleting(null);
+            setSelected(new Set());
+            setNotice(
+              refused === 0
+                ? `${deleted} ${deleted === 1 ? 'item' : 'items'} deleted.`
+                : `${deleted} of ${deleted + refused} deleted. ${refused} left in place, because your role cannot remove them.`,
+            );
+            reload();
+          }}
+        />
+      )}
       {selectedId &&
         (() => {
           const selected = items.find((i) => i.id === selectedId);

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, overflowItem, signIn } from './helpers';
 
 test.describe('N9: the replica has a print stylesheet and Printable View uses it', () => {
   test('print media hides the shell chrome and reveals collapsed sections', async ({ page }) => {
@@ -37,7 +37,7 @@ test.describe('N9: the replica has a print stylesheet and Printable View uses it
     await gotoAsSignedIn(page, '/recruit/requisitions');
     await page.locator('.table-wrap tbody tr .link-btn').first().click();
 
-    const button = page.getByRole('button', { name: 'Printable View' }).first();
+    const button = await overflowItem(page, 'Printable View');
     await expect(button).toBeVisible({ timeout: 25000 });
     await expect(button, 'a real action must not be aria-disabled').not.toHaveAttribute(
       'aria-disabled',

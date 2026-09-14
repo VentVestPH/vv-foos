@@ -17,8 +17,6 @@ export function SidePanelTabs({ tabs, defaultTab }: SidePanelTabsProps) {
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.key ?? '');
   const current = tabs.find((t) => t.key === active) ?? tabs[0];
 
-  if (tabs.length > 0 && tabs.every((tab) => tab.count === 0)) return null;
-
   return (
     <div className="side-tabs">
       <div className="side-tabs-bar" role="tablist">

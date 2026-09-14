@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { searchWords } from './quickSearch';
+import { sentenceCase } from './format';
 
 export const HINT_MIN_CHARS = 3;
 const HINT_LIMIT = 10;
@@ -157,6 +158,74 @@ export async function intakeSearchHints(term: string): Promise<SearchHintResult>
       primary: r.full_name ?? 'Unnamed intake item',
       meta: [r.batch_label, r.channel.replace(/_/g, ' '), r.status].filter(Boolean).join(' · '),
       href: `/intake?item=${r.id}`,
+    })),
+    total: count ?? 0,
+  };
+}
+
+export async function companySearchHints(term: string): Promise<SearchHintResult> {
+  let query = supabase
+    .from('company_list')
+    .select('id, name, types, location_text', { count: 'exact' })
+    .limit(HINT_LIMIT)
+    .order('name', { ascending: true })
+    .order('id', { ascending: true });
+  for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+  const { data, count } = await query;
+
+  return {
+    hints: (data ?? []).map((r) => ({
+      key: `company:${r.id}`,
+      primary: r.name,
+      meta:
+        [r.types.map((t) => sentenceCase(t)).join(', '), r.location_text]
+          .filter(Boolean)
+          .join(' · ') || 'Account',
+      href: `/sales/companies/${r.id}`,
+    })),
+    total: count ?? 0,
+  };
+}
+
+export async function dealSearchHints(term: string): Promise<SearchHintResult> {
+  let query = supabase
+    .from('deal_list')
+    .select('id, display_code, name, company_name, stage', { count: 'exact' })
+    .limit(HINT_LIMIT)
+    .order('updated_at', { ascending: false })
+    .order('id', { ascending: true });
+  for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+  const { data, count } = await query;
+
+  return {
+    hints: (data ?? []).map((r) => ({
+      key: `deal:${r.id}`,
+      primary: r.name,
+      meta:
+        [r.display_code, r.company_name, sentenceCase(r.stage)].filter(Boolean).join(' \u00b7 ') ||
+        'Deal',
+      href: `/sales/deals/${r.id}`,
+    })),
+    total: count ?? 0,
+  };
+}
+
+export async function contactSearchHints(term: string): Promise<SearchHintResult> {
+  let query = supabase
+    .from('contact_list')
+    .select('person_id, full_name, title, company_name', { count: 'exact' })
+    .limit(HINT_LIMIT)
+    .order('last_name', { ascending: true })
+    .order('person_id', { ascending: true });
+  for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+  const { data, count } = await query;
+
+  return {
+    hints: (data ?? []).map((r) => ({
+      key: `contact:${r.person_id}`,
+      primary: r.full_name ?? 'Unnamed',
+      meta: [r.title, r.company_name].filter(Boolean).join(' · ') || 'Contact',
+      href: `/sales/contacts/${r.person_id}`,
     })),
     total: count ?? 0,
   };

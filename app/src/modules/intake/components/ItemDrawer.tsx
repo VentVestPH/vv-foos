@@ -5,7 +5,8 @@ import { RecordSection } from '../../../components/ui/RecordPage';
 import { SectionSkeleton } from '../../../components/ui/RecordSkeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
-import { Info as InfoIcon, UserCheck as UserCheckIcon } from 'lucide-react';
+import { Info as InfoIcon, PencilLine, UserCheck as UserCheckIcon } from 'lucide-react';
+import { IntakeEditDialog } from './IntakeEditDialog';
 import { supabase } from '../../../lib/supabase';
 import { checkDedup, type DedupMatch } from '../hooks';
 import {
@@ -16,6 +17,7 @@ import {
   parsedOf,
   requiresGradingBeforeImport,
   STATUS_LABEL,
+  TARGET_LABEL,
   type IntakeItem,
 } from '../lib';
 import { StarGrade } from '../../../components/ui/StarGrade';
@@ -31,6 +33,7 @@ interface ItemDrawerProps {
 }
 
 export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) {
+  const [editing, setEditing] = useState(false);
   const parsed = parsedOf(item);
   const [dedup, setDedup] = useState<DedupMatch | null | undefined>(undefined);
   const [mode, setMode] = useState<'new' | 'merge'>('new');
@@ -126,10 +129,24 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
     <Drawer title={item.full_name || 'Intake item'} onClose={onClose}>
       <div className="intake-drawer-meta">
         <span className="badge-tone">{CHANNEL_LABEL[item.channel]}</span>
-        <span className="badge-tone">{item.target_type}</span>
+        <span className="badge-tone">{TARGET_LABEL[item.target_type]}</span>
         <span className="badge-tone">{STATUS_LABEL[item.status]}</span>
         {item.batch_label && <span className="badge-tone">{item.batch_label}</span>}
+        <Button size="sm" onClick={() => setEditing(true)}>
+          <PencilLine size={20} aria-hidden="true" />
+          Edit
+        </Button>
       </div>
+      {editing && (
+        <IntakeEditDialog
+          item={item}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            onSaved();
+          }}
+        />
+      )}
 
       {isReadOnly(item) && (
         <p className="intake-readonly-note">

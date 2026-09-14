@@ -37,6 +37,16 @@ function seedPersonas() {
   console.log('post-reset: 4 test personas seeded.');
 }
 
+function syncTestAccounts() {
+  try {
+    const out = execSync('node scripts/sync-test-accounts.mjs --apply', { encoding: 'utf8' });
+    const changed = /^(\d+) test account\(s\) now share/m.exec(out)?.[1] ?? '0';
+    console.log(`post-reset: ${changed} test account(s) share the configured password.`);
+  } catch (e) {
+    console.warn(`post-reset: test accounts not synced (${e.message.split('\n')[0]}).`);
+  }
+}
+
 function restartEdgeRuntime() {
 
   let name;
@@ -156,5 +166,6 @@ if (!PERSONAS_ONLY) {
   restartEdgeRuntime();
   await waitForStack();
   await waitForAuth();
+  syncTestAccounts();
   seedLegacyOwners();
 }

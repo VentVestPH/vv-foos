@@ -395,12 +395,20 @@
 .fo-dialog-panel {
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);
-  width: 420px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 64px);
+  width: var(--dialog-w);
+  max-width: calc(100vw - var(--sp-4));
+  max-height: calc(100vh - var(--sp-8));
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-overlay);
+}
+
+.fo-dialog-panel-wide {
+  width: var(--dialog-w-wide);
+}
+
+.fo-dialog-panel-form {
+  width: var(--dialog-w-form);
 }
 
 .fo-dialog-head {
@@ -427,17 +435,25 @@
 .fo-dialog-body {
   display: flex;
   flex-direction: column;
-  padding: var(--section-pad);
+  padding: 0 var(--section-pad);
   color: var(--text);
   font-size: var(--fs-body);
   overflow-y: auto;
+}
+
+.fo-dialog-body > *:first-child {
+  margin-top: var(--section-pad);
+}
+
+.fo-dialog-body > *:last-child {
+  margin-bottom: var(--section-pad);
 }
 
 .fo-dialog-foot {
   display: flex;
   justify-content: flex-end;
   gap: var(--sp-1);
-  padding: 0 var(--sp-2) var(--sp-2);
+  padding: 0 var(--section-pad) var(--section-pad);
 }
 
 .fo-dialog-hint {
@@ -509,3 +525,4 @@
 .shell-content {
   scroll-padding-top: calc(var(--shell-action-bar-h) + var(--sp-1));
 }
+

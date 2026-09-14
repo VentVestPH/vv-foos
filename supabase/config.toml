@@ -459,3 +459,6 @@ verify_jwt = false
 
 [functions.intake-email-parser]
 verify_jwt = false
+
+[functions.admin-users]
+verify_jwt = true

@@ -39,7 +39,11 @@ import {
 } from './candidateRows';
 import { useIsMobile, useLookups } from '../hooks';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
-import { SavedViewsControl, useSavedViews, type ViewState } from '../savedViews';
+import {
+  SavedViewsControl,
+  useSavedViews,
+  type ViewState,
+} from '../../../components/ui/SavedViews';
 import { CandidateBulkActions } from './CandidateBulkActions';
 import { CandidateFilterRail } from './CandidateFilterRail';
 

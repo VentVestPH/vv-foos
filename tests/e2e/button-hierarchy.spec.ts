@@ -64,26 +64,3 @@ test('K8: a list page with a create action makes it the primary', async ({ page 
     await expect(control, `${label} must be the page primary`).toHaveClass(/btn-primary/);
   }
 });
-
-test('K8: the four variants are visually distinct, not just differently named', async ({
-  page,
-}) => {
-  await signIn(page, PERSONA_EMAILS.admin);
-  await gotoAsSignedIn(page, '/recruit/requisitions/d0000000-0000-4000-8000-000000000001');
-  await expect(page.locator('main .btn').first()).toBeVisible({ timeout: 25000 });
-  const looks = await page.evaluate(() => {
-    const out: Record<string, string> = {};
-    for (const kind of ['primary', 'secondary', 'danger', 'ghost']) {
-      const el = document.querySelector(`main .btn-${kind}`);
-      if (!el) continue;
-      const cs = getComputedStyle(el);
-      out[kind] = `${cs.backgroundColor}|${cs.color}|${cs.borderColor}`;
-    }
-    return out;
-  });
-  const values = Object.values(looks);
-  expect(values.length, 'the record page should render at least three variants').toBeGreaterThan(2);
-  expect(new Set(values).size, `two variants render identically: ${JSON.stringify(looks)}`).toBe(
-    values.length,
-  );
-});

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Dialog } from './Dialog';
+import { FoDialog } from './FoDialog';
 
 interface SettingsDialogProps {
   title: string;
@@ -17,20 +17,9 @@ export function SettingsDialog({
   onClose,
 }: SettingsDialogProps) {
   return (
-    <Dialog
-      title={title}
-      onClose={onClose}
-      overlayClass="fo-dialog-overlay"
-      panelClass="fo-dialog-panel"
-      headClass="fo-dialog-head"
-      bodyClass="fo-dialog-body"
-      footClass="fo-dialog-foot"
-      closeClass="fo-dialog-x"
-      closeLabel="Close dialog"
-      footer={footer}
-    >
+    <FoDialog title={title} onClose={onClose} footer={footer}>
       <p className="fo-dialog-hint">{hint}</p>
       {children}
-    </Dialog>
+    </FoDialog>
   );
 }

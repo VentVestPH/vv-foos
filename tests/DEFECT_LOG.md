@@ -6,6 +6,14 @@ Severity scale: **Critical** — data loss/corruption, RLS breach, auth bypass, 
 
 No real PII in any row below — all evidence is schema/config state or synthetic (`is_test`) data.
 
+## Tally, 2026-09-14 (second pass)
+
+**66 entries covering 66 distinct ids, 59 closed and 7 open**, plus QA-024 closed for dismissal with one half open. **QA-064 and QA-065 are added** from the test-account standardisation. QA-064 is the more serious of the two and had been latent since the seed file was written: the admin persona's login lived on John Buena's staff id, so admin test sessions were attributed to a real person and `personas.sql` run against the live project would have overwritten his Google identity. The open set is unchanged: QA-003, QA-006, QA-008, QA-026, QA-035, QA-042, QA-063.
+
+## Tally, 2026-09-14
+
+**64 entries covering 64 distinct ids, 57 closed and 7 open**, plus QA-024 which is closed for dismissal with one half still open. Counted with `grep -cE '^### (QA-[0-9]+|F[0-9]+)'` (64), `grep -oE '^### (QA-[0-9]+|F[0-9]+)' | sort -u | wc -l` (64) and a status scan that resolves each open line to its id. **QA-062 and QA-063 are added** from the accounts UI pass. The seven open are **QA-003**, **QA-006**, **QA-008** (all three parked with Klent), **QA-026**, **QA-035** (the pager's `1 / 3652`), **QA-042** (nothing writes to `people`) and **QA-063** (the `companies` delete cascade). **QA-063 is the first High-severity data-loss risk recorded here that is live in the schema rather than in code**: the UI now refuses the dangerous case, but the four cascading foreign keys are untouched.
+
 ## Tally, 2026-09-10
 
 **30 entries covering 29 distinct ids, 25 closed and 5 open.** Counted with `grep -cE '^#{2,4} QA-0'` (30) and `grep -E '^- \*\*Status:\*\*' | grep -ci open` (5). **Corrected 2026-09-10:** the 2026-09-08 line below read "25 closed and 4 open" and names four open ids, but the status grep returns **5**. The count, not the list, is authoritative here; the fifth is not identified in this correction because doing so needs a read of every open entry, which is the next person's first job on this file. **QA-029 is added**, the only defect from the requisitions UI pass that reached a commit rather than being caught before one: breadcrumb links at 4.43:1 on four pages, found by CI and not reproducible locally.
@@ -771,7 +779,9 @@ await client.from('integration_settings').delete().in('key', PREF_KEYS);
 - **Not a defect in the data.** Nothing is missing. `.fo-pager-count` renders `1-20 of 73024` and `.fo-pager-pos` renders `1 / 3652`, side by side. `ceil(73024 / 20) = 3652`, so the second figure is the page number, not a row count
 - **Ruled out before concluding, each by measurement:** RLS (admin sees 73,024 through Postgres **and** through PostgREST, `Content-Range: 0-0/73024`); a missing `people` row dropping candidates on the view's inner join (0 such rows); a filter silently applied (no status, source, sourcer, grade or resume bucket lands near 3,652); the wrong persona (admin 73,024, recruiter 73,024, sourcer 3, bd 0)
 - **Why it misleads:** on 687 requisitions the same control reads `1 / 35`, which nobody mistakes for a record count. At 73,024 rows the page number reaches the same order of magnitude as a plausible row count and sits next to a figure that is one, separated only by a slash
-- **Status:** **open**, awaiting Klent's pick between labelling it `Page 1 of 3652` and removing the position entirely. The recommendation is removal: the row range already answers "where am I", and `pageCount` is only needed by the last-page chevron
+- **Status:** **Closed 2026-09-14.** Klent picked removal: "i don't think we need the page count in pagination. i think number of records is good enough. remove to all pages." `.fo-pager-pos` and its stylesheet rule are gone, so every list now shows only the row range. `pageCount` stays in the component because the last-page chevron and `atEnd` still need it
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
 - **Fix owner:** unassigned
 
 ### QA-036: TableColumn.width silently had no effect under the auto table layout
@@ -1169,3 +1179,142 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-11
+
+### QA-062: the intake table sorted only the page you were looking at
+
+- **Found:** 2026-09-14, wiring saved views into `/intake`
+- **Module:** `app/src/modules/intake/QueueListPage.tsx`
+- **Severity:** **Medium**
+- **Actual:** the queue passed `pager.pageRows` to an uncontrolled `Table`, and `Table` sorts whatever array it is handed. Clicking `Batch` therefore reordered the twenty rows on screen and nothing else, so the first row after sorting was the first of that page, not the first of the queue. Every other list in the product sorts in Postgres over the whole set, so the header read as if it did the same thing here
+- **Fix:** the sort is lifted into the page, applied to the whole filtered array, and the page is taken after sorting. `Table` is now controlled, which also lets a saved view record the sort
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-063: deleting an account cascades to its requisitions, deals, contacts and history
+
+- **Found:** 2026-09-14, building the bulk Delete on `/sales/companies`
+- **Module:** `supabase/migrations`, `companies`
+- **Severity:** **High**
+- **Actual:** five foreign keys reference `companies` and four are `on delete cascade` — `requisitions.company_id`, `contact_profiles.company_id`, `deals.company_id` and `activities.company_id`; `tickets.company_id` is `on delete set null`. Confirmed by reading `pg_constraint.confdeltype`, which returns `c` for the four. `companies_write` is `for all` to admin and bd, so a single DELETE from either role silently removes every requisition and deal filed under that account. This is why no delete existed anywhere in the product
+- **Fix:** not a schema change. The UI refuses instead: `CompanyDeleteDialog` counts dependents across all five tables before offering anything, deletes only accounts with none, and names what is holding each of the others. Verified against a seeded pair, one with a deal and one without: the bare one was deleted, the held one and its deal survived
+- **The open half:** the cascade itself is untouched, so anything that writes `companies` outside this dialog still has the same reach. Either the four should become `on delete restrict`, or the delete should move behind a function that checks. That is a schema decision and is Klent's
+- **Status:** Open
+- **Fix owner:** Klent
+
+### QA-064: the admin test login sat on John's staff id, so signing in as it signed you in as John
+
+- **Found:** 2026-09-14, standardising the test-account passwords
+- **Module:** `supabase/seed.sql`, `tests/fixtures/personas.sql`
+- **Severity:** **High**
+- **Actual:** `seed.sql` had no admin staff row other than `john@ventvest.com` at `a0000000-0000-4000-8000-000000000001`. Rita, Sam and Ben each got their own row, but the admin persona had none, so `personas.sql:32` created the `demo-admin@ventvest.test` **auth.users** row on John's id to borrow his admin role. Three consequences. Signing in as the admin persona was signing in as John Buena, and every audit row, activity and `created_by` written during a test session was attributed to him. `john@ventvest.com` could not sign in with a password at all, because the auth row on his id carried the persona's email. And on the live project that id holds John's **real Google identity**, so running `personas.sql` against it would have overwritten a real person's login
+- **Fix:** the demo admin has its own staff row and its own id, `a0000000-0000-4000-8000-000000000005`. `personas.sql` points at that id, `seed.sql` seeds the row, and `STAFF_IDS.admin` in `tests/fixtures/seed-ids.ts` now means the admin persona rather than John, with `STAFF_IDS.john` added for his id. Verified locally: all eight test accounts sign in and `get_my_role()` returns admin, admin, recruiter, sourcer, bd, recruiter, sourcer, bd; John's id now carries no auth user at all
+- **Why it was never noticed:** `STAFF_IDS.admin` was imported by exactly one test and only `STAFF_IDS.recruiter` was ever read from it, so nothing asserted who the admin persona actually was
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-065: the shared test password claimed to be local-only while being the live password
+
+- **Found:** 2026-09-14
+- **Module:** `tests/.env`, `tests/.env.example`
+- **Severity:** **Low**
+- **Actual:** `FOOS_QA_TEST_PASSWORD` was `local-dev-only-pw`. The same value is what `rita.demo`, `sam.demo` and `ben.demo` sign in with on the **live** project, so the string asserted something untrue about its own blast radius and invited someone to treat it as throwaway
+- **Fix:** the value is `VentVest-Sandbox-2026`, and `tests/.env.example` carries the same, so a fresh clone starts on it rather than inventing a per-machine value that then drifts
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-066: rejecting an intake item was the only way out, so the queue could never be cleared
+
+- **Found:** 2026-09-14, deciding which tables warrant a delete
+- **Module:** `app/src/modules/intake/QueueListPage.tsx`
+- **Severity:** **Low**
+- **Actual:** `reject_intake_item` sets `status = 'rejected'` and the row stays in `intake_items` for good. A typo'd LinkedIn paste or a spreadsheet header row imported as a person had no exit, which is the reason the toolbar carries a "Show imported / rejected" checkbox in the first place. `intake_items_delete` had existed since the intake migration and nothing called it
+- **Fix:** bulk delete in the queue, on the same grow-and-decay bulk bar as accounts and requisitions. Safe here in a way it is not elsewhere: `intake_items` has **zero inbound foreign keys**, so nothing cascades
+- **The design point:** the client does not mirror the RLS predicate. It deletes with `.select('id')` and reports the difference between what was asked for and what came back, so the two lists cannot drift. Verified against the live policy: as `bd`, a two-row selection deleted the contact item and silently left the candidate one; as `admin`, the candidate went
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-067: CLAUDE.md and the carried findings said requisitions had no DELETE policy
+
+- **Found:** 2026-09-14
+- **Module:** `supabase/migrations/20260902000002_rls_initplan.sql`
+- **Severity:** **Medium**
+- **Actual:** carried finding S8 and the session notes both record "No DELETE policy on `requisitions`". `requisitions_write` is `for all to public using (get_my_role() = any (array['admin','recruiter']))`, and `for all` **includes DELETE**. So an admin or recruiter can delete a requisition today through PostgREST; only the absent UI stops them. Four tables cascade off `requisitions`, and `applications` is one, so such a delete removes every candidate submission against that role
+- **Fix:** no code change, and deliberately no delete control. The correction is recorded here and in `CLAUDE.md`. The forward verb stays `status` → `closed` / `filled`
+- **Status:** Open
+- **Fix owner:** Klent, for the same call as QA-063: leave it, or narrow `requisitions_write` so DELETE is not implied
+
+### QA-068: a superseded list load cleared the loading flag, flashing "no accounts" over real data
+
+- **Found:** 2026-09-14, reported by Klent watching `/sales/companies` on a slow connection: "skeleton, then the no accounts message, then the response items"
+- **Module:** `app/src/modules/sales/pages/CompaniesListPage.tsx`, and the same shape in `ContactsListPage.tsx`, `DealsListPage.tsx`, `TicketsListPage.tsx`
+- **Severity:** **Medium**
+- **Actual:** `load()` takes a token from `useLatestOnly()` and returns early when a newer load has started, so a stale response does not overwrite fresh rows. But the `finally` block ran `setLoading(false)` unconditionally, including for that stale load. The page then held `loading === false` with `total === 0`, which is indistinguishable from an empty list, so the empty state rendered until the current load landed. Two loads is the normal case, not an edge case: `StrictMode` double-invokes effects, and any filter or page change supersedes an in-flight read
+- **Reproduced** with a 30-line simulation of `useLatestOnly` plus the try/finally: `before fix, empty state flashed after: [ 'slow-first' ]` / `after fix, empty state flashed after: []`
+- **Fix:** `finally { if (isCurrent()) setLoading(false); }`, so a superseded load leaves the flag alone and the newer one owns it. The list also now tracks `loaded`, set only on a current completion, and the empty state is gated on it, so the first paint cannot show it either
+- **Why it surfaced now:** the bug predates the empty state, but until 2026-09-14 an empty result rendered as a table with headers and "No companies match", which looks close enough to a loading table that nobody noticed. A designed empty state with an icon and a call to action made the same half-second obvious. `CandidateListPage`, `RequisitionListPage` and `ApplicationPipeline` already had the guard; the four sales pages never did
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-069: an account could be created but never edited
+
+- **Found:** 2026-09-14, Klent asking why `/sales/companies/<id>` has no edit button
+- **Module:** `app/src/modules/sales/pages/CompanyRecordPage.tsx`
+- **Severity:** **High**
+- **Actual:** counted across the whole app, `companies` had **one insert** (`CompanyNewPage`), **six selects** and **zero updates**. An account's name, type, website, phone, city, state, country and owner were write-once: a typo at creation, or a stale phone number carried in from Zoho, was permanent from inside the product. This is the same shape as QA-042 for `people`, and neither was an RLS problem: `companies_write` is `for all` to admin and bd, which includes UPDATE
+- **Fix:** `CompanyEditDialog`, opened from an **Edit account** button in the record action bar, writing the same field set `CompanyNewPage` collects. Verified as `bd` over REST against a real imported account before the UI was built: `rows updated by bd: 1`, then the value was restored
+- **The pattern worth noticing:** both of these were found by asking "what writes this table?" rather than by reading the page. `grep -c "\.update(" ` next to `from('<table>')` is a two-minute check and it has now turned up two write-once tables. `deals`, `tickets` and `intake_items` have not been checked
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-070: tickets can be listed but never created or edited
+
+- **Found:** 2026-09-14, sweeping every table for the write-once pattern that produced QA-042 and QA-069
+- **Module:** `app/src/modules/sales`
+- **Severity:** **Medium**
+- **Actual:** `from('tickets')` appears twice in the whole app, in `lib/searchHints.ts` and `GlobalSearchPage.tsx`, both selects. **Zero inserts and zero updates.** There is a `/sales/tickets` list, a nav entry and a `ticket_list` view, but no `tickets/new` route and no record page, so a ticket can only come from a direct database write. `tickets_write` permits admin and bd, so nothing in the database is stopping it
+- **Fix:** none yet, and deliberately out of scope for the contacts pass. Recorded so it is not found a third time by accident
+- **How all three were found:** counting `.insert(` and `.update(` next to `from('<table>')` across the app. `companies` and `people` both read `insert=1, update=0` before today. That two-minute check is now written into CLAUDE.md
+- **Status:** Open
+- **Fix owner:** Klent, to schedule alongside whatever the tickets module is meant to become
+
+### QA-071: a CSS override kept losing to the rule it was overriding, four times in one session
+
+- **Found:** 2026-09-14, repeatedly, while styling the edit dialogs
+- **Module:** `app/src/styles/layers/*`
+- **Severity:** **Low** in each instance, but it cost most of an afternoon
+- **Actual:** four separate overrides were written into `controls.css` to modify rules that live in later layers, so every one of them was inert and the UI did not change. `.fo-dialog-panel-wide` and `.fo-dialog-panel-form` lost to `.fo-dialog-panel` in `taleo`; a `.record-section-header` override lost to `pages`; a `.rq-form` override lost to `module.recruit`. In one case the wide class had been silently doing nothing for hours, so every dialog marked `wide` was rendering at the base 420px
+- **Fix:** each override moved into the layer that owns the rule it modifies. The deeper fix was structural: the requisition edit dialog now renders the same `FormSections` component as every other edit dialog, so there is nothing left to override
+- **The rule, which was already written down:** `app.css` declares `base, shell, auth, controls, tables, pages, panels, narrow, taleo, states, pagination, motion, widgets, print, module.*`. Later wins, and **specificity does not enter into it**. Before writing an override, find the layer of the rule being overridden. A more specific selector in an earlier layer is not more specific, it is dead
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-072: the seed grew and three validate checks failed on an exact count
+
+- **Found:** 2026-09-14, CI runs 34795621922 and 34801724859, all three jobs red
+- **Module:** `supabase/tests/validate.sql`
+- **Severity:** **Medium**
+- **Actual:** `FAIL 9: companies count`, then `FAIL 12: recruiter cannot read deals`, then an `activities_company_id_fkey` violation in check 14. All three were consequences of this branch's own changes: one demo account was added to `seed.sql`, which took companies from 5 to 6 and deals from 2 to 3, and the `on delete restrict` migration made check 14's purge delete a company while its activities still referenced it
+- **Fix:** counts became floors (`<` rather than `<>`), check 14 deletes dependents before the company, and the PASS line says the numbers are floors. Verified by rebuilding the schema the way CI does, shim plus 66 migrations plus seed into a scratch database, then running validate twice: **35 PASS, zero failures, both runs**
+- **Why exact counts were wrong:** the file already argued this against itself. The staff check two lines above says *"Deliberately not an exact count: scripts/add-local-staff.sql exists so a developer can work under their own identity, and doing so must not fail validation."* That reasoning applies to every seeded table, and adding a demo row is not a regression
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-073: four browser specs asserted styling that a static guard already checked
+
+- **Found:** 2026-09-14, reviewing the suite at Klent's request
+- **Module:** `tests/e2e`
+- **Severity:** **Low**, but it was the largest single source of CI flakiness
+- **Actual:** `interaction-motion` (11), `interaction-states` (3), `form-affordances` (8) and `scroll-shadow` (5) asserted computed transitions, hover colours, control padding and fade geometry. **27 tests, about 944 lines**, none touching the database, all duplicating `check-motion`, `check-contrast`, `check-control-heights` and `check-design-tokens`, which run statically in under a second. `interaction-motion` alone caused two red CI runs this session (C11 and R7) by sampling a mid-animation frame, the exact failure the CI runbook was written about
+- **Fix:** deleted. The suite goes from 79 files and 339 tests to **75 files and 312 tests**
+- **The line worth keeping:** a browser test earns its cost when it asserts behaviour a static check cannot see. Cross-user RLS, whether a list pages in the database rather than the browser, and axe, all qualify. "The CSS is applied" does not
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14

@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test';
 
 const BASE = process.env.FOOS_BASE_URL ?? 'http://localhost:5175';
-const EMAIL = process.env.FOOS_CWV_EMAIL ?? 'demo-admin@ventvest.test';
+const EMAIL = process.env.FOOS_CWV_EMAIL ?? 'foos.admin@ventvest.com';
 const PASSWORD = process.env.FOOS_QA_TEST_PASSWORD ?? process.env.FOOS_CWV_PASSWORD ?? '';
 
 const ROUTES = [

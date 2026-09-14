@@ -11,7 +11,10 @@ import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { RecordSection } from '../../../components/ui/RecordPage';
 import { Breadcrumbs } from '../../../components/ui/Breadcrumbs';
+import { FoDialog } from '../../../components/ui/FoDialog';
+import { FormSections, type FormSection } from '../../../components/ui/FormSections';
 import { RecordSkeleton } from '../../../components/ui/RecordSkeleton';
+import { Skeleton } from '../../../components/ui/Skeleton';
 import { SegmentedToggle } from '../../../components/ui/SegmentedToggle';
 import { looksLikeHtml, sanitizeHtml } from '../../../lib/sanitizeHtml';
 import { CollapseAllButton } from '../../../components/ui/SectionCollapse';
@@ -80,11 +83,19 @@ const REQ_FORM_SECTIONS = [
   'Approvers:',
 ];
 
-export function RequisitionFormPage() {
+interface RequisitionFormPageProps {
+  dialogId?: string;
+  onClose?: () => void;
+  onSaved?: () => void;
+}
+
+export function RequisitionFormPage({ dialogId, onClose, onSaved }: RequisitionFormPageProps = {}) {
   const listShadow = useScrollShadow<HTMLDivElement>();
   const { id } = useParams();
+  const recordId = dialogId ?? id;
+  const inDialog = dialogId !== undefined;
   const listHref = useListReturnHref('/recruit/requisitions');
-  const editing = Boolean(id);
+  const editing = Boolean(recordId);
   const navigate = useNavigate();
   const role = useRole();
   const lookups = useLookups();
@@ -99,7 +110,8 @@ export function RequisitionFormPage() {
   const [busy, setBusy] = useState(false);
   const [descriptionView, setDescriptionView] = useState<'write' | 'preview'>('write');
   const [loaded, setLoaded] = useState(!editing);
-  const showSkeleton = useMinimumVisible(!loaded);
+  const held = useMinimumVisible(!loaded);
+  const showSkeleton = dialogId === undefined ? held : !loaded;
 
   const [initialForm, setInitialForm] = useState<FormState>(EMPTY);
   const [initialOwnerIds, setInitialOwnerIds] = useState<string[]>([]);
@@ -109,14 +121,14 @@ export function RequisitionFormPage() {
     setForm((f) => ({ ...f, [key]: value }));
 
   useEffect(() => {
-    if (!editing || !id) return;
+    if (!editing || !recordId) return;
     let cancelled = false;
     void (async () => {
       try {
         const [r, o, a] = await Promise.all([
-          supabase.from('requisitions').select('*').eq('id', id).maybeSingle(),
-          supabase.from('requisition_owners').select('*').eq('requisition_id', id),
-          supabase.from('requisition_approvers').select('*').eq('requisition_id', id),
+          supabase.from('requisitions').select('*').eq('id', recordId).maybeSingle(),
+          supabase.from('requisition_owners').select('*').eq('requisition_id', recordId),
+          supabase.from('requisition_approvers').select('*').eq('requisition_id', recordId),
         ]);
         const firstError = r.error ?? o.error ?? a.error ?? null;
         if (firstError) throw new Error(firstError.message);
@@ -162,7 +174,7 @@ export function RequisitionFormPage() {
     return () => {
       cancelled = true;
     };
-  }, [editing, id]);
+  }, [editing, recordId]);
 
   const validation = useMemo(() => {
     const problems: FieldError[] = [];
@@ -221,12 +233,12 @@ export function RequisitionFormPage() {
         is_test: form.is_test,
       };
 
-      let reqId = id ?? '';
-      if (editing && id) {
+      let reqId = recordId ?? '';
+      if (editing && recordId) {
         const { error: err } = await supabase
           .from('requisitions')
           .update(payload)
-          .eq('id', id);
+          .eq('id', recordId);
         if (err) throw new Error(err.message);
       } else {
         const { data, error: err } = await supabase
@@ -284,7 +296,9 @@ export function RequisitionFormPage() {
         if (err) throw new Error(err.message);
       }
 
-      navigate(`/recruit/requisitions/${reqId}`);
+      if (onSaved) onSaved();
+
+      else navigate(`/recruit/requisitions/${reqId}`);
     } catch (e) {
       setError(errMsg(e));
     } finally {
@@ -301,7 +315,7 @@ export function RequisitionFormPage() {
       />
     );
   }
-  if (showSkeleton) {
+  if (showSkeleton && !inDialog) {
     return (
       <RecordSkeleton label="Loading requisition" sections={REQ_FORM_SECTIONS.length} panel />
     );
@@ -324,85 +338,60 @@ export function RequisitionFormPage() {
     </div>
   );
 
-  return (
-    <div className="record-page">
-      <div className="fo-page-head">
-        <div className="record-breadcrumb">
-          <Breadcrumbs
-            items={[
-              { label: 'Home', to: '/' },
-              { label: 'Requisitions', to: listHref },
-              ...(editing
-                ? [
-                    {
-                      label: form.title.trim() || 'Requisition',
-                      to: `/recruit/requisitions/${id ?? ''}`,
-                    },
-                    { label: 'Edit' },
-                  ]
-                : [{ label: 'New requisition' }]),
-            ]}
-          />
-        </div>
-        <div className="record-title-row">
-          <span className="fo-page-icon">
-            <BriefcaseIcon size={32} />
+  const problemBanner = (
+    <>
+      <ErrorSummary errors={showProblems ? validation : []} />
+      {error !== null && <p className="form-error" role="alert">{error}</p>}
+    </>
+  );
+
+  const sectionParts: FormSection[] = [
+    {
+      name: 'Requisition owners',
+      content: (
+        <>
+        <div className="field">
+          <span className="field-label">
+            <span className="field-required">*</span> Requisition Owners
           </span>
-          <h1>
-            {editing ? `Edit: ${form.title.trim() || 'Requisition'}` : 'Requisitions: New Requisition'}
-          </h1>
-          <div className="fo-page-header-actions">
-            <CollapseAllButton />
+          <div className="checkbox-list fo-scroll-shade" ref={listShadow}>
+            {lookups.staff.map((s) => (
+              <label key={s.id} className="checkline">
+                <input
+                  type="checkbox"
+                  checked={ownerIds.includes(s.id)}
+                  onChange={(e) =>
+                    setOwnerIds(
+                      e.target.checked
+                        ? [...ownerIds, s.id]
+                        : ownerIds.filter((x) => x !== s.id),
+                    )
+                  }
+                />
+                {s.full_name}
+              </label>
+            ))}
           </div>
         </div>
-      </div>
-      {actionButtons}
-      <form
-        className="rq-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void save();
-        }}
-      >
-        <ErrorSummary errors={showProblems ? validation : []} />
-        {error !== null && <p className="form-error" role="alert">{error}</p>}
-
-        <RecordSection title="Requisition Owner(s):">
-          <div className="field">
-            <span className="field-label">
-              <span className="field-required">*</span> Requisition Owners
-            </span>
-            <div className="checkbox-list fo-scroll-shade" ref={listShadow}>
-              {lookups.staff.map((s) => (
-                <label key={s.id} className="checkline">
-                  <input
-                    type="checkbox"
-                    checked={ownerIds.includes(s.id)}
-                    onChange={(e) =>
-                      setOwnerIds(
-                        e.target.checked
-                          ? [...ownerIds, s.id]
-                          : ownerIds.filter((x) => x !== s.id),
-                      )
-                    }
-                  />
-                  {s.full_name}
-                </label>
-              ))}
-            </div>
-          </div>
-        </RecordSection>
-
-        <RecordSection title="Requisition Information:">
+      
+        </>
+      ),
+    },
+    {
+      name: 'Requisition information',
+      content: (
+        <>
           <div className="rq-form-grid">
-            <Input
-              id="req-title"
-              label="Title"
-              required
-              error={showProblems ? validation.find((v) => v.field === 'req-title')?.message : undefined}
-              value={form.title}
-              onChange={(e) => set('title', e.target.value)}
-            />
+            <div className="fo-form-span">
+              <Input
+                id="req-title"
+                label="Title"
+                required
+                error={showProblems ? validation.find((v) => v.field === 'req-title')?.message : undefined}
+                value={form.title}
+                onChange={(e) => set('title', e.target.value)}
+              />
+            </div>
             <Input
               label="Job code"
               value={form.job_code}
@@ -436,6 +425,11 @@ export function RequisitionFormPage() {
               value={form.num_openings}
               onChange={(e) => set('num_openings', e.target.value)}
             />
+            <DateField
+              label="Opened date"
+              value={form.opened_date}
+              onChange={(e) => set('opened_date', e.target.value)}
+            />
             <Select
               label="Budget status"
               placeholder="Select…"
@@ -451,192 +445,282 @@ export function RequisitionFormPage() {
               onChange={(e) => set('reason_for_opening', e.target.value)}
             />
             {form.reason_for_opening === 'Replacement' && (
-              <Input
-                label="Replacement for"
-                value={form.replacement_for}
-                onChange={(e) => set('replacement_for', e.target.value)}
-              />
+              <div className="fo-form-span">
+                <Input
+                  label="Replacement for"
+                  value={form.replacement_for}
+                  onChange={(e) => set('replacement_for', e.target.value)}
+                />
+              </div>
             )}
-            <DateField
-              label="Opened date"
-              value={form.opened_date}
-              onChange={(e) => set('opened_date', e.target.value)}
+            <div className="fo-form-grid rq-pay-row fo-form-span">
+              <Input
+                id="req-pay-min"
+                label="Pay min"
+                type="number"
+                error={showProblems ? validation.find((v) => v.field === 'req-pay-min')?.message : undefined}
+                value={form.pay_min}
+                onChange={(e) => set('pay_min', e.target.value)}
+              />
+              <Input
+                id="req-pay-max"
+                label="Pay max"
+                type="number"
+                error={showProblems ? validation.find((v) => v.field === 'req-pay-max')?.message : undefined}
+                value={form.pay_max}
+                onChange={(e) => set('pay_max', e.target.value)}
+              />
+              <Select
+                label="Pay currency"
+                placeholder="Currency…"
+                options={CURRENCIES.map((v) => ({ value: v, label: v }))}
+                value={form.pay_currency}
+                onChange={(e) => set('pay_currency', e.target.value)}
+              />
+            </div>
+            <div className="fo-form-span">
+              <Input
+                label="Pay notes"
+                value={form.pay_notes}
+                onChange={(e) => set('pay_notes', e.target.value)}
+                placeholder="e.g. plus commission"
+              />
+            </div>
+            <div className="fo-checkstack fo-form-span">
+              <label className="checkline">
+                <input
+                  type="checkbox"
+                  checked={form.is_published}
+                  onChange={(e) => set('is_published', e.target.checked)}
+                />
+                Publish to careers page
+              </label>
+              <label className="checkline">
+                <input
+                  type="checkbox"
+                  checked={form.is_test}
+                  onChange={(e) => set('is_test', e.target.checked)}
+                />
+                Test record
+              </label>
+            </div>
+          </div>
+        </>
+      ),
+    },
+    {
+      name: 'Description',
+      content: (
+        <>
+        <div className="field">
+          <label className="field-label" htmlFor="req-description">
+            Description
+          </label>
+          <div className="rq-editor-toolbar">
+            <div
+              className="rq-editor-tools"
+              role="toolbar"
+              aria-label="Text formatting (not available)"
+            >
+              {['Undo', 'Redo', 'Bold', 'Italic', 'Underline', 'Bullet list', 'Numbered list', 'Link'].map(
+                (label) => (
+                  <PlaceholderAction
+                    key={label}
+                    label={label}
+                    size="sm"
+                    variant="ghost"
+                    className="rq-editor-toolbar-btn"
+                  />
+                ),
+              )}
+            </div>
+            <SegmentedToggle
+              className="rq-editor-view"
+              ariaLabel="Description view"
+              value={descriptionView}
+              onChange={setDescriptionView}
+              options={[
+                {
+                  value: 'write',
+                  label: '',
+                  title: 'Write',
+                  icon: <PencilIcon size={20} aria-hidden="true" />,
+                },
+                {
+                  value: 'preview',
+                  label: '',
+                  title: 'Preview',
+                  icon: <EyeIcon size={20} aria-hidden="true" />,
+                },
+              ]}
             />
-            <Input
-              id="req-pay-min"
-              label="Pay min"
-              type="number"
-              error={showProblems ? validation.find((v) => v.field === 'req-pay-min')?.message : undefined}
-              value={form.pay_min}
-              onChange={(e) => set('pay_min', e.target.value)}
+          </div>
+          {descriptionView === 'preview' ? (
+            <div className="rq-description-preview">
+              {form.description.trim() ? (
+                looksLikeHtml(form.description) ? (
+                  <div
+                    className="fo-rich-text"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.description) }}
+                  />
+                ) : (
+                  <p className="fo-plain-text">{form.description}</p>
+                )
+              ) : (
+                <p className="text-secondary">Nothing to preview yet.</p>
+              )}
+            </div>
+          ) : (
+            <textarea
+              id="req-description"
+              className="rq-description-input"
+              rows={8}
+              value={form.description}
+              onChange={(e) => set('description', e.target.value)}
+              placeholder="Role description shown on the careers page when published."
             />
-            <Input
-              id="req-pay-max"
-              label="Pay max"
-              type="number"
-              error={showProblems ? validation.find((v) => v.field === 'req-pay-max')?.message : undefined}
-              value={form.pay_max}
-              onChange={(e) => set('pay_max', e.target.value)}
+          )}
+        </div>
+      
+        </>
+      ),
+    },
+    {
+      name: 'Approvers',
+      content: (
+        <>
+        {approvers.map((a, i) => (
+          <div key={`${a.staff_id}-${a.approver_type}-${i}`} className="rq-approver-row">
+            <Select
+              label="Approver"
+              placeholder="Select staff…"
+              options={lookups.staff.map((s) => ({ value: s.id, label: s.full_name }))}
+              value={a.staff_id}
+              onChange={(e) =>
+                setApprovers(
+                  approvers.map((x, j) =>
+                    j === i ? { ...x, staff_id: e.target.value } : x,
+                  ),
+                )
+              }
             />
             <Select
-              label="Pay currency"
-              placeholder="Currency…"
-              options={CURRENCIES.map((v) => ({ value: v, label: v }))}
-              value={form.pay_currency}
-              onChange={(e) => set('pay_currency', e.target.value)}
-            />
-            <Input
-              label="Pay notes"
-              value={form.pay_notes}
-              onChange={(e) => set('pay_notes', e.target.value)}
-              placeholder="e.g. plus commission"
-            />
-          </div>
-
-          <div className="rq-form-grid">
-            <label className="checkline">
-              <input
-                type="checkbox"
-                checked={form.is_published}
-                onChange={(e) => set('is_published', e.target.checked)}
-              />
-              Publish to careers page
-            </label>
-            <label className="checkline">
-              <input
-                type="checkbox"
-                checked={form.is_test}
-                onChange={(e) => set('is_test', e.target.checked)}
-              />
-              Test record
-            </label>
-          </div>
-        </RecordSection>
-
-        <RecordSection title="Description:">
-          <div className="field">
-            <label className="field-label" htmlFor="req-description">
-              Description
-            </label>
-            <div className="rq-editor-toolbar">
-              <div
-                className="rq-editor-tools"
-                role="toolbar"
-                aria-label="Text formatting (not available)"
-              >
-                {['Undo', 'Redo', 'Bold', 'Italic', 'Underline', 'Bullet list', 'Numbered list', 'Link'].map(
-                  (label) => (
-                    <PlaceholderAction
-                      key={label}
-                      label={label}
-                      size="sm"
-                      variant="ghost"
-                      className="rq-editor-toolbar-btn"
-                    />
+              label="Type"
+              options={[
+                { value: 'requisition', label: 'requisition' },
+                { value: 'offer', label: 'offer' },
+              ]}
+              value={a.approver_type}
+              onChange={(e) =>
+                setApprovers(
+                  approvers.map((x, j) =>
+                    j === i
+                      ? { ...x, approver_type: e.target.value as ApproverType }
+                      : x,
                   ),
-                )}
-              </div>
-              <SegmentedToggle
-                className="rq-editor-view"
-                ariaLabel="Description view"
-                value={descriptionView}
-                onChange={setDescriptionView}
-                options={[
-                  {
-                    value: 'write',
-                    label: '',
-                    title: 'Write',
-                    icon: <PencilIcon size={20} aria-hidden="true" />,
-                  },
-                  {
-                    value: 'preview',
-                    label: '',
-                    title: 'Preview',
-                    icon: <EyeIcon size={20} aria-hidden="true" />,
-                  },
-                ]}
-              />
-            </div>
-            {descriptionView === 'preview' ? (
-              <div className="rq-description-preview">
-                {form.description.trim() ? (
-                  looksLikeHtml(form.description) ? (
-                    <div
-                      className="fo-rich-text"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.description) }}
-                    />
-                  ) : (
-                    <p className="fo-plain-text">{form.description}</p>
-                  )
-                ) : (
-                  <p className="text-secondary">Nothing to preview yet.</p>
-                )}
-              </div>
-            ) : (
-              <textarea
-                id="req-description"
-                rows={8}
-                value={form.description}
-                onChange={(e) => set('description', e.target.value)}
-                placeholder="Role description shown on the careers page when published."
-              />
-            )}
-          </div>
-        </RecordSection>
-
-        <RecordSection title="Approvers:">
-          {approvers.map((a, i) => (
-            <div key={`${a.staff_id}-${a.approver_type}-${i}`} className="rq-approver-row">
-              <Select
-                label="Approver"
-                placeholder="Select staff…"
-                options={lookups.staff.map((s) => ({ value: s.id, label: s.full_name }))}
-                value={a.staff_id}
-                onChange={(e) =>
-                  setApprovers(
-                    approvers.map((x, j) =>
-                      j === i ? { ...x, staff_id: e.target.value } : x,
-                    ),
-                  )
-                }
-              />
-              <Select
-                label="Type"
-                options={[
-                  { value: 'requisition', label: 'requisition' },
-                  { value: 'offer', label: 'offer' },
-                ]}
-                value={a.approver_type}
-                onChange={(e) =>
-                  setApprovers(
-                    approvers.map((x, j) =>
-                      j === i
-                        ? { ...x, approver_type: e.target.value as ApproverType }
-                        : x,
-                    ),
-                  )
-                }
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setApprovers(approvers.filter((_, j) => j !== i))}
-              >
-                Remove
-              </Button>
-            </div>
-          ))}
-          <div>
+                )
+              }
+            />
             <Button
               size="sm"
-              onClick={() =>
-                setApprovers([...approvers, { staff_id: '', approver_type: 'requisition' }])
-              }
+              variant="ghost"
+              onClick={() => setApprovers(approvers.filter((_, j) => j !== i))}
             >
-              Add approver
+              Remove
             </Button>
           </div>
-        </RecordSection>
+        ))}
+        <div>
+          <Button
+            size="sm"
+            onClick={() =>
+              setApprovers([...approvers, { staff_id: '', approver_type: 'requisition' }])
+            }
+          >
+            Add approver
+          </Button>
+        </div>
+      
+        </>
+      ),
+    },
+  ];
+
+
+
+  if (inDialog) {
+    return (
+      <FoDialog
+        className="fo-form-dialog fo-dialog-panel-form"
+        title={`Edit: ${form.title.trim() || 'Requisition'}`}
+        onClose={onClose ?? (() => undefined)}
+        footer={(close) => (
+          <>
+            <Button onClick={close}>Cancel</Button>
+            <Button variant="primary" onClick={() => void save()} disabled={busy}>
+              {busy ? 'Saving\u2026' : 'Save'}
+            </Button>
+          </>
+        )}
+      >
+        {showSkeleton ? (
+          <Skeleton rows={8} label="Loading requisition" />
+        ) : (
+          <>
+            {problemBanner}
+            <FormSections sections={sectionParts} />
+          </>
+        )}
+      </FoDialog>
+    );
+  }
+
+  return (
+    <div className="record-page">
+      <div className="fo-page-head">
+        <div className="record-breadcrumb">
+          <Breadcrumbs
+            items={[
+              { label: 'Home', to: '/' },
+              { label: 'Requisitions', to: listHref },
+              ...(editing
+                ? [
+                    {
+                      label: form.title.trim() || 'Requisition',
+                      to: `/recruit/requisitions/${recordId ?? ''}`,
+                    },
+                    { label: 'Edit' },
+                  ]
+                : [{ label: 'New requisition' }]),
+            ]}
+          />
+        </div>
+        <div className="record-title-row">
+          <span className="fo-page-icon">
+            <BriefcaseIcon size={32} />
+          </span>
+          <h1>
+            {editing ? `Edit: ${form.title.trim() || 'Requisition'}` : 'Requisitions: New Requisition'}
+          </h1>
+          <div className="fo-page-header-actions">
+            <CollapseAllButton />
+          </div>
+        </div>
+      </div>
+      {actionButtons}
+      <form
+        className="rq-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save();
+        }}
+      >
+        {problemBanner}
+        {sectionParts.map((part) => (
+          <RecordSection key={part.name} title={part.name}>
+            {part.content}
+          </RecordSection>
+        ))}
       </form>
     </div>
   );

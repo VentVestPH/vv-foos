@@ -50,8 +50,10 @@ import {
   Link2 as LinkIcon,
   Search as SearchIcon,
   User as PersonIcon,
+  PencilLine,
 } from 'lucide-react';
 import { StarGrade } from '../../../components/ui/StarGrade';
+import { PersonEditDialog } from '../../../components/ui/PersonEditDialog';
 import {
   ActivityPanel,
   attachmentUrl,
@@ -113,6 +115,7 @@ export function CandidateRecordPage() {
   const [submitting, setSubmitting] = useState(false);
   const printProfile = usePrintRecord();
   const [erasing, setErasing] = useState(false);
+  const [editingPerson, setEditingPerson] = useState(false);
   const loadRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const reload = useCallback(() => loadRef.current(), []);
   const [flagBusy, setFlagBusy] = useState(false);
@@ -307,6 +310,15 @@ export function CandidateRecordPage() {
 
   const overflowItems: ActionMenuItem[] = [
     {
+      label: 'View Resume',
+      onSelect: () => void viewResume(),
+      disabled: resumes.length === 0,
+      title:
+        resumes.length === 0
+          ? 'No resume on file. Upload one in the Resumes section and it will open from here'
+          : undefined,
+    },
+    {
       label: 'Schedule meeting',
       onSelect: outreach.openSchedule,
       disabled: dnc || personEmails(person).length === 0,
@@ -360,19 +372,14 @@ export function CandidateRecordPage() {
       >
         Send Email
       </Button>
-      <Button
-        size="sm"
-        disabled={resumes.length === 0}
-        title={
-          resumes.length === 0
-            ? 'No resume on file. Upload one in the Resumes section and it will open from here'
-            : undefined
-        }
-        onClick={() => void viewResume()}
-      >
-        View Resume
-      </Button>
+      {canEditProfile && (
+        <Button size="sm" onClick={() => setEditingPerson(true)}>
+          <PencilLine size={20} aria-hidden="true" />
+          Edit
+        </Button>
+      )}
       <ActionMenu label="More actions" items={overflowItems} iconOnly />
+
       {saved && <span className="text-secondary">Saved.</span>}
     </>
   );
@@ -1089,6 +1096,7 @@ export function CandidateRecordPage() {
                   emptyText="No notes yet."
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
                 />
               ),
             },
@@ -1104,6 +1112,7 @@ export function CandidateRecordPage() {
                   emptyText="No calls logged yet."
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
                 />
               ),
             },
@@ -1119,6 +1128,7 @@ export function CandidateRecordPage() {
                   emptyText="No meetings yet."
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
                 />
               ),
             },
@@ -1134,6 +1144,7 @@ export function CandidateRecordPage() {
                   emptyText="No linked emails yet — Gmail sync (Agent 6) matches them by participant address."
                   allowCreate={false}
                   onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
                 />
               ),
             },
@@ -1151,6 +1162,7 @@ export function CandidateRecordPage() {
           allowCreate={allowCreate}
           onCreate={engagement.addTask}
           onToggle={engagement.toggleTask}
+          onDelete={allowCreate ? engagement.deleteTask : undefined}
         />
       </RecordSection>
 
@@ -1160,6 +1172,7 @@ export function CandidateRecordPage() {
           allowCreate={allowCreate}
           onCreate={engagement.addReminder}
           onDismiss={engagement.dismissReminder}
+          onDelete={allowCreate ? engagement.deleteReminder : undefined}
         />
       </RecordSection>
 
@@ -1203,6 +1216,17 @@ export function CandidateRecordPage() {
           survivor={person}
           onClose={() => setMerging(false)}
           onMerged={load}
+        />
+      )}
+
+      {editingPerson && (
+        <PersonEditDialog
+          person={person}
+          onClose={() => setEditingPerson(false)}
+          onSaved={() => {
+            setEditingPerson(false);
+            void reload();
+          }}
         />
       )}
 

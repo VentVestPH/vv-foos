@@ -111,9 +111,6 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
         >
           <ChevronsRight size={24} aria-hidden="true" />
         </button>
-        <span className="fo-pager-pos" aria-live="polite">
-          {empty ? 0 : page + 1} / {totalPending === true ? '?' : empty ? 0 : pageCount}
-        </span>
       </span>
     </div>
   );

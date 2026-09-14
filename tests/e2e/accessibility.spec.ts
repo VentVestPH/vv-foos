@@ -26,6 +26,7 @@ const ROUTES = [
   ['intake linkedin', '/intake/linkedin'],
   ['intake sheet', '/intake/sheet'],
   ['settings', '/settings'],
+  ['users', '/users'],
 ] as const;
 
 interface AxeViolation {

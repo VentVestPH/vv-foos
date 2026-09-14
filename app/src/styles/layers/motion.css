@@ -80,6 +80,24 @@
     opacity var(--motion-quick) var(--ease-out);
 }
 
+.panel-item-delete {
+  transition: opacity var(--motion-quick) var(--ease-out);
+}
+
+.fo-form-accordion-head {
+  transition:
+    color var(--motion-quick) var(--ease-out),
+    background-color var(--motion-quick) var(--ease-out);
+}
+
+.fo-form-accordion-head svg {
+  transition: transform var(--motion-quick) var(--ease-out);
+}
+
+.fo-form-accordion-collapse {
+  transition: grid-template-rows var(--motion-panel) var(--ease-out);
+}
+
 .shell-content {
   transition: padding var(--motion-rail) var(--ease-out);
 }

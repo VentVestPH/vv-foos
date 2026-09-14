@@ -28,6 +28,7 @@ Everything here was produced on 2026-09-01 and is evidence-based: claims are mar
 | The human checks left before cutover | `09-uat/…Script_Gate-5-UAT…` |
 | Which acceptance criteria are actually verified | `../tests/RETEST_MATRIX.md` |
 | Which source document governs a question | `05-reference/…Index_Drive-Source-Documents…` |
+| Why a browser test passes here and fails in CI | `05-reference/…Runbook_Why-CI-Fails-And-How-To-Write-A-Test-That-Does-Not…` |
 
 ## 01-current-state
 

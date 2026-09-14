@@ -3,12 +3,23 @@ import { useParams } from 'react-router-dom';
 import { useListLink, useListReturnHref } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
 import { useRole } from '../../../auth/SessionProvider';
+import { useNavigate } from 'react-router-dom';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
+import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
+import { RecordSkeleton } from '../../../components/ui/RecordSkeleton';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { Handshake as HandshakeIcon } from 'lucide-react';
+import { Handshake as HandshakeIcon, PencilLine } from 'lucide-react';
+import { SettingsButton } from '../../../components/ui/SettingsButton';
+import { SectionSettingsDialog } from '../../../components/ui/SectionSettingsDialog';
+import { useSectionPrefs } from '../../../hooks/useSectionPrefs';
 import { EngagementPanel } from '../components/EngagementPanel';
+import { CompanyDeleteDialog } from '../components/CompanyDeleteDialog';
+import { CompanyEditDialog } from '../components/CompanyEditDialog';
+import { useCanEditCrm } from '../hooks';
 import { useStaffList } from '../hooks';
 import {
   fmtDate,
@@ -35,7 +46,34 @@ interface RequisitionLite {
   status: string;
 }
 
+const RELATED_ROW_CAP = 25;
+
+const COMPANY_RECORD_SECTIONS = [
+  'Details',
+  'Contacts',
+  'Open deals',
+  'Requisitions',
+  'Activity',
+];
+
+const COMPANY_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
+  Details: true,
+  Contacts: true,
+  'Open deals': true,
+  Requisitions: true,
+  Activity: true,
+};
+
 export function CompanyRecordPage() {
+  const prefs = useSectionPrefs('sales.company.record');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const navigate = useNavigate();
+  const canEdit = useCanEditCrm();
+  const opensOnLoad = (section: string) =>
+    prefs.opensOnLoad(section, COMPANY_SECTION_DEFAULT_OPEN[section] ?? true);
   const { id } = useParams<{ id: string }>();
   const role = useRole();
   const { record } = useRecentlyViewed();
@@ -45,7 +83,9 @@ export function CompanyRecordPage() {
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [requisitions, setRequisitions] = useState<RequisitionLite[]>([]);
+  const [requisitionTotal, setRequisitionTotal] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useMinimumVisible(!loaded);
   const listHref = useListReturnHref('/sales/companies');
   const openRecord = useListLink();
 
@@ -80,12 +120,17 @@ export function CompanyRecordPage() {
       }
 
       let reqs: RequisitionLite[] = [];
+      let reqTotal = 0;
       if (canSeeRequisitions) {
-        const { data } = await supabase
+        const { data, count } = await supabase
           .from('requisitions')
-          .select('id, display_code, title, status')
-          .eq('company_id', companyId);
+          .select('id, display_code, title, status', { count: 'exact' })
+          .eq('company_id', companyId)
+          .order('opened_date', { ascending: false, nullsFirst: false })
+          .order('id', { ascending: true })
+          .range(0, RELATED_ROW_CAP - 1);
         reqs = data ?? [];
+        reqTotal = count ?? reqs.length;
       }
 
       if (cancelled) return;
@@ -101,6 +146,8 @@ export function CompanyRecordPage() {
       );
       setDeals(dealRes.data ?? []);
       setRequisitions(reqs);
+      setRequisitionTotal(reqTotal);
+      setRequisitionTotal(reqTotal);
       setLoaded(true);
     }
 
@@ -108,7 +155,7 @@ export function CompanyRecordPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, canSeeRequisitions]);
+  }, [id, canSeeRequisitions, reloadKey]);
 
   useEffect(() => {
     if (company) {
@@ -122,6 +169,9 @@ export function CompanyRecordPage() {
   }, [company, record]);
 
   if (!id) return null;
+  if (showSkeleton) {
+    return <RecordSkeleton label="Loading account" sections={COMPANY_RECORD_SECTIONS.length} />;
+  }
   if (loaded && !company) {
     return (
       <div className="stub-panel">
@@ -209,8 +259,42 @@ export function CompanyRecordPage() {
           {company.is_test && <Badge tone="warning">TEST</Badge>}
         </span>
       }
+      actionBar={
+        canEdit ? (
+          <>
+            <Button size="sm" onClick={() => setEditing(true)}>
+              <PencilLine size={20} aria-hidden="true" />
+              Edit
+            </Button>
+            <ActionMenu
+              label="More actions"
+              iconOnly
+              items={[
+                {
+                  label: 'Delete permanently…',
+                  destructive: true,
+                  onSelect: () => setDeleting(true),
+                },
+              ]}
+            />
+          </>
+        ) : undefined
+      }
+      headerActions={
+        <>
+          <SettingsButton
+            label="Section settings"
+            title="Choose which sections appear on this account"
+            onClick={() => setSettingsOpen(true)}
+          />
+        </>
+      }
     >
-      <RecordSection title="Details">
+      <RecordSection
+        title="Details"
+        hidden={prefs.isHidden('Details')}
+        defaultOpen={opensOnLoad('Details')}
+      >
         <dl className="sales-record-meta">
           <div>
             <dt>Website</dt>
@@ -231,7 +315,12 @@ export function CompanyRecordPage() {
         </dl>
       </RecordSection>
 
-      <RecordSection title={`Contacts (${contacts.length})`}>
+      <RecordSection
+        title="Contacts"
+        count={contacts.length}
+        hidden={prefs.isHidden('Contacts')}
+        defaultOpen={opensOnLoad('Contacts')}
+      >
         <Table
           busy={!loaded}
           columns={contactColumns}
@@ -242,7 +331,12 @@ export function CompanyRecordPage() {
         />
       </RecordSection>
 
-      <RecordSection title={`Open deals (${openDeals.length})`}>
+      <RecordSection
+        title="Open deals"
+        count={openDeals.length}
+        hidden={prefs.isHidden('Open deals')}
+        defaultOpen={opensOnLoad('Open deals')}
+      >
         <Table
           busy={!loaded}
           columns={dealColumns}
@@ -260,7 +354,12 @@ export function CompanyRecordPage() {
       </RecordSection>
 
       {canSeeRequisitions && (
-        <RecordSection title={`Requisitions (${requisitions.length})`}>
+        <RecordSection
+          title="Requisitions"
+          count={requisitionTotal}
+          hidden={prefs.isHidden('Requisitions')}
+          defaultOpen={opensOnLoad('Requisitions')}
+        >
           <Table
             columns={[
               { key: 'display_code', header: 'Code' },
@@ -278,14 +377,50 @@ export function CompanyRecordPage() {
             emptyText="No requisitions for this company."
           />
           <div className="sales-panel-note">
-            Read-only — requisitions are managed in the Recruit module.
+            {requisitionTotal > requisitions.length
+              ? `Showing the ${requisitions.length} most recently opened of ${requisitionTotal}. Read-only: requisitions are managed in the Recruit module.`
+              : 'Read-only: requisitions are managed in the Recruit module.'}
           </div>
         </RecordSection>
       )}
 
-      <RecordSection title="Activity">
+      <RecordSection
+        title="Activity"
+        hidden={prefs.isHidden('Activity')}
+        defaultOpen={opensOnLoad('Activity')}
+      >
         <EngagementPanel relatedType="company" relatedId={company.id} />
       </RecordSection>
+      {editing && (
+        <CompanyEditDialog
+          company={company}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            setReloadKey((k) => k + 1);
+          }}
+        />
+      )}
+      {deleting && (
+        <CompanyDeleteDialog
+          targets={[{ id: company.id, name: company.name }]}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => {
+            setDeleting(false);
+            navigate(listHref);
+          }}
+        />
+      )}
+      {settingsOpen && (
+        <SectionSettingsDialog
+          title="Section settings"
+          hint="Choose which sections appear on this account. The choice is saved to your account."
+          sections={COMPANY_RECORD_SECTIONS}
+          prefs={prefs}
+          defaultOpenFor={(section) => COMPANY_SECTION_DEFAULT_OPEN[section] ?? true}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </RecordPage>
   );
 }

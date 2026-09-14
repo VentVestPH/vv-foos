@@ -18,28 +18,24 @@ test.afterEach(async () => {
   await admin.from('activities').delete().like('subject', `${NOTE}%`);
 });
 
-test('B6: a record with nothing logged shows one empty state, not two side by side', async ({
+test('B6: the tab strip renders on an untouched record, so the kinds on offer are visible', async ({
   page,
 }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, `/sales/contacts/${contactId}`);
   await expect(page.getByRole('button', { name: /^Engagement/ })).toBeVisible({ timeout: 25000 });
 
-  const emptyStates = await page.evaluate(() => {
-    const texts = Array.from(document.querySelectorAll('main p'))
-      .map((p) => (p.textContent ?? '').trim())
-      .filter((t) => /^No .*(yet|logged)\.?$/i.test(t));
-    return texts;
-  });
-
-  expect(
-    emptyStates.length,
-    `one record should not carry two "nothing here" messages: ${emptyStates.join(' | ')}`,
-  ).toBeLessThanOrEqual(1);
   await expect(
     page.locator('.side-tabs-bar'),
-    'the eight-tab strip must not render when every tab is empty',
-  ).toHaveCount(0);
+    'reversed 2026-09-14 on Klent\'s instruction. This used to assert the strip was absent when every tab was empty, to avoid two "nothing here" messages side by side. Hiding it also hid what a record can hold, so a new account read as though Notes, Calls, Files and the rest did not exist',
+  ).toBeVisible();
+
+  await expect(page.getByRole('tab', { name: /^Notes/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /^Files/ })).toBeVisible();
+  await expect(
+    page.locator('.side-tabs'),
+    'each tab still carries its own empty state rather than showing a blank panel',
+  ).toContainText(/No .*(yet|logged)/i);
 });
 
 test('B6: the rail comes back as soon as there is something to show', async ({ page }) => {

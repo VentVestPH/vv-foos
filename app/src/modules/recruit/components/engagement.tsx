@@ -23,7 +23,8 @@ import {
   PENDING_FILE_LABEL,
   PENDING_FILE_REASON,
 } from '../../../lib/attachments';
-import { BellRing, CalendarDays, ListChecks, MessageSquare, Paperclip } from 'lucide-react';
+import { BellRing, CalendarDays, ListChecks, MessageSquare, Paperclip, Trash2 } from 'lucide-react';
+import { ConfirmDeleteDialog } from '../../../components/ui/ConfirmDeleteDialog';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
 export type EngagementParentType = 'person' | 'requisition' | 'application';
@@ -173,6 +174,37 @@ export function useEngagement(parentType: EngagementParentType, parentId: string
     [refresh],
   );
 
+  const deleteActivity = useCallback(
+    async (activity: Activity) => {
+      if (activity.kind === 'status_change') {
+        setError('A status change is written by the database and is part of the audit trail.');
+        return;
+      }
+      const { error: err } = await supabase.from('activities').delete().eq('id', activity.id);
+      if (err) throw new Error(err.message);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteTask = useCallback(
+    async (id: string) => {
+      const { error: err } = await supabase.from('tasks').delete().eq('id', id);
+      if (err) throw new Error(err.message);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteReminder = useCallback(
+    async (id: string) => {
+      const { error: err } = await supabase.from('reminders').delete().eq('id', id);
+      if (err) throw new Error(err.message);
+      await refresh();
+    },
+    [refresh],
+  );
+
   return {
     activities,
     tasks,
@@ -185,6 +217,9 @@ export function useEngagement(parentType: EngagementParentType, parentId: string
     toggleTask,
     addReminder,
     dismissReminder,
+    deleteActivity,
+    deleteTask,
+    deleteReminder,
   };
 }
 
@@ -241,15 +276,54 @@ interface ActivityPanelProps {
   items: Activity[];
   kind: ActivityKind;
   kindLabel: string;
+  onDelete?: ((activity: Activity) => Promise<void>) | undefined;
   emptyText: string;
   allowCreate: boolean;
   onCreate: (kind: ActivityKind, subject: string, body: string) => Promise<void>;
+}
+
+
+interface PanelDeleteProps {
+  label: string;
+  title: string;
+  body: string;
+  onDelete: () => Promise<void>;
+}
+
+function PanelDelete({ label, title, body, onDelete }: PanelDeleteProps) {
+  const [asking, setAsking] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        className="fo-icon-btn panel-item-delete"
+        aria-label={label}
+        title={label}
+        onClick={() => setAsking(true)}
+      >
+        <Trash2 size={20} aria-hidden="true" />
+      </button>
+      {asking && (
+        <ConfirmDeleteDialog
+          title={title}
+          onClose={() => setAsking(false)}
+          onConfirm={async () => {
+            await onDelete();
+            setAsking(false);
+          }}
+        >
+          <p>{body}</p>
+        </ConfirmDeleteDialog>
+      )}
+    </>
+  );
 }
 
 export function ActivityPanel({
   items,
   kind,
   kindLabel,
+  onDelete,
   emptyText,
   allowCreate,
   onCreate,
@@ -302,7 +376,17 @@ export function ActivityPanel({
         <div key={a.id} className="panel-item">
           <div className="panel-item-head">
             <span className="panel-item-title">{a.subject ?? kindLabel}</span>
-            <span className="text-secondary">{fmtDateTime(a.occurred_at)}</span>
+            <span className="panel-item-meta">
+              <span className="text-secondary">{fmtDateTime(a.occurred_at)}</span>
+              {onDelete && (
+                <PanelDelete
+                  label={`Delete this ${kindLabel.toLowerCase()}`}
+                  title={`Delete ${kindLabel.toLowerCase()}`}
+                  body={`This removes "${a.subject ?? kindLabel}" from the record for good. Nothing else references it.`}
+                  onDelete={() => onDelete(a)}
+                />
+              )}
+            </span>
           </div>
           {a.body && <p className="panel-item-body">{a.body}</p>}
         </div>
@@ -359,9 +443,10 @@ interface TasksPanelProps {
   allowCreate: boolean;
   onCreate: (subject: string, dueDate: string) => Promise<void>;
   onToggle: (task: TaskRow) => Promise<void>;
+  onDelete?: ((id: string) => Promise<void>) | undefined;
 }
 
-export function TasksPanel({ items, allowCreate, onCreate, onToggle }: TasksPanelProps) {
+export function TasksPanel({ items, allowCreate, onCreate, onToggle, onDelete }: TasksPanelProps) {
   const [subject, setSubject] = useState('');
   const [due, setDue] = useState('');
   return (
@@ -422,8 +507,18 @@ export function TasksPanel({ items, allowCreate, onCreate, onToggle }: TasksPane
               />
               <span className="panel-item-title">{t.subject}</span>
             </label>
-            <span className="text-secondary">
-              {t.due_date ? `Due ${fmtDate(t.due_date)}` : ''}
+            <span className="panel-item-meta">
+              <span className="text-secondary">
+                {t.due_date ? `Due ${fmtDate(t.due_date)}` : ''}
+              </span>
+              {onDelete && (
+                <PanelDelete
+                  label="Delete this task"
+                  title="Delete task"
+                  body={`This removes "${t.subject}" for good. Marking it done keeps it on the record instead.`}
+                  onDelete={() => onDelete(t.id)}
+                />
+              )}
             </span>
           </div>
         </div>
@@ -437,6 +532,7 @@ interface RemindersPanelProps {
   allowCreate: boolean;
   onCreate: (subject: string, remindAt: string) => Promise<void>;
   onDismiss: (id: string) => Promise<void>;
+  onDelete?: ((id: string) => Promise<void>) | undefined;
 }
 
 export function RemindersPanel({
@@ -444,6 +540,7 @@ export function RemindersPanel({
   allowCreate,
   onCreate,
   onDismiss,
+  onDelete,
 }: RemindersPanelProps) {
   const [subject, setSubject] = useState('');
   const [at, setAt] = useState('');
@@ -511,11 +608,21 @@ export function RemindersPanel({
             <Badge tone={r.status === 'pending' ? 'warning' : 'neutral'}>
               {r.status}
             </Badge>
-            {r.status !== 'dismissed' && allowCreate && (
-              <Button size="sm" variant="ghost" onClick={() => void onDismiss(r.id)}>
-                Dismiss
-              </Button>
-            )}
+            <span className="panel-item-meta">
+              {r.status !== 'dismissed' && allowCreate && (
+                <Button size="sm" variant="ghost" onClick={() => void onDismiss(r.id)}>
+                  Dismiss
+                </Button>
+              )}
+              {onDelete && (
+                <PanelDelete
+                  label="Delete this reminder"
+                  title="Delete reminder"
+                  body={`This removes "${r.subject}" for good. Dismissing it keeps it on the record instead.`}
+                  onDelete={() => onDelete(r.id)}
+                />
+              )}
+            </span>
           </div>
         </div>
       ))}

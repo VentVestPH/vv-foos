@@ -34,6 +34,22 @@ roles and lets Postgres decide what each one sees.
   callout. Both used `--section-tint`, which also paints accordion headers, so the
   drawer was three shades of the same blue.
 
+## Saved views, added 2026-09-14
+
+The queue takes `useSavedViews('intake')` from `components/ui/SavedViews.tsx`, the same control the four other list pages use, so a view records the Channel, Target, Status and Show-imported choices, the visible columns and the sort. A view ticked **Share with the team** is readable by everyone: `ats_saved_views_read` allows a row through when `is_shared` is true, and `entity` is plain text with no check constraint, so `intake` and `company` needed no migration.
+
+Wiring this exposed a defect worth knowing about, logged as QA-062. **The queue used to sort only the page you were looking at.** It handed `pager.pageRows` to an uncontrolled `Table`, and `Table` sorts whatever array it is given, so clicking `Batch` reordered twenty rows and nothing else. Controlling the sort is what a saved view needs anyway, and `Table` returns `rows` untouched when `onSortChange` is passed, so the page now sorts the whole filtered array and pages the result. If you add a column here, give it a `sortValue` or it will sort on its raw field.
+
+## Deleting an intake item, added 2026-09-14
+
+Until now the only way out of the queue was **reject**, which sets `status = 'rejected'` and leaves the row there for good. That is why the toolbar needs a "Show imported / rejected" checkbox at all. Delete is the missing verb for junk: a pasted URL that was a typo, a spreadsheet row that was a header.
+
+It is safe here in a way it is not elsewhere. **Nothing in the schema references `intake_items`** (zero inbound foreign keys), so a delete cascades to nothing. Compare `requisitions`, where four tables cascade and `applications` is one of them.
+
+**The UI does not decide who may delete what; `intake_items_delete` does.** The policy is admin anything, recruiter candidate items, sourcer their own candidate submissions, bd contact items. Mirroring that predicate in the client would be a second hand-maintained list that drifts from the first, which is the failure this codebase already has a rule about. Instead the delete runs `.delete().in('id', ids).select('id')`, and PostgREST returns only the rows that actually went. The difference between what was asked for and what came back is what the notice reports: `3 of 5 deleted. 2 left in place, because your role cannot remove them.`
+
+Verified against the live policy rather than assumed: with one candidate item and one contact item selected, a `bd` sign-in deleted the contact and silently left the candidate; an `admin` sign-in then removed the candidate. `I18` in `tests/e2e/intake-list.spec.ts` holds that behaviour.
+
 ## Why the queue was empty
 
 The Zoho migration never went through intake, by design. `migration/import.mjs`
@@ -112,7 +128,7 @@ curl -X POST https://mebfbbvrqdctamnzvbbs.supabase.co/functions/v1/intake-email-
     "message": {
       "id": "test-message-001",
       "from": "Jordan Candidate <jordan@example.com>",
-      "to": ["rita.demo@ventvest.com"],
+      "to": ["foos.recruiter@ventvest.com"],
       "subject": "Application for Senior Data Engineer — resume attached",
       "bodyText": "Hi, please find my resume attached for the role.",
       "date": "2026-07-25T10:00:00Z",

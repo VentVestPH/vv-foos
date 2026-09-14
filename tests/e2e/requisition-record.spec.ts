@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, overflowItem, signIn } from './helpers';
 
 test('Printable View expands every section and puts them back', async ({ page }) => {
   await signIn(page, PERSONA_EMAILS.admin);
@@ -25,7 +25,7 @@ test('Printable View expands every section and puts them back', async ({ page })
     .toBe(0);
   const total = await page.locator('.record-section').count();
 
-  await page.getByRole('button', { name: 'Printable View' }).click();
+  await (await overflowItem(page, 'Printable View')).click();
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { __printed: number }).__printed), {
       timeout: 20000,
