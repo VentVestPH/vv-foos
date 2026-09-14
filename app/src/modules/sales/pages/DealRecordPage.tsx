@@ -1,29 +1,24 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useListReturnHref } from '../../../lib/listReturn';
 import { supabase } from '../../../lib/supabase';
-import { CURRENCIES } from '../../../lib/format';
-import { DEAL_STAGES, type DealStage } from '../../../lib/database.types';
+import { EMPTY_CELL } from '../../../lib/format';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
-import { DateField } from '../../../components/ui/DateField';
-import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
-import { Briefcase as BriefcaseIcon } from 'lucide-react';
+import {
+  Briefcase as BriefcaseIcon,
+  Building2,
+  PencilLine,
+  UserRound,
+} from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { DealDeleteDialog } from '../components/DealDeleteDialog';
+import { DealEditDialog } from '../components/DealEditDialog';
 import { ActionMenu } from '../../../components/ui/ActionMenu';
-import { LostReasonDialog } from '../components/LostReasonDialog';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
-import {
-  personName,
-  stageLabel,
-  type ContactProfile,
-  type Deal,
-  type Person,
-} from '../lib';
+import { fmtDate, fmtMoney, personName, type Deal, type Person } from '../lib';
 
 export function DealRecordPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,33 +26,19 @@ export function DealRecordPage() {
   const navigate = useNavigate();
   const canEdit = useCanEditCrm();
   const { record } = useRecentlyViewed();
-  const { staffOptions } = useStaffList();
-  const { companyOptions } = useCompanyOptions();
+  const { staffName, staffOptions } = useStaffList();
+  const { companyName, companyOptions } = useCompanyOptions();
 
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [contact, setContact] = useState<Person | null>(null);
 
-  const [name, setName] = useState('');
-  const [companyId, setCompanyId] = useState('');
-  const [contactId, setContactId] = useState('');
-  const [ownerId, setOwnerId] = useState('');
-  const [stage, setStage] = useState<DealStage>('lead');
-  const [value, setValue] = useState('');
-  const [currency, setCurrency] = useState('PHP');
-  const [probability, setProbability] = useState('');
-  const [expectedClose, setExpectedClose] = useState('');
-
-  const [companyContacts, setCompanyContacts] = useState<
-    { profile: ContactProfile; person: Person }[]
-  >([]);
-  const [pendingLostReason, setPendingLostReason] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [dealActivityCount, setDealActivityCount] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
   const [noticeClosing, setNoticeClosing] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -73,17 +54,6 @@ export function DealRecordPage() {
       .select('id', { count: 'exact', head: true })
       .eq('deal_id', id);
     setDealActivityCount(count ?? 0);
-    if (data) {
-      setName(data.name);
-      setCompanyId(data.company_id ?? '');
-      setContactId(data.primary_contact_id ?? '');
-      setOwnerId(data.owner_id ?? '');
-      setStage(data.stage);
-      setValue(data.value === null ? '' : String(data.value));
-      setCurrency(data.currency ?? 'PHP');
-      setProbability(data.probability === null ? '' : String(data.probability));
-      setExpectedClose(data.expected_close ?? '');
-    }
   }, [id]);
 
   useEffect(() => {
@@ -102,52 +72,25 @@ export function DealRecordPage() {
   }, [deal, record]);
 
   useEffect(() => {
-    if (!companyId) {
-      setCompanyContacts([]);
+    const contactId = deal?.primary_contact_id;
+    if (!contactId) {
+      setContact(null);
       return;
     }
     let cancelled = false;
-    async function loadContacts(cid: string) {
-      const { data: profiles } = await supabase
-        .from('contact_profiles')
-        .select('*')
-        .eq('company_id', cid);
-      if (!profiles || profiles.length === 0) {
-        if (!cancelled) setCompanyContacts([]);
-        return;
-      }
-      const { data: people } = await supabase
+    async function loadContact(pid: string) {
+      const { data } = await supabase
         .from('people')
         .select('*')
-        .in(
-          'id',
-          profiles.map((p) => p.person_id),
-        );
-      if (cancelled) return;
-      const byId = new Map((people ?? []).map((p) => [p.id, p]));
-      setCompanyContacts(
-        profiles
-          .map((profile) => ({ profile, person: byId.get(profile.person_id) }))
-          .filter(
-            (r): r is { profile: ContactProfile; person: Person } =>
-              r.person !== undefined,
-          ),
-      );
+        .eq('id', pid)
+        .maybeSingle();
+      if (!cancelled) setContact(data ?? null);
     }
-    void loadContacts(companyId);
+    void loadContact(contactId);
     return () => {
       cancelled = true;
     };
-  }, [companyId]);
-
-  const contactOptions = useMemo(
-    () =>
-      companyContacts.map((c) => ({
-        value: c.profile.person_id,
-        label: personName(c.person),
-      })),
-    [companyContacts],
-  );
+  }, [deal?.primary_contact_id]);
 
   useEffect(() => {
     if (!notice) return;
@@ -170,49 +113,6 @@ export function DealRecordPage() {
   }
   if (!deal) return null;
 
-  const doSave = async (lostReason?: string) => {
-    setSaving(true);
-    setSaveError(null);
-    const patch = {
-      name: name.trim(),
-      company_id: companyId || null,
-      primary_contact_id: contactId || null,
-      owner_id: ownerId || null,
-      stage,
-      value: value === '' ? null : Number(value),
-      currency: currency || null,
-      probability: probability === '' ? null : Number(probability),
-      expected_close: expectedClose || null,
-      lost_reason:
-        stage === 'lost' ? (lostReason ?? deal.lost_reason) : null,
-    };
-    const { error } = await supabase
-      .from('deals')
-      .update(patch)
-      .eq('id', deal.id);
-    setSaving(false);
-    if (error) {
-      setSaveError(error.message);
-      return;
-    }
-    const movedToWon = stage === 'won' && deal.stage !== 'won';
-    await load();
-    setRefreshKey((k) => k + 1);
-    if (movedToWon) setNotice(`${deal.display_code} — won.`);
-  };
-
-  const save = () => {
-    if (!name.trim()) {
-      setSaveError('Deal name is required.');
-      return;
-    }
-    if (stage === 'lost' && deal.stage !== 'lost') {
-      setPendingLostReason(true);
-      return;
-    }
-    void doSave();
-  };
-
   return (
     <RecordPage
       breadcrumbs={[
@@ -229,19 +129,39 @@ export function DealRecordPage() {
           {deal.is_test && <Badge tone="warning">TEST</Badge>}
         </span>
       }
+      headerMeta={
+        (deal.company_id || deal.primary_contact_id) && (
+          <div className="sales-record-links">
+            {deal.company_id && (
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => navigate(`/sales/companies/${deal.company_id}`)}
+              >
+                <Building2 size={20} aria-hidden="true" />
+                {companyName(deal.company_id)}
+              </button>
+            )}
+            {deal.primary_contact_id && (
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => navigate(`/sales/contacts/${deal.primary_contact_id}`)}
+              >
+                <UserRound size={20} aria-hidden="true" />
+                {contact ? personName(contact) : 'Primary contact'}
+              </button>
+            )}
+          </div>
+        )
+      }
       actionBar={
-        <>
-          {canEdit && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={save}
-              disabled={saving}
-            >
-              {saving ? 'Saving…' : 'Save changes'}
+        canEdit ? (
+          <>
+            <Button size="sm" onClick={() => setEditing(true)}>
+              <PencilLine size={20} aria-hidden="true" />
+              Edit
             </Button>
-          )}
-          {canEdit && (
             <ActionMenu
               label="More actions"
               iconOnly
@@ -253,100 +173,31 @@ export function DealRecordPage() {
                 },
               ]}
             />
-          )}
-          {canEdit && saveError !== null && (
-            <span className="field-error-text" role="alert">{saveError}</span>
-          )}
-        </>
+          </>
+        ) : undefined
       }
     >
       <RecordSection title="Deal details">
-        <div className="sales-form-grid">
-          <div className="sales-span-2">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={!canEdit}
-            />
+        <dl className="sales-record-meta">
+          <div>
+            <dt>Value</dt>
+            <dd>{fmtMoney(deal.value, deal.currency)}</dd>
           </div>
-          <Select
-            label="Company"
-            options={companyOptions}
-            placeholder="No company"
-            value={companyId}
-            onChange={(e) => {
-              setCompanyId(e.target.value);
-              setContactId('');
-            }}
-            disabled={!canEdit}
-          />
-          <Select
-            label="Primary contact"
-            options={contactOptions}
-            placeholder={
-              companyId ? 'No primary contact' : 'Pick a company first'
-            }
-            value={contactId}
-            onChange={(e) => setContactId(e.target.value)}
-            disabled={!canEdit || !companyId}
-          />
-          <Select
-            label="Owner"
-            options={staffOptions}
-            placeholder="Unassigned"
-            value={ownerId}
-            onChange={(e) => setOwnerId(e.target.value)}
-            disabled={!canEdit}
-          />
-          <Select
-            label="Stage"
-            options={DEAL_STAGES.map((s) => ({
-              value: s,
-              label: stageLabel(s),
-            }))}
-            value={stage}
-            onChange={(e) => setStage(e.target.value as DealStage)}
-            disabled={!canEdit}
-          />
-          <Input
-            label="Value"
-            type="number"
-            min="0"
-            step="any"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            disabled={!canEdit}
-          />
-          <Select
-            label="Currency"
-            options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            disabled={!canEdit}
-          />
-          <Input
-            label="Probability (%)"
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            value={probability}
-            onChange={(e) => setProbability(e.target.value)}
-            disabled={!canEdit}
-          />
-          <DateField
-            label="Expected close"
-            value={expectedClose}
-            onChange={(e) => setExpectedClose(e.target.value)}
-            disabled={!canEdit}
-          />
-        </div>
+          <div>
+            <dt>Probability</dt>
+            <dd>{deal.probability === null ? EMPTY_CELL : `${deal.probability}%`}</dd>
+          </div>
+          <div>
+            <dt>Expected close</dt>
+            <dd>{fmtDate(deal.expected_close)}</dd>
+          </div>
+          <div>
+            <dt>Owner</dt>
+            <dd>{staffName(deal.owner_id)}</dd>
+          </div>
+        </dl>
         {deal.stage === 'lost' && deal.lost_reason && (
-          <div className="sales-panel-note">
-            Lost reason: {deal.lost_reason}
-          </div>
+          <div className="sales-panel-note">Lost reason: {deal.lost_reason}</div>
         )}
       </RecordSection>
 
@@ -358,25 +209,17 @@ export function DealRecordPage() {
         />
       </RecordSection>
 
-      {contactId && (
-        <div className="sales-panel-note">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/sales/contacts/${contactId}`)}
-          >
-            Open primary contact record
-          </Button>
-        </div>
-      )}
-
-      {pendingLostReason && (
-        <LostReasonDialog
-          dealLabel={`${deal.display_code} · ${deal.name}`}
-          onCancel={() => setPendingLostReason(false)}
-          onConfirm={(reason) => {
-            setPendingLostReason(false);
-            void doSave(reason);
+      {editing && (
+        <DealEditDialog
+          deal={deal}
+          companyOptions={companyOptions}
+          staffOptions={staffOptions}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            void load();
+            setRefreshKey((k) => k + 1);
+            setNotice(`${deal.display_code} saved.`);
           }}
         />
       )}
@@ -390,7 +233,7 @@ export function DealRecordPage() {
           {notice}
         </div>
       )}
-      {deleting && deal && (
+      {deleting && (
         <DealDeleteDialog
           dealId={deal.id}
           displayCode={deal.display_code}

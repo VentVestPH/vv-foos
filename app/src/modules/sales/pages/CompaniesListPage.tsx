@@ -9,6 +9,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
+import { FilterGroup } from '../../../components/ui/FilterGroup';
 import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialog';
 import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { SavedViewsControl, useSavedViews, type ViewState } from '../../../components/ui/SavedViews';
@@ -369,49 +370,49 @@ export function CompaniesListPage() {
       bulkBar={
         canBulk ? (
           <div className="record-action-bar fo-list-action-bar">
-            {selected.size > 0 && (
-              <Button
-                variant="danger"
-                disabled={selectedTargets.length === 0}
-                title={
-                  selectedTargets.length === 0
-                    ? 'None of the selected accounts is still on the page.'
-                    : undefined
-                }
-                onClick={() => setDeleting(selectedTargets)}
-              >
-                <Trash2 size={20} aria-hidden="true" />
-                Delete
-              </Button>
-            )}
-            {selected.size > 0 && (
-              <span className="text-secondary fo-bulk-hint">{selected.size} selected.</span>
-            )}
+            <Button
+              variant="danger"
+              disabled={selectedTargets.length === 0}
+              title={
+                selectedTargets.length === 0
+                  ? 'Tick an account to delete it.'
+                  : undefined
+              }
+              onClick={() => setDeleting(selectedTargets)}
+            >
+              <Trash2 size={20} aria-hidden="true" />
+              Delete
+            </Button>
+            <span className="text-secondary fo-bulk-hint">
+              {selected.size > 0 ? `${selected.size} selected.` : ''}
+            </span>
           </div>
         ) : undefined
       }
       filterRail={
           <div className="fo-advanced-search-body">
-            <Select
-              label="Type"
-              options={TYPE_OPTIONS}
-              placeholder="All types"
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            />
-            <Select
-              label="Owner"
-              options={staffOptions}
-              placeholder="All owners"
-              value={filters.owner}
-              onChange={(e) => setFilters({ ...filters, owner: e.target.value })}
-            />
-            <Input
-              label="Location"
-              value={filters.location}
-              onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-              placeholder="City, state, country"
-            />
+            <FilterGroup label="Filter" defaultOpen>
+              <Select
+                label="Type"
+                options={TYPE_OPTIONS}
+                placeholder="All types"
+                value={filters.type}
+                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+              />
+              <Select
+                label="Owner"
+                options={staffOptions}
+                placeholder="All owners"
+                value={filters.owner}
+                onChange={(e) => setFilters({ ...filters, owner: e.target.value })}
+              />
+              <Input
+                label="Location"
+                value={filters.location}
+                onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                placeholder="City, state, country"
+              />
+            </FilterGroup>
           </div>
       }
       exportRows={exportCompanyRows}

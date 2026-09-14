@@ -1,22 +1,40 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useLatestOnly } from '../../../lib/useLatestOnly';
 import { DEAL_STAGES, type Database, type DealStage } from '../../../lib/database.types';
+import { useSession } from '../../../auth/SessionProvider';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
+import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialog';
+import { SettingsButton } from '../../../components/ui/SettingsButton';
+import { SegmentedToggle } from '../../../components/ui/SegmentedToggle';
+import { SavedViewsControl, useSavedViews, type ViewState } from '../../../components/ui/SavedViews';
 import { useListLink } from '../../../lib/listReturn';
 import { useSubmittedSearch } from '../../../lib/quickSearch';
+import { dealSearchHints } from '../../../lib/searchHints';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
+import { Skeleton } from '../../../components/ui/Skeleton';
+import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import { LostReasonDialog } from '../components/LostReasonDialog';
-import { PlaceholderAction } from '../../../shell/Placeholder';
-import { Briefcase as BriefcaseIcon } from 'lucide-react';
+import {
+  DealsBulkDeleteDialog,
+  type DealDeleteTarget,
+} from '../components/DealsBulkDeleteDialog';
+import {
+  Briefcase as BriefcaseIcon,
+  Columns3 as KanbanIcon,
+  Plus,
+  Table2 as TableIcon,
+  Trash2,
+} from 'lucide-react';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
-import { fmtDate, fmtMoney, stageLabel, type Deal } from '../lib';
+import { fmtDate, fmtMoney, stageLabel } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
 
 const DEAL_PAGE_SIZE = 20;
@@ -39,6 +57,27 @@ const DEAL_SORT_COLUMNS: Record<string, string> = {
   updated_at: 'updated_at',
 };
 
+const COLUMN_DEFS: { key: string; header: string }[] = [
+  { key: 'display_code', header: 'Code' },
+  { key: 'name', header: 'Deal' },
+  { key: 'company', header: 'Company' },
+  { key: 'stage', header: 'Stage' },
+  { key: 'value', header: 'Value' },
+  { key: 'probability', header: 'Prob.' },
+  { key: 'expected_close', header: 'Expected close' },
+  { key: 'owner', header: 'Owner' },
+  { key: 'updated_at', header: 'Last Updated' },
+];
+
+const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
+
+const COLUMN_HEADER: Record<string, string> = Object.fromEntries(
+  COLUMN_DEFS.map((c) => [c.key, c.header]),
+);
+
+const STAGE_DEFS = DEAL_STAGES.map((s) => ({ key: s, header: stageLabel(s) }));
+const ALL_STAGE_KEYS: string[] = DEAL_STAGES.map((s) => s);
+
 type DealListRow = Omit<Database['public']['Views']['deal_list']['Row'], 'search_text'>;
 
 function dealLikeLiteral(value: string): string {
@@ -57,8 +96,12 @@ export function DealsListPage() {
   const navigate = useNavigate();
   const openRecord = useListLink();
   const canEdit = useCanEditCrm();
+  const mobile = useIsMobile();
+  const canBulk = canEdit && !mobile;
+  const { staff } = useSession();
   const { staffName, staffOptions } = useStaffList();
   const { companyName } = useCompanyOptions();
+  const savedViews = useSavedViews('deal');
   const [params] = useSearchParams();
 
   const [deals, setDeals] = useState<DealListRow[]>([]);
@@ -84,6 +127,24 @@ export function DealsListPage() {
   const [moveError, setMoveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState<DealDeleteTarget[] | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [columnOrder, setColumnOrder] = useState<string[]>(ALL_COLUMN_KEYS);
+  const [hiddenCols, setHiddenCols] = useState<string[]>([]);
+  const [stageOrder, setStageOrder] = useState<string[]>(ALL_STAGE_KEYS);
+  const [hiddenStages, setHiddenStages] = useState<string[]>([]);
+
+  const visibleCols = useMemo(
+    () => columnOrder.filter((key) => !hiddenCols.includes(key)),
+    [columnOrder, hiddenCols],
+  );
+  const visibleStages = useMemo(
+    () => stageOrder.filter((key) => !hiddenStages.includes(key)),
+    [stageOrder, hiddenStages],
+  );
+
   const applyDealFilters = useCallback(
     (q: DealQuery): DealQuery => {
       let out = q;
@@ -105,13 +166,13 @@ export function DealsListPage() {
     try {
       if (view === 'kanban') {
         const next = new Map<string, { cards: DealListRow[]; total: number }>();
-        for (const stage of DEAL_STAGES) {
+        for (const stage of visibleStages) {
           if (stageFilter && stage !== stageFilter) {
             next.set(stage, { cards: [], total: 0 });
             continue;
           }
           const { data, count, error } = await applyDealFilters(dealBaseQuery())
-            .eq('stage', stage)
+            .eq('stage', stage as DealStage)
             .order('updated_at', { ascending: false })
             .order('id', { ascending: true })
             .range(0, KANBAN_CARDS_PER_STAGE - 1);
@@ -142,7 +203,7 @@ export function DealsListPage() {
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [view, applyDealFilters, stageFilter, sort, page, beginLoad]);
+  }, [view, applyDealFilters, stageFilter, visibleStages, sort, page, beginLoad]);
 
   useEffect(() => {
     setPage(0);
@@ -241,10 +302,10 @@ export function DealsListPage() {
           <span>{d.company_name ?? ''}</span>
           <span className="sales-kanban-card-value">
             {fmtMoney(d.value, d.currency)}
-            {d.probability !== null && ` \u00b7 ${d.probability}%`}
+            {d.probability !== null && ` · ${d.probability}%`}
           </span>
           <span>
-            {`${fmtDate(d.expected_close)} \u00b7 ${d.owner_name ?? ''}`}
+            {`${fmtDate(d.expected_close)} · ${d.owner_name ?? ''}`}
           </span>
         </div>
       ),
@@ -263,60 +324,86 @@ export function DealsListPage() {
     [board],
   );
 
-  const columns: TableColumn<Deal>[] = [
-    { key: 'display_code', header: 'Code', sortable: true },
-    {
-      key: 'name',
-      header: 'Deal',
-      sortable: true,
-      render: (d) => (
-        <span className="sales-badges">
-          <strong>{d.name}</strong>
-          {d.is_test && <Badge tone="warning">TEST</Badge>}
-        </span>
-      ),
-    },
-    {
-      key: 'company',
-      header: 'Company',
-      sortable: true,
-      sortValue: (d) => companyName(d.company_id),
-      render: (d) => companyName(d.company_id),
-    },
-    {
-      key: 'stage',
-      header: 'Stage',
-      sortable: true,
-      sortValue: (d) => DEAL_STAGES.indexOf(d.stage),
-      render: (d) => <StatusBadge status={d.stage} />,
-    },
-    {
-      key: 'value',
-      header: 'Value',
-      sortable: true,
-      sortValue: (d) => d.value ?? 0,
-      render: (d) => fmtMoney(d.value, d.currency),
-    },
-    {
-      key: 'probability',
-      header: 'Prob.',
-      render: (d) => (d.probability === null ? EMPTY_CELL : `${d.probability}%`),
-    },
-    {
-      key: 'expected_close',
-      header: 'Expected close',
-      sortable: true,
-      sortValue: (d) => d.expected_close ?? '',
-      render: (d) => fmtDate(d.expected_close),
-    },
-    {
-      key: 'owner',
-      header: 'Owner',
-      sortable: true,
-      sortValue: (d) => staffName(d.owner_id),
-      render: (d) => staffName(d.owner_id),
-    },
-  ];
+  const changeSelection = useCallback((next: Set<string>) => {
+    setNotice(null);
+    setSelected(next);
+  }, []);
+
+  const columns = useMemo<TableColumn<DealListRow>[]>(() => {
+    const defs: Record<string, TableColumn<DealListRow>> = {
+      display_code: { key: 'display_code', header: 'Code', sortable: true },
+      name: {
+        key: 'name',
+        header: 'Deal',
+        sortable: true,
+        render: (d) => (
+          <span className="sales-badges">
+            <button
+              type="button"
+              className="link-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                openRecord(`/sales/deals/${d.id}`);
+              }}
+            >
+              {d.name}
+            </button>
+            {d.is_test && <Badge tone="warning">TEST</Badge>}
+          </span>
+        ),
+      },
+      company: {
+        key: 'company',
+        header: 'Company',
+        sortable: true,
+        sortValue: (d) => companyName(d.company_id),
+        render: (d) => companyName(d.company_id),
+      },
+      stage: {
+        key: 'stage',
+        header: 'Stage',
+        sortable: true,
+        sortValue: (d) => DEAL_STAGES.indexOf(d.stage),
+        render: (d) => <StatusBadge status={d.stage} />,
+      },
+      value: {
+        key: 'value',
+        header: 'Value',
+        sortable: true,
+        sortValue: (d) => d.value ?? 0,
+        render: (d) => fmtMoney(d.value, d.currency),
+      },
+      probability: {
+        key: 'probability',
+        header: 'Prob.',
+        render: (d) => (d.probability === null ? EMPTY_CELL : `${d.probability}%`),
+      },
+      expected_close: {
+        key: 'expected_close',
+        header: 'Expected close',
+        sortable: true,
+        sortValue: (d) => d.expected_close ?? '',
+        render: (d) => fmtDate(d.expected_close),
+      },
+      owner: {
+        key: 'owner',
+        header: 'Owner',
+        sortable: true,
+        sortValue: (d) => staffName(d.owner_id),
+        render: (d) => staffName(d.owner_id),
+      },
+      updated_at: {
+        key: 'updated_at',
+        header: 'Last Updated',
+        sortable: true,
+        render: (d) => fmtDate(d.updated_at),
+      },
+    };
+    return visibleCols.flatMap((key) => {
+      const col = defs[key];
+      return col ? [col] : [];
+    });
+  }, [visibleCols, openRecord, companyName, staffName]);
 
   const exportDealRows = useCallback(async () => {
     if (total > DEAL_EXPORT_ROW_CAP) {
@@ -343,17 +430,52 @@ export function DealsListPage() {
     return collected
       .filter((d) => !d.is_test)
       .map((d) => ({
-        code: d.display_code,
+        display_code: d.display_code,
         name: d.name,
         company: d.company_name ?? '',
-        stage: d.stage,
+        stage: stageLabel(d.stage),
         value: d.value,
-        currency: d.currency,
         probability: d.probability,
         expected_close: d.expected_close,
         owner: d.owner_name ?? '',
+        updated_at: d.updated_at,
       }));
   }, [applyDealFilters, total]);
+
+  const currentState = useCallback(
+    (): ViewState => ({
+      filters: {
+        stage: stageFilter,
+        owner: ownerFilter,
+        view,
+        stages: visibleStages.join(','),
+      },
+      columns: visibleCols,
+      sort,
+    }),
+    [stageFilter, ownerFilter, view, visibleStages, visibleCols, sort],
+  );
+
+  const applyView = useCallback((state: ViewState) => {
+    setStageFilter(state.filters.stage ?? '');
+    setOwnerFilter(state.filters.owner ?? '');
+    if (state.filters.view === 'table' || state.filters.view === 'kanban') {
+      setView(state.filters.view);
+    }
+    const savedStages = (state.filters.stages ?? '')
+      .split(',')
+      .filter((k) => ALL_STAGE_KEYS.includes(k));
+    if (savedStages.length > 0) {
+      setStageOrder([...savedStages, ...ALL_STAGE_KEYS.filter((k) => !savedStages.includes(k))]);
+      setHiddenStages(ALL_STAGE_KEYS.filter((k) => !savedStages.includes(k)));
+    }
+    if (state.columns.length > 0) {
+      const saved = state.columns.filter((k) => ALL_COLUMN_KEYS.includes(k));
+      setColumnOrder([...saved, ...ALL_COLUMN_KEYS.filter((k) => !saved.includes(k))]);
+      setHiddenCols(ALL_COLUMN_KEYS.filter((k) => !saved.includes(k)));
+    }
+    setSort(state.sort);
+  }, []);
 
   const pageCount = Math.max(1, Math.ceil(total / DEAL_PAGE_SIZE));
   const pager = {
@@ -366,77 +488,124 @@ export function DealsListPage() {
     pageRows: deals,
   };
 
+  const showSkeleton = useMinimumVisible(loading);
+
+  const selectedTargets: DealDeleteTarget[] = deals
+    .filter((d) => selected.has(d.id))
+    .map((d) => ({ id: d.id, displayCode: d.display_code, name: d.name }));
+
+  const settingsIsKanban = view === 'kanban';
+
   return (
     <>
       <ListPage
-      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Deals' }]}
+        breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Deals' }]}
         title="Deals"
         icon={<BriefcaseIcon size={32} />}
         description="Deals are the sales opportunities you are working with companies and contacts to close."
+        flush
         search={searchInput}
         onSearchChange={setSearchInput}
         onSearchSubmit={submitSearch}
-        searchPlaceholder="Search deals…"
+        searchHints={dealSearchHints}
+        searchPlaceholder="Search code, deal, company…"
+        savedViewsSlot={
+          <SavedViewsControl
+            views={savedViews.views}
+            currentState={currentState}
+            onApply={applyView}
+            onSave={savedViews.save}
+            onDelete={savedViews.remove}
+            ownStaffId={staff?.id}
+          />
+        }
         actions={
-          <span className="sales-badges">
-            <span className="sales-view-toggle" role="group" aria-label="View">
-              <button
-                type="button"
-                className={view === 'kanban' ? 'active' : undefined}
-                onClick={() => setView('kanban')}
-              >
-                Kanban
-              </button>
-              <button
-                type="button"
-                className={view === 'table' ? 'active' : undefined}
-                onClick={() => setView('table')}
-              >
-                Table
-              </button>
-            </span>
+          <>
+            <SegmentedToggle
+              ariaLabel="Deal view"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'table', label: 'Table', icon: <TableIcon size={20} aria-hidden="true" /> },
+                {
+                  value: 'kanban',
+                  label: 'Kanban',
+                  icon: <KanbanIcon size={20} aria-hidden="true" />,
+                },
+              ]}
+            />
             {canEdit && (
-              <Button
-                variant="primary"
-                onClick={() => navigate('/sales/deals/new')}
-              >
+              <Button variant="primary" onClick={() => navigate('/sales/deals/new')}>
+                <Plus size={20} aria-hidden="true" />
                 New Deal
               </Button>
             )}
-          </span>
+            <SettingsButton
+              label={settingsIsKanban ? 'Stage settings' : 'Column settings'}
+              title={
+                settingsIsKanban
+                  ? 'Choose the stage order and which stage columns show'
+                  : 'Choose the column order and which columns show'
+              }
+              onClick={() => setSettingsOpen(true)}
+            />
+          </>
+        }
+        bulkBarOpen={canBulk && view === 'table' && selected.size > 0}
+        bulkBar={
+          canBulk && view === 'table' ? (
+            <div className="record-action-bar fo-list-action-bar">
+              <Button
+                variant="danger"
+                disabled={selectedTargets.length === 0}
+                title={selectedTargets.length === 0 ? 'Tick a deal to delete it.' : undefined}
+                onClick={() => setDeleting(selectedTargets)}
+              >
+                <Trash2 size={20} aria-hidden="true" />
+                Delete
+              </Button>
+              <span className="text-secondary fo-bulk-hint">
+                {selected.size > 0 ? `${selected.size} selected.` : ''}
+              </span>
+            </div>
+          ) : undefined
         }
         filterRail={
-            <div className="fo-advanced-search-body">
-              <Select
-                label="Stage"
-                options={DEAL_STAGES.map((s) => ({
-                  value: s,
-                  label: stageLabel(s),
-                }))}
-                placeholder="All stages"
-                value={stageFilter}
-                onChange={(e) => setStageFilter(e.target.value)}
-              />
-              <Select
-                label="Owner"
-                options={staffOptions}
-                placeholder="All owners"
-                value={ownerFilter}
-                onChange={(e) => setOwnerFilter(e.target.value)}
-              />
-            </div>
+          <div className="fo-advanced-search-body">
+            <Select
+              label="Stage"
+              options={DEAL_STAGES.map((s) => ({
+                value: s,
+                label: stageLabel(s),
+              }))}
+              placeholder="All stages"
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
+            />
+            <Select
+              label="Owner"
+              options={staffOptions}
+              placeholder="All owners"
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
+            />
+          </div>
         }
         exportRows={exportDealRows}
         exportCount={total}
+        exportColumns={visibleCols.map((key) => ({ key, header: COLUMN_HEADER[key] ?? key }))}
         exportFilename="deals.csv"
       >
-        <div className="record-action-bar fo-list-action-bar">
-          <PlaceholderAction
-            label="Delete"
-            lead="Deleting deals in bulk is still in development."
-            detail="Open a deal to move it to Closed Won or Closed Lost, which is the intended end state. Nothing in the app archives or deletes a deal."
-          />
-        </div>
+        {notice && (
+          <p className="text-secondary fo-bulk-notice" role="status">
+            {notice}
+          </p>
+        )}
+        {savedViews.error && (
+          <p className="form-error" role="alert">
+            {savedViews.error}
+          </p>
+        )}
 
         {view === 'table' && (
           <Pager
@@ -452,11 +621,15 @@ export function DealsListPage() {
         {moveError && <div className="form-error" role="alert">{moveError}</div>}
         {view === 'kanban' ? (
           <KanbanBoard
-            stages={DEAL_STAGES.map((s) => ({ key: s, label: stageLabel(s) }))}
+            stages={visibleStages.map((s) => ({ key: s, label: stageLabel(s as DealStage) }))}
             cards={kanbanCards}
             onMove={onMove}
             columnExtras={columnExtras}
           />
+        ) : showSkeleton ? (
+          <div className="fo-skeleton-card">
+            <Skeleton rows={8} label="Loading deals" />
+          </div>
         ) : (
           <Table
             busy={loading}
@@ -466,7 +639,11 @@ export function DealsListPage() {
             sortKey={sort?.key ?? null}
             sortDir={sort?.dir ?? 'asc'}
             onSortChange={(key, dir) => setSort({ key, dir })}
+            selectable={canBulk}
+            selected={selected}
+            onSelectionChange={changeSelection}
             onRowClick={(d) => openRecord(`/sales/deals/${d.id}`)}
+            emptyIcon={<BriefcaseIcon size={32} />}
             emptyText="No deals match."
           />
         )}
@@ -479,6 +656,63 @@ export function DealsListPage() {
             page={pager.page}
             pageCount={pager.pageCount}
             onPage={pager.setPage}
+          />
+        )}
+
+        {settingsOpen && settingsIsKanban && (
+          <ColumnSettingsDialog
+            title="Stage settings"
+            hint="Drag a stage to change where its column sits on the board, or untick it to hide that column. Save a view to keep this arrangement."
+            columns={STAGE_DEFS}
+            order={stageOrder}
+            hidden={hiddenStages}
+            onOrderChange={setStageOrder}
+            onToggle={(key) =>
+              setHiddenStages(
+                hiddenStages.includes(key)
+                  ? hiddenStages.filter((k) => k !== key)
+                  : [...hiddenStages, key],
+              )
+            }
+            onReset={() => {
+              setStageOrder(ALL_STAGE_KEYS);
+              setHiddenStages([]);
+            }}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
+        {settingsOpen && !settingsIsKanban && (
+          <ColumnSettingsDialog
+            title="Column settings"
+            hint="Drag a column to change where it sits, or untick it to hide it. Save a view to keep this arrangement."
+            columns={COLUMN_DEFS}
+            order={columnOrder}
+            hidden={hiddenCols}
+            onOrderChange={setColumnOrder}
+            onToggle={(key) =>
+              setHiddenCols(
+                hiddenCols.includes(key)
+                  ? hiddenCols.filter((k) => k !== key)
+                  : [...hiddenCols, key],
+              )
+            }
+            onReset={() => {
+              setColumnOrder(ALL_COLUMN_KEYS);
+              setHiddenCols([]);
+            }}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
+        {deleting && (
+          <DealsBulkDeleteDialog
+            targets={deleting}
+            onClose={() => setDeleting(null)}
+            onDeleted={(count) => {
+              setDeleting(null);
+              setSelected(new Set());
+              setNotice(count === 1 ? '1 deal deleted.' : `${count} deals deleted.`);
+              void load();
+            }}
           />
         )}
       </ListPage>

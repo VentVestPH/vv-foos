@@ -10,7 +10,13 @@ import { Select } from './Select';
 
 export type SavedView = Tables<'ats_saved_views'>;
 
-export type SavedViewEntity = 'requisition' | 'candidate' | 'company' | 'contact' | 'intake';
+export type SavedViewEntity =
+  | 'requisition'
+  | 'candidate'
+  | 'company'
+  | 'contact'
+  | 'intake'
+  | 'deal';
 
 export interface ViewState {
   filters: Record<string, string>;

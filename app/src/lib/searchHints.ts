@@ -187,6 +187,29 @@ export async function companySearchHints(term: string): Promise<SearchHintResult
   };
 }
 
+export async function dealSearchHints(term: string): Promise<SearchHintResult> {
+  let query = supabase
+    .from('deal_list')
+    .select('id, display_code, name, company_name, stage', { count: 'exact' })
+    .limit(HINT_LIMIT)
+    .order('updated_at', { ascending: false })
+    .order('id', { ascending: true });
+  for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+  const { data, count } = await query;
+
+  return {
+    hints: (data ?? []).map((r) => ({
+      key: `deal:${r.id}`,
+      primary: r.name,
+      meta:
+        [r.display_code, r.company_name, sentenceCase(r.stage)].filter(Boolean).join(' \u00b7 ') ||
+        'Deal',
+      href: `/sales/deals/${r.id}`,
+    })),
+    total: count ?? 0,
+  };
+}
+
 export async function contactSearchHints(term: string): Promise<SearchHintResult> {
   let query = supabase
     .from('contact_list')

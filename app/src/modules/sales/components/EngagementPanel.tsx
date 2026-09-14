@@ -19,6 +19,7 @@ import {
 } from '../lib';
 import { Modal } from './Modal';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
+import { htmlToText } from '../../../lib/format';
 import { BellRing, ListChecks, MessageSquare, Paperclip, Plus } from 'lucide-react';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
@@ -77,7 +78,7 @@ function ActivityList({
                 </span>
               </div>
               {a.body && (
-                <div className="sales-panel-item-body">{a.body}</div>
+                <div className="sales-panel-item-body">{htmlToText(a.body)}</div>
               )}
               {a.gmail_message_id && <Badge tone="outline">Gmail</Badge>}
               {a.gcal_event_id && <Badge tone="outline">Calendar</Badge>}

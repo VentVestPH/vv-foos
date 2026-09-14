@@ -263,24 +263,18 @@ export function QueueListPage() {
       bulkBarOpen={selected.size > 0}
       bulkBar={
         <div className="record-action-bar fo-list-action-bar">
-          {selected.size > 0 && (
-            <Button
-              variant="danger"
-              disabled={selectedItems.length === 0}
-              title={
-                selectedItems.length === 0
-                  ? 'Nothing in this selection is still on the page to remove.'
-                  : undefined
-              }
-              onClick={() => setDeleting(selectedItems)}
-            >
-              <Trash2 size={20} aria-hidden="true" />
-              Delete
-            </Button>
-          )}
-          {selected.size > 0 && (
-            <span className="text-secondary fo-bulk-hint">{selected.size} selected.</span>
-          )}
+          <Button
+            variant="danger"
+            disabled={selectedItems.length === 0}
+            title={selectedItems.length === 0 ? 'Tick an item to delete it.' : undefined}
+            onClick={() => setDeleting(selectedItems)}
+          >
+            <Trash2 size={20} aria-hidden="true" />
+            Delete
+          </Button>
+          <span className="text-secondary fo-bulk-hint">
+            {selected.size > 0 ? `${selected.size} selected.` : ''}
+          </span>
         </div>
       }
       toolbarActions={

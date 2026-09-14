@@ -224,7 +224,7 @@
 .sales-badges {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-half);
+  gap: var(--sp-2);
   flex-wrap: wrap;
 }
 
@@ -265,27 +265,18 @@
   color: var(--text);
 }
 
-.sales-view-toggle {
+.sales-record-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.sales-record-links .link-btn {
   display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.sales-view-toggle button {
-  border: none;
-  background: var(--surface);
-  padding: var(--sp-half) var(--sp-1);
-  font: inherit;
-  font-size: var(--fs-meta);
-  cursor: pointer;
-  color: var(--text-secondary);
-}
-
-.sales-view-toggle button.active {
-  background: var(--section-tint);
-  color: var(--fo-link-on-tint);
-  font-weight: 700;
+  align-items: center;
+  gap: var(--sp-tight);
 }
 
 .sales-toast {

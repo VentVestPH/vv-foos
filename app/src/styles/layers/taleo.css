@@ -453,7 +453,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--sp-1);
-  padding: 0 var(--sp-2) var(--sp-2);
+  padding: 0 var(--section-pad) var(--section-pad);
 }
 
 .fo-dialog-hint {

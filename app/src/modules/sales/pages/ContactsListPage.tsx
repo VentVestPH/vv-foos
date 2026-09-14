@@ -361,47 +361,35 @@ export function ContactsListPage() {
       bulkBar={
         canBulk ? (
           <div className="record-action-bar fo-list-action-bar">
-            {selected.size > 0 && (
-              <>
-                <Button
-                  disabled={selectedTargets.length === 0}
-                  title={
-                    selectedTargets.length === 0
-                      ? 'None of the selected contacts is still on the page.'
-                      : undefined
-                  }
-                  onClick={() =>
-                    window.open(
-                      `mailto:${selectedTargets
-                        .map((t) => rows.find((r) => r.profile.person_id === t.personId))
-                        .map((r) => (r ? primaryEmail(r.person) : ''))
-                        .filter(Boolean)
-                        .join(',')}`,
-                      '_self',
-                    )
-                  }
-                >
-                  <Mail size={20} aria-hidden="true" />
-                  Send email
-                </Button>
-                <Button
-                  variant="danger"
-                  disabled={selectedTargets.length === 0}
-                  title={
-                    selectedTargets.length === 0
-                      ? 'None of the selected contacts is still on the page.'
-                      : undefined
-                  }
-                  onClick={() => setDeleting(selectedTargets)}
-                >
-                  <Trash2 size={20} aria-hidden="true" />
-                  Delete
-                </Button>
-              </>
-            )}
-            {selected.size > 0 && (
-              <span className="text-secondary fo-bulk-hint">{selected.size} selected.</span>
-            )}
+            <Button
+              disabled={selectedTargets.length === 0}
+              title={selectedTargets.length === 0 ? 'Tick a contact to email it.' : undefined}
+              onClick={() =>
+                window.open(
+                  `mailto:${selectedTargets
+                    .map((t) => rows.find((r) => r.profile.person_id === t.personId))
+                    .map((r) => (r ? primaryEmail(r.person) : ''))
+                    .filter(Boolean)
+                    .join(',')}`,
+                  '_self',
+                )
+              }
+            >
+              <Mail size={20} aria-hidden="true" />
+              Send email
+            </Button>
+            <Button
+              variant="danger"
+              disabled={selectedTargets.length === 0}
+              title={selectedTargets.length === 0 ? 'Tick a contact to delete it.' : undefined}
+              onClick={() => setDeleting(selectedTargets)}
+            >
+              <Trash2 size={20} aria-hidden="true" />
+              Delete
+            </Button>
+            <span className="text-secondary fo-bulk-hint">
+              {selected.size > 0 ? `${selected.size} selected.` : ''}
+            </span>
           </div>
         ) : undefined
       }

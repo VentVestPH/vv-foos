@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { htmlToText } from '../../lib/format';
 import {
   ArrowLeftRight,
   CalendarDays,
@@ -119,7 +120,7 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
                 <span className="timeline-subject">
                   {item.subject ?? KIND_LABELS[item.kind]}
                 </span>
-                {item.body && <p className="timeline-text">{item.body}</p>}
+                {item.body && <p className="timeline-text">{htmlToText(item.body)}</p>}
               </div>
               <span className="timeline-meta">
                 {new Date(item.occurred_at).toLocaleTimeString(undefined, {

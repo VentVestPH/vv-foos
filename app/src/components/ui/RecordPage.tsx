@@ -12,6 +12,8 @@ interface RecordPageProps {
 
   titleExtras?: ReactNode;
 
+  headerMeta?: ReactNode;
+
   backTo?: ReactNode;
 
   breadcrumbs?: BreadcrumbItem[];
@@ -27,6 +29,7 @@ export function RecordPage({
   title,
   icon,
   titleExtras,
+  headerMeta,
   backTo,
   breadcrumbs,
   headerActions,
@@ -59,6 +62,7 @@ export function RecordPage({
                 {headerActions}
               </div>
             </div>
+            {headerMeta}
           </div>
         </div>
       </div>
