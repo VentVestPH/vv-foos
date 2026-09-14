@@ -127,7 +127,19 @@ Counts measured with `npx playwright test --list`, not estimated:
 - The kanban issued **one query per stage in sequence**, six round trips before the board could paint. They now go out together.
 - `.range(0, 499)` became `CONTACT_OPTION_CAP`; `ALL_STAGE_KEYS` is spread from `DEAL_STAGES` rather than mapped through an identity function.
 
-## 10. Open
+## 10. The eight Zoho records the pull had missed
+
+A live count check on 2026-09-14 across 16 modules in both Zoho products found the database matched every module except two: Recruit `Notes` read **210,974** live against 210,968 imported, and `To_Dos` **11,774** against 11,772. Eight records, all created after the 2026-09-09 pull. Everything else matched exactly.
+
+Imported to the local stack and to production. Both now hold **384,998** rows in `zoho_id_map`, verified by reading the eight ids back rather than by trusting the importer's own report.
+
+Three things that pass found, worth keeping:
+
+- **A naive row count of a Zoho CSV is wrong.** `wc -l` counts newlines inside quoted fields, which made Candidates look 857 short and Job_Openings 73 short. Parsed with the repo's own reader, every module reconciled exactly.
+- **The importer targets `FOOS_SUPABASE_URL`, not `SUPABASE_URL`.** Sourcing the root `.env` aims a production key at the local stack and fails with `could not read staff: No suitable key or wrong key type`, which names the key and means the target.
+- **Feeding the importer the full export to add a handful of rows does not fit in memory.** Appending six notes to the 210,974-row `Notes.json` and running it against production was killed by the OS after ten minutes, before any write. `scripts/import-new-zoho-records.mjs` stages only the unmapped records and restores the full file in a `finally`.
+
+## 11. Open
 
 - PR #3's title still reads "Accounts and contacts: one edit dialog, and the write-once tables that turned up" and no longer describes its contents.
 - `.sales-badges` changed from `gap: var(--sp-half)` to `var(--sp-2)` in commit `1ecb115`. It was in the working tree when `git add -A` ran and is attributed to that commit in error. The class is app-wide: the 16px now sits between a deal name and its TEST badge and in the account Type column. Unreviewed.

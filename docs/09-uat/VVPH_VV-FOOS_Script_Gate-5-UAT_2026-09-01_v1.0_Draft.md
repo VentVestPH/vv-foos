@@ -2,6 +2,8 @@
 
 **Project:** VV-FOOS · **Date:** 2026-09-01 · v1.0 Draft
 
+> **Incomplete as of 2026-09-14.** These scripts were written against the product as it stood on 2026-09-01 and have not been extended since. They contain **no steps** for Accounts, Contacts, Deals or the Users administration page, all of which shipped afterwards. Gate 5 is the cutover trigger and this is X10's script, so the gaps have to be closed before it is run, not during.
+
 Two scripts: a recruiter script covering the ATS, and a BD script covering the CRM. Gate 5 is the cutover trigger, so these are the last human checks before the Taleo and Zoho subscriptions are cancelled.
 
 Each step names the exact control to use and the exact result to look for. A step passes only if the observed result matches; anything else is a fail with a note, not a judgement call by the tester. The scripts assume the tester has never seen the system, so every step says where to click.
