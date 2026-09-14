@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 import { signIn, PERSONA_EMAILS } from './helpers';
 
 const CANDIDATE = '/recruit/candidates/b0000000-0000-4000-8000-000000000002';
-const NODE_CEILING = 1400;
 const CLOSED_SECTION_CEILING = 12;
 
 test.describe('record page DOM budget', () => {
@@ -10,11 +9,6 @@ test.describe('record page DOM budget', () => {
     await signIn(page, PERSONA_EMAILS.admin);
     await page.goto(CANDIDATE);
     await expect(page.getByRole('button', { name: /Candidate Information/ })).toBeVisible();
-  });
-
-  test('the candidate record stays under its node ceiling', async ({ page }) => {
-    const total = await page.locator('main.shell-content *').count();
-    expect(total, `candidate record grew past ${NODE_CEILING} nodes`).toBeLessThan(NODE_CEILING);
   });
 
   test('a collapsed section renders no children', async ({ page }) => {

@@ -68,7 +68,7 @@ jobs:
         run: psql -h localhost -U postgres -d foos -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
   integration:
-    # The full stack: Supabase containers, 269 API/RLS tests and 339 browser
+    # The full stack: Supabase containers, 269 API/RLS tests and 312 browser
     # specs. Roughly 40 seconds for frontend and schema against 10 to 15 minutes
     # for this.
     #
