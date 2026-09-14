@@ -189,3 +189,48 @@ insert into reminders (staff_id, subject, remind_at, related_type, related_id, s
 
 insert into attachments (storage_path, parent_type, parent_id, kind, description, file_size_bytes, uploaded_by) values
   ('company/c0000000-0000-4000-8000-000000000009/meridian-retainer.pdf', 'company', 'c0000000-0000-4000-8000-000000000009', 'other', 'meridian-retainer.pdf', 184320, 'a0000000-0000-4000-8000-000000000005');
+
+-- Two deals against the Meridian account so the deal record page can be looked
+-- at full rather than empty. DEMO-1 fills every editable column except
+-- lost_reason, which the page only shows on a lost deal, and populates all
+-- eight Activity tabs: Notes, Calls, Meetings, Events, Emails, Tasks,
+-- Reminders and Files. DEMO-2 is the lost counterpart, so the Lost reason
+-- block and a zero probability are visible somewhere too.
+--
+-- Events are meetings that carry attendees, so the Meetings tab needs one
+-- meeting without attendees and one with, or the two tabs show the same rows.
+
+insert into deals (id, name, company_id, primary_contact_id, owner_id, stage, value, currency, probability, expected_close, lost_reason, is_test) values
+  ('e0000000-0000-4000-8000-000000000010', 'Meridian - executive search programme', 'c0000000-0000-4000-8000-000000000009', 'b0000000-0000-4000-8000-000000000021', 'a0000000-0000-4000-8000-000000000004', 'negotiation', 480000, 'AUD', 75, '2026-11-28', null, true),
+  ('e0000000-0000-4000-8000-000000000011', 'Meridian - contract-to-hire pilot',     'c0000000-0000-4000-8000-000000000009', 'b0000000-0000-4000-8000-000000000021', 'a0000000-0000-4000-8000-000000000004', 'lost',        96000,  'AUD', 0,  '2026-09-05', 'Budget moved to an internal referral scheme for the pilot cohort. Revisit at the next planning round.', true);
+
+insert into activities (kind, subject, body, occurred_at, deal_id, company_id, created_by) values
+  ('note',  'Programme scope agreed',   'Four executive searches across engineering and operations, run as one programme rather than four separate briefs.', '2026-09-02 09:15+08', 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004'),
+  ('note',  'Rate card feedback',       'They want the retained fee staged across three milestones instead of two. Finance are fine with it.',              '2026-09-08 16:40+08', 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004'),
+  ('call',  'Commercial terms call',    'Walked the staged fee structure and the replacement guarantee. No objections raised.',                            '2026-09-04 11:00+08', 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004'),
+  ('call',  'Follow-up on timelines',   'Confirmed the first two searches start in October, the other two in January.',                                    '2026-09-09 10:20+08', 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004'),
+  ('email', 'Programme proposal sent',  'Sent the four-search programme proposal with the staged fee schedule attached.',                                   '2026-09-05 08:05+08', 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004'),
+  ('email', 'Redlines returned',        'Legal returned the agreement with two redlines, both on the notice period.',                                       '2026-09-11 14:30+08', 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004'),
+  ('note',  'Why this one closed lost', 'Held the pricing but lost on timing. Worth reopening when the referral scheme is reviewed.',                       '2026-09-05 17:00+08', 'e0000000-0000-4000-8000-000000000011', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004');
+
+insert into activities (kind, subject, body, occurred_at, ends_at, location, all_day, deal_id, company_id, created_by) values
+  ('meeting', 'Internal deal review', 'Pipeline review of the programme before sending terms. No client attendees.', '2026-09-03 15:00+08', '2026-09-03 15:45+08', 'VentVest Manila, Room 2', false, 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004');
+
+insert into activities (kind, subject, body, occurred_at, ends_at, location, all_day, attendees, deal_id, company_id, created_by) values
+  ('meeting', 'Terms walkthrough with Meridian', 'Walked the staged fee schedule and the replacement guarantee with the client.', '2026-09-10 13:00+08', '2026-09-10 14:00+08', 'Google Meet', false, '[{"email":"priya.raman@meridian.example","name":"Priya Raman"}]', 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004'),
+  ('meeting', 'Signature session',               'Final read-through before countersignature.',                                   '2026-09-19 09:30+08', '2026-09-19 10:15+08', 'Meridian Sydney office', false, '[{"email":"priya.raman@meridian.example","name":"Priya Raman"},{"email":"ben.demo@ventvest.com","name":"Ben Aquino"}]', 'e0000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000004');
+
+insert into tasks (subject, due_date, priority, status, assignee_id, related_type, related_id, completed_at) values
+  ('Return the redlined agreement to Meridian legal', '2026-09-16', 'high',   'open', 'a0000000-0000-4000-8000-000000000004', 'deal', 'e0000000-0000-4000-8000-000000000010', null),
+  ('Confirm the October start dates with delivery',   '2026-09-22', 'normal', 'open', 'a0000000-0000-4000-8000-000000000004', 'deal', 'e0000000-0000-4000-8000-000000000010', null),
+  ('Build the staged fee schedule',                   '2026-09-04', 'normal', 'done', 'a0000000-0000-4000-8000-000000000004', 'deal', 'e0000000-0000-4000-8000-000000000010', '2026-09-04 18:00+08');
+
+insert into reminders (staff_id, subject, remind_at, related_type, related_id, status) values
+  ('a0000000-0000-4000-8000-000000000004', 'Chase the countersigned programme agreement', '2026-09-17 09:00+08', 'deal', 'e0000000-0000-4000-8000-000000000010', 'pending'),
+  ('a0000000-0000-4000-8000-000000000004', 'Diarise the January search kickoff',          '2026-12-08 09:00+08', 'deal', 'e0000000-0000-4000-8000-000000000010', 'pending'),
+  ('a0000000-0000-4000-8000-000000000004', 'Reopen the pilot when budgets reset',         '2026-09-05 09:00+08', 'deal', 'e0000000-0000-4000-8000-000000000011', 'dismissed');
+
+insert into attachments (storage_path, parent_type, parent_id, kind, description, file_size_bytes, uploaded_by) values
+  ('deal/e0000000-0000-4000-8000-000000000010/programme-proposal.pdf',  'deal', 'e0000000-0000-4000-8000-000000000010', 'other',    'programme-proposal.pdf',  246784, 'a0000000-0000-4000-8000-000000000004'),
+  ('deal/e0000000-0000-4000-8000-000000000010/programme-agreement.pdf', 'deal', 'e0000000-0000-4000-8000-000000000010', 'contract', 'programme-agreement.pdf', 318464, 'a0000000-0000-4000-8000-000000000004'),
+  ('deal/e0000000-0000-4000-8000-000000000010/fee-schedule.xlsx',       'deal', 'e0000000-0000-4000-8000-000000000010', 'other',    'fee-schedule.xlsx',        42496, 'a0000000-0000-4000-8000-000000000004');
