@@ -367,21 +367,23 @@ export function CompaniesListPage() {
       }
       bulkBarOpen={canBulk && selected.size > 0}
       bulkBar={
-        canBulk && selected.size > 0 ? (
+        canBulk ? (
           <div className="record-action-bar fo-list-action-bar">
-            <Button
-              variant="danger"
-              disabled={selectedTargets.length === 0}
-              title={
-                selectedTargets.length === 0
-                  ? 'None of the selected accounts is still on the page.'
-                  : undefined
-              }
-              onClick={() => setDeleting(selectedTargets)}
-            >
-              <Trash2 size={20} aria-hidden="true" />
-              Delete
-            </Button>
+            {selected.size > 0 && (
+              <Button
+                variant="danger"
+                disabled={selectedTargets.length === 0}
+                title={
+                  selectedTargets.length === 0
+                    ? 'None of the selected accounts is still on the page.'
+                    : undefined
+                }
+                onClick={() => setDeleting(selectedTargets)}
+              >
+                <Trash2 size={20} aria-hidden="true" />
+                Delete
+              </Button>
+            )}
             {selected.size > 0 && (
               <span className="text-secondary fo-bulk-hint">{selected.size} selected.</span>
             )}
