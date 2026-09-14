@@ -1294,3 +1294,27 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-14
+
+### QA-072: the seed grew and three validate checks failed on an exact count
+
+- **Found:** 2026-09-14, CI runs 34795621922 and 34801724859, all three jobs red
+- **Module:** `supabase/tests/validate.sql`
+- **Severity:** **Medium**
+- **Actual:** `FAIL 9: companies count`, then `FAIL 12: recruiter cannot read deals`, then an `activities_company_id_fkey` violation in check 14. All three were consequences of this branch's own changes: one demo account was added to `seed.sql`, which took companies from 5 to 6 and deals from 2 to 3, and the `on delete restrict` migration made check 14's purge delete a company while its activities still referenced it
+- **Fix:** counts became floors (`<` rather than `<>`), check 14 deletes dependents before the company, and the PASS line says the numbers are floors. Verified by rebuilding the schema the way CI does, shim plus 66 migrations plus seed into a scratch database, then running validate twice: **35 PASS, zero failures, both runs**
+- **Why exact counts were wrong:** the file already argued this against itself. The staff check two lines above says *"Deliberately not an exact count: scripts/add-local-staff.sql exists so a developer can work under their own identity, and doing so must not fail validation."* That reasoning applies to every seeded table, and adding a demo row is not a regression
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-073: four browser specs asserted styling that a static guard already checked
+
+- **Found:** 2026-09-14, reviewing the suite at Klent's request
+- **Module:** `tests/e2e`
+- **Severity:** **Low**, but it was the largest single source of CI flakiness
+- **Actual:** `interaction-motion` (11), `interaction-states` (3), `form-affordances` (8) and `scroll-shadow` (5) asserted computed transitions, hover colours, control padding and fade geometry. **27 tests, about 944 lines**, none touching the database, all duplicating `check-motion`, `check-contrast`, `check-control-heights` and `check-design-tokens`, which run statically in under a second. `interaction-motion` alone caused two red CI runs this session (C11 and R7) by sampling a mid-animation frame, the exact failure the CI runbook was written about
+- **Fix:** deleted. The suite goes from 79 files and 339 tests to **75 files and 312 tests**
+- **The line worth keeping:** a browser test earns its cost when it asserts behaviour a static check cannot see. Cross-user RLS, whether a list pages in the database rather than the browser, and axe, all qualify. "The CSS is applied" does not
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
