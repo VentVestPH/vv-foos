@@ -80,7 +80,11 @@ describe('B3: deals.probability is a percentage and the database enforces it', (
     const { data } = await admin.from('deals').select('probability').not('probability', 'is', null);
     for (const row of data ?? []) {
       const p = Number(row.probability);
-      expect(p, 'no stored probability may be a fraction below 1').not.toBeLessThan(1);
+      expect(
+        p > 0 && p < 1,
+        `a probability stored as a fraction rather than a percentage: ${p}`,
+      ).toBe(false);
+      expect(p).toBeGreaterThanOrEqual(0);
       expect(p).toBeLessThanOrEqual(100);
     }
   });
