@@ -100,7 +100,12 @@ jobs:
           cache: npm
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned rather than "latest". Resolving "latest" is an unauthenticated
+          # GitHub API call, and on 2026-09-14 it failed the whole shard before a
+          # single test ran: "Failed to resolve latest Supabase CLI release: rate
+          # limit exceeded". A pin skips that lookup and matches what this
+          # checkout develops against.
+          version: 2.110.0
       - run: npm ci
 
       - name: Provide Edge Function secrets
