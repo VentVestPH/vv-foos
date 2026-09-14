@@ -29,18 +29,21 @@ Documentation for the FOOS CRM and ATS programme. Every claim is marked as measu
 
 | Folder | Holds |
 | :---- | :---- |
-| `03-plan/` | The improvement plan and its workstream table, the goals document, the parked and blocked register, and `goal-armed/` briefs |
-| `05-reference/` | Reference material that stays true: the CI runbook, the Drive source index |
+| `03-plan/` | The improvement plan and its workstream table, the goals document, the parked and blocked register, and the `goal-armed/` brief for Goal 6 |
+| `05-reference/` | Reference material that stays true: the CI runbook |
 | `06-ux-and-motion/` | Records of each UI pass, written after the work |
 | `07-environments/` | Local development, the cutover runbook, the Zoho and Singapore migration record |
 | `09-uat/` | The acceptance script |
 
 ## What was removed on 2026-09-14, and why
 
-Eight folders and 32 files were deleted. All of them are the working papers of workstreams that are complete, or were superseded by a document that measures the same thing more recently. **Everything is recoverable from git history**; nothing was archived to another directory because git is the archive.
+Eight folders and 46 files were deleted in two passes. All of them are the working papers of workstreams that are complete, or were superseded by a document that measures the same thing more recently. **Everything is recoverable from git history**; nothing was archived to another directory because git is the archive.
 
 | Removed | Reason |
 | :---- | :---- |
+| `03-plan/` workstream V and W goal documents | V is 13 of 13, W is 24 of 24 |
+| `03-plan/goal-armed/` briefs for goals 1 to 5 and 7 to 11 | Those goals are complete, so the brief can never usefully be armed again. `goal-6.md` and `_always.md` remain |
+| `05-reference/` Drive source index | The Drive pull finished on 2026-09-09 |
 | `01-current-state/` | Superseded. The inventory is now `05-reference/`, and the defect register is `tests/DEFECT_LOG.md` |
 | `02-taleo-fidelity/` | Workstream C is 17 of 17 |
 | `04-research/` | One-off research whose conclusions are absorbed into the plan |

@@ -10,7 +10,7 @@ if [ -z "$N" ]; then
   [ -s "$ROOT/.claude/goal-armed.md" ] && cur=$(head -1 "$ROOT/.claude/goal-armed.md" | sed 's/^# ACTIVE GOAL: //')
   echo "armed: $cur"
   echo
-  echo "usage: bash scripts/arm-goal.sh <1-6>   |   bash scripts/arm-goal.sh off"
+  echo "usage: bash scripts/arm-goal.sh <n>   |   bash scripts/arm-goal.sh off"
   for f in "$SRC"/goal-*.md; do
     printf '  %s  %s\n' "$(basename "$f" .md | tr -d 'goal-')" "$(head -1 "$f" | sed 's/^# ACTIVE GOAL: //')"
   done
