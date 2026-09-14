@@ -6,17 +6,19 @@ import { useRole } from '../../../auth/SessionProvider';
 import { useNavigate } from 'react-router-dom';
 import { useRecentlyViewed } from '../../../hooks/useRecentlyViewed';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
+import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { RecordSkeleton } from '../../../components/ui/RecordSkeleton';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { Table, type TableColumn } from '../../../components/ui/Table';
-import { Handshake as HandshakeIcon } from 'lucide-react';
+import { Handshake as HandshakeIcon, PencilLine } from 'lucide-react';
 import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { SectionSettingsDialog } from '../../../components/ui/SectionSettingsDialog';
 import { useSectionPrefs } from '../../../hooks/useSectionPrefs';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { CompanyDeleteDialog } from '../components/CompanyDeleteDialog';
-import { ActionMenu } from '../../../components/ui/ActionMenu';
+import { CompanyEditDialog } from '../components/CompanyEditDialog';
 import { useCanEditCrm } from '../hooks';
 import { useStaffList } from '../hooks';
 import {
@@ -66,6 +68,8 @@ export function CompanyRecordPage() {
   const prefs = useSectionPrefs('sales.company.record');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const navigate = useNavigate();
   const canEdit = useCanEditCrm();
   const opensOnLoad = (section: string) =>
@@ -151,7 +155,7 @@ export function CompanyRecordPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, canSeeRequisitions]);
+  }, [id, canSeeRequisitions, reloadKey]);
 
   useEffect(() => {
     if (company) {
@@ -255,11 +259,16 @@ export function CompanyRecordPage() {
           {company.is_test && <Badge tone="warning">TEST</Badge>}
         </span>
       }
-      headerActions={
-        <>
-          {canEdit && (
+      actionBar={
+        canEdit ? (
+          <>
+            <Button size="sm" onClick={() => setEditing(true)}>
+              <PencilLine size={20} aria-hidden="true" />
+              Edit
+            </Button>
             <ActionMenu
-              label="Account actions"
+              label="More actions"
+              iconOnly
               items={[
                 {
                   label: 'Delete permanently…',
@@ -268,7 +277,11 @@ export function CompanyRecordPage() {
                 },
               ]}
             />
-          )}
+          </>
+        ) : undefined
+      }
+      headerActions={
+        <>
           <SettingsButton
             label="Section settings"
             title="Choose which sections appear on this account"
@@ -378,6 +391,16 @@ export function CompanyRecordPage() {
       >
         <EngagementPanel relatedType="company" relatedId={company.id} />
       </RecordSection>
+      {editing && (
+        <CompanyEditDialog
+          company={company}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            setReloadKey((k) => k + 1);
+          }}
+        />
+      )}
       {deleting && (
         <CompanyDeleteDialog
           targets={[{ id: company.id, name: company.name }]}

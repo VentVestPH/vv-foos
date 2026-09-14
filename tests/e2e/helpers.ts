@@ -211,3 +211,8 @@ export async function searchList(
   await box.fill(term);
   await box.press('Enter');
 }
+
+export async function overflowItem(page: Page, name: string | RegExp): Promise<Locator> {
+  await page.getByRole('button', { name: /^More/ }).first().click();
+  return page.getByRole('menuitem', { name });
+}

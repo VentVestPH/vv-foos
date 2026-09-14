@@ -223,6 +223,7 @@
 
 .sales-badges {
   display: inline-flex;
+  align-items: center;
   gap: var(--sp-half);
   flex-wrap: wrap;
 }

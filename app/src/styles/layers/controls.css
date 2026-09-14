@@ -53,13 +53,14 @@
 }
 
 .btn-danger {
-  background: var(--fo-logout);
-  color: var(--surface);
-  border-color: var(--fo-logout);
+  background: var(--btn-danger-bg);
+  color: var(--btn-danger-fg);
+  border-color: var(--btn-danger-bg);
 }
 
 .btn-danger:hover:not(:disabled) {
-  opacity: 0.9;
+  background: var(--btn-danger-bg-hover);
+  border-color: var(--btn-danger-bg-hover);
 }
 
 .btn-ghost {
@@ -261,28 +262,30 @@ input[type='checkbox']:disabled:indeterminate {
 .badge {
   display: inline-flex;
   align-items: center;
+  gap: var(--sp-half);
   padding: var(--hairline) var(--sp-1);
-  border-radius: var(--fo-radius);
+  border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
   font-weight: 600;
   line-height: 1.6;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .badge-neutral {
-  background: var(--fo-surface);
+  background: var(--status-neutral-bg);
   color: var(--fo-text-secondary);
-  border: 1px solid var(--fo-border);
+  border: 1px solid var(--status-neutral-border);
 }
 
 .badge-primary {
-  background: var(--fo-surface);
+  background: var(--status-info-bg);
   color: var(--fo-link);
-  border: 1px solid var(--fo-primary);
+  border: 1px solid var(--status-info-border);
 }
 
 .badge-success {
-  background: var(--fo-surface);
+  background: var(--status-ok-bg);
   color: var(--status-ok-text);
   border: 1px solid var(--status-ok-text);
 }
@@ -295,7 +298,7 @@ input[type='checkbox']:disabled:indeterminate {
 }
 
 .badge-warning {
-  background: var(--fo-surface);
+  background: var(--status-warn-bg);
   color: var(--status-warn-text);
   border: 1px solid var(--warning);
 }
@@ -1244,16 +1247,12 @@ select:focus-visible {
   flex: none;
 }
 
-.saved-view-dialog .fo-dialog-body {
-  gap: var(--sp-1-5);
+.fo-form-dialog .fo-dialog-body {
+  gap: var(--sp-2);
 }
 
-.saved-view-dialog .fo-dialog-body > p {
-  margin: 0;
-}
-
-.fo-dialog-panel-wide {
-  width: var(--dialog-w-wide);
+.fo-form-dialog .fo-dialog-body > p {
+  margin: var(--sp-half) 0 0;
 }
 
 .fo-confirm-group + .fo-confirm-group {
@@ -1279,5 +1278,77 @@ select:focus-visible {
 
 .fo-confirm-name {
   font-weight: 600;
+}
+
+.fo-form-grid,
+.rq-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--form-col-min), 1fr));
+  gap: var(--sp-1-5);
+  align-items: start;
+}
+
+.fo-form-span {
+  grid-column: 1 / -1;
+}
+
+.fo-checkgroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.fo-checkstack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.fo-form-accordion-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  width: 100%;
+  padding: var(--sp-1);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--status-neutral-bg);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--primary-deep);
+  text-align: left;
+  cursor: pointer;
+}
+
+.fo-form-accordion-head:hover {
+  background: var(--section-tint);
+}
+
+.fo-form-accordion-head svg {
+  flex: none;
+  color: var(--fo-link);
+}
+
+.fo-form-accordion[data-open='false'] .fo-form-accordion-head svg {
+  transform: rotate(-90deg);
+}
+
+.fo-form-accordion-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.fo-form-accordion[data-open='false'] .fo-form-accordion-collapse {
+  grid-template-rows: 0fr;
+}
+
+.fo-form-accordion-clip {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.fo-form-accordion-pad {
+  padding: var(--sp-1-5) var(--sp-1) var(--sp-1);
 }
 

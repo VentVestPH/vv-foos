@@ -10,6 +10,10 @@ import type { Tables } from '../../lib/database.types';
 
 export type IntakeItem = Tables<'intake_items'>;
 
+const INTAKE_SETTLED_STATUSES = ['imported', 'rejected'] as const;
+
+export const INTAKE_SETTLED_FILTER = `("${INTAKE_SETTLED_STATUSES.join('","')}")`;
+
 export const CHANNEL_ICON: Record<IntakeItem['channel'], LucideIcon> = {
   linkedin_url: Link2,
   email: AtSign,

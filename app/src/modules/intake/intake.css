@@ -8,14 +8,17 @@
 }
 
 .badge-tone {
-  display: inline-block;
-  background: var(--surface);
-  border: var(--hairline) solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  background: var(--status-neutral-bg);
+  border: var(--hairline) solid var(--status-neutral-border);
   color: var(--text-secondary);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   padding: var(--sp-quarter) var(--sp-1);
   font-size: var(--fs-meta);
-  margin-right: var(--sp-half);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
 }
 
 .badge-dup {
@@ -79,8 +82,10 @@
 
 .intake-drawer-meta {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: var(--sp-half);
+  gap: var(--sp-1);
+  padding-bottom: var(--sp-1);
 }
 
 .intake-field-list {

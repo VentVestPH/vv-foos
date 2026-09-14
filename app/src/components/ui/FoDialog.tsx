@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Dialog } from './Dialog';
+import { useScrollShadow } from '../../hooks/useScrollShadow';
 
 interface FoDialogProps {
   title: string;
@@ -18,6 +19,7 @@ export function FoDialog({
   onClose,
   children,
 }: FoDialogProps) {
+  const bodyShade = useScrollShadow<HTMLDivElement>();
   const panel = ['fo-dialog-panel', wide ? 'fo-dialog-panel-wide' : null, className]
     .filter(Boolean)
     .join(' ');
@@ -30,7 +32,8 @@ export function FoDialog({
       overlayClass="fo-dialog-overlay"
       panelClass={panel}
       headClass="fo-dialog-head"
-      bodyClass="fo-dialog-body"
+      bodyClass="fo-dialog-body fo-scroll-shade"
+      bodyRef={bodyShade}
       footClass="fo-dialog-foot"
       closeClass="fo-dialog-x"
       closeLabel="Close dialog"

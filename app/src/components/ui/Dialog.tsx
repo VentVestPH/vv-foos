@@ -12,6 +12,7 @@ interface DialogProps {
   panelClass: string;
   headClass: string;
   bodyClass: string;
+  bodyRef?: (el: HTMLDivElement | null) => void;
   footClass?: string | undefined;
   closeClass: string;
   closeLabel?: string;
@@ -27,6 +28,7 @@ export function Dialog({
   panelClass,
   headClass,
   bodyClass,
+  bodyRef,
   footClass,
   closeClass,
   closeLabel = 'Close',
@@ -69,7 +71,9 @@ export function Dialog({
             </button>
           )}
         </div>
-        <div className={bodyClass}>{children}</div>
+        <div className={bodyClass} ref={bodyRef}>
+          {children}
+        </div>
         {footer && footClass && (
           <div className={footClass}>
             {typeof footer === 'function' ? footer(requestClose) : footer}

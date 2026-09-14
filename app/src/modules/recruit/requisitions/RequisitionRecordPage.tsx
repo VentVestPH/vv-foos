@@ -18,6 +18,7 @@ import {
   FileText as FileTextIcon,
   UserCheck as UserCheckIcon,
   UserRound as UserRoundIcon,
+  PencilLine,
 } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import {
@@ -39,6 +40,7 @@ import { supabase } from '../../../lib/supabase';
 import { type ApproverRow, type OwnerRow, REQ_ACTION_LABELS, REQ_PRIMARY_ACTION, REQ_TRANSITIONS, type Requisition, errMsg, fmtDate, fmtDateTime, todayIso } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
 import { ApplicationPipeline } from './ApplicationPipeline';
+import { RequisitionFormPage } from './RequisitionFormPage';
 import { EMPTY_CELL, sentenceCase } from '../../../lib/format';
 
 const REQ_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
@@ -86,6 +88,7 @@ export function RequisitionRecordPage() {
   const [pipelineCount, setPipelineCount] = useState(0);
   const [addSignal, setAddSignal] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const prefs = useSectionPrefs('recruit.requisition.record');
   const opensOnLoad = (section: string) =>
     prefs.opensOnLoad(section, REQ_SECTION_DEFAULT_OPEN[section] ?? true);
@@ -321,6 +324,7 @@ export function RequisitionRecordPage() {
   const primaryTarget = REQ_PRIMARY_ACTION[req.status];
   const primaryGated = primaryTarget === 'open' && !allApproved;
   const overflowItems: ActionMenuItem[] = [
+    { label: 'Printable View', onSelect: printAll },
     ...lifecycleTargets
       .filter((target) => target !== primaryTarget)
       .map((target) => {
@@ -353,11 +357,9 @@ export function RequisitionRecordPage() {
           {REQ_ACTION_LABELS[primaryTarget]}
         </Button>
       )}
-      <Button size="sm" onClick={() => navigate(`/recruit/requisitions/${req.id}/edit`)}>
+      <Button size="sm" onClick={() => setEditing(true)}>
+        <PencilLine size={20} aria-hidden="true" />
         Edit
-      </Button>
-      <Button size="sm" variant="ghost" onClick={printAll}>
-        Printable View
       </Button>
       <ActionMenu label="More actions" items={overflowItems} iconOnly />
     </>
@@ -713,6 +715,16 @@ export function RequisitionRecordPage() {
             autoFocus
           />
         </Dialog>
+      )}
+      {editing && (
+        <RequisitionFormPage
+          dialogId={req.id}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            void load();
+          }}
+        />
       )}
       {settingsOpen && (
         <SectionSettingsDialog

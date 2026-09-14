@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, overflowItem, signIn } from './helpers';
 
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const FIRST = `Crfirst${RUN}`;
@@ -695,8 +695,11 @@ test.describe('C: submit and print', () => {
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.waitForSelector('.record-action-bar');
 
-    const view = page.locator('.record-action-bar').getByRole('button', { name: 'View Resume' });
-    await expect(view).toBeDisabled();
+    const view = await overflowItem(page, 'View Resume');
+    await expect(
+      view,
+      'View Resume moved into the overflow menu on 2026-09-14 to thin the action bar',
+    ).toBeDisabled();
     await expect(
       view,
       'the fixture has no resume, which is a data state, not an unshipped feature',

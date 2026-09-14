@@ -9,6 +9,8 @@
   --fo-brand-red: #e11b16;
   --fo-logout: #c0392b;
   --fo-danger: #d40000;
+  --fo-danger-strong: #b42318;
+  --fo-danger-strong-hover: #8b0a03;
   --fo-count: #7fba36;
   --fo-canvas: #f0f0f0;
   --fo-surface: #ffffff;
@@ -33,6 +35,10 @@
   --fo-status-ok-text: #2e7d32;
   --fo-status-ok-bg: #ecfdf5;
   --fo-status-danger-bg: #fef2f2;
+  --fo-status-neutral-bg: #f1f3f5;
+  --fo-status-neutral-border: #d3d8de;
+  --fo-status-info-bg: #eef4fc;
+  --fo-status-info-border: #b8d0ec;
   --fo-danger-border: #f3b4b4;
   --fo-muted: #999999;
   --fo-rule: #dddddd;
@@ -81,6 +87,9 @@
   --success: var(--fo-count);
   --warning: #d97706;
   --danger: var(--fo-danger);
+  --btn-danger-bg: var(--fo-danger-strong);
+  --btn-danger-fg: var(--fo-surface);
+  --btn-danger-bg-hover: var(--fo-danger-strong-hover);
   --text: var(--fo-text);
   --text-secondary: var(--fo-text-secondary);
   --border: var(--fo-border);
@@ -92,6 +101,10 @@
   --status-ok-text: var(--fo-status-ok-text);
   --status-ok-bg: var(--fo-status-ok-bg);
   --status-danger-bg: var(--fo-status-danger-bg);
+  --status-neutral-bg: var(--fo-status-neutral-bg);
+  --status-neutral-border: var(--fo-status-neutral-border);
+  --status-info-bg: var(--fo-status-info-bg);
+  --status-info-border: var(--fo-status-info-border);
   --danger-border: var(--fo-danger-border);
   --badge-alert-bg: var(--fo-danger);
   --badge-alert-fg: #ffffff;
@@ -129,6 +142,7 @@
   --menu-max-h: 320px;
   --dialog-w: 440px;
   --dialog-w-wide: 500px;
+  --dialog-w-form: 760px;
   --shadow: none;
 
   --font: var(--fo-font);
@@ -144,6 +158,9 @@
   --btn-pad-x: 18px;
   --control-h: 32px;
   --textarea-min-h: 88px;
+  --editor-min-h: 176px;
+  --form-col-min: 240px;
+  --pay-col-min: 140px;
   --field-h: 32px;
   --section-pad: 24px;
   --shell-content-pad: 24px;
@@ -159,5 +176,6 @@
   --sp-2: 16px;
   --sp-3: 24px;
   --sp-4: 32px;
+  --sp-8: 64px;
   --cell-pad: 10px;
 }

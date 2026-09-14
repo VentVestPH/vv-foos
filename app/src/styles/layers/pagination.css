@@ -45,11 +45,6 @@
   background: var(--fo-row-hover);
 }
 
-.fo-pager-pos {
-  min-width: 54px;
-  text-align: center;
-}
-
 .fo-calendar-body {
   display: flex;
   align-items: flex-start;

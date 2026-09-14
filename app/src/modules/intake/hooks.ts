@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { realtimeChannel } from '../../lib/realtimeChannel';
 import { supabase } from '../../lib/supabase';
-import type { IntakeItem } from './lib';
+import { INTAKE_SETTLED_FILTER, type IntakeItem } from './lib';
 
 type IntakeItemsListener = () => void;
 
@@ -51,7 +51,7 @@ export function useIntakeBadge() {
     void supabase
       .from('intake_items')
       .select('id', { count: 'exact', head: true })
-      .in('status', ['pending', 'parsed'])
+      .not('status', 'in', INTAKE_SETTLED_FILTER)
       .then(({ count: c, error }) => {
         if (error !== null || c === null) return;
         setCount(c);
@@ -89,7 +89,7 @@ export function useIntakeQueue(filters: IntakeFilters) {
     if (status) {
       query = query.eq('status', status as never);
     } else if (!showAll) {
-      query = query.not('status', 'in', '("imported","rejected")');
+      query = query.not('status', 'in', INTAKE_SETTLED_FILTER);
     }
     if (batchLabel) query = query.eq('batch_label', batchLabel);
     if (submittedBy) query = query.eq('submitted_by', submittedBy);

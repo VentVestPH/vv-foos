@@ -48,7 +48,7 @@ export const ROUTES: RouteSpec[] = [
   { id: 'settings', path: '/settings', area: 'settings' },
   { id: 'placeholder-employees', path: '/employees', area: 'pages' },
   { id: 'placeholder-onboard', path: '/onboard', area: 'pages' },
-  { id: 'placeholder-users', path: '/users', area: 'pages' },
+  { id: 'users', path: '/users', area: 'pages' },
   { id: 'placeholder-courses', path: '/courses', area: 'pages' },
 ];
 

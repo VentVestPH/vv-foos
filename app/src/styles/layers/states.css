@@ -23,8 +23,8 @@ input[type='checkbox']:focus-visible,
 }
 
 .btn-danger:active:not(:disabled):not([aria-disabled='true']) {
-  background: var(--fo-logout);
-  border-color: var(--fo-logout);
+  background: var(--btn-danger-bg);
+  border-color: var(--btn-danger-bg);
   opacity: 0.9;
 }
 

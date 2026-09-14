@@ -779,7 +779,9 @@ await client.from('integration_settings').delete().in('key', PREF_KEYS);
 - **Not a defect in the data.** Nothing is missing. `.fo-pager-count` renders `1-20 of 73024` and `.fo-pager-pos` renders `1 / 3652`, side by side. `ceil(73024 / 20) = 3652`, so the second figure is the page number, not a row count
 - **Ruled out before concluding, each by measurement:** RLS (admin sees 73,024 through Postgres **and** through PostgREST, `Content-Range: 0-0/73024`); a missing `people` row dropping candidates on the view's inner join (0 such rows); a filter silently applied (no status, source, sourcer, grade or resume bucket lands near 3,652); the wrong persona (admin 73,024, recruiter 73,024, sourcer 3, bd 0)
 - **Why it misleads:** on 687 requisitions the same control reads `1 / 35`, which nobody mistakes for a record count. At 73,024 rows the page number reaches the same order of magnitude as a plausible row count and sits next to a figure that is one, separated only by a slash
-- **Status:** **open**, awaiting Klent's pick between labelling it `Page 1 of 3652` and removing the position entirely. The recommendation is removal: the row range already answers "where am I", and `pageCount` is only needed by the last-page chevron
+- **Status:** **Closed 2026-09-14.** Klent picked removal: "i don't think we need the page count in pagination. i think number of records is good enough. remove to all pages." `.fo-pager-pos` and its stylesheet rule are gone, so every list now shows only the row range. `pageCount` stays in the component because the last-page chevron and `atEnd` still need it
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
 - **Fix owner:** unassigned
 
 ### QA-036: TableColumn.width silently had no effect under the auto table layout
@@ -1254,6 +1256,41 @@ DB AFTER SECOND CLICK :: {"do_not_contact":false}
 - **Reproduced** with a 30-line simulation of `useLatestOnly` plus the try/finally: `before fix, empty state flashed after: [ 'slow-first' ]` / `after fix, empty state flashed after: []`
 - **Fix:** `finally { if (isCurrent()) setLoading(false); }`, so a superseded load leaves the flag alone and the newer one owns it. The list also now tracks `loaded`, set only on a current completion, and the empty state is gated on it, so the first paint cannot show it either
 - **Why it surfaced now:** the bug predates the empty state, but until 2026-09-14 an empty result rendered as a table with headers and "No companies match", which looks close enough to a loading table that nobody noticed. A designed empty state with an icon and a call to action made the same half-second obvious. `CandidateListPage`, `RequisitionListPage` and `ApplicationPipeline` already had the guard; the four sales pages never did
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-069: an account could be created but never edited
+
+- **Found:** 2026-09-14, Klent asking why `/sales/companies/<id>` has no edit button
+- **Module:** `app/src/modules/sales/pages/CompanyRecordPage.tsx`
+- **Severity:** **High**
+- **Actual:** counted across the whole app, `companies` had **one insert** (`CompanyNewPage`), **six selects** and **zero updates**. An account's name, type, website, phone, city, state, country and owner were write-once: a typo at creation, or a stale phone number carried in from Zoho, was permanent from inside the product. This is the same shape as QA-042 for `people`, and neither was an RLS problem: `companies_write` is `for all` to admin and bd, which includes UPDATE
+- **Fix:** `CompanyEditDialog`, opened from an **Edit account** button in the record action bar, writing the same field set `CompanyNewPage` collects. Verified as `bd` over REST against a real imported account before the UI was built: `rows updated by bd: 1`, then the value was restored
+- **The pattern worth noticing:** both of these were found by asking "what writes this table?" rather than by reading the page. `grep -c "\.update(" ` next to `from('<table>')` is a two-minute check and it has now turned up two write-once tables. `deals`, `tickets` and `intake_items` have not been checked
+- **Status:** Closed
+- **Fix owner:** Claude
+- **Closed:** 2026-09-14
+
+### QA-070: tickets can be listed but never created or edited
+
+- **Found:** 2026-09-14, sweeping every table for the write-once pattern that produced QA-042 and QA-069
+- **Module:** `app/src/modules/sales`
+- **Severity:** **Medium**
+- **Actual:** `from('tickets')` appears twice in the whole app, in `lib/searchHints.ts` and `GlobalSearchPage.tsx`, both selects. **Zero inserts and zero updates.** There is a `/sales/tickets` list, a nav entry and a `ticket_list` view, but no `tickets/new` route and no record page, so a ticket can only come from a direct database write. `tickets_write` permits admin and bd, so nothing in the database is stopping it
+- **Fix:** none yet, and deliberately out of scope for the contacts pass. Recorded so it is not found a third time by accident
+- **How all three were found:** counting `.insert(` and `.update(` next to `from('<table>')` across the app. `companies` and `people` both read `insert=1, update=0` before today. That two-minute check is now written into CLAUDE.md
+- **Status:** Open
+- **Fix owner:** Klent, to schedule alongside whatever the tickets module is meant to become
+
+### QA-071: a CSS override kept losing to the rule it was overriding, four times in one session
+
+- **Found:** 2026-09-14, repeatedly, while styling the edit dialogs
+- **Module:** `app/src/styles/layers/*`
+- **Severity:** **Low** in each instance, but it cost most of an afternoon
+- **Actual:** four separate overrides were written into `controls.css` to modify rules that live in later layers, so every one of them was inert and the UI did not change. `.fo-dialog-panel-wide` and `.fo-dialog-panel-form` lost to `.fo-dialog-panel` in `taleo`; a `.record-section-header` override lost to `pages`; a `.rq-form` override lost to `module.recruit`. In one case the wide class had been silently doing nothing for hours, so every dialog marked `wide` was rendering at the base 420px
+- **Fix:** each override moved into the layer that owns the rule it modifies. The deeper fix was structural: the requisition edit dialog now renders the same `FormSections` component as every other edit dialog, so there is nothing left to override
+- **The rule, which was already written down:** `app.css` declares `base, shell, auth, controls, tables, pages, panels, narrow, taleo, states, pagination, motion, widgets, print, module.*`. Later wins, and **specificity does not enter into it**. Before writing an override, find the layer of the rule being overridden. A more specific selector in an earlier layer is not more specific, it is dead
 - **Status:** Closed
 - **Fix owner:** Claude
 - **Closed:** 2026-09-14

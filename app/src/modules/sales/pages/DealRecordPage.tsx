@@ -13,6 +13,8 @@ import { Select } from '../../../components/ui/Select';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
 import { Briefcase as BriefcaseIcon } from 'lucide-react';
 import { EngagementPanel } from '../components/EngagementPanel';
+import { DealDeleteDialog } from '../components/DealDeleteDialog';
+import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { LostReasonDialog } from '../components/LostReasonDialog';
 import { useCanEditCrm, useCompanyOptions, useStaffList } from '../hooks';
 import {
@@ -52,6 +54,8 @@ export function DealRecordPage() {
   const [pendingLostReason, setPendingLostReason] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [dealActivityCount, setDealActivityCount] = useState(0);
   const [noticeClosing, setNoticeClosing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -64,6 +68,11 @@ export function DealRecordPage() {
       .maybeSingle();
     setDeal(data ?? null);
     setLoaded(true);
+    const { count } = await supabase
+      .from('activities')
+      .select('id', { count: 'exact', head: true })
+      .eq('deal_id', id);
+    setDealActivityCount(count ?? 0);
     if (data) {
       setName(data.name);
       setCompanyId(data.company_id ?? '');
@@ -232,6 +241,19 @@ export function DealRecordPage() {
               {saving ? 'Saving…' : 'Save changes'}
             </Button>
           )}
+          {canEdit && (
+            <ActionMenu
+              label="More actions"
+              iconOnly
+              items={[
+                {
+                  label: 'Delete permanently…',
+                  destructive: true,
+                  onSelect: () => setDeleting(true),
+                },
+              ]}
+            />
+          )}
           {canEdit && saveError !== null && (
             <span className="field-error-text" role="alert">{saveError}</span>
           )}
@@ -367,6 +389,19 @@ export function DealRecordPage() {
         >
           {notice}
         </div>
+      )}
+      {deleting && deal && (
+        <DealDeleteDialog
+          dealId={deal.id}
+          displayCode={deal.display_code}
+          name={deal.name}
+          activityCount={dealActivityCount}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => {
+            setDeleting(false);
+            navigate(listHref);
+          }}
+        />
       )}
     </RecordPage>
   );

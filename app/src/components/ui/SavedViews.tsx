@@ -10,7 +10,7 @@ import { Select } from './Select';
 
 export type SavedView = Tables<'ats_saved_views'>;
 
-export type SavedViewEntity = 'requisition' | 'candidate' | 'company' | 'intake';
+export type SavedViewEntity = 'requisition' | 'candidate' | 'company' | 'contact' | 'intake';
 
 export interface ViewState {
   filters: Record<string, string>;
@@ -157,7 +157,7 @@ export function SavedViewsControl({
       {naming && (
         <FoDialog
           title="Save view"
-          className="saved-view-dialog"
+          className="fo-form-dialog"
           onClose={() => setNaming(false)}
           footer={(close) => (
             <>
