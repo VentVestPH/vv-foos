@@ -106,9 +106,13 @@ test('D3: unticking decays the bar rather than dropping the button out of it', a
   await row.getByRole('checkbox').uncheck();
   await expect(grow).toHaveAttribute('data-open', 'false');
   await expect(
-    page.locator('.fo-list-action-bar').getByRole('button', { name: 'Delete', exact: true }),
-    'the button stays mounted so the bar collapses around it instead of emptying first',
+    page.locator('.fo-list-action-bar .btn-danger'),
+    'the button stays in the DOM so the bar collapses around it instead of emptying first',
   ).toHaveCount(1);
+  await expect(
+    grow,
+    'and a closed bar is out of the accessibility tree, so a keyboard cannot reach it',
+  ).toHaveAttribute('aria-hidden', 'true');
   expect(
     await grow.evaluate((el) => getComputedStyle(el).transitionProperty),
     'the bar decays rather than vanishing, which is what the transition declares',

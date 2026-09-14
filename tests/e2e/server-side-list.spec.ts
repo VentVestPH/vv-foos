@@ -199,7 +199,7 @@ test.describe('the deal board is bounded per stage', () => {
     await gotoAsSignedIn(page, DEALS);
     await expect(page.locator('.kanban-col').first()).toBeVisible({ timeout: 30000 });
 
-    await page.getByRole('button', { name: /^Table$/ }).click();
+    await page.getByRole('tab', { name: /^Table$/ }).click();
     await expect(page.locator('.table-wrap')).toBeVisible({ timeout: 20000 });
 
     const label = await pagerText(page);
