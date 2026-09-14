@@ -140,7 +140,7 @@ export function DealsListPage() {
     } catch (e) {
       setMoveError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [view, applyDealFilters, stageFilter, sort, page, beginLoad]);
 

@@ -113,7 +113,7 @@ export function ContactsListPage() {
       setRows((data ?? []).map((row) => ({ profile: row, person: row })));
       setTotal(count ?? 0);
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [applyContactFilters, page, beginLoad]);
 

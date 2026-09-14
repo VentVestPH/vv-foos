@@ -24,10 +24,10 @@ export const SUPABASE_ANON_KEY = env('FOOS_SUPABASE_ANON_KEY');
 export type Persona = 'admin' | 'recruiter' | 'sourcer' | 'bd';
 
 export const PERSONA_CREDENTIALS: Record<Persona, { email: string; password: string }> = {
-  admin: { email: 'demo-admin@ventvest.test', password: requiredTestPassword() },
-  recruiter: { email: 'rita.demo@ventvest.com', password: requiredTestPassword() },
-  sourcer: { email: 'sam.demo@ventvest.com', password: requiredTestPassword() },
-  bd: { email: 'ben.demo@ventvest.com', password: requiredTestPassword() },
+  admin: { email: 'foos.admin@ventvest.com', password: requiredTestPassword() },
+  recruiter: { email: 'foos.recruiter@ventvest.com', password: requiredTestPassword() },
+  sourcer: { email: 'foos.sourcer@ventvest.com', password: requiredTestPassword() },
+  bd: { email: 'foos.bd@ventvest.com', password: requiredTestPassword() },
 };
 
 export async function clientAs(persona: Persona) {

@@ -92,7 +92,7 @@ if (DRY_RUN) {
 }
 
 const anonKey = fromTestEnv('FOOS_SUPABASE_ANON_KEY');
-const email = process.env.FOOS_ADMIN_EMAIL ?? 'demo-admin@ventvest.test';
+const email = process.env.FOOS_ADMIN_EMAIL ?? 'foos.admin@ventvest.com';
 const password = fromTestEnv('FOOS_QA_TEST_PASSWORD');
 if (!anonKey || !password) {
   console.error('Need FOOS_SUPABASE_ANON_KEY and FOOS_QA_TEST_PASSWORD (env or tests/.env).');

@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
 import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, optionNames, signIn } from './helpers';
+import { STAFF_IDS } from '../fixtures/seed-ids';
 
 const tag = `qa-shared-view-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const UI_SHARED = `${tag} ui shared`;
 const SHARED = `${tag} shared`;
 const PRIVATE = `${tag} private`;
-const RECRUITER_ID = 'a0000000-0000-4000-8000-000000000002';
+const RECRUITER_ID = STAFF_IDS.recruiter;
 
 test.beforeAll(async () => {
   const admin = await clientAs('admin');
@@ -102,5 +103,54 @@ test.describe('Q5: a saved view can be shared with the team', () => {
     const admin = await clientAs('admin');
     const { data } = await admin.from('ats_saved_views').select('id').eq('name', SHARED);
     expect(data, 'the row must survive a delete a non-owner is not allowed to make').toHaveLength(1);
+  });
+});
+
+test.describe('Q5: the entity column keeps one list\'s views out of another', () => {
+  const COMPANY_VIEW = `${tag} company shared`;
+  const INTAKE_VIEW = `${tag} intake shared`;
+
+  test.beforeAll(async () => {
+    const admin = await clientAs('admin');
+    const { error } = await admin.from('ats_saved_views').insert([
+      { name: COMPANY_VIEW, entity: 'company', staff_id: RECRUITER_ID, filters: {}, columns: ['name'], is_shared: true },
+      { name: INTAKE_VIEW, entity: 'intake', staff_id: RECRUITER_ID, filters: {}, columns: ['full_name'], is_shared: true },
+    ]);
+    if (error) throw new Error(`could not seed the entity fixtures: ${error.message}`);
+  });
+
+  test('an account view is offered on accounts and nowhere else', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.bd);
+
+    await gotoAsSignedIn(page, '/sales/companies');
+    const onAccounts = await optionNames(page, page.getByRole('combobox', { name: 'Saved views' }));
+    expect(
+      onAccounts.join('|'),
+      'a shared account view reaches another staff member, because ats_saved_views_read passes any row with is_shared',
+    ).toContain(COMPANY_VIEW);
+    expect(
+      onAccounts.join('|'),
+      'entity is the only thing separating these lists, so an intake view must not appear here',
+    ).not.toContain(INTAKE_VIEW);
+
+    await gotoAsSignedIn(page, '/intake');
+    const onIntake = await optionNames(page, page.getByRole('combobox', { name: 'Saved views' }));
+    expect(onIntake.join('|')).toContain(INTAKE_VIEW);
+    expect(onIntake.join('|')).not.toContain(COMPANY_VIEW);
+  });
+
+  test('the four entities are stored under their own names', async () => {
+    const admin = await clientAs('admin');
+    const { data } = await admin
+      .from('ats_saved_views')
+      .select('name, entity')
+      .like('name', `${tag}%`);
+    const byEntity = new Map((data ?? []).map((r) => [r.name, r.entity]));
+    expect(byEntity.get(COMPANY_VIEW), 'an accounts view is entity company').toBe('company');
+    expect(byEntity.get(INTAKE_VIEW), 'an intake view is entity intake').toBe('intake');
+    expect(
+      byEntity.get(SHARED),
+      'the candidate fixtures above are untouched by the new entities',
+    ).toBe('candidate');
   });
 });

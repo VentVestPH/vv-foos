@@ -2,10 +2,10 @@ import { expect, type Locator, type Page } from '@playwright/test';
 import { clientAs } from '../env';
 
 export const PERSONA_EMAILS = {
-  admin: 'demo-admin@ventvest.test',
-  recruiter: 'rita.demo@ventvest.com',
-  sourcer: 'sam.demo@ventvest.com',
-  bd: 'ben.demo@ventvest.com',
+  admin: 'foos.admin@ventvest.com',
+  recruiter: 'foos.recruiter@ventvest.com',
+  sourcer: 'foos.sourcer@ventvest.com',
+  bd: 'foos.bd@ventvest.com',
 } as const;
 
 export function testPassword(): string {

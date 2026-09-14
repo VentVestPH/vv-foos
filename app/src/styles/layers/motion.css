@@ -80,6 +80,10 @@
     opacity var(--motion-quick) var(--ease-out);
 }
 
+.panel-item-delete {
+  transition: opacity var(--motion-quick) var(--ease-out);
+}
+
 .shell-content {
   transition: padding var(--motion-rail) var(--ease-out);
 }

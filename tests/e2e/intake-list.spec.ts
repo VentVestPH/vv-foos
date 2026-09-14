@@ -428,3 +428,113 @@ test.describe('I: the intake search box', () => {
     });
   });
 });
+
+test.describe('I: deleting intake items', () => {
+  test('I16: Delete does not exist until a row is ticked, then the bar grows open', async ({
+    page,
+  }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/intake');
+    await expect(page.locator('.table-wrap tbody tr[data-row-key]').first()).toBeVisible({
+      timeout: 25000,
+    });
+
+    const grow = page.locator('.fo-page-head-grow');
+    await expect(grow).toHaveAttribute('data-open', 'false');
+    expect(
+      await grow.evaluate((el) => el.getBoundingClientRect().height),
+      'a closed bulk bar occupies no height, so Delete is not on screen',
+    ).toBe(0);
+
+    const first = page.locator('.table-wrap thead th').first();
+    expect(
+      await first.evaluate((el) => el.className),
+      'the selection column leads the row, as on accounts and requisitions',
+    ).toContain('checkbox-col');
+
+    await page.locator('.table-wrap tbody tr[data-row-key]').first().getByRole('checkbox').check();
+    await expect(grow).toHaveAttribute('data-open', 'true');
+    await expect(
+      page.locator('.fo-list-action-bar').getByRole('button', { name: 'Delete', exact: true }),
+    ).toBeVisible();
+  });
+
+  test('I17: an admin deletes the item outright, and it does not come back', async ({ page }) => {
+    const admin = await clientAs('admin');
+    const doomed = `${LEAD} Doomed`;
+    const { error: seedErr } = await admin.from('intake_items').insert({
+      channel: 'manual',
+      target_type: 'candidate',
+      full_name: doomed,
+      batch_label: BATCH,
+      status: 'parsed',
+    });
+    expect(seedErr, 'the fixture for this test must insert').toBeNull();
+
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/intake');
+    const box = page.getByRole('searchbox', { name: 'Search Intake' });
+    await box.fill(doomed);
+    await box.press('Enter');
+
+    const rows = page.locator('.table-wrap tbody tr[data-row-key]');
+    await expect(rows).toHaveCount(1, { timeout: 25000 });
+    await rows.first().getByRole('checkbox').check();
+    await page
+      .locator('.fo-list-action-bar')
+      .getByRole('button', { name: 'Delete', exact: true })
+      .click();
+
+    const dialog = page.getByRole('dialog', { name: /Delete intake item/ });
+    await expect(dialog).toContainText(doomed);
+    await dialog.getByRole('button', { name: 'Delete permanently' }).click();
+    await expect(dialog).toHaveCount(0, { timeout: 25000 });
+    await expect(page.getByRole('status')).toContainText('1 item deleted.');
+
+    const { data } = await admin
+      .from('intake_items')
+      .select('id')
+      .eq('full_name', doomed);
+    expect((data ?? []).length, 'the row is gone from the database, not just the table').toBe(0);
+  });
+
+  test('I18: a role that may not remove an item is told so, rather than the row silently staying', async ({
+    page,
+  }) => {
+    const admin = await clientAs('admin');
+    const guarded = `${LEAD} Guarded`;
+    const { error: seedErr } = await admin.from('intake_items').insert({
+      channel: 'manual',
+      target_type: 'candidate',
+      full_name: guarded,
+      batch_label: BATCH,
+      status: 'parsed',
+    });
+    expect(seedErr, 'the fixture for this test must insert').toBeNull();
+
+    await signIn(page, PERSONA_EMAILS.bd);
+    await gotoAsSignedIn(page, '/intake');
+    const box = page.getByRole('searchbox', { name: 'Search Intake' });
+    await box.fill(guarded);
+    await box.press('Enter');
+
+    const rows = page.locator('.table-wrap tbody tr[data-row-key]');
+    await expect(rows).toHaveCount(1, { timeout: 25000 });
+    await rows.first().getByRole('checkbox').check();
+    await page
+      .locator('.fo-list-action-bar')
+      .getByRole('button', { name: 'Delete', exact: true })
+      .click();
+    const dialog = page.getByRole('dialog', { name: /Delete intake item/ });
+    await dialog.getByRole('button', { name: 'Delete permanently' }).click();
+    await expect(dialog).toHaveCount(0, { timeout: 25000 });
+
+    await expect(
+      page.getByRole('status'),
+      'bd may only remove contact items, and the count has to say what was left behind',
+    ).toContainText('left in place, because your role cannot remove them');
+
+    const { data } = await admin.from('intake_items').select('id').eq('full_name', guarded);
+    expect((data ?? []).length, 'the candidate item survives a bd delete').toBe(1);
+  });
+});

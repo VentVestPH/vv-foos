@@ -1089,6 +1089,7 @@ export function CandidateRecordPage() {
                   emptyText="No notes yet."
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
                 />
               ),
             },
@@ -1104,6 +1105,7 @@ export function CandidateRecordPage() {
                   emptyText="No calls logged yet."
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
                 />
               ),
             },
@@ -1119,6 +1121,7 @@ export function CandidateRecordPage() {
                   emptyText="No meetings yet."
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
                 />
               ),
             },
@@ -1134,6 +1137,7 @@ export function CandidateRecordPage() {
                   emptyText="No linked emails yet — Gmail sync (Agent 6) matches them by participant address."
                   allowCreate={false}
                   onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
                 />
               ),
             },
@@ -1151,6 +1155,7 @@ export function CandidateRecordPage() {
           allowCreate={allowCreate}
           onCreate={engagement.addTask}
           onToggle={engagement.toggleTask}
+          onDelete={allowCreate ? engagement.deleteTask : undefined}
         />
       </RecordSection>
 
@@ -1160,6 +1165,7 @@ export function CandidateRecordPage() {
           allowCreate={allowCreate}
           onCreate={engagement.addReminder}
           onDismiss={engagement.dismissReminder}
+          onDelete={allowCreate ? engagement.deleteReminder : undefined}
         />
       </RecordSection>
 

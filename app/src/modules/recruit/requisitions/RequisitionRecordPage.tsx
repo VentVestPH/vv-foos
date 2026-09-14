@@ -559,6 +559,7 @@ export function RequisitionRecordPage() {
           allowCreate={!mobile}
           onCreate={engagement.addTask}
           onToggle={engagement.toggleTask}
+          onDelete={!mobile ? engagement.deleteTask : undefined}
         />
       </RecordSection>
 
@@ -568,6 +569,7 @@ export function RequisitionRecordPage() {
           allowCreate={!mobile}
           onCreate={engagement.addReminder}
           onDismiss={engagement.dismissReminder}
+          onDelete={!mobile ? engagement.deleteReminder : undefined}
         />
       </RecordSection>
 
@@ -579,6 +581,7 @@ export function RequisitionRecordPage() {
           emptyText="No comments added"
           allowCreate={!mobile}
           onCreate={engagement.addActivity}
+                  onDelete={!mobile ? engagement.deleteActivity : undefined}
         />
       </RecordSection>
 

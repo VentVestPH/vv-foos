@@ -29,10 +29,10 @@ begin
 
   for persona in
     select * from (values
-      ('a0000000-0000-4000-8000-000000000001'::uuid, 'demo-admin@ventvest.test'),
-      ('a0000000-0000-4000-8000-000000000002'::uuid, 'rita.demo@ventvest.com'),
-      ('a0000000-0000-4000-8000-000000000003'::uuid, 'sam.demo@ventvest.com'),
-      ('a0000000-0000-4000-8000-000000000004'::uuid, 'ben.demo@ventvest.com')
+      ('a0000000-0000-4000-8000-000000000005'::uuid, 'foos.admin@ventvest.com'),
+      ('a0000000-0000-4000-8000-000000000002'::uuid, 'foos.recruiter@ventvest.com'),
+      ('a0000000-0000-4000-8000-000000000003'::uuid, 'foos.sourcer@ventvest.com'),
+      ('a0000000-0000-4000-8000-000000000004'::uuid, 'foos.bd@ventvest.com')
     ) as t(id, email)
   loop
     insert into auth.users (

@@ -25,6 +25,10 @@ const SettingsRoutes = lazy(() =>
 const GlobalSearchPage = lazy(() =>
   import('./pages/GlobalSearchPage').then((m) => ({ default: m.GlobalSearchPage })),
 );
+const UsersPage = lazy(() =>
+  import('./pages/UsersPage').then((m) => ({ default: m.UsersPage })),
+);
+
 const ModulePlaceholderRoutes = lazy(() =>
   import('./pages/ModulePlaceholderPage').then((m) => ({
     default: m.ModulePlaceholderRoutes,
@@ -130,7 +134,7 @@ export default function App() {
                 path="users/*"
                 element={
                   <RequireAuth roles={['admin']} deniedLabel="Users">
-                    <Lazy><ModulePlaceholderRoutes module="users" /></Lazy>
+                    <Lazy><UsersPage /></Lazy>
                   </RequireAuth>
                 }
               />

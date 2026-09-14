@@ -219,7 +219,10 @@
 
 .side-tabs-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
   border-bottom: 1px solid var(--border);
   background: var(--section-tint);
   border-radius: var(--radius) var(--radius) 0 0;
@@ -228,6 +231,8 @@
 .side-tab {
   border: none;
   background: none;
+  flex: none;
+  white-space: nowrap;
   font-family: inherit;
   font-size: var(--fs-meta);
   color: var(--fo-tab-label);

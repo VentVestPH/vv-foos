@@ -1207,3 +1207,77 @@ select:focus-visible {
 .fo-column-grip:hover {
   color: var(--fo-primary);
 }
+
+.saved-views {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.saved-views select {
+  min-width: 160px;
+}
+
+.fo-bulk-notice {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-body);
+}
+
+.user-temp-password {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin: var(--sp-1-5) 0;
+  padding: var(--sp-1-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--canvas);
+}
+
+.user-temp-password code {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.user-temp-password svg {
+  flex: none;
+}
+
+.saved-view-dialog .fo-dialog-body {
+  gap: var(--sp-1-5);
+}
+
+.saved-view-dialog .fo-dialog-body > p {
+  margin: 0;
+}
+
+.fo-dialog-panel-wide {
+  width: var(--dialog-w-wide);
+}
+
+.fo-confirm-group + .fo-confirm-group {
+  margin-top: var(--sp-3);
+}
+
+.fo-confirm-group h3 {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.fo-confirm-list {
+  margin: var(--sp-1) 0;
+  padding-left: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  max-height: var(--menu-max-h);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.fo-confirm-name {
+  font-weight: 600;
+}
+

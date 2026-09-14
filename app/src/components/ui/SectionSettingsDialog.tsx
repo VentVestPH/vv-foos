@@ -22,6 +22,7 @@ export function SectionSettingsDialog({
 }: SectionSettingsDialogProps) {
   const listShadow = useScrollShadow<HTMLDivElement>();
   const hiddenCount = sections.filter((section) => prefs.isHidden(section)).length;
+  const shownCount = sections.length - hiddenCount;
 
   return (
     <SettingsDialog
@@ -59,6 +60,12 @@ export function SectionSettingsDialog({
                 <input
                   type="checkbox"
                   checked={shown}
+                  disabled={shown && shownCount === 1}
+                  title={
+                    shown && shownCount === 1
+                      ? 'This is the last section showing. Tick another one first.'
+                      : undefined
+                  }
                   onChange={() => prefs.toggle(section)}
                 />
                 {section}

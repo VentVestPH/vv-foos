@@ -24,7 +24,7 @@ export interface SalesNavItem {
 const CRM_ROLES: StaffRole[] = ['admin', 'recruiter', 'bd'];
 
 export const salesNavItems: SalesNavItem[] = [
-  { label: 'Companies', href: '/sales/companies', roles: CRM_ROLES },
+  { label: 'Accounts', href: '/sales/companies', roles: CRM_ROLES },
   { label: 'Contacts', href: '/sales/contacts', roles: CRM_ROLES },
   { label: 'Deals', href: '/sales/deals', roles: CRM_ROLES },
   { label: 'Tickets', href: '/sales/tickets', roles: CRM_ROLES },

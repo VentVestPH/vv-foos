@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { searchWords } from './quickSearch';
+import { sentenceCase } from './format';
 
 export const HINT_MIN_CHARS = 3;
 const HINT_LIMIT = 10;
@@ -157,6 +158,30 @@ export async function intakeSearchHints(term: string): Promise<SearchHintResult>
       primary: r.full_name ?? 'Unnamed intake item',
       meta: [r.batch_label, r.channel.replace(/_/g, ' '), r.status].filter(Boolean).join(' · '),
       href: `/intake?item=${r.id}`,
+    })),
+    total: count ?? 0,
+  };
+}
+
+export async function companySearchHints(term: string): Promise<SearchHintResult> {
+  let query = supabase
+    .from('company_list')
+    .select('id, name, types, location_text', { count: 'exact' })
+    .limit(HINT_LIMIT)
+    .order('name', { ascending: true })
+    .order('id', { ascending: true });
+  for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+  const { data, count } = await query;
+
+  return {
+    hints: (data ?? []).map((r) => ({
+      key: `company:${r.id}`,
+      primary: r.name,
+      meta:
+        [r.types.map((t) => sentenceCase(t)).join(', '), r.location_text]
+          .filter(Boolean)
+          .join(' · ') || 'Account',
+      href: `/sales/companies/${r.id}`,
     })),
     total: count ?? 0,
   };

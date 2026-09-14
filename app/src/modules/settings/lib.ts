@@ -78,7 +78,7 @@ export const EXPORTABLE_MODULES: ExportableModule[] = [
   },
   {
     key: 'companies',
-    label: 'Companies',
+    label: 'Accounts',
     view: 'company_list',
     orderBy: 'id',
     columns: [

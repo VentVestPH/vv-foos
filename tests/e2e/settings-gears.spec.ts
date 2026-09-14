@@ -174,6 +174,7 @@ test('no gear anywhere in the shell opens the not-part-of-FOOS placeholder', asy
     ['/reports', 'Configure report categories'],
     ['/recruit/candidates', 'Column settings'],
     ['/intake', 'Column settings'],
+    ['/sales/companies', 'Column settings'],
     ['/recruit/requisitions', 'Configure Recently Viewed'],
   ];
   for (const [path, name] of gears) {

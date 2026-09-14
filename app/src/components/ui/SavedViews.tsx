@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BookmarkPlus } from 'lucide-react';
 import { useSession } from '../../auth/SessionProvider';
-import type { Json } from '../../lib/database.types';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Select } from '../../components/ui/Select';
-import { Dialog } from './components/Dialog';
+import type { Json, Tables } from '../../lib/database.types';
 import { supabase } from '../../lib/supabase';
-import type { SavedView, SortState } from './lib';
+import { Button } from './Button';
+import { FoDialog } from './FoDialog';
+import { Input } from './Input';
+import { Select } from './Select';
+
+export type SavedView = Tables<'ats_saved_views'>;
+
+export type SavedViewEntity = 'requisition' | 'candidate' | 'company' | 'intake';
 
 export interface ViewState {
   filters: Record<string, string>;
   columns: string[];
-  sort: SortState | null;
+  sort: { key: string; dir: 'asc' | 'desc' } | null;
 }
 
 function parseViewState(view: SavedView): ViewState {
@@ -20,17 +23,15 @@ function parseViewState(view: SavedView): ViewState {
     view.filters && typeof view.filters === 'object' && !Array.isArray(view.filters)
       ? (view.filters as Record<string, string>)
       : {};
-  const columns = Array.isArray(view.columns)
-    ? (view.columns as string[])
-    : [];
+  const columns = Array.isArray(view.columns) ? (view.columns as string[]) : [];
   const sort =
     view.sort && typeof view.sort === 'object' && !Array.isArray(view.sort)
-      ? (view.sort as unknown as SortState)
+      ? (view.sort as unknown as ViewState['sort'])
       : null;
   return { filters, columns, sort };
 }
 
-export function useSavedViews(entity: 'requisition' | 'candidate') {
+export function useSavedViews(entity: SavedViewEntity) {
   const { staff } = useSession();
   const [views, setViews] = useState<SavedView[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -77,10 +78,7 @@ export function useSavedViews(entity: 'requisition' | 'candidate') {
 
   const remove = useCallback(
     async (id: string) => {
-      const { error: err } = await supabase
-        .from('ats_saved_views')
-        .delete()
-        .eq('id', id);
+      const { error: err } = await supabase.from('ats_saved_views').delete().eq('id', id);
       if (err) {
         setError(err.message);
       } else {
@@ -157,8 +155,9 @@ export function SavedViewsControl({
         </Button>
       )}
       {naming && (
-        <Dialog
+        <FoDialog
           title="Save view"
+          className="saved-view-dialog"
           onClose={() => setNaming(false)}
           footer={(close) => (
             <>
@@ -197,7 +196,7 @@ export function SavedViewsControl({
             A shared view is visible to everyone who can open this list. Only you can rename or
             delete it.
           </p>
-        </Dialog>
+        </FoDialog>
       )}
     </div>
   );

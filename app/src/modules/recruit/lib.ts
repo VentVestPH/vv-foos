@@ -22,7 +22,6 @@ export type Source = Tables<'sources'>;
 export type CandidateStatus = Tables<'candidate_statuses'>;
 export type ApproverRow = Tables<'requisition_approvers'>;
 export type OwnerRow = Tables<'requisition_owners'>;
-export type SavedView = Tables<'ats_saved_views'>;
 
 export function personName(
   p: Pick<Person, 'first_name' | 'middle_name' | 'last_name' | 'headline'>,
@@ -66,9 +65,7 @@ export function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function errMsg(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
+export { errMsg } from '../../lib/errMsg';
 
 export const REQ_TRANSITIONS: Record<RequisitionStatus, RequisitionStatus[]> = {
   draft: ['waiting_approval'],

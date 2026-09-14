@@ -156,7 +156,6 @@
 
 .intake-linkedin-page,
 .intake-sheet-page {
-  max-width: 640px;
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
@@ -186,4 +185,5 @@
 .intake-advanced-search > .field:last-child {
   padding-bottom: var(--sp-1);
 }
+
 }

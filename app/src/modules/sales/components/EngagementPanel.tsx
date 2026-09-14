@@ -19,7 +19,7 @@ import {
 } from '../lib';
 import { Modal } from './Modal';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
-import { BellRing, ListChecks, MessageSquare, Paperclip } from 'lucide-react';
+import { BellRing, ListChecks, MessageSquare, Paperclip, Plus } from 'lucide-react';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
 type EngagementParent = 'person' | 'company' | 'deal';
@@ -58,7 +58,12 @@ function ActivityList({
   return (
     <>
       {items.length === 0 ? (
-        <EmptyState compact icon={<MessageSquare size={32} />} title={emptyText} />
+        <EmptyState
+          compact
+          icon={<MessageSquare size={32} />}
+          title={emptyText}
+          {...(note ? { hint: note } : {})}
+        />
       ) : (
         <ul className="sales-panel-list">
           {items.map((a) => (
@@ -80,7 +85,7 @@ function ActivityList({
           ))}
         </ul>
       )}
-      {note && <div className="sales-panel-note">{note}</div>}
+      {note && items.length > 0 && <div className="sales-panel-note">{note}</div>}
     </>
   );
 }
@@ -245,16 +250,20 @@ export function EngagementPanel({
       <div className="sales-engagement-main">
         <div className="sales-quickadd">
           <Button size="sm" onClick={() => openQuickAdd('note')}>
-            + Note
+            <Plus size={20} aria-hidden="true" />
+            Note
           </Button>
           <Button size="sm" onClick={() => openQuickAdd('call')}>
-            + Call
+            <Plus size={20} aria-hidden="true" />
+            Call
           </Button>
           <Button size="sm" onClick={() => openQuickAdd('task')}>
-            + Task
+            <Plus size={20} aria-hidden="true" />
+            Task
           </Button>
           <Button size="sm" onClick={() => openQuickAdd('reminder')}>
-            + Reminder
+            <Plus size={20} aria-hidden="true" />
+            Reminder
           </Button>
         </div>
         <Timeline items={timelineItems} />
