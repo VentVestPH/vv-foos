@@ -4,7 +4,8 @@
 -- (mebfbbvrqdctamnzvbbs) on 2026-07-25 via the Supabase MCP connector, as
 -- migration "add_offer_attachment_kind", and was never committed here. This
 -- file reconstructs it so the repository can rebuild production. See
--- docs/01-current-state/VVPH_VV-FOOS_Register_Defects-and-Risks (D3).
+-- D3 in the defects register, which lived in docs/01-current-state/ until
+-- that folder was deleted on 2026-09-14. Recoverable from git history.
 --
 -- Reason for the value: Zoho Recruit's attachment categories include "Offer",
 -- which had no clean match in resume/cover/contract/other. See

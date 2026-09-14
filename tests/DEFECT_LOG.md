@@ -357,7 +357,7 @@ Error: a header plus one record per visible row; got 0 records for 3 rows
 ### QA-018: the Cloudflare `_redirects` port would have served HTML in place of every JavaScript bundle
 
 - **Date found:** 2026-09-07, checking the port against Cloudflare's documentation before committing it, at the start of Goal 6.
-- **Module/agent:** `docs/07-environments/cloudflare/_redirects`, written by me the same day, plus the runbook paragraph that justified it
+- **Module/agent:** `docs/environments/cloudflare/_redirects`, written by me the same day, plus the runbook paragraph that justified it
 - **Severity:** **High if it had shipped, zero as it stands.** The file has never been deployed; Cloudflare is not the host yet and X12 is undecided. Caught by reading the vendor's documentation rather than by a test, because nothing in this repository can test another host's routing.
 - **What it said:** the file held one rule, `/* /index.html 200`, and the runbook claimed "Cloudflare Pages serves an existing static file before consulting `_redirects`, so the whole rewrite is one line ... That is a simplification rather than a compromise: the same requests resolve the same way."
 - **Verbatim refutation, from `developers.cloudflare.com/pages/configuration/redirects/` read 2026-09-07:** `Redirects are always followed, regardless of whether or not an asset matches the incoming request.`

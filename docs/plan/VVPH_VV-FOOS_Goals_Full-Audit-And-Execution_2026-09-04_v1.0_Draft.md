@@ -11,7 +11,7 @@ Each prompt is self-sufficient, so the standing rules are repeated in each rathe
 The reminder hook is installed at `scripts/goal-reminder.sh`, wired into `PostToolUse` in `.claude/settings.json`. It is **silent until armed**. To arm it:
 
 ```sh
-cp docs/03-plan/goal-armed/goal-1.md .claude/goal-armed.md   # or whichever goal is running
+cp docs/plan/goal-armed/goal-1.md .claude/goal-armed.md   # or whichever goal is running
 rm -f .claude/.goal-reminder-stamp
 ```
 
@@ -94,7 +94,7 @@ Decide what happens to every control that does not work. Judgement, not discover
 - **Remove** — with the evidence that Taleo does not have it, or that no role needs it. **Removing a control is a change to the replica, so it needs a reason a reader can check**, not a preference.
 - **Defer** — with the specific thing it waits on, and where that is recorded.
 
-**Evidence that counts.** The 26 screenshots of VentVest's own Taleo instance in `docs/02-taleo-fidelity/` are the **only** defensible source for Taleo specifics; most Taleo behaviour the redesign brief treats as required is not documented in any Oracle source and was voted down under adversarial verification. So: if the screenshots show a control, it stays and probably gets built. If they do not, say so and let removal be arguable. You may search the web for how comparable ATS products handle a given action, and cite it.
+**Evidence that counts.** The 26 screenshots of VentVest's own Taleo instance, whose audit lived in `docs/02-taleo-fidelity/` until that workstream closed at 17 of 17 and the folder was deleted on 2026-09-14 (recoverable from git), are the **only** defensible source for Taleo specifics; most Taleo behaviour the redesign brief treats as required is not documented in any Oracle source and was voted down under adversarial verification. So: if the screenshots show a control, it stays and probably gets built. If they do not, say so and let removal be arguable. You may search the web for how comparable ATS products handle a given action, and cite it.
 
 **Deliverable:** `docs/12-full-audit/VVPH_VV-FOOS_Audit_Dead-Control-Verdicts_<date>_v1.0_Draft.md`. A table with one row per control: label, where it lives, what it does now, verdict, evidence, size. End with the build list ordered by value over effort. **Every control gets a verdict; "unclear" is not one.** Where a verdict is genuinely Klent's, say so and put it in the parked register rather than guessing.
 

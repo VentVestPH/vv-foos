@@ -35,7 +35,7 @@ A revoke was not available. The sweep has three real callers: pg_cron, the outbo
 
 **Verified.** `proacl` is now `{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}`. A sourcer sweeping with one own and one recruiter-owned reminder both due fired **1** and left the recruiter's `pending`; the admin sweep then fired it. `e2e/reminders-tasks.spec.ts` reports **6 passed (16.2s)**, the sixth being the new regression test. `check-migrations.mjs` reports `No drift.`
 
-**The live project still runs the old function.** This migration has not been pushed and `npm run db:push` is gated for the reasons in `docs/07-environments/`.
+**The live project still runs the old function.** This migration has not been pushed and `npm run db:push` is gated for the reasons in `docs/environments/`.
 
 ## 3. CI: two shards, not three, and not a flag over the skeleton floor
 

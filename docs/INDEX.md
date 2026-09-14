@@ -17,23 +17,25 @@ Documentation for the FOOS CRM and ATS programme. Every claim is marked as measu
 
 | If you want | Read |
 | :---- | :---- |
-| What exists today and what is missing | `05-reference/` System State and Inventory |
-| What is left to do | `03-plan/` the improvement plan, workstream table |
-| How to deploy, and what must be set in the Supabase Dashboard | `07-environments/` the cutover runbook |
-| Why CI failed and how to write a test that does not | `05-reference/` the CI runbook |
-| How the Zoho migration and the Singapore move went | `07-environments/` the migration record |
-| What changed in a recent UI pass | `06-ux-and-motion/` the pass records |
-| The script for user acceptance testing | `09-uat/`, **incomplete**: no steps for Accounts, Contacts, Deals or Users |
+| What exists today and what is missing | `reference/` System State and Inventory |
+| What is left to do | `plan/` the improvement plan, workstream table |
+| How to deploy, and what must be set in the Supabase Dashboard | `environments/` the cutover runbook |
+| Why CI failed and how to write a test that does not | `reference/` the CI runbook |
+| How the Zoho migration and the Singapore move went | `environments/` the migration record |
+| What changed in a recent UI pass | `ux-and-motion/` the pass records |
+| The script for user acceptance testing | `uat/`, **incomplete**: no steps for Accounts, Contacts, Deals or Users |
 
 ## Folders
 
+Folder names carry no number. Numbering was dropped on 2026-09-14: after eight folders were deleted the sequence had gaps, and a number that has to be maintained is a number that goes wrong.
+
 | Folder | Holds |
 | :---- | :---- |
-| `03-plan/` | The improvement plan and its workstream table, the goals document, the parked and blocked register, and the `goal-armed/` brief for Goal 6 |
-| `05-reference/` | Reference material that stays true: the CI runbook |
-| `06-ux-and-motion/` | Records of each UI pass, written after the work. Three: requisitions, candidates, deals |
-| `07-environments/` | Local development, the cutover runbook, the Zoho and Singapore migration record |
-| `09-uat/` | The acceptance script. Written 2026-09-01 and not extended since; it must be brought up to the current 27 routes before Gate 5 |
+| `plan/` | The improvement plan and its workstream table, the goals document, the parked and blocked register, and the `goal-armed/` brief for Goal 6 |
+| `reference/` | Reference material that stays true: the CI runbook |
+| `ux-and-motion/` | Records of each UI pass, written after the work. Three: requisitions, candidates, deals |
+| `environments/` | Local development, the cutover runbook, the Zoho and Singapore migration record |
+| `uat/` | The acceptance script. Written 2026-09-01 and not extended since; it must be brought up to the current 27 routes before Gate 5 |
 
 ## What was removed on 2026-09-14, and why
 
@@ -41,11 +43,11 @@ Eight folders and 47 files were deleted in three passes. All of them are the wor
 
 | Removed | Reason |
 | :---- | :---- |
-| `03-plan/` workstream V and W goal documents | V is 13 of 13, W is 24 of 24 |
+| `plan/` workstream V and W goal documents | V is 13 of 13, W is 24 of 24 |
 | `03-plan/goal-armed/` briefs for goals 1 to 5 and 7 to 11 | Those goals are complete, so the brief can never usefully be armed again. `goal-6.md` and `_always.md` remain |
-| `05-reference/` Drive source index | The Drive pull finished on 2026-09-09 |
-| `06-ux-and-motion/` UX and Motion Discovery spec | Workstreams G and R are 10 of 10 and 8 of 8. Its survey was also 80 percent out: it counted 76 `.tsx` files, 13,792 lines and 7 stylesheets against 137, 24,819 and 21 today |
-| `01-current-state/` | Superseded. The inventory is now `05-reference/`, and the defect register is `tests/DEFECT_LOG.md` |
+| `reference/` Drive source index | The Drive pull finished on 2026-09-09 |
+| `ux-and-motion/` UX and Motion Discovery spec | Workstreams G and R are 10 of 10 and 8 of 8. Its survey was also 80 percent out: it counted 76 `.tsx` files, 13,792 lines and 7 stylesheets against 137, 24,819 and 21 today |
+| `01-current-state/` | Superseded. The inventory is now `reference/`, and the defect register is `tests/DEFECT_LOG.md` |
 | `02-taleo-fidelity/` | Workstream C is 17 of 17 |
 | `04-research/` | One-off research whose conclusions are absorbed into the plan |
 | `06-notes/` | A single session note, superseded by the second brain |

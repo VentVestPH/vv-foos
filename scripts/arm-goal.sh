@@ -2,7 +2,7 @@
 # Arms one goal for the reminder hook. Run this on every goal transition.
 set -e
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
-SRC="$ROOT/docs/03-plan/goal-armed"
+SRC="$ROOT/docs/plan/goal-armed"
 N="$1"
 
 if [ -z "$N" ]; then

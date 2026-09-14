@@ -317,7 +317,7 @@ The three `FAIL` lines are the design rule working, not a problem: **a check tha
 
 ## If Cloudflare: the port is done, and the first version of it would have broken the site
 
-`_headers` and `_redirects` are in `app/public/`, so `vite build` emits them into `app/dist/` with the rest of the output. **Corrected 2026-09-09:** they used to sit in `docs/07-environments/cloudflare/` and were never wired to the build, which meant the port existed on paper only. That directory is deleted. `_headers` was generated from `vercel.json`'s own JSON, and `vercel.json` is now deleted, so `app/public/_headers` is the only copy of the header set and the CSP.
+`_headers` and `_redirects` are in `app/public/`, so `vite build` emits them into `app/dist/` with the rest of the output. **Corrected 2026-09-09:** they used to sit in `docs/environments/cloudflare/` and were never wired to the build, which meant the port existed on paper only. That directory is deleted. `_headers` was generated from `vercel.json`'s own JSON, and `vercel.json` is now deleted, so `app/public/_headers` is the only copy of the header set and the CSP.
 
 **`_redirects` was wrong on 2026-09-07 and is now deliberately empty of rules.** The first version carried the obvious port, `/* /index.html 200`, and this section claimed "Cloudflare Pages serves an existing static file before consulting `_redirects`, so the exclusion is unnecessary". Cloudflare's own documentation says the opposite:
 
