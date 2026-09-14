@@ -506,7 +506,7 @@ test.describe('C: loading', () => {
     await signIn(page, PERSONA_EMAILS.admin);
     await page.route('**/rest/v1/people*', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      await route.continue();
+      await route.continue().catch(() => undefined);
     });
 
     const navigation = page.goto(`/recruit/candidates/${person}`);
