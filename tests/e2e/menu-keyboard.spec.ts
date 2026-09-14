@@ -45,7 +45,10 @@ test('C1: ArrowDown on the trigger opens the menu and lands on the first item', 
   await page.keyboard.press('ArrowDown');
   const menu = page.locator('.fo-action-menu');
   await expect(menu, 'ArrowDown must open the menu').toBeVisible();
-  await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  await expect(
+    menu.locator('[role="menuitem"]:not([disabled])').first(),
+    'focus lands on the first item a keyboard can actually activate, which is what useMenuKeyboard selects for',
+  ).toBeFocused();
 
   await page.keyboard.press('Tab');
   await expect(menu, 'Tab closes the menu').toHaveCount(0);

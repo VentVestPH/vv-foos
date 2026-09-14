@@ -217,7 +217,7 @@ test('A7: delete removes an unreferenced account and keeps one that still has re
 
   await dialog.getByRole('button', { name: /Delete 1 permanently|Delete permanently/ }).click();
   await expect(dialog).toHaveCount(0, { timeout: 25000 });
-  await expect(page.getByRole('status')).toContainText('1 account deleted.');
+  await expect(page.locator('.fo-bulk-notice')).toContainText('1 account deleted.');
 
   const admin = await clientAs('admin');
   const { data } = await admin.from('companies').select('id').like('name', `${TAG}%`);

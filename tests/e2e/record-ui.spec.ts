@@ -81,7 +81,7 @@ test.describe('Record and list UI criteria', () => {
         `${panel} must be offered as a tab`,
       ).toBeVisible();
     }
-    for (const quickAdd of ['+ Note', '+ Call', '+ Task', '+ Reminder']) {
+    for (const quickAdd of ['Note', 'Call', 'Task', 'Reminder']) {
       await expect(page.getByRole('button', { name: quickAdd, exact: true })).toBeVisible();
     }
   });

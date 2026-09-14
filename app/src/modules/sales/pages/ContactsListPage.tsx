@@ -359,10 +359,15 @@ export function ContactsListPage() {
       }
       bulkBarOpen={canBulk && selected.size > 0}
       bulkBar={
-        canBulk ? (
+        canBulk && selected.size > 0 ? (
           <div className="record-action-bar fo-list-action-bar">
             <Button
               disabled={selectedTargets.length === 0}
+              title={
+                selectedTargets.length === 0
+                  ? 'None of the selected contacts is still on the page.'
+                  : undefined
+              }
               onClick={() =>
                 window.open(
                   `mailto:${selectedTargets
@@ -380,6 +385,11 @@ export function ContactsListPage() {
             <Button
               variant="danger"
               disabled={selectedTargets.length === 0}
+              title={
+                selectedTargets.length === 0
+                  ? 'None of the selected contacts is still on the page.'
+                  : undefined
+              }
               onClick={() => setDeleting(selectedTargets)}
             >
               <Trash2 size={20} aria-hidden="true" />

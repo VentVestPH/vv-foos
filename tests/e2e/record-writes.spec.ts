@@ -195,7 +195,7 @@ test.describe('Record write paths (criteria 2.4, 2.5, 3.2)', () => {
     await expect(page).toHaveURL(/\/sales\/contacts\/[0-9a-f-]{36}/);
     const personId = page.url().split('/').pop()!;
 
-    await page.getByRole('button', { name: '+ Note', exact: true }).click();
+    await page.getByRole('button', { name: 'Note', exact: true }).click();
     const dialog = page.locator('[role="dialog"], .modal, .fo-modal').first();
     await expect(dialog).toBeVisible({ timeout: 20000 });
     await dialog.getByLabel(/^Subject/).fill(subject);

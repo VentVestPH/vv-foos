@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, gotoAsSignedIn, searchList, signIn } from './helpers';
 
 async function headers(page: import('@playwright/test').Page): Promise<string[]> {
   await expect(page.locator('main table tbody tr[data-row-key]').first()).toBeVisible({
@@ -17,12 +17,20 @@ test('batch 1: a column with no value on any visible row is not rendered', async
   await signIn(page, PERSONA_EMAILS.admin);
 
   await gotoAsSignedIn(page, '/sales/companies');
-  const companyHeaders = await headers(page);
-  expect(companyHeaders, 'Accounts should still render its populated columns').toContain('City');
+  await searchList(page, 'Search Accounts', 'Aster Analytics');
+  const withoutState = await headers(page);
+  expect(withoutState, 'Accounts should still render its populated columns').toContain('City');
   expect(
-    companyHeaders,
-    'State/Territory is empty on every visible row and must not take width',
+    withoutState,
+    'no visible row carries a state, so the column must not take width',
   ).not.toContain('State/Territory');
+
+  await searchList(page, 'Search Accounts', 'Meridian');
+  const withState = await headers(page);
+  expect(
+    withState,
+    'one visible row carries a state, so the column has to come back',
+  ).toContain('State/Territory');
 
   await gotoAsSignedIn(page, '/sales/contacts');
   const contactHeaders = await headers(page);

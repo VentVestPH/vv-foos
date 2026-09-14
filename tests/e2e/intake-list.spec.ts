@@ -489,7 +489,7 @@ test.describe('I: deleting intake items', () => {
     await expect(dialog).toContainText(doomed);
     await dialog.getByRole('button', { name: 'Delete permanently' }).click();
     await expect(dialog).toHaveCount(0, { timeout: 25000 });
-    await expect(page.getByRole('status')).toContainText('1 item deleted.');
+    await expect(page.locator('.fo-bulk-notice')).toContainText('1 item deleted.');
 
     const { data } = await admin
       .from('intake_items')
@@ -505,14 +505,14 @@ test.describe('I: deleting intake items', () => {
     const guarded = `${LEAD} Guarded`;
     const { error: seedErr } = await admin.from('intake_items').insert({
       channel: 'manual',
-      target_type: 'candidate',
+      target_type: 'contact',
       full_name: guarded,
       batch_label: BATCH,
       status: 'parsed',
     });
     expect(seedErr, 'the fixture for this test must insert').toBeNull();
 
-    await signIn(page, PERSONA_EMAILS.bd);
+    await signIn(page, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page, '/intake');
     const box = page.getByRole('searchbox', { name: 'Search Intake' });
     await box.fill(guarded);
@@ -530,11 +530,11 @@ test.describe('I: deleting intake items', () => {
     await expect(dialog).toHaveCount(0, { timeout: 25000 });
 
     await expect(
-      page.getByRole('status'),
-      'bd may only remove contact items, and the count has to say what was left behind',
+      page.locator('.fo-bulk-notice'),
+      'a recruiter may only remove candidate items, and the count has to say what was left behind',
     ).toContainText('left in place, because your role cannot remove them');
 
     const { data } = await admin.from('intake_items').select('id').eq('full_name', guarded);
-    expect((data ?? []).length, 'the candidate item survives a bd delete').toBe(1);
+    expect((data ?? []).length, 'the contact item survives a recruiter delete').toBe(1);
   });
 });
