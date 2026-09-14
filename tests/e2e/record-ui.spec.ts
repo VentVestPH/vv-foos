@@ -96,14 +96,14 @@ test.describe('Record and list UI criteria', () => {
   test('2.6 and 3.3 the deals board offers both kanban and table views over one dataset', async ({ page }) => {
     await gotoAsSignedIn(page, '/sales/deals');
 
-    await page.getByRole('button', { name: 'Table' }).click();
+    await page.getByRole('tab', { name: 'Table' }).click();
     await expect(page.locator('.table-wrap table')).toBeVisible({ timeout: 20000 });
     const rows = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))');
     await expect(rows.first()).toBeVisible({ timeout: 20000 });
     const tableRows = await rows.count();
     expect(tableRows).toBeGreaterThan(0);
 
-    await page.getByRole('button', { name: 'Kanban' }).click();
+    await page.getByRole('tab', { name: 'Kanban' }).click();
     await expect(page.locator('.table-wrap table')).toHaveCount(0, { timeout: 20000 });
 
     const cards = page.locator('.sales-kanban-card');

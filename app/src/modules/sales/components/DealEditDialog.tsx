@@ -9,6 +9,8 @@ import { CURRENCIES } from '../../../lib/format';
 import { DEAL_STAGES, type DealStage } from '../../../lib/database.types';
 import { stageLabel, type Deal } from '../lib';
 
+const CONTACT_OPTION_CAP = 500;
+
 const DEAL = 'Deal';
 const RELATIONSHIP = 'Relationship';
 const VALUE = 'Value and forecast';
@@ -54,7 +56,7 @@ export function DealEditDialog({
         .select('person_id, full_name, company_name')
         .order('last_name', { ascending: true })
         .order('person_id', { ascending: true })
-        .range(0, 499);
+        .range(0, CONTACT_OPTION_CAP - 1);
       if (!live) return;
       setContactOptions(
         (data ?? []).map((r) => ({

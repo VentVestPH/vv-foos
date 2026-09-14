@@ -36,7 +36,6 @@ export function DealRecordPage() {
 
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [dealActivityCount, setDealActivityCount] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [noticeClosing, setNoticeClosing] = useState(false);
 
@@ -49,11 +48,6 @@ export function DealRecordPage() {
       .maybeSingle();
     setDeal(data ?? null);
     setLoaded(true);
-    const { count } = await supabase
-      .from('activities')
-      .select('id', { count: 'exact', head: true })
-      .eq('deal_id', id);
-    setDealActivityCount(count ?? 0);
   }, [id]);
 
   useEffect(() => {
@@ -235,10 +229,7 @@ export function DealRecordPage() {
       )}
       {deleting && (
         <DealDeleteDialog
-          dealId={deal.id}
-          displayCode={deal.display_code}
-          name={deal.name}
-          activityCount={dealActivityCount}
+          targets={[{ id: deal.id, displayCode: deal.display_code, name: deal.name }]}
           onClose={() => setDeleting(false)}
           onDeleted={() => {
             setDeleting(false);

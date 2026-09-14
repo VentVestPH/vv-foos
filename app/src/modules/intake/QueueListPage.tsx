@@ -6,6 +6,7 @@ import { intakeSearchHints } from '../../lib/searchHints';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { ListPage } from '../../components/ui/ListPage';
+import { BulkBar } from '../../components/ui/BulkBar';
 import { Table, type TableColumn } from '../../components/ui/Table';
 import { Pager, usePagination } from '../../components/ui/Pager';
 import { SettingsButton } from '../../components/ui/SettingsButton';
@@ -262,7 +263,7 @@ export function QueueListPage() {
       }
       bulkBarOpen={selected.size > 0}
       bulkBar={
-        <div className="record-action-bar fo-list-action-bar">
+        <BulkBar count={selected.size}>
           <Button
             variant="danger"
             disabled={selectedItems.length === 0}
@@ -272,10 +273,7 @@ export function QueueListPage() {
             <Trash2 size={20} aria-hidden="true" />
             Delete
           </Button>
-          <span className="text-secondary fo-bulk-hint">
-            {selected.size > 0 ? `${selected.size} selected.` : ''}
-          </span>
-        </div>
+        </BulkBar>
       }
       toolbarActions={
         <label className="intake-showall-toggle">

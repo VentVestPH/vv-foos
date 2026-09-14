@@ -7,6 +7,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
+import { BulkBar } from '../../../components/ui/BulkBar';
 import { useListLink } from '../../../lib/listReturn';
 import { useSubmittedSearch } from '../../../lib/quickSearch';
 import { Table, type TableColumn } from '../../../components/ui/Table';
@@ -360,7 +361,7 @@ export function ContactsListPage() {
       bulkBarOpen={canBulk && selected.size > 0}
       bulkBar={
         canBulk ? (
-          <div className="record-action-bar fo-list-action-bar">
+          <BulkBar count={selected.size}>
             <Button
               disabled={selectedTargets.length === 0}
               title={selectedTargets.length === 0 ? 'Tick a contact to email it.' : undefined}
@@ -387,10 +388,7 @@ export function ContactsListPage() {
               <Trash2 size={20} aria-hidden="true" />
               Delete
             </Button>
-            <span className="text-secondary fo-bulk-hint">
-              {selected.size > 0 ? `${selected.size} selected.` : ''}
-            </span>
-          </div>
+          </BulkBar>
         ) : undefined
       }
       filterRail={

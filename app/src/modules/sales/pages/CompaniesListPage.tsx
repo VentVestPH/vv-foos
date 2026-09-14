@@ -9,6 +9,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
+import { BulkBar } from '../../../components/ui/BulkBar';
 import { FilterGroup } from '../../../components/ui/FilterGroup';
 import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialog';
 import { SettingsButton } from '../../../components/ui/SettingsButton';
@@ -369,7 +370,7 @@ export function CompaniesListPage() {
       bulkBarOpen={canBulk && selected.size > 0}
       bulkBar={
         canBulk ? (
-          <div className="record-action-bar fo-list-action-bar">
+          <BulkBar count={selected.size}>
             <Button
               variant="danger"
               disabled={selectedTargets.length === 0}
@@ -383,10 +384,7 @@ export function CompaniesListPage() {
               <Trash2 size={20} aria-hidden="true" />
               Delete
             </Button>
-            <span className="text-secondary fo-bulk-hint">
-              {selected.size > 0 ? `${selected.size} selected.` : ''}
-            </span>
-          </div>
+          </BulkBar>
         ) : undefined
       }
       filterRail={

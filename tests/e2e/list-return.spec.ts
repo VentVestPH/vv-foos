@@ -15,7 +15,7 @@ test('a sales record returns to the list it was opened from, filters and all', a
     const from = `${list}?probe=listreturn`;
     await gotoAsSignedIn(page, from);
     if (list === '/sales/deals') {
-      await page.getByRole('button', { name: 'Table' }).click();
+      await page.getByRole('tab', { name: 'Table' }).click();
     }
     const row = page.locator('.table-wrap tbody tr:not(:has(td[colspan]))').first();
     await expect(row).toBeVisible({ timeout: 25000 });

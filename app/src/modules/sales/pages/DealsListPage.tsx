@@ -8,6 +8,7 @@ import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { ListPage } from '../../../components/ui/ListPage';
+import { BulkBar } from '../../../components/ui/BulkBar';
 import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialog';
 import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { SegmentedToggle } from '../../../components/ui/SegmentedToggle';
@@ -22,10 +23,7 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import { LostReasonDialog } from '../components/LostReasonDialog';
-import {
-  DealsBulkDeleteDialog,
-  type DealDeleteTarget,
-} from '../components/DealsBulkDeleteDialog';
+import { DealDeleteDialog, type DealDeleteTarget } from '../components/DealDeleteDialog';
 import {
   Briefcase as BriefcaseIcon,
   Columns3 as KanbanIcon,
@@ -76,7 +74,7 @@ const COLUMN_HEADER: Record<string, string> = Object.fromEntries(
 );
 
 const STAGE_DEFS = DEAL_STAGES.map((s) => ({ key: s, header: stageLabel(s) }));
-const ALL_STAGE_KEYS: string[] = DEAL_STAGES.map((s) => s);
+const ALL_STAGE_KEYS: string[] = [...DEAL_STAGES];
 
 type DealListRow = Omit<Database['public']['Views']['deal_list']['Row'], 'search_text'>;
 
@@ -143,7 +141,7 @@ export function DealsListPage() {
   const visibleStages = useMemo(
     () => stageOrder.filter((key) => !hiddenStages.includes(key)),
     [stageOrder, hiddenStages],
-  );
+  ) as DealStage[];
 
   const applyDealFilters = useCallback(
     (q: DealQuery): DealQuery => {
@@ -165,20 +163,21 @@ export function DealsListPage() {
     setLoading(true);
     try {
       if (view === 'kanban') {
-        const next = new Map<string, { cards: DealListRow[]; total: number }>();
-        for (const stage of visibleStages) {
-          if (stageFilter && stage !== stageFilter) {
-            next.set(stage, { cards: [], total: 0 });
-            continue;
-          }
-          const { data, count, error } = await applyDealFilters(dealBaseQuery())
-            .eq('stage', stage as DealStage)
-            .order('updated_at', { ascending: false })
-            .order('id', { ascending: true })
-            .range(0, KANBAN_CARDS_PER_STAGE - 1);
-          if (error) throw new Error(error.message);
-          next.set(stage, { cards: data ?? [], total: count ?? 0 });
-        }
+        const columns = await Promise.all(
+          visibleStages.map(async (stage) => {
+            if (stageFilter && stage !== stageFilter) {
+              return [stage, { cards: [] as DealListRow[], total: 0 }] as const;
+            }
+            const { data, count, error } = await applyDealFilters(dealBaseQuery())
+              .eq('stage', stage)
+              .order('updated_at', { ascending: false })
+              .order('id', { ascending: true })
+              .range(0, KANBAN_CARDS_PER_STAGE - 1);
+            if (error) throw new Error(error.message);
+            return [stage, { cards: data ?? [], total: count ?? 0 }] as const;
+          }),
+        );
+        const next = new Map<string, { cards: DealListRow[]; total: number }>(columns);
         if (!isCurrent()) return;
         setBoard(next);
         setTotal([...next.values()].reduce((n, c) => n + c.total, 0));
@@ -554,7 +553,7 @@ export function DealsListPage() {
         bulkBarOpen={canBulk && view === 'table' && selected.size > 0}
         bulkBar={
           canBulk && view === 'table' ? (
-            <div className="record-action-bar fo-list-action-bar">
+            <BulkBar count={selected.size}>
               <Button
                 variant="danger"
                 disabled={selectedTargets.length === 0}
@@ -564,10 +563,7 @@ export function DealsListPage() {
                 <Trash2 size={20} aria-hidden="true" />
                 Delete
               </Button>
-              <span className="text-secondary fo-bulk-hint">
-                {selected.size > 0 ? `${selected.size} selected.` : ''}
-              </span>
-            </div>
+            </BulkBar>
           ) : undefined
         }
         filterRail={
@@ -621,7 +617,7 @@ export function DealsListPage() {
         {moveError && <div className="form-error" role="alert">{moveError}</div>}
         {view === 'kanban' ? (
           <KanbanBoard
-            stages={visibleStages.map((s) => ({ key: s, label: stageLabel(s as DealStage) }))}
+            stages={visibleStages.map((s) => ({ key: s, label: stageLabel(s) }))}
             cards={kanbanCards}
             onMove={onMove}
             columnExtras={columnExtras}
@@ -704,7 +700,7 @@ export function DealsListPage() {
           />
         )}
         {deleting && (
-          <DealsBulkDeleteDialog
+          <DealDeleteDialog
             targets={deleting}
             onClose={() => setDeleting(null)}
             onDeleted={(count) => {
