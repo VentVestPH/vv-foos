@@ -1,6 +1,6 @@
 import { RecordEditDialog } from './RecordEditDialog';
 import {
-  PERSON_EDIT_FIELDS,
+  personEditFields,
   personEditValues,
   savePerson,
   type EditablePerson,
@@ -16,11 +16,12 @@ export function PersonEditDialog({ person, onClose, onSaved }: PersonEditDialogP
   return (
     <RecordEditDialog
       title="Edit person details"
-      fields={PERSON_EDIT_FIELDS}
+      fields={personEditFields(person)}
       values={personEditValues(person)}
+      required={['first_name', 'last_name', 'email']}
       onClose={onClose}
       onSave={async (draft) => {
-        await savePerson(person, draft);
+        await savePerson(person, draft, 'candidate');
         onSaved();
       }}
       footNote="Only the first email and phone are edited here. Extra addresses and numbers carried in from an import are left untouched."

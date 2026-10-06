@@ -210,6 +210,27 @@ export async function dealSearchHints(term: string): Promise<SearchHintResult> {
   };
 }
 
+export async function ticketSearchHints(term: string, excludedTicketId?: string): Promise<SearchHintResult> {
+  let query = supabase
+    .from('ticket_list')
+    .select('id, display_code, subject, description_excerpt, status', { count: 'exact' })
+    .limit(HINT_LIMIT)
+    .order('display_code', { ascending: true });
+  if (excludedTicketId) query = query.neq('id', excludedTicketId);
+  for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+  const { data, count } = await query;
+
+  return {
+    hints: (data ?? []).map((ticket) => ({
+      key: `ticket:${ticket.id}`,
+      primary: `${ticket.display_code} · ${ticket.subject}`,
+      meta: [sentenceCase(ticket.status), ticket.description_excerpt].filter(Boolean).join(' · '),
+      href: `/sales/tickets/${ticket.id}`,
+    })),
+    total: count ?? 0,
+  };
+}
+
 export async function contactSearchHints(term: string): Promise<SearchHintResult> {
   let query = supabase
     .from('contact_list')

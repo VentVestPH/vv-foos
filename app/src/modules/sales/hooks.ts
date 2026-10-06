@@ -85,3 +85,43 @@ export function useCanEditCrm(): boolean {
   const role = useRole();
   return role === 'admin' || role === 'bd';
 }
+
+export interface ContactOption {
+  value: string;
+  label: string;
+  companyId: string | null;
+}
+
+let contactCache: ContactOption[] | null = null;
+
+export function useContactOptions() {
+  const [contacts, setContacts] = useState<ContactOption[]>(contactCache ?? []);
+
+  useEffect(() => {
+    if (contactCache) return;
+    let cancelled = false;
+    void fetchAllRows((f, t) =>
+      supabase
+        .from('contact_list')
+        .select('person_id, full_name, company_id, company_name')
+        .order('last_name')
+        .order('person_id')
+        .range(f, t),
+    ).then((rows) => {
+      if (cancelled) return;
+      contactCache = rows.map((row) => ({
+        value: row.person_id,
+        label: row.company_name
+          ? `${row.full_name ?? 'Unnamed'} · ${row.company_name}`
+          : (row.full_name ?? 'Unnamed'),
+        companyId: row.company_id,
+      }));
+      setContacts(contactCache);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return contacts;
+}

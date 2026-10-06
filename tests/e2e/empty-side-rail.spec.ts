@@ -11,6 +11,12 @@ test.beforeAll(async () => {
   const { data } = await admin.from('contact_list').select('person_id').order('person_id').limit(1);
   contactId = (data?.[0]?.person_id as string) ?? null;
   expect(contactId, 'a contact to inspect').toBeTruthy();
+  await admin
+    .from('activities')
+    .delete()
+    .like('subject', 'QA rail %')
+    .eq('body', 'written by the empty-rail test')
+    .lt('occurred_at', new Date(Date.now() - 10 * 60 * 1000).toISOString());
 });
 
 test.afterEach(async () => {

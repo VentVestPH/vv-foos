@@ -271,7 +271,12 @@ test.describe('Q: the candidate list header holds its own controls', () => {
       const firstRow = (
         await page.locator('.table-wrap tbody tr .link-btn').first().innerText()
       ).trim();
-      const term = firstRow.replace(/[^A-Za-z]/g, '').slice(0, 4);
+      const term = (
+        firstRow
+          .split(/\s+/)
+          .map((word) => word.replace(/[^A-Za-z]/g, ''))
+          .find((word) => word.length >= HINT_MIN_CHARS) ?? ''
+      ).slice(0, 4);
       expect(
         term.length,
         `${route}: the suggestion term is taken from a row the list is already showing, because a hardcoded one matches nothing on a freshly seeded database`,

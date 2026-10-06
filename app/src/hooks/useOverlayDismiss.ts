@@ -39,7 +39,7 @@ export function useOverlayDismiss(onClose: (() => void) | undefined) {
   useEffect(() => {
     if (!onClose) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') requestClose();
+      if (event.key === 'Escape' && !event.defaultPrevented) requestClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);

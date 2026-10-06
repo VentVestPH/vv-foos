@@ -185,7 +185,6 @@ export function CompanyRecordPage() {
     {
       key: 'name',
       header: 'Name',
-      sortable: true,
       sortValue: (r) => personName(r.person),
       render: (r) => (
         <span className="sales-badges">
@@ -219,8 +218,8 @@ export function CompanyRecordPage() {
   );
 
   const dealColumns: TableColumn<Deal>[] = [
-    { key: 'display_code', header: 'Code', sortable: true },
-    { key: 'name', header: 'Deal', sortable: true },
+    { key: 'display_code', header: 'Code' },
+    { key: 'name', header: 'Deal' },
     {
       key: 'stage',
       header: 'Stage',
@@ -229,7 +228,6 @@ export function CompanyRecordPage() {
     {
       key: 'value',
       header: 'Value',
-      sortable: true,
       sortValue: (d) => d.value ?? 0,
       render: (d) => fmtMoney(d.value, d.currency),
     },
@@ -322,6 +320,7 @@ export function CompanyRecordPage() {
         defaultOpen={opensOnLoad('Contacts')}
       >
         <Table
+          pageSize={10}
           busy={!loaded}
           columns={contactColumns}
           rows={contacts}
@@ -338,6 +337,7 @@ export function CompanyRecordPage() {
         defaultOpen={opensOnLoad('Open deals')}
       >
         <Table
+          pageSize={10}
           busy={!loaded}
           columns={dealColumns}
           rows={openDeals}
@@ -361,6 +361,7 @@ export function CompanyRecordPage() {
           defaultOpen={opensOnLoad('Requisitions')}
         >
           <Table
+            pageSize={10}
             columns={[
               { key: 'display_code', header: 'Code' },
               { key: 'title', header: 'Title' },

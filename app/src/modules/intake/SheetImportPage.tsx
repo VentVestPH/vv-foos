@@ -10,24 +10,66 @@ import { supabase } from '../../lib/supabase';
 import { downloadCsv } from '../../lib/csv';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { checkDedup } from './hooks';
+import { useRole } from '../../auth/SessionProvider';
+import { EMAIL_PATTERN, PHONE_PATTERN } from '../../lib/personValidation';
 
 const TEMPLATE_EXAMPLE: Record<string, string> = {
-  name: 'Marisol Reyes',
+  first_name: 'Marisol',
+  last_name: 'Reyes',
   headline: 'Staff Platform Engineer',
   email: 'marisol.reyes@example.com',
   phone: '+63 917 555 0142',
-  company: 'Northwind Logistics',
-  title: 'Staff Platform Engineer',
+  current_employer: 'Northwind Logistics',
+  current_title: 'Staff Platform Engineer',
+  country: 'Philippines',
+  requisition: 'REQ-000123',
+  candidate_status: 'Talent Pool',
+  tenure_note: '4 years in current role',
+  expected_salary: '120000',
+  current_salary: '100000',
+  salary_currency: 'PHP',
+  salary_flag: 'Flexible',
+  university: 'University of the Philippines',
+  bachelor_discipline: 'Computer Science',
+  education_year: '2018',
+  higher_degrees: '',
+  other_degrees: '',
+  experience_title: 'Staff Platform Engineer',
+  experience_employer: 'Northwind Logistics',
+  experience_start_date: '2022-01',
+  experience_end_date: 'Present',
+  experience_description: 'Platform engineering leadership',
   linkedin_url: 'https://www.linkedin.com/in/marisol-reyes',
 };
 
 const PARSED_FIELDS = [
-  { key: 'name', label: 'Name' },
+  { key: 'name', label: 'Full name' },
+  { key: 'first_name', label: 'First name' },
+  { key: 'last_name', label: 'Last name' },
   { key: 'headline', label: 'Headline' },
   { key: 'email', label: 'Email' },
   { key: 'phone', label: 'Phone' },
-  { key: 'company', label: 'Company' },
-  { key: 'title', label: 'Title' },
+  { key: 'current_employer', label: 'Current employer' },
+  { key: 'company', label: 'Company (contact import)' },
+  { key: 'current_title', label: 'Current title' },
+  { key: 'country', label: 'Country' },
+  { key: 'requisition', label: 'Requisition code' },
+  { key: 'candidate_status', label: 'Main status' },
+  { key: 'tenure_note', label: 'Tenure note' },
+  { key: 'expected_salary', label: 'Expected salary' },
+  { key: 'current_salary', label: 'Current salary' },
+  { key: 'salary_currency', label: 'Salary currency' },
+  { key: 'salary_flag', label: 'Salary flag' },
+  { key: 'university', label: 'University' },
+  { key: 'bachelor_discipline', label: 'Bachelor discipline' },
+  { key: 'education_year', label: 'Education year' },
+  { key: 'higher_degrees', label: 'Higher degrees' },
+  { key: 'other_degrees', label: 'Other degrees' },
+  { key: 'experience_title', label: 'Experience title' },
+  { key: 'experience_employer', label: 'Experience employer' },
+  { key: 'experience_start_date', label: 'Experience start date' },
+  { key: 'experience_end_date', label: 'Experience end date' },
+  { key: 'experience_description', label: 'Experience description' },
   { key: 'linkedin_url', label: 'LinkedIn URL' },
 ] as const;
 
@@ -47,6 +89,13 @@ interface MappingTemplate {
   target_type: 'candidate' | 'contact';
 }
 
+interface RequisitionOption {
+  id: string;
+  display_code: string;
+  title: string;
+  status: string;
+}
+
 function downloadTemplate(): void {
   downloadCsv(
     'intake-sheet-template.csv',
@@ -58,9 +107,11 @@ function downloadTemplate(): void {
 export function SheetImportPage() {
   useDocumentTitle('Intake: Sheet import');
   const navigate = useNavigate();
+  const role = useRole();
+  const canAssignRequisition = role === 'admin' || role === 'recruiter';
   const [step, setStep] = useState<Step>('url');
   const [url, setUrl] = useState('');
-  const [targetType, setTargetType] = useState<'candidate' | 'contact'>('contact');
+  const [targetType, setTargetType] = useState<'candidate' | 'contact'>('candidate');
   const [batchLabel, setBatchLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +119,8 @@ export function SheetImportPage() {
   const [fetched, setFetched] = useState<FetchResult | null>(null);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [templates, setTemplates] = useState<MappingTemplate[]>([]);
+  const [requisitions, setRequisitions] = useState<RequisitionOption[]>([]);
+  const [defaultRequisitionId, setDefaultRequisitionId] = useState('');
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [dedupFlags, setDedupFlags] = useState<Map<number, string>>(new Map());
   const [checkingDedup, setCheckingDedup] = useState(false);
@@ -81,6 +134,26 @@ export function SheetImportPage() {
       .order('created_at', { ascending: false })
       .then(({ data }) => setTemplates((data as MappingTemplate[]) ?? []));
   }, [targetType]);
+
+  useEffect(() => {
+    if (targetType !== 'candidate' || !canAssignRequisition) {
+      setRequisitions([]);
+      setDefaultRequisitionId('');
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from('requisition_list')
+      .select('id, display_code, title, status')
+      .in('status', ['open', 'waiting_approval', 'on_hold'])
+      .order('display_code', { ascending: true })
+      .then(({ data }) => {
+        if (!cancelled) setRequisitions((data as RequisitionOption[]) ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [targetType, canAssignRequisition]);
 
   async function doFetch() {
     if (!url.trim()) {
@@ -123,13 +196,49 @@ export function SheetImportPage() {
     if (tpl) setColumnMap(tpl.column_map);
   }
 
+  function requisitionForRow(row: Record<string, string>): RequisitionOption | undefined {
+    const code = columnMap.requisition ? row[columnMap.requisition]?.trim() : '';
+    if (code) return requisitions.find((req) => req.display_code.toLowerCase() === code.toLowerCase());
+    return requisitions.find((req) => req.id === defaultRequisitionId);
+  }
+
   async function goToPreview() {
     if (!fetched) return;
     const found: FieldError[] = [];
     if (!batchLabel.trim()) {
       found.push({ field: 'sheet-batch-label', message: 'A batch label is required.' });
     }
-    if (!columnMap.name && !columnMap.email) {
+    if (targetType === 'candidate') {
+      if ((!columnMap.name && !columnMap.first_name) || (!columnMap.name && !columnMap.last_name)) {
+        found.push({ message: 'Map first and last name columns, or map a full name column.' });
+      }
+      if (!columnMap.email) found.push({ message: 'Map an email column for candidate imports.' });
+      if (!canAssignRequisition && columnMap.requisition) {
+        found.push({ message: 'Only an admin or recruiter can attach candidates to a requisition.' });
+      }
+      if (columnMap.email) {
+        fetched.rows.forEach((row, index) => {
+          const name = columnMap.name ? row[columnMap.name]?.trim() ?? '' : '';
+          const names = name.split(/\s+/).filter(Boolean);
+          const first = (columnMap.first_name ? row[columnMap.first_name]?.trim() : '') || names[0] || '';
+          const last = (columnMap.last_name ? row[columnMap.last_name]?.trim() : '') || names.slice(1).join(' ');
+          const email = row[columnMap.email]?.trim() ?? '';
+          if (!first || !last) found.push({ message: `Row ${index + 2}: first and last name are required.` });
+          if (!EMAIL_PATTERN.test(email)) {
+            found.push({ message: `Row ${index + 2}: enter a valid email address.` });
+          }
+          const phoneColumn = columnMap.phone;
+          const phone = phoneColumn ? row[phoneColumn]?.trim() ?? '' : '';
+          if (phone && !PHONE_PATTERN.test(phone)) {
+            found.push({ message: `Row ${index + 2}: phone contains unsupported characters.` });
+          }
+          const requisitionCode = columnMap.requisition ? row[columnMap.requisition]?.trim() : '';
+          if (requisitionCode && !requisitionForRow(row)) {
+            found.push({ message: `Row ${index + 2}: requisition ${requisitionCode} is not available.` });
+          }
+        });
+      }
+    } else if (!columnMap.name && !columnMap.email) {
       found.push({ message: 'Map at least a name or email column before continuing.' });
     }
     setProblems(found);
@@ -162,6 +271,7 @@ export function SheetImportPage() {
         rows: fetched.rows,
         columnMap,
         targetType,
+        requisitionId: targetType === 'candidate' ? defaultRequisitionId || undefined : undefined,
         batchLabel: batchLabel.trim(),
         saveTemplate: saveTemplateName.trim()
           ? { name: saveTemplateName.trim(), sourceHint: fetched.suggestedTemplateHint }
@@ -216,7 +326,8 @@ export function SheetImportPage() {
                   <th>#</th>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Company</th>
+                  <th>Current employer</th>
+                  <th>Requisition</th>
                   <th>Dedup</th>
                 </tr>
               </thead>
@@ -224,9 +335,14 @@ export function SheetImportPage() {
                 {fetched.rows.map((row, i) => (
                   <tr key={i}>
                     <td>{i + 1}</td>
-                    <td>{columnMap.name ? row[columnMap.name] : ''}</td>
+                    <td>
+                      {columnMap.name
+                        ? row[columnMap.name]
+                        : [columnMap.first_name ? row[columnMap.first_name] : '', columnMap.last_name ? row[columnMap.last_name] : ''].filter(Boolean).join(' ')}
+                    </td>
                     <td>{columnMap.email ? row[columnMap.email] : ''}</td>
-                    <td>{columnMap.company ? row[columnMap.company] : ''}</td>
+                    <td>{columnMap.current_employer ? row[columnMap.current_employer] : columnMap.company ? row[columnMap.company] : ''}</td>
+                    <td>{requisitionForRow(row)?.display_code ?? ''}</td>
                     <td>
                       {dedupFlags.has(i) ? (
                         <span className="badge-tone badge-dup">matches {dedupFlags.get(i)}</span>
@@ -289,6 +405,19 @@ export function SheetImportPage() {
               { value: 'contact', label: 'Contact' },
             ]}
           />
+          {targetType === 'candidate' && canAssignRequisition && (
+            <Select
+              label="Add candidates to a requisition (optional)"
+              placeholder="Leave unassigned"
+              value={defaultRequisitionId}
+              onChange={(e) => setDefaultRequisitionId(e.target.value)}
+              options={requisitions.map((req) => ({
+                value: req.id,
+                label: `${req.display_code} · ${req.title}`,
+              }))}
+              emptyLabel="No open requisitions available"
+            />
+          )}
           <Input
             id="sheet-batch-label"
             label="Batch label"
@@ -299,7 +428,7 @@ export function SheetImportPage() {
             placeholder="Q3 partner list import"
           />
 
-          {PARSED_FIELDS.map((f) => (
+          {PARSED_FIELDS.filter((field) => field.key !== 'requisition' || canAssignRequisition).map((f) => (
             <Select
               key={f.key}
               label={f.label}

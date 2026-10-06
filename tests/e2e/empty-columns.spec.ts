@@ -18,6 +18,8 @@ test('batch 1: a column with no value on any visible row is not rendered', async
 
   await gotoAsSignedIn(page, '/sales/companies');
   await searchList(page, 'Search Accounts', 'Aster Analytics');
+  await expect(page.locator('main table tbody tr[data-row-key]')).toHaveCount(1, { timeout: 25000 });
+  await expect(page.locator('main table tbody tr[data-row-key]').first()).toContainText('Aster Analytics');
   const withoutState = await headers(page);
   expect(withoutState, 'Accounts should still render its populated columns').toContain('City');
   expect(
@@ -26,9 +28,9 @@ test('batch 1: a column with no value on any visible row is not rendered', async
   ).not.toContain('State/Territory');
 
   await searchList(page, 'Search Accounts', 'Meridian');
-  const withState = await headers(page);
+  await expect(page.locator('main table tbody tr[data-row-key]').first()).toContainText('Meridian', { timeout: 25000 });
   expect(
-    withState,
+    await headers(page),
     'one visible row carries a state, so the column has to come back',
   ).toContain('State/Territory');
 
@@ -38,19 +40,20 @@ test('batch 1: a column with no value on any visible row is not rendered', async
   expect(contactHeaders, 'Since is empty on every visible row').not.toContain('Since');
 });
 
-test('batch 1: an empty table still shows its headers, which is what users read', async ({
+test('tickets show populated sortable columns in table view', async ({
   page,
 }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, '/sales/tickets');
-  await expect(page.getByText(/No tickets/i)).toBeVisible({ timeout: 25000 });
+  await expect(page.getByText('Confirm interview panel availability')).toBeVisible({ timeout: 25000 });
   const ticketHeaders = await page.evaluate(() =>
     Array.from(document.querySelectorAll('main table thead th')).map((th) =>
       (th.textContent ?? '').replace(/\s+/g, ' ').trim(),
     ),
   );
-  expect(ticketHeaders, 'headers must survive an empty table').toContain('Subject');
+  expect(ticketHeaders, 'ticket list headers are present').toContain('Subject');
   expect(ticketHeaders.length).toBeGreaterThan(3);
+  await expect(page.locator('main table thead th .th-sort-btn')).toHaveCount(ticketHeaders.length);
 });
 
 test('batch 1: admin keeps the Company column, because admin can read company names', async ({

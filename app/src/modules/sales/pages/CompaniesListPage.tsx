@@ -38,13 +38,17 @@ const COMPANY_VIEW_COLUMNS =
   'id, name, types, website, city, state, country, phone, owner_id, owner_name, is_test, created_at, updated_at, location_text';
 
 const COMPANY_SORT_COLUMNS: Record<string, string> = {
+  id: 'id',
   name: 'name',
   website: 'website',
-  location: 'location_text',
+  city: 'city',
+  state: 'state',
   phone: 'phone',
+  location: 'location_text',
   owner: 'owner_name',
   updated_at: 'updated_at',
-  types: 'name',
+  types: 'types',
+  country: 'country',
 };
 
 const COLUMN_DEFS: { key: string; header: string }[] = [
@@ -186,7 +190,6 @@ export function CompaniesListPage() {
       name: {
         key: 'name',
         header: 'Account Name',
-        sortable: true,
         render: (c) => (
           <span className="sales-badges">
             <button
@@ -206,19 +209,16 @@ export function CompaniesListPage() {
       updated_at: {
         key: 'updated_at',
         header: 'Last Updated',
-        sortable: true,
         render: (c) => fmtDate(c.updated_at),
       },
       city: {
         key: 'city',
         header: 'City',
-        sortable: true,
         render: (c) => c.city ?? EMPTY_CELL,
       },
       state: {
         key: 'state',
         header: 'State/Territory',
-        sortable: true,
         hideWhenEmpty: true,
         render: (c) => c.state ?? EMPTY_CELL,
       },
@@ -248,7 +248,6 @@ export function CompaniesListPage() {
       owner: {
         key: 'owner',
         header: 'Owner',
-        sortable: true,
         sortValue: (c) => staffName(c.owner_id),
         render: (c) => staffName(c.owner_id),
       },

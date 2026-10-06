@@ -17,6 +17,7 @@ interface DialogProps {
   closeClass: string;
   closeLabel?: string;
   modalOnPanel?: boolean;
+  hideHeader?: boolean;
 }
 
 export function Dialog({
@@ -33,6 +34,7 @@ export function Dialog({
   closeClass,
   closeLabel = 'Close',
   modalOnPanel = false,
+  hideHeader = false,
 }: DialogProps) {
   const { closing, requestClose } = useOverlayDismiss(onClose);
   const panelRef = useFocusTrap<HTMLDivElement>(true);
@@ -57,7 +59,7 @@ export function Dialog({
         onClick={(e) => e.stopPropagation()}
         {...(modalOnPanel ? modal : {})}
       >
-        <div className={headClass}>
+        {!hideHeader && <div className={headClass}>
           <h2>{title}</h2>
           {onClose && (
             <button
@@ -70,7 +72,8 @@ export function Dialog({
               <CloseIcon size={24} aria-hidden="true" />
             </button>
           )}
-        </div>
+        </div>}
+        {hideHeader && onClose && <button type="button" className={`fo-dialog-close ${closeClass} fo-dialog-floating-close`} onClick={requestClose} aria-label={closeLabel} title={closeLabel}><CloseIcon size={24} aria-hidden="true" /></button>}
         <div className={bodyClass} ref={bodyRef}>
           {children}
         </div>

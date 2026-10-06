@@ -14,6 +14,7 @@
     "test": "npm run test --workspace=tests",
     "test:e2e": "npm run e2e --workspace=tests",
     "db:seed:personas": "node scripts/post-reset.mjs --personas-only",
+    "db:seed:tickets:local": "node scripts/seed-local-tickets.mjs",
     "db:add-staff": "node scripts/add-local-staff.mjs",
     "db:sync-test-accounts": "node scripts/sync-test-accounts.mjs",
     "check:env": "node scripts/check-env-target.mjs",

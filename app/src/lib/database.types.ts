@@ -38,6 +38,8 @@ export type DealStage =
   | 'lost';
 
 export type TicketStatus = 'new' | 'open' | 'pending' | 'resolved' | 'closed';
+export type EmployeeStatus = 'onboarding' | 'active' | 'offboarding' | 'inactive';
+export type CourseAssignmentStatus = 'assigned' | 'in_progress' | 'completed';
 
 export type IntakeChannel =
   | 'linkedin_url'
@@ -653,6 +655,8 @@ export interface Database {
           id: string;
           display_code: string;
           subject: string;
+          description: string | null;
+          tags: string[];
           company_id: string | null;
           person_id: string | null;
           status: TicketStatus;
@@ -665,6 +669,8 @@ export interface Database {
           id?: string;
           display_code?: string;
           subject: string;
+          description?: string | null;
+          tags?: string[];
           company_id?: string | null;
           person_id?: string | null;
           status?: TicketStatus;
@@ -674,6 +680,182 @@ export interface Database {
           assignee_id?: string | null;
         };
         Update: Partial<Database['public']['Tables']['tickets']['Insert']>;
+        Relationships: [];
+      };
+      ticket_comments: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          author_id: string;
+          body: string;
+          created_at: string;
+          edited_at: string | null;
+          edited_by: string | null;
+          deleted_at: string | null;
+          deleted_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          author_id: string;
+          body: string;
+          created_at?: string;
+          edited_at?: string | null;
+          edited_by?: string | null;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['ticket_comments']['Insert']>;
+        Relationships: [];
+      };
+      ticket_comment_images: {
+        Row: { comment_id: string; attachment_id: string };
+        Insert: { comment_id: string; attachment_id: string };
+        Update: Partial<Database['public']['Tables']['ticket_comment_images']['Insert']>;
+        Relationships: [];
+      };
+      ticket_history: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          actor_id: string | null;
+          event_type: string;
+          comment_id: string | null;
+          changes: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          actor_id?: string | null;
+          event_type: string;
+          comment_id?: string | null;
+          changes?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ticket_history']['Insert']>;
+        Relationships: [];
+      };
+      ticket_links: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          linked_ticket_id: string;
+          relationship: 'blocks' | 'relates_to';
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          linked_ticket_id: string;
+          relationship: 'blocks' | 'relates_to';
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ticket_links']['Insert']>;
+        Relationships: [];
+      };
+      employees: {
+        Row: {
+          id: string;
+          display_code: string;
+          person_id: string | null;
+          full_name: string;
+          email: string | null;
+          job_title: string | null;
+          department: string | null;
+          location: string | null;
+          start_date: string | null;
+          manager_id: string | null;
+          status: EmployeeStatus;
+          is_test: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          person_id?: string | null;
+          full_name: string;
+          email?: string | null;
+          job_title?: string | null;
+          department?: string | null;
+          location?: string | null;
+          start_date?: string | null;
+          manager_id?: string | null;
+          status?: EmployeeStatus;
+          is_test?: boolean;
+          created_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['employees']['Insert']>;
+        Relationships: [];
+      };
+
+      courses: {
+        Row: {
+          id: string;
+          display_code: string;
+          title: string;
+          description: string | null;
+          status: 'active' | 'archived';
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          status?: 'active' | 'archived';
+          created_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['courses']['Insert']>;
+        Relationships: [];
+      };
+
+      course_assignments: {
+        Row: {
+          id: string;
+          course_id: string;
+          employee_id: string;
+          status: CourseAssignmentStatus;
+          due_date: string | null;
+          completed_at: string | null;
+          assigned_by: string | null;
+          assigned_at: string;
+        };
+        Insert: {
+          id?: string;
+          course_id: string;
+          employee_id: string;
+          status?: CourseAssignmentStatus;
+          due_date?: string | null;
+          completed_at?: string | null;
+          assigned_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['course_assignments']['Insert']>;
+        Relationships: [];
+      };
+
+      ticket_external_links: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          url: string;
+          label: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          url: string;
+          label: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ticket_external_links']['Insert']>;
         Relationships: [];
       };
 
@@ -894,6 +1076,41 @@ export interface Database {
       };
     };
     Views: {
+      employee_list: {
+        Row: {
+          id: string;
+          display_code: string;
+          person_id: string | null;
+          full_name: string;
+          email: string | null;
+          job_title: string | null;
+          department: string | null;
+          location: string | null;
+          start_date: string | null;
+          status: EmployeeStatus;
+          manager_id: string | null;
+          manager_name: string | null;
+          updated_at: string;
+          course_count: number;
+          open_course_count: number;
+          search_text: string | null;
+        };
+        Relationships: [];
+      };
+      course_list: {
+        Row: {
+          id: string;
+          display_code: string;
+          title: string;
+          description: string | null;
+          status: 'active' | 'archived';
+          updated_at: string;
+          assigned_count: number;
+          completed_count: number;
+          search_text: string | null;
+        };
+        Relationships: [];
+      };
       ticket_list: {
         Row: {
           id: string;
@@ -909,6 +1126,7 @@ export interface Database {
           sla_due_at: string | null;
           resolved_at: string | null;
           search_text: string | null;
+          description_excerpt: string;
         };
         Relationships: [];
       };
@@ -1094,6 +1312,10 @@ export interface Database {
       reject_intake_item: {
         Args: { p_intake_id: string; p_reason: string };
         Returns: void;
+      };
+      remove_candidate_from_requisition: {
+        Args: { p_application_id: string };
+        Returns: Json;
       };
       get_my_google_status: {
         Args: Record<PropertyKey, never>;

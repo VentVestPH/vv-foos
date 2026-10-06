@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { isValidElement, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Inbox } from 'lucide-react';
 import { EMPTY_CELL } from '../../lib/format';
 import { EmptyState } from './EmptyState';
 import { Skeleton } from './Skeleton';
+import { Pager } from './Pager';
 
 export interface TableColumn<T> {
   key: string;
@@ -24,6 +25,7 @@ export interface TableColumn<T> {
 }
 
 interface TableProps<T> {
+  className?: string;
   columns: TableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
@@ -43,9 +45,18 @@ interface TableProps<T> {
   sortKey?: string | null;
   sortDir?: SortDir;
   onSortChange?: (key: string, dir: SortDir) => void;
+
+  pageSize?: number;
 }
 
 type SortDir = 'asc' | 'desc';
+
+function renderedText(value: ReactNode): string {
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map(renderedText).join(' ');
+  if (isValidElement<{ children?: ReactNode }>(value)) return renderedText(value.props.children);
+  return '';
+}
 
 export function CappedCell({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -67,6 +78,7 @@ export function CappedCell({ text }: { text: string }) {
 }
 
 export function Table<T>({
+  className,
   columns,
   rows,
   rowKey,
@@ -82,6 +94,7 @@ export function Table<T>({
   sortKey: controlledKey,
   sortDir: controlledDir,
   onSortChange,
+  pageSize,
 }: TableProps<T>) {
   const controlled = onSortChange !== undefined;
   const [internalKey, setInternalKey] = useState<string | null>(null);
@@ -118,10 +131,14 @@ export function Table<T>({
     if (!sortKey) return rows;
     const col = columns.find((c) => c.key === sortKey);
     if (!col) return rows;
-    const value = (row: T): string | number =>
-      col.sortValue
-        ? (col.sortValue(row) ?? '')
-        : String((row as Record<string, unknown>)[col.key] ?? '');
+    const value = (row: T): string | number => {
+      if (col.sortValue) return col.sortValue(row) ?? '';
+      const raw = (row as Record<string, unknown>)[col.key];
+      if (typeof raw === 'number') return raw;
+      if (typeof raw === 'string') return raw;
+      if (typeof raw === 'boolean') return raw ? 1 : 0;
+      return col.render ? renderedText(col.render(row)) : '';
+    };
     const dir = sortDir === 'asc' ? 1 : -1;
     return [...rows].sort((a, b) => {
       const va = value(a);
@@ -133,6 +150,19 @@ export function Table<T>({
     });
   }, [rows, columns, sortKey, sortDir, controlled]);
 
+  const [page, setPage] = useState(0);
+  const pageCount = pageSize ? Math.max(1, Math.ceil(sorted.length / pageSize)) : 1;
+  const currentPage = Math.min(page, pageCount - 1);
+
+  useEffect(() => {
+    setPage(0);
+  }, [sortKey, sortDir]);
+
+  const displayed = useMemo(
+    () => (pageSize ? sorted.slice(currentPage * pageSize, (currentPage + 1) * pageSize) : sorted),
+    [currentPage, pageSize, sorted],
+  );
+
   const toggleSort = (key: string) => {
     const nextDir: SortDir = sortKey === key && sortDir === 'asc' ? 'desc' : 'asc';
     if (controlled) {
@@ -143,9 +173,10 @@ export function Table<T>({
     setInternalDir(nextDir);
   };
 
-  const selectedOnPage = rows.filter((r) => sel.has(rowKey(r))).length;
-  const allSelected = rows.length > 0 && selectedOnPage === rows.length;
-  const someSelected = selectedOnPage > 0 && selectedOnPage < rows.length;
+  const selectableRows = pageSize ? displayed : rows;
+  const selectedOnPage = selectableRows.filter((r) => sel.has(rowKey(r))).length;
+  const allSelected = selectableRows.length > 0 && selectedOnPage === selectableRows.length;
+  const someSelected = selectedOnPage > 0 && selectedOnPage < selectableRows.length;
   const selectAllRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -153,10 +184,10 @@ export function Table<T>({
   }, [someSelected]);
 
   const toggleAll = () => {
-    setSelection(allSelected ? new Set() : new Set(rows.map(rowKey)));
+    setSelection(allSelected ? new Set() : new Set(selectableRows.map(rowKey)));
   };
 
-  const signature = `${sorted.length}:${sorted.length ? rowKey(sorted[0]) : ''}`;
+  const signature = `${displayed.length}:${displayed.length ? rowKey(displayed[0]) : ''}`;
   const lastSignature = useRef(signature);
   const [resultsPulse, setResultsPulse] = useState(0);
 
@@ -182,7 +213,7 @@ export function Table<T>({
     takeFocus.current = false;
     const rowEls = tbodyRef.current?.querySelectorAll<HTMLTableRowElement>('tr[data-row-key]');
     rowEls?.[Math.min(activeIndex, rowEls.length - 1)]?.focus();
-  }, [activeIndex, sorted]);
+  }, [activeIndex, displayed]);
 
   const goToRow = (index: number) => {
     takeFocus.current = true;
@@ -190,7 +221,7 @@ export function Table<T>({
   };
 
   const moveActive = (delta: number, from?: number) => {
-    const last = sorted.length - 1;
+    const last = displayed.length - 1;
     if (last < 0) return;
     const base = from ?? activeIndex;
     goToRow(base < 0 ? (delta > 0 ? 0 : last) : Math.min(last, Math.max(0, base + delta)));
@@ -210,7 +241,7 @@ export function Table<T>({
       goToRow(0);
     } else if (key === 'End') {
       event.preventDefault();
-      goToRow(sorted.length - 1);
+      goToRow(displayed.length - 1);
     } else if (key === 'Enter') {
       if (!onRowClick) return;
       event.preventDefault();
@@ -232,8 +263,8 @@ export function Table<T>({
     setSelection(next);
   };
 
-  return (
-    <div className="table-wrap">
+  const table = (
+    <div className={['table-wrap', className].filter(Boolean).join(' ')}>
       <table className={zebra ? 'table zebra' : 'table'} aria-busy={busy || undefined}>
         <thead>
           <tr>
@@ -246,17 +277,19 @@ export function Table<T>({
                   onChange={toggleAll}
                   aria-label={
                     someSelected
-                      ? `Select all rows, ${selectedOnPage} of ${rows.length} selected`
+                      ? `Select all rows, ${selectedOnPage} of ${selectableRows.length} selected`
                       : 'Select all rows'
                   }
                 />
               </th>
             )}
-            {visibleColumns.map((col) => (
+            {visibleColumns.map((col) => {
+              const sortable = col.sortable !== false;
+              return (
               <th
                 key={col.key}
                 className={
-                  [col.sortable ? 'sortable' : '', col.align === 'center' ? 'cell-center' : '']
+                  [sortable ? 'sortable' : '', col.align === 'center' ? 'cell-center' : '']
                     .filter(Boolean)
                     .join(' ') || undefined
                 }
@@ -276,7 +309,7 @@ export function Table<T>({
                     : undefined
                 }
               >
-                {col.sortable ? (
+                {sortable ? (
                   <button
                     type="button"
                     className="th-sort-btn"
@@ -296,11 +329,12 @@ export function Table<T>({
                   col.header
                 )}
               </th>
-            ))}
+              );
+            })}
           </tr>
         </thead>
         <tbody className={resultsClass} ref={tbodyRef}>
-          {sorted.length === 0 && (
+          {displayed.length === 0 && (
             <tr>
               <td
                 className="table-empty"
@@ -318,7 +352,7 @@ export function Table<T>({
               </td>
             </tr>
           )}
-          {sorted.map((row, index) => {
+          {displayed.map((row, index) => {
             const key = rowKey(row);
             return (
               <tr
@@ -374,6 +408,23 @@ export function Table<T>({
           })}
         </tbody>
       </table>
+    </div>
+  );
+
+  if (!pageSize) return table;
+  return (
+    <div className="fo-table-paged">
+      <div className="fo-list-toolbar">
+        <Pager
+          from={sorted.length === 0 ? 0 : currentPage * pageSize + 1}
+          to={Math.min(sorted.length, (currentPage + 1) * pageSize)}
+          total={sorted.length}
+          page={currentPage}
+          pageCount={pageCount}
+          onPage={setPage}
+        />
+      </div>
+      {table}
     </div>
   );
 }

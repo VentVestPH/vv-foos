@@ -203,6 +203,1304 @@
   padding-top: var(--sp-1);
 }
 
+.sales-deals-board,
+.sales-ticket-board {
+  min-width: 0;
+  padding-inline: 0 var(--section-pad);
+}
+
+.sales-ticket-view-toggle {
+  box-sizing: border-box;
+  height: var(--control-h);
+  background: var(--fo-surface);
+}
+
+.fo-dialog-panel.sales-ticket-dialog {
+  position: relative;
+  width: min(1440px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+}
+
+.fo-dialog-panel.sales-ticket-create-dialog {
+  height: min(860px, calc(100vh - 32px));
+}
+
+.fo-dialog-panel.sales-ticket-create-dialog .fo-dialog-body {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.fo-dialog-panel.sales-ticket-dialog .fo-dialog-head {
+  background: var(--fo-row-hover);
+  color: var(--fo-text-secondary);
+  border-top: 3px solid var(--fo-primary);
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.fo-dialog-panel.sales-ticket-dialog .fo-dialog-head h2 {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fo-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-dialog-panel.sales-ticket-dialog .fo-dialog-x {
+  flex: 0 0 auto;
+  color: var(--fo-icon);
+}
+
+.sales-ticket-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-ticket-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  grid-template-areas: "main fields";
+  align-items: start;
+  gap: var(--sp-4);
+}
+
+.sales-ticket-editor-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: 0;
+}
+
+.sales-ticket-editor-main > .field:first-child input {
+  min-height: 42px;
+  font-size: var(--fs-section);
+  font-weight: 600;
+}
+
+.sales-ticket-sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  background: color-mix(in srgb, var(--surface) 94%, var(--fo-link));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.sales-ticket-sidebar-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-quarter);
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.sales-ticket-sidebar-title > span:first-child {
+  color: var(--text);
+  font-size: var(--fs-meta);
+  font-weight: 700;
+  letter-spacing: .07em;
+}
+
+.sales-ticket-sidebar-title > span:last-child {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+}
+
+.sales-ticket-create-sidebar {
+  grid-area: fields;
+  position: sticky;
+  top: 24px;
+}
+
+.sales-ticket-create-sidebar .field {
+  min-width: 0;
+}
+
+.sales-ticket-create-sidebar .field-label {
+  margin-bottom: var(--sp-half);
+}
+
+.sales-ticket-due-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 126px;
+  align-items: start;
+  gap: var(--sp-half);
+}
+
+.sales-ticket-date-field .date-field-row {
+  min-width: 0;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.sales-ticket-workitem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  grid-template-areas: "content sidebar" "save save";
+  gap: var(--sp-4);
+}
+
+.sales-ticket-content {
+  grid-area: content;
+  min-width: 0;
+  padding: 0;
+}
+
+.sales-ticket-save-row {
+  grid-area: save;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--fo-border);
+}
+
+.sales-ticket-time-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@keyframes sales-ticket-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sales-ticket-save-row,
+.sales-ticket-edit-form,
+.sales-ticket-read-field > .field,
+.sales-ticket-inline-due,
+.sales-ticket-link-composer,
+.sales-ticket-comment-edit,
+.sales-ticket-image-drafts,
+.sales-ticket-pending-files {
+  animation: sales-ticket-reveal var(--motion-quick) var(--ease-out) both;
+}
+
+.sales-ticket-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.sales-ticket-description-body {
+  box-sizing: border-box;
+  padding: var(--sp-2);
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+
+.sales-ticket-workitem-title,
+.sales-ticket-description-body,
+.sales-ticket-read-field[data-ticket-sidebar-field] {
+  border-radius: var(--radius);
+  transition: background-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out);
+}
+
+.sales-ticket-workitem-title:hover,
+.sales-ticket-description-body:hover,
+.sales-ticket-read-field[data-ticket-sidebar-field]:hover {
+  background-color: var(--fo-row-hover);
+}
+
+.sales-ticket-description-body > :first-child {
+  margin-top: 0;
+}
+
+.sales-ticket-description-body > :last-child {
+  margin-bottom: 0;
+}
+
+.sales-ticket-description-body img {
+  display: block;
+  max-width: min(100%, 760px);
+  max-height: 520px;
+  object-fit: contain;
+  margin: var(--sp-1) 0;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sales-ticket-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  margin-top: var(--sp-2);
+}
+
+.sales-ticket-file-list h3 {
+  margin: 0;
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-meta);
+  font-weight: 600;
+}
+
+.sales-ticket-file-list a {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--sp-half) var(--sp-4) var(--sp-half) var(--sp-1);
+  color: var(--fo-link);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+
+.sales-ticket-file-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.sales-ticket-file-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--fo-text-secondary);
+  background: var(--fo-surface);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.sales-ticket-file-delete:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--fo-row-hover);
+}
+
+.sales-ticket-file-delete:disabled {
+  opacity: .55;
+  cursor: progress;
+}
+
+.sales-ticket-activity-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-quarter);
+  padding: var(--sp-quarter) 0;
+  color: var(--fo-text-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.sales-ticket-activity-delete:hover {
+  color: var(--danger);
+}
+
+.sales-ticket-file-list a span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-file-list small,
+.sales-ticket-comment-edited {
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-xs);
+}
+
+.sales-ticket-workitem-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-page-title);
+  line-height: 1.2;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-title-input {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: var(--sp-half) var(--sp-1);
+  color: var(--fo-text);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  outline: 0;
+  font: inherit;
+  font-size: var(--fs-page-title);
+  font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-description-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  margin-bottom: var(--sp-1-5);
+  color: var(--fo-text);
+  font-size: var(--fs-section);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sales-ticket-description-label svg {
+  display: block;
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+}
+
+.sales-ticket-detail-skeleton .sales-ticket-skeleton-title .skeleton {
+  padding: 0;
+}
+
+.sales-ticket-detail-skeleton .sales-ticket-skeleton-title .skeleton-row {
+  width: min(68%, 560px);
+  height: var(--fs-page-title);
+  margin: 0 0 var(--sp-3);
+}
+
+.sales-ticket-skeleton-label {
+  display: block;
+  width: 112px;
+  height: 19px;
+  margin-bottom: var(--sp-1);
+}
+
+.sales-ticket-skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.sales-ticket-skeleton-lines .skeleton-row {
+  width: 100%;
+  height: 14px;
+  margin: 0;
+}
+
+.sales-ticket-skeleton-lines .skeleton-row:last-child {
+  width: 72%;
+}
+
+.sales-ticket-skeleton-comment-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.sales-ticket-skeleton-comment-heading .skeleton-row {
+  width: 190px;
+  height: 22px;
+  margin: 0;
+}
+
+.sales-ticket-skeleton-comment-heading .skeleton-row:last-child {
+  width: 24px;
+}
+
+.sales-ticket-skeleton-comment-box {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.sales-ticket-skeleton-comment-box .skeleton-row {
+  height: 14px;
+  margin: 0;
+}
+
+.sales-ticket-skeleton-comment-box .skeleton-row:first-child {
+  width: 35%;
+}
+
+.sales-ticket-skeleton-comment-box .skeleton-row:last-child {
+  width: 100%;
+  height: 58px;
+}
+
+.sales-ticket-detail-skeleton .sales-ticket-sidebar-title {
+  align-items: flex-start;
+}
+
+.sales-ticket-skeleton-code {
+  width: 92px;
+  height: 14px;
+  margin: 0;
+}
+
+.sales-ticket-skeleton-value {
+  width: 118px;
+  height: 16px;
+  margin: 0;
+}
+
+.sales-ticket-read-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+
+.sales-ticket-workitem > .sales-ticket-sidebar {
+  grid-area: sidebar;
+  align-self: start;
+  gap: var(--sp-2);
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - var(--sp-4));
+  overflow-y: auto;
+}
+
+.sales-ticket-read-field > span {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+}
+
+.sales-ticket-read-field > strong,
+.sales-ticket-read-field > .sales-ticket-field-value {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-h);
+  min-width: 0;
+  font-weight: 600;
+  text-transform: capitalize;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-read-field[data-ticket-sidebar-field] {
+  cursor: pointer;
+}
+
+.sales-ticket-field-value {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sales-ticket-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-1);
+}
+
+.sales-ticket-title-row > .sales-ticket-workitem-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.sales-ticket-description-label > .fo-icon-btn {
+  margin-left: auto;
+}
+
+.sales-ticket-read-field[data-ticket-sidebar-field] > .field,
+.sales-ticket-read-field[data-ticket-sidebar-field] > .sales-ticket-inline-due {
+  width: 100%;
+  min-width: 0;
+}
+
+.sales-ticket-read-field[data-ticket-sidebar-field] > .field {
+  gap: 0;
+  margin: 0;
+}
+
+.sales-ticket-inline-due {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-half);
+}
+
+.sales-ticket-inline-due .field {
+  gap: 0;
+}
+
+.sales-ticket-inline-due .field-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.sales-ticket-status {
+  align-self: flex-start;
+  padding: var(--sp-half) var(--cell-pad);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+}
+
+.sales-ticket-comments {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+
+.sales-ticket-activity {
+  margin-top: var(--sp-3);
+}
+
+.sales-ticket-activity-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-2);
+}
+
+.sales-ticket-activity-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  margin: 0;
+  font-size: var(--fs-section);
+  font-weight: 650;
+}
+
+.sales-ticket-activity-heading h2 span {
+  margin-left: auto;
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-meta);
+  font-weight: 400;
+}
+
+.sales-ticket-activity-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-half);
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.sales-ticket-activity-tabs button {
+  min-height: 34px;
+  padding: 0 var(--sp-1);
+  color: var(--fo-text-secondary);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font: inherit;
+  font-size: var(--fs-meta);
+  cursor: pointer;
+}
+
+.sales-ticket-activity-tabs button[aria-selected='true'] {
+  color: var(--fo-primary);
+  border-bottom-color: var(--fo-primary);
+  font-weight: 650;
+}
+
+.sales-ticket-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+}
+
+.sales-ticket-history-item {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: var(--sp-1);
+  align-items: start;
+}
+
+.sales-ticket-history-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: var(--sp-tight);
+  background: var(--fo-primary);
+  border: 2px solid var(--fo-row-hover);
+  border-radius: 50%;
+}
+
+.sales-ticket-history-item header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-1);
+  font-size: var(--fs-meta);
+}
+
+.sales-ticket-history-item time {
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-xs);
+}
+
+.sales-ticket-history-item p {
+  margin: var(--sp-half) 0 0;
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-meta);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-tab-skeleton {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+}
+
+.sales-ticket-tab-skeleton > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-half);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--fo-row-hover);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+}
+
+.sales-ticket-tab-skeleton[data-tab='comments'] > div {
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+}
+
+.sales-ticket-tab-skeleton[data-tab='comments'] > div::before {
+  content: '';
+  grid-row: span 3;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--fo-surface);
+  animation: skeleton-sweep var(--motion-skeleton) linear infinite;
+}
+
+.sales-ticket-tab-skeleton[data-tab='links'] > div {
+  grid-template-columns: minmax(110px, .32fr) minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.sales-ticket-tab-skeleton span {
+  display: block;
+  width: min(100%, 680px);
+  height: 14px;
+  background: linear-gradient(90deg, var(--fo-row-hover), var(--fo-surface), var(--fo-row-hover));
+  background-size: 200% 100%;
+  border-radius: var(--radius-pill);
+  animation: skeleton-sweep var(--motion-skeleton) linear infinite;
+}
+
+.sales-ticket-tab-skeleton span:nth-child(2) { width: min(88%, 590px); }
+.sales-ticket-tab-skeleton span:nth-child(3) { width: min(64%, 430px); }
+
+.sales-ticket-comments > h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  margin: 0 0 var(--sp-2);
+  color: var(--text);
+  font-size: var(--fs-section);
+  font-weight: 650;
+}
+
+.sales-ticket-comments > h2 span {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  font-weight: 400;
+}
+
+.sales-ticket-comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sales-ticket-comment-list li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--sp-1);
+}
+
+.sales-ticket-comment-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--fo-link);
+  background: var(--section-tint);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-meta);
+  font-weight: 700;
+}
+
+.sales-ticket-comment-list li > div {
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--fo-row-hover);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+}
+
+.sales-ticket-comment-body {
+  min-width: 0;
+}
+
+.sales-ticket-comment-actions {
+  display: inline-flex;
+  gap: var(--sp-half);
+  margin-left: auto;
+}
+
+.sales-ticket-comment-actions button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--fo-icon);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.sales-ticket-comment-actions button:hover {
+  color: var(--fo-primary);
+  background: var(--fo-row-hover);
+}
+
+.sales-ticket-comment-tombstone {
+  color: var(--fo-text-secondary);
+  font-style: italic;
+}
+
+.sales-ticket-comment-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+}
+
+.sales-ticket-comment-edit textarea {
+  flex: 1 0 100%;
+}
+
+.sales-ticket-comment-actions-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.sales-ticket-comment-actions-row > :is(button, .sales-ticket-file-button) {
+  min-height: 34px;
+  box-sizing: border-box;
+}
+
+.sales-ticket-related-work {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+}
+
+.sales-ticket-add-link {
+  display: contents;
+}
+
+.sales-ticket-external-link-form > .input:first-child {
+  width: 0;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.sales-ticket-related-work .field {
+  min-width: 0;
+}
+
+.sales-ticket-relationship-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.sales-ticket-link-search .fo-search-row,
+.sales-ticket-link-search .fo-search-input-wrap,
+.sales-ticket-link-search .input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.sales-ticket-link-search {
+  width: 100%;
+  min-width: 0;
+}
+
+.sales-ticket-link-search:has([aria-expanded='true']) {
+  z-index: var(--z-field-layer);
+}
+
+.sales-ticket-comment-list header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-1);
+  font-size: var(--fs-meta);
+}
+
+.sales-ticket-comment-list time {
+  color: var(--text-secondary);
+}
+
+.sales-ticket-comment-list p {
+  margin: var(--sp-half) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-comment-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+  padding: var(--sp-1) 0;
+}
+
+.sales-ticket-comment-form textarea,
+.sales-ticket-create-comments textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.sales-ticket-comment-editor {
+  width: 100%;
+  min-height: 116px;
+  max-height: 420px;
+  overflow: auto;
+  box-sizing: border-box;
+  resize: vertical;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-comment-editor:empty::before {
+  color: var(--fo-text-secondary);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.sales-ticket-comment-editor img {
+  display: block;
+  max-width: min(100%, 640px);
+  max-height: 360px;
+  margin: var(--sp-1) 0;
+  object-fit: contain;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sales-ticket-pending-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-half);
+}
+
+.sales-ticket-pending-files > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-half);
+  max-width: 100%;
+  padding: var(--sp-quarter) var(--sp-half);
+  color: var(--fo-text-secondary);
+  background: var(--fo-row-hover);
+  border-radius: var(--radius);
+  font-size: var(--fs-meta);
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-pending-files img {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.sales-ticket-pending-files button {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--fo-icon);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.sales-ticket-comment-file {
+  display: inline-flex;
+  margin: var(--sp-half) var(--sp-half) 0 0;
+  padding: var(--sp-half) var(--sp-1);
+  color: var(--fo-link);
+  background: var(--fo-row-hover);
+  border-radius: var(--radius);
+  overflow-wrap: anywhere;
+  font-size: var(--fs-meta);
+}
+
+.sales-ticket-rich-content {
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+
+.sales-ticket-rich-content > :first-child { margin-top: 0; }
+.sales-ticket-rich-content > :last-child { margin-bottom: 0; }
+.sales-ticket-rich-content img {
+  display: block;
+  max-width: min(100%, 640px);
+  max-height: 360px;
+  object-fit: contain;
+  resize: both;
+  overflow: auto;
+  border-radius: var(--radius);
+}
+
+.sales-ticket-create-comments {
+  margin-top: var(--sp-2);
+}
+
+.sales-ticket-description-input {
+  min-height: 120px;
+  margin: 0;
+  padding: var(--sp-2);
+  color: var(--fo-text);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  outline: 0;
+  resize: none;
+  font-size: var(--fs-body);
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.sales-ticket-description-input[contenteditable='true'] {
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-description-input[contenteditable='true']:empty::before {
+  color: var(--fo-text-secondary);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.sales-ticket-description-input[contenteditable='true'] img {
+  display: block;
+  max-width: min(100%, 640px);
+  max-height: 360px;
+  margin: var(--sp-1) 0;
+  object-fit: contain;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sales-ticket-description-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-quarter);
+  min-height: 38px;
+  padding: 0 var(--sp-half);
+  border: 1px solid var(--fo-border);
+  border-bottom: 1px solid var(--fo-border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--fo-row-hover);
+}
+
+.sales-ticket-description-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  box-sizing: border-box;
+  color: var(--fo-text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.sales-ticket-description-tool:hover,
+.sales-ticket-description-tool:focus-visible {
+  color: var(--fo-primary);
+  background: var(--surface);
+}
+
+.sales-ticket-description-tools + .sales-ticket-description-input {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.sales-ticket-description-input + .sales-ticket-description-tools {
+  min-height: 34px;
+  margin-top: 0;
+  padding: 0 var(--sp-half);
+  background: var(--fo-row-hover);
+  border: 1px solid var(--fo-border);
+  border-top: 1px solid var(--fo-border);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.sales-ticket-description-tools .sales-ticket-file-button {
+  position: relative;
+  align-self: center;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  color: var(--fo-text-secondary);
+}
+
+.sales-ticket-description-tools .sales-ticket-file-button:hover,
+.sales-ticket-description-tools .sales-ticket-file-button:focus-within {
+  color: var(--fo-primary);
+  background: var(--surface);
+}
+
+.sales-ticket-description-tools .sales-ticket-file-button input {
+  position: absolute;
+}
+
+.sales-ticket-link-composer {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.5fr) auto;
+  align-items: end;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+}
+
+.sales-ticket-link-composer-actions {
+  display: flex;
+  gap: var(--sp-half);
+}
+
+.sales-ticket-link-composer .field-error-text {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.sales-ticket-all-comment {
+  margin-top: var(--sp-half);
+  padding: var(--sp-half) var(--sp-1);
+  color: var(--fo-text);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+}
+
+.sales-ticket-all-comment p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-file-thumb {
+  width: 42px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+.sales-ticket-file-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--sp-half);
+  padding: var(--sp-half) var(--sp-1);
+  color: var(--fo-link);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.sales-ticket-file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.sales-ticket-image-drafts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.sales-ticket-image-drafts figure {
+  position: relative;
+  width: 116px;
+  margin: 0;
+  padding: var(--sp-half);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sales-ticket-image-drafts img {
+  display: block;
+  width: 100%;
+  height: 84px;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+.sales-ticket-image-resize-handle {
+  position: fixed;
+  z-index: var(--z-field-layer);
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--fo-link);
+  box-shadow: var(--shadow-raised);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.sales-ticket-image-resize-handle:hover {
+  background: var(--fo-link-hover);
+}
+
+.sales-ticket-image-drafts figcaption {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-meta);
+}
+
+.sales-ticket-image-drafts figure button {
+  position: absolute;
+  top: var(--sp-half);
+  right: var(--sp-half);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.sales-ticket-description h3 {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  margin: 0;
+}
+
+.sales-ticket-description p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sales-ticket-saved-note {
+  margin: 0;
+  padding: var(--sp-1);
+  border-left: 3px solid var(--fo-link);
+  background: var(--section-tint);
+}
+
+@keyframes ticket-picker-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 820px) {
+  .fo-dialog-panel.sales-ticket-dialog {
+    width: min(980px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+
+  .fo-dialog-panel.sales-ticket-create-dialog {
+    height: calc(100vh - 24px);
+  }
+
+  .sales-ticket-editor-layout {
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: var(--sp-2);
+  }
+
+  .sales-ticket-workitem {
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: var(--sp-2);
+  }
+}
+
+@media (max-width: 520px) {
+  .sales-ticket-editor-layout,
+  .sales-ticket-workitem {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "main" "fields";
+  }
+
+  .sales-ticket-workitem {
+    grid-template-areas: "content" "sidebar" "save";
+  }
+
+  .sales-ticket-link-composer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sales-ticket-add-link {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sales-ticket-external-link-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.contacts-table .table th:not(.sortable),
+.contacts-table .table td {
+  padding-inline: var(--section-pad);
+}
+
+.contacts-table .table th.sortable .th-sort-btn {
+  padding-inline: var(--section-pad);
+}
+
 .sales-record-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

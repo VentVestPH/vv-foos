@@ -29,9 +29,9 @@ const UsersPage = lazy(() =>
   import('./pages/UsersPage').then((m) => ({ default: m.UsersPage })),
 );
 
-const ModulePlaceholderRoutes = lazy(() =>
-  import('./pages/ModulePlaceholderPage').then((m) => ({
-    default: m.ModulePlaceholderRoutes,
+const WorkforceRoutes = lazy(() =>
+  import('./pages/WorkforcePage').then((m) => ({
+    default: m.WorkforceRoutes,
   })),
 );
 
@@ -118,7 +118,7 @@ export default function App() {
                 path="employees/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer', 'bd']}>
-                    <Lazy><ModulePlaceholderRoutes module="employees" /></Lazy>
+                    <Lazy><WorkforceRoutes module="employees" /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -126,7 +126,7 @@ export default function App() {
                 path="onboard/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer', 'bd']}>
-                    <Lazy><ModulePlaceholderRoutes module="onboard" /></Lazy>
+                    <Lazy><WorkforceRoutes module="onboard" /></Lazy>
                   </RequireAuth>
                 }
               />
@@ -142,7 +142,7 @@ export default function App() {
                 path="courses/*"
                 element={
                   <RequireAuth roles={['admin', 'recruiter', 'sourcer', 'bd']}>
-                    <Lazy><ModulePlaceholderRoutes module="courses" /></Lazy>
+                    <Lazy><WorkforceRoutes module="courses" /></Lazy>
                   </RequireAuth>
                 }
               />

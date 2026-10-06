@@ -12,6 +12,7 @@ import { useSectionPrefs } from '../../../hooks/useSectionPrefs';
 const CAND_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
   'Requisition Summary': false,
   'Candidate Information': true,
+  'More Details': false,
   'Main Status Details': true,
   'Resume and Cover Letter': true,
   Resumes: false,
@@ -74,6 +75,7 @@ import { CandidateMergeDialog } from './CandidateMergeDialog';
 import { CandidateSubmitDialog } from './CandidateSubmitDialog';
 import { usePrintRecord } from '../../../hooks/usePrintRecord';
 import { CandidateOutreachDialogs } from './CandidateOutreachDialogs';
+import { ConfirmDeleteDialog } from '../../../components/ui/ConfirmDeleteDialog';
 import { useCandidateOutreach } from './useCandidateOutreach';
 import { toDraft, useCandidateProfileDraft } from './useCandidateProfileDraft';
 
@@ -113,6 +115,7 @@ export function CandidateRecordPage() {
 
   const [merging, setMerging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [removingApplication, setRemovingApplication] = useState<Application | null>(null);
   const printProfile = usePrintRecord();
   const [erasing, setErasing] = useState(false);
   const [editingPerson, setEditingPerson] = useState(false);
@@ -132,6 +135,16 @@ export function CandidateRecordPage() {
   }, [profile, reload]);
   const { draft, setDraft, canEditProfile, canGrade, saved, saveProfile } =
     useCandidateProfileDraft({ profile, role, staff, mobile, onSaved: reload, onError: setError });
+
+  const removeFromRequisition = async () => {
+    if (!removingApplication) return;
+    const { error: removeError } = await supabase.rpc('remove_candidate_from_requisition', {
+      p_application_id: removingApplication.id,
+    });
+    if (removeError) throw new Error(removeError.message);
+    setRemovingApplication(null);
+    await reload();
+  };
 
   const load = useCallback(async () => {
     try {
@@ -330,7 +343,7 @@ export function CandidateRecordPage() {
       title: 'Print this record as a candidate profile',
     },
     {
-      label: 'Submit',
+      label: 'Add to requisition',
       onSelect: () => setSubmitting(true),
       disabled: !canEditProfile,
       title: canEditProfile
@@ -458,6 +471,11 @@ export function CandidateRecordPage() {
       {error && <p className="form-error" role="alert">{error}</p>}
 
       <RecordSection title="Requisition Summary" id="requisition-summary" hidden={prefs.isHidden("Requisition Summary")} defaultOpen={opensOnLoad("Requisition Summary")}>
+        {canEditProfile && (
+          <Button size="sm" variant="secondary" onClick={() => setSubmitting(true)}>
+            Add to requisition
+          </Button>
+        )}
         {apps.length === 0 && (
           <EmptyState
             compact
@@ -476,6 +494,20 @@ export function CandidateRecordPage() {
               <StatusBadge status={a.stage} />
               {a.rank != null && <span className="text-secondary">Rank #{a.rank}</span>}
               {a.is_shortlisted && <Badge tone="warning">Shortlisted</Badge>}
+              {canEditProfile && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`Remove from ${r?.display_code ?? 'requisition'}`}
+                  disabled={a.stage === 'offer' || a.stage === 'hired'}
+                  title={a.stage === 'offer' || a.stage === 'hired'
+                    ? 'A candidate at offer or hired stays on the requisition as placement history'
+                    : undefined}
+                  onClick={() => setRemovingApplication(a)}
+                >
+                  Remove
+                </Button>
+              )}
             </div>
           );
         })}
@@ -609,6 +641,129 @@ export function CandidateRecordPage() {
           </InfoGroup>
         )}
 
+        {profile?.assessment_scores &&
+          Object.keys(profile.assessment_scores as Record<string, unknown>).length >
+            0 && (
+            <InfoGroup label="Assessment scores">
+              <dl className="info-grid">
+                {Object.entries(
+                  profile.assessment_scores as Record<string, unknown>,
+                ).map(([k, v]) => (
+                  <div className="info-item" key={k}>
+                    <dt>{k.trim()}</dt>
+                    <dd>{String(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </InfoGroup>
+          )}
+        </div>
+      </RecordSection>
+
+      {profile && draft ? (
+        <RecordSection
+          title="Main Status Details"
+          id="main-status-details"
+          hidden={prefs.isHidden('Main Status Details')}
+          defaultOpen={opensOnLoad('Main Status Details')}
+        >
+          <div className="panel-stack">
+            <Select
+              label="Main status"
+              placeholder="No status"
+              options={statusOptions}
+              value={draft.status_id}
+              disabled={!canEditProfile}
+              onChange={(e) => setDraft({ ...draft, status_id: e.target.value })}
+            />
+          </div>
+        </RecordSection>
+      ) : (
+        <RecordSection
+          title="Main Status Details"
+          hidden={prefs.isHidden('Main Status Details')}
+          defaultOpen={opensOnLoad('Main Status Details')}
+        >
+          <p className="text-secondary">
+            No candidate profile on this person yet.
+          </p>
+        </RecordSection>
+      )}
+
+      <RecordSection title="Resume and Cover Letter" hidden={prefs.isHidden("Resume and Cover Letter")} defaultOpen={opensOnLoad("Resume and Cover Letter")}>
+        <dl className="info-grid">
+          {person.linkedin_public_url && (
+            <div className="info-item">
+              <dt>LinkedIn PUBLIC Profile</dt>
+              <dd>
+                <a href={person.linkedin_public_url} target="_blank" rel="noreferrer">
+                  {person.linkedin_public_url}
+                </a>
+              </dd>
+            </div>
+          )}
+          {person.linkedin_recruiter_url && (
+            <div className="info-item">
+              <dt>LinkedIn RECRUITER URL</dt>
+              <dd>
+                <a
+                  href={person.linkedin_recruiter_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {person.linkedin_recruiter_url}
+                </a>
+              </dd>
+            </div>
+          )}
+          {person.online_resume_url && (
+            <div className="info-item">
+              <dt>Online Resume URL</dt>
+              <dd>
+                <a href={person.online_resume_url} target="_blank" rel="noreferrer">
+                  {person.online_resume_url}
+                </a>
+              </dd>
+            </div>
+          )}
+          {Array.isArray(person.other_urls) &&
+            (person.other_urls as unknown[]).map((u, i) => {
+              const url = String(u);
+              return (
+                <div className="info-item" key={`url-${i}`}>
+                  <dt>ZI/Twitter{i > 0 ? ` (${i + 1})` : ''}</dt>
+                  <dd>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      {url}
+                    </a>
+                  </dd>
+                </div>
+              );
+            })}
+          {!person.linkedin_public_url &&
+            !person.linkedin_recruiter_url &&
+            !person.online_resume_url &&
+            (!Array.isArray(person.other_urls) || person.other_urls.length === 0) && (
+              <div className="info-item">
+                <dt>Links</dt>
+                <dd className="text-secondary">No links on file.</dd>
+              </div>
+            )}
+        </dl>
+      </RecordSection>
+
+      <RecordSection title="Resumes" count={resumes.length} empty={resumes.length === 0} hidden={prefs.isHidden("Resumes")} defaultOpen={opensOnLoad("Resumes")}>
+        <AttachmentsPanel
+          items={resumes}
+          parent={{ type: 'person', id: person.id }}
+          fixedKind="resume"
+          allowUpload={allowCreate}
+          onChanged={engagement.refresh}
+        />
+      </RecordSection>
+
+      <RecordSection title="More Details" id="more-details" hidden={prefs.isHidden('More Details')} defaultOpen={opensOnLoad('More Details')}>
+        <div className="info-groups">
         {personEducation(person).length > 0 && (
           <InfoGroup label="Education">
             <dl className="info-grid">
@@ -672,24 +827,6 @@ export function CandidateRecordPage() {
             </dl>
           )}
         </InfoGroup>
-
-        {profile?.assessment_scores &&
-          Object.keys(profile.assessment_scores as Record<string, unknown>).length >
-            0 && (
-            <InfoGroup label="Assessment scores">
-              <dl className="info-grid">
-                {Object.entries(
-                  profile.assessment_scores as Record<string, unknown>,
-                ).map(([k, v]) => (
-                  <div className="info-item" key={k}>
-                    <dt>{k.trim()}</dt>
-                    <dd>{String(v)}</dd>
-                  </div>
-                ))}
-              </dl>
-            </InfoGroup>
-          )}
-
         {profile && draft && (
           <InfoGroup
             label="Grading and salary"
@@ -799,105 +936,74 @@ export function CandidateRecordPage() {
         </div>
       </RecordSection>
 
-      {profile && draft ? (
-        <RecordSection
-          title="Main Status Details"
-          id="main-status-details"
-          hidden={prefs.isHidden('Main Status Details')}
-          defaultOpen={opensOnLoad('Main Status Details')}
-        >
-          <div className="panel-stack">
-            <Select
-              label="Main status"
-              placeholder="No status"
-              options={statusOptions}
-              value={draft.status_id}
-              disabled={!canEditProfile}
-              onChange={(e) => setDraft({ ...draft, status_id: e.target.value })}
-            />
-          </div>
-        </RecordSection>
-      ) : (
-        <RecordSection
-          title="Main Status Details"
-          hidden={prefs.isHidden('Main Status Details')}
-          defaultOpen={opensOnLoad('Main Status Details')}
-        >
-          <p className="text-secondary">
-            No candidate profile on this person yet.
-          </p>
-        </RecordSection>
-      )}
-
-      <RecordSection title="Resume and Cover Letter" hidden={prefs.isHidden("Resume and Cover Letter")} defaultOpen={opensOnLoad("Resume and Cover Letter")}>
-        <dl className="info-grid">
-          {person.linkedin_public_url && (
-            <div className="info-item">
-              <dt>LinkedIn PUBLIC Profile</dt>
-              <dd>
-                <a href={person.linkedin_public_url} target="_blank" rel="noreferrer">
-                  {person.linkedin_public_url}
-                </a>
-              </dd>
-            </div>
-          )}
-          {person.linkedin_recruiter_url && (
-            <div className="info-item">
-              <dt>LinkedIn RECRUITER URL</dt>
-              <dd>
-                <a
-                  href={person.linkedin_recruiter_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {person.linkedin_recruiter_url}
-                </a>
-              </dd>
-            </div>
-          )}
-          {person.online_resume_url && (
-            <div className="info-item">
-              <dt>Online Resume URL</dt>
-              <dd>
-                <a href={person.online_resume_url} target="_blank" rel="noreferrer">
-                  {person.online_resume_url}
-                </a>
-              </dd>
-            </div>
-          )}
-          {Array.isArray(person.other_urls) &&
-            (person.other_urls as unknown[]).map((u, i) => {
-              const url = String(u);
-              return (
-                <div className="info-item" key={`url-${i}`}>
-                  <dt>ZI/Twitter{i > 0 ? ` (${i + 1})` : ''}</dt>
-                  <dd>
-                    <a href={url} target="_blank" rel="noreferrer">
-                      {url}
-                    </a>
-                  </dd>
-                </div>
-              );
-            })}
-          {!person.linkedin_public_url &&
-            !person.linkedin_recruiter_url &&
-            !person.online_resume_url &&
-            (!Array.isArray(person.other_urls) || person.other_urls.length === 0) && (
-              <div className="info-item">
-                <dt>Links</dt>
-                <dd className="text-secondary">No links on file.</dd>
-              </div>
-            )}
-        </dl>
-      </RecordSection>
-
-      <RecordSection title="Resumes" count={resumes.length} empty={resumes.length === 0} hidden={prefs.isHidden("Resumes")} defaultOpen={opensOnLoad("Resumes")}>
-        <AttachmentsPanel
-          items={resumes}
-          parent={{ type: 'person', id: person.id }}
-          fixedKind="resume"
-          allowUpload={allowCreate}
-          onChanged={engagement.refresh}
+      <RecordSection title="Contact Log" hidden={prefs.isHidden("Contact Log")} defaultOpen={opensOnLoad("Contact Log")}>
+        <SidePanelTabs
+          tabs={[
+            {
+              key: 'notes',
+              label: 'Notes',
+              count: notes.length,
+              content: (
+                <ActivityPanel
+                  items={notes}
+                  kind="note"
+                  kindLabel="Note"
+                  emptyText="No notes yet."
+                  allowCreate={allowCreate}
+                  onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                />
+              ),
+            },
+            {
+              key: 'calls',
+              label: 'Calls',
+              count: calls.length,
+              content: (
+                <ActivityPanel
+                  items={calls}
+                  kind="call"
+                  kindLabel="Call"
+                  emptyText="No calls logged yet."
+                  allowCreate={allowCreate}
+                  onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                />
+              ),
+            },
+            {
+              key: 'meetings',
+              label: 'Meetings',
+              count: plainMeetings.length,
+              content: (
+                <ActivityPanel
+                  items={plainMeetings}
+                  kind="meeting"
+                  kindLabel="Meeting"
+                  emptyText="No meetings yet."
+                  allowCreate={allowCreate}
+                  onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                />
+              ),
+            },
+            {
+              key: 'emails',
+              label: 'Emails',
+              count: emails.length,
+              content: (
+                <ActivityPanel
+                  items={emails}
+                  kind="email"
+                  kindLabel="Email"
+                  emptyText="No linked emails yet — Gmail sync (Agent 6) matches them by participant address."
+                  allowCreate={false}
+                  onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                />
+              ),
+            },
+          ]}
         />
       </RecordSection>
 
@@ -1081,77 +1187,6 @@ export function CandidateRecordPage() {
         </dl>
       </RecordSection>
 
-      <RecordSection title="Contact Log" hidden={prefs.isHidden("Contact Log")} defaultOpen={opensOnLoad("Contact Log")}>
-        <SidePanelTabs
-          tabs={[
-            {
-              key: 'notes',
-              label: 'Notes',
-              count: notes.length,
-              content: (
-                <ActivityPanel
-                  items={notes}
-                  kind="note"
-                  kindLabel="Note"
-                  emptyText="No notes yet."
-                  allowCreate={allowCreate}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                />
-              ),
-            },
-            {
-              key: 'calls',
-              label: 'Calls',
-              count: calls.length,
-              content: (
-                <ActivityPanel
-                  items={calls}
-                  kind="call"
-                  kindLabel="Call"
-                  emptyText="No calls logged yet."
-                  allowCreate={allowCreate}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                />
-              ),
-            },
-            {
-              key: 'meetings',
-              label: 'Meetings',
-              count: plainMeetings.length,
-              content: (
-                <ActivityPanel
-                  items={plainMeetings}
-                  kind="meeting"
-                  kindLabel="Meeting"
-                  emptyText="No meetings yet."
-                  allowCreate={allowCreate}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                />
-              ),
-            },
-            {
-              key: 'emails',
-              label: 'Emails',
-              count: emails.length,
-              content: (
-                <ActivityPanel
-                  items={emails}
-                  kind="email"
-                  kindLabel="Email"
-                  emptyText="No linked emails yet — Gmail sync (Agent 6) matches them by participant address."
-                  allowCreate={false}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                />
-              ),
-            },
-          ]}
-        />
-      </RecordSection>
-
       <RecordSection title="Events" count={events.length} empty={events.length === 0} hidden={prefs.isHidden("Events")} defaultOpen={opensOnLoad("Events")}>
         <EventsPanel items={events} />
       </RecordSection>
@@ -1209,6 +1244,22 @@ export function CandidateRecordPage() {
           onClose={() => setSubmitting(false)}
           onSubmitted={load}
         />
+      )}
+
+      {removingApplication && (
+        <ConfirmDeleteDialog
+          title="Remove candidate from requisition?"
+          confirmLabel="Remove from requisition"
+          busyLabel="Removing…"
+          onClose={() => setRemovingApplication(null)}
+          onConfirm={removeFromRequisition}
+        >
+          <p>
+            This removes the application from the requisition pipeline. Candidate details, contact
+            history, files, tasks, and reminders stay on the candidate record, and the removal is
+            recorded in the audit log.
+          </p>
+        </ConfirmDeleteDialog>
       )}
 
       {merging && (

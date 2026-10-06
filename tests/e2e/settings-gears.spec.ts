@@ -112,8 +112,10 @@ test('the report categories gear hides a report section, and the choice survives
   const section = page.getByRole('button', { name: /^Requisition Aging/ });
   await expect(section).toBeVisible();
 
-  await page.getByRole('button', { name: 'Configure report categories' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Report categories' });
+  await expect(page.locator('.fo-page-toolbar')).toBeVisible();
+  await expect(page.locator('.fo-page-table-gap > .list-page-body')).toHaveCSS('margin-top', '16px');
+  await page.getByRole('button', { name: 'Report settings' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Report settings' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('checkbox', { name: 'Requisition Aging', exact: true }).uncheck();
   await expect(section).toHaveCount(0);
@@ -123,8 +125,8 @@ test('the report categories gear hides a report section, and the choice survives
   await expect(page.getByRole('button', { name: /^Pipeline by Stage/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Requisition Aging/ })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Configure report categories' }).click();
-  const reopened = page.getByRole('dialog', { name: 'Report categories' });
+  await page.getByRole('button', { name: 'Report settings' }).click();
+  const reopened = page.getByRole('dialog', { name: 'Report settings' });
   await reopened.getByRole('button', { name: 'Show all' }).click();
   await reopened.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('button', { name: /^Requisition Aging/ })).toBeVisible();
@@ -164,6 +166,8 @@ test('the four Taleo module placeholders no longer offer a configuration gear', 
   for (const path of ['/employees', '/onboard', '/users', '/courses']) {
     await gotoAsSignedIn(page, path);
     await expect(page.locator('.list-page')).toBeVisible();
+    await expect(page.locator('.fo-page-toolbar')).toBeVisible();
+    await expect(page.locator('.fo-page-table-gap > .list-page-body')).toHaveCSS('margin-top', '16px');
     await expect(page.getByRole('button', { name: 'Configure this list' })).toHaveCount(0);
   }
 });
@@ -171,7 +175,7 @@ test('the four Taleo module placeholders no longer offer a configuration gear', 
 test('no gear anywhere in the shell opens the not-part-of-FOOS placeholder', async ({ page }) => {
   const gears: [string, string][] = [
     ['/', 'Dashboard settings'],
-    ['/reports', 'Configure report categories'],
+    ['/reports', 'Report settings'],
     ['/recruit/candidates', 'Column settings'],
     ['/intake', 'Column settings'],
     ['/sales/companies', 'Column settings'],

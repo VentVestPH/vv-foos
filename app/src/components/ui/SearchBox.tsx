@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search as SearchIcon } from 'lucide-react';
 import { SearchField } from './SearchField';
@@ -26,6 +26,8 @@ interface SearchBoxProps {
   className?: string | undefined;
   type?: 'text' | 'search' | undefined;
   fetchHints?: SearchHintFetcher | undefined;
+  onHintSelect?: ((hint: SearchHint) => void) | undefined;
+  hideAllButton?: boolean | undefined;
   allLabel?: ((term: string, total: number) => string) | undefined;
   onClear?: (() => void) | undefined;
 }
@@ -42,12 +44,15 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
     className,
     type,
     fetchHints,
+    onHintSelect,
+    hideAllButton = false,
     allLabel,
     onClear,
   },
   ref,
 ) {
   const hintListRef = useScrollShadow<HTMLUListElement>();
+  const hintListId = useId();
   const navigate = useNavigate();
   const [hints, setHints] = useState<SearchHint[]>([]);
   const [hintTotal, setHintTotal] = useState(0);
@@ -101,6 +106,32 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
     };
   }, [draft, fetchHints]);
 
+  const selectMode = onHintSelect !== undefined;
+  const listOpen = hintsOpen && hints.length > 0;
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [hints]);
+
+  const chooseHint = (hint: SearchHint) => {
+    cancelPendingHints();
+    onHintSelect?.(hint);
+  };
+
+  const onComboKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (!listOpen) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      setActiveIndex((current) => (current + step + hints.length) % hints.length);
+    } else if (event.key === 'Enter' && activeIndex >= 0) {
+      event.preventDefault();
+      const hint = hints[activeIndex];
+      if (hint) chooseHint(hint);
+    }
+  };
+
   const searchAll = useCallback(
     (term: string) => {
       cancelPendingHints();
@@ -135,6 +166,12 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
         ariaLabel={ariaLabel}
         placeholder={placeholder}
         autoFocus={autoFocus}
+        combobox={selectMode ? {
+          expanded: listOpen,
+          controls: hintListId,
+          activeDescendant: listOpen && activeIndex >= 0 ? `${hintListId}-${activeIndex}` : undefined,
+          onKeyDown: onComboKeyDown,
+        } : undefined}
         onFocus={() => setHintsOpen(hints.length > 0)}
         trailing={
           submitLabel ? (
@@ -147,11 +184,28 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
         {hintsOpen && hints.length > 0 && (
           <div className="fo-hint-pop" data-closing={hintBox.closing ? 'true' : undefined}>
             <ul
+              id={hintListId}
               className="fo-hint-list fo-scroll-shade"
               ref={hintListRef}
+              role={selectMode ? 'listbox' : undefined}
               aria-label="Suggested results"
             >
-              {hints.map((hint) => (
+              {hints.map((hint, index) => selectMode ? (
+                <li
+                  key={hint.key}
+                  id={`${hintListId}-${index}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  className="fo-hint fo-hint-select"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => chooseHint(hint)}
+                >
+                  <SearchIcon size={20} className="fo-hint-icon" aria-hidden="true" />
+                  <span className="fo-hint-primary">{hint.primary}</span>
+                  <span className="fo-hint-meta">{hint.meta}</span>
+                </li>
+              ) : (
                 <li key={hint.key}>
                   <Link className="fo-hint" to={hint.href} onClick={closeHints}>
                     <SearchIcon size={20} className="fo-hint-icon" aria-hidden="true" />
@@ -161,7 +215,7 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
                 </li>
               ))}
             </ul>
-            <button
+            {!hideAllButton && <button
               type="button"
               className="fo-hint-all-btn"
               onClick={() => searchAll(draft.trim())}
@@ -169,7 +223,7 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(function S
               {allLabel
                 ? allLabel(draft.trim(), hintTotal)
                 : `Search everything for “${draft.trim()}” · About ${hintTotal.toLocaleString()} results`}
-            </button>
+            </button>}
           </div>
         )}
       </SearchField>

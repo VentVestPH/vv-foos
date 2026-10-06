@@ -62,6 +62,26 @@ test('D1: the view switch is the shared segmented control, not a bespoke one', a
   await expect(page.locator('.sales-view-toggle'), 'the bespoke toggle is gone').toHaveCount(0);
 });
 
+test('D1b: the saved view opens with matching content and the first stage meets the page edge', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await page.evaluate(() => window.localStorage.setItem('foos.deals.view', 'table'));
+  await gotoAsSignedIn(page, '/sales/deals');
+  await expect(page.getByRole('tab', { name: 'Table' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.table-wrap table')).toBeVisible({ timeout: 25000 });
+
+  await page.getByRole('tab', { name: 'Kanban' }).click();
+  await expect(page.locator('.sales-deals-board .kanban-col').first()).toBeVisible({ timeout: 25000 });
+  const [boardLeft, firstColumnLeft] = await Promise.all([
+    page.locator('.sales-deals-board').evaluate((element) => element.getBoundingClientRect().left),
+    page.locator('.sales-deals-board .kanban-col').first().evaluate((element) => element.getBoundingClientRect().left),
+  ]);
+  expect(Math.abs(firstColumnLeft - boardLeft)).toBeLessThanOrEqual(1);
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem('foos.deals.view'))).toBe('kanban');
+  await page.reload();
+  await expect(page.getByRole('tab', { name: 'Kanban' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.sales-deals-board .kanban-col').first()).toBeVisible({ timeout: 25000 });
+});
+
 test('D2: the checkbox leads the table and Delete does not exist until a row is ticked', async ({
   page,
 }) => {

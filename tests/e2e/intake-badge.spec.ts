@@ -30,18 +30,27 @@ test.describe('Intake badge (D17)', () => {
       .insert({ channel: 'manual', target_type: 'candidate', full_name: PROBE_NAME, status: 'pending' });
     expect(error).toBeNull();
 
-    const { count } = await admin
-      .from('intake_items')
-      .select('id', { count: 'exact', head: true })
-      .in('status', ['pending', 'parsed']);
-
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/');
 
     const intakeTab = page.getByRole('button', { name: /^Intake/ });
-    await expect(intakeTab.locator('.fo-nav-badge')).toHaveText(new RegExp(`^${count}`), {
-      timeout: 15000,
-    });
+    const badge = intakeTab.locator('.fo-nav-badge');
+    await expect
+      .poll(
+        async () => {
+          const { count } = await admin
+            .from('intake_items')
+            .select('id', { count: 'exact', head: true })
+            .not('status', 'in', '("imported","rejected")');
+          const shown = Number(/^\d+/.exec((await badge.textContent()) ?? '')?.[0] ?? NaN);
+          return shown === count;
+        },
+        {
+          timeout: 20000,
+          message: 'the badge settles on the live count of unsettled items, which other workers may be changing',
+        },
+      )
+      .toBe(true);
     await expect(intakeTab).toHaveAttribute('title', /awaiting review/);
   });
 });

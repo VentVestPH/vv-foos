@@ -2,6 +2,24 @@
   vertical-align: middle;
 }
 
+.users-table .table th:not(.sortable),
+.users-table .table td {
+  padding-inline: var(--section-pad);
+}
+
+.users-table .table th.sortable .th-sort-btn {
+  padding-inline: var(--section-pad);
+}
+
+.module-list-table .table th:not(.sortable),
+.module-list-table .table td {
+  padding-inline: var(--section-pad);
+}
+
+.module-list-table .table th.sortable .th-sort-btn {
+  padding-inline: var(--section-pad);
+}
+
 .table tbody tr:has(input[type='checkbox']:checked) {
   background: var(--fo-row-hover);
 }
@@ -375,4 +393,22 @@
   background: var(--surface);
   border: 1px solid var(--border);
   padding: var(--section-pad);
+}
+
+.kanban-skeleton .kanban-col-header .skeleton-row {
+  width: var(--sp-3);
+  height: var(--sp-1-5);
+  margin-left: auto;
+}
+
+.kanban-skeleton .kanban-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+}
+
+.kanban-skeleton .skeleton-card {
+  width: 100%;
+  flex: 0 0 96px;
 }

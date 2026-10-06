@@ -351,6 +351,7 @@ export function ContactRecordPage() {
           defaultOpen={opensOnLoad('Deals')}
         >
           <Table
+            pageSize={10}
             columns={[
               { key: 'display_code', header: 'Code' },
               { key: 'name', header: 'Deal' },

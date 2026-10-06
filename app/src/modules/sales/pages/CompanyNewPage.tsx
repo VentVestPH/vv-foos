@@ -10,6 +10,8 @@ import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSumma
 import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useStaffList } from '../hooks';
 import type { CompanyType } from '../../../lib/database.types';
+import { PHONE_PATTERN, PHONE_RULE } from '../../../lib/personValidation';
+import { COUNTRIES } from '../../../lib/countries';
 
 const ALL_TYPES: CompanyType[] = ['client', 'employer', 'prospect'];
 
@@ -57,6 +59,10 @@ export function CompanyNewPage() {
     e.preventDefault();
     if (!name.trim()) {
       setProblems([{ field: 'company-name', message: 'Company name is required.' }]);
+      return;
+    }
+    if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) {
+      setProblems([{ field: 'company-phone', message: PHONE_RULE }]);
       return;
     }
     setProblems([]);
@@ -131,8 +137,11 @@ export function CompanyNewPage() {
             placeholder="https://…"
           />
           <Input
+            id="company-phone"
             label="Phone"
+            type="tel"
             value={phone}
+            error={problems.find((p) => p.field === 'company-phone')?.message}
             onChange={(e) => setPhone(e.target.value)}
           />
           <Input
@@ -145,8 +154,10 @@ export function CompanyNewPage() {
             value={state}
             onChange={(e) => setState(e.target.value)}
           />
-          <Input
+          <Select
             label="Country"
+            options={COUNTRIES}
+            placeholder="No country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
           />

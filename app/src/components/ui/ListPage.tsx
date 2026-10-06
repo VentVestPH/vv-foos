@@ -15,6 +15,7 @@ import { downloadCsv } from '../../lib/csv';
 
 
 interface ListPageProps {
+  className?: string;
   title: string;
 
   icon?: ReactNode;
@@ -52,6 +53,7 @@ interface ListPageProps {
 }
 
 export function ListPage({
+  className,
   title,
   icon,
   description,
@@ -103,7 +105,7 @@ export function ListPage({
   }, []);
 
   return (
-    <div className="list-page" data-flush={flush ? 'true' : undefined}>
+    <div className={className ? `list-page ${className}` : 'list-page'} data-flush={flush ? 'true' : undefined}>
       <div className="fo-page-head">
       {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
       {icon ? (

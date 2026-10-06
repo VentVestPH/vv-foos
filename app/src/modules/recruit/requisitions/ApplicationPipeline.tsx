@@ -382,7 +382,6 @@ export function ApplicationPipeline({
       {
         key: 'name',
         header: 'Candidate',
-        sortable: true,
         render: (r) => (
           <span>
             {r.unviewed && <span className="unviewed-dot" role="img" aria-label="Unviewed" />}{' '}
@@ -402,7 +401,6 @@ export function ApplicationPipeline({
       {
         key: 'stage',
         header: 'Stage',
-        sortable: true,
         sortValue: (r) => APPLICATION_STAGES.indexOf(r.stage),
         render: (r) => <StatusBadge status={r.stage} />,
       },
@@ -428,7 +426,6 @@ export function ApplicationPipeline({
         key: 'is_shortlisted',
         hideWhenEmpty: true,
         header: 'Shortlist',
-        sortable: true,
         sortValue: (r) => (r.is_shortlisted ? 1 : 0),
         render: (r) => (
           <button
@@ -453,7 +450,6 @@ export function ApplicationPipeline({
         key: 'rank',
         hideWhenEmpty: true,
         header: 'Rank',
-        sortable: true,
         sortValue: (r) => r.rank ?? 9999,
         render: (r) =>
           canEdit && editRowFields ? (
@@ -471,17 +467,15 @@ export function ApplicationPipeline({
             (r.rank ?? '')
           ),
       },
-      { key: 'source', header: 'Source', sortable: true, hideWhenEmpty: true },
+      { key: 'source', header: 'Source', hideWhenEmpty: true },
       {
         key: 'applied_at',
         header: 'Applied',
-        sortable: true,
         render: (r) => fmtDate(r.applied_at),
       },
       {
         key: 'stage_changed_at',
         header: 'Stage changed',
-        sortable: true,
         render: (r) => fmtDate(r.stage_changed_at),
       },
       {
@@ -575,27 +569,21 @@ export function ApplicationPipeline({
             },
           ]}
         />
-        {!mobile && (
-          <SegmentedToggle
-            className="rq-pipeline-view"
-            ariaLabel="Pipeline view"
-            value={view}
-            onChange={setView}
-            options={[
-              { value: 'table', label: 'Table', icon: <TableIcon size={20} aria-hidden="true" /> },
-              {
-                value: 'kanban',
-                label: 'Kanban',
-                icon: <KanbanIcon size={20} aria-hidden="true" />,
-              },
-            ]}
-          />
-        )}
       </div>
 
       {error && <p className="form-error" role="alert">{error}</p>}
 
-      {!showKanban && (
+      <div className="fo-list-toolbar">
+        {!mobile && <SegmentedToggle
+          className="rq-pipeline-view"
+          ariaLabel="Pipeline view"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'table', label: '', title: 'Table', icon: <TableIcon size={20} aria-hidden="true" /> },
+            { value: 'kanban', label: '', title: 'Kanban', icon: <KanbanIcon size={20} aria-hidden="true" /> },
+          ]}
+        />}
         <Pager
           from={total === 0 ? 0 : page * TABLE_PAGE_SIZE + 1}
           to={Math.min(total, (page + 1) * TABLE_PAGE_SIZE)}
@@ -603,8 +591,9 @@ export function ApplicationPipeline({
           page={page}
           pageCount={Math.max(1, Math.ceil(total / TABLE_PAGE_SIZE))}
           onPage={setPage}
+          disabled={showKanban}
         />
-      )}
+      </div>
 
       {showKanban ? (
         <KanbanBoard
@@ -646,14 +635,6 @@ export function ApplicationPipeline({
               setSort({ key, dir });
               setPage(0);
             }}
-          />
-          <Pager
-            from={total === 0 ? 0 : page * TABLE_PAGE_SIZE + 1}
-            to={Math.min(total, (page + 1) * TABLE_PAGE_SIZE)}
-            total={total}
-            page={page}
-            pageCount={Math.max(1, Math.ceil(total / TABLE_PAGE_SIZE))}
-            onPage={setPage}
           />
         </>
       )}

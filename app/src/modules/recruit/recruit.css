@@ -331,7 +331,7 @@
 }
 
 .rq-pipeline-view {
-  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .shortlist-btn {

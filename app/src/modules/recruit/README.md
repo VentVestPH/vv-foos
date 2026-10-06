@@ -98,8 +98,9 @@ and marks that application viewed for the current staff user.
   the reusable way to centre an icon-only column. Name and Sourcer carry
   `nowrap`, and Location carries `minWidth: '200px'` rather than `width`, which
   the auto table layout ignored (it measured 106px and wrapped).
-- Every candidate column is sortable. Flags, Resume and Grade comment already had
-  a `SORT_COLUMNS` entry and only needed `sortable: true`; Requisitions needed a
+- Every candidate column is sortable. Every `Table` column is sortable unless it
+  sets `sortable: false`, so a server-sorted page must give each column a
+  `SORT_COLUMNS` entry or the click re-runs the default order; Requisitions needed a
   new `requisition_codes` column on `candidate_list`, because the codes had been
   assembled in the browser and Postgres cannot order by that. See
   `20260910000002_candidate_list_requisition_codes.sql`, which carries the

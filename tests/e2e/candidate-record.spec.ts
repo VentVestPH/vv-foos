@@ -5,6 +5,7 @@ import { PERSONA_EMAILS, gotoAsSignedIn, overflowItem, signIn } from './helpers'
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const FIRST = `Crfirst${RUN}`;
 const LAST = `Crlast${RUN}`;
+const SECOND_REQUISITION = 'd0000000-0000-4000-8000-000000000002';
 
 let person = '';
 
@@ -66,14 +67,14 @@ test.describe('C: the candidate record header', () => {
       await bar.locator('.fo-action-menu-trigger').count(),
       'and it is the icon-only trigger the requisition record uses, not a More button',
     ).toBe(1);
-    for (const gone of ['Print Resume', 'Submit', 'Schedule meeting']) {
+    for (const gone of ['Print Resume', 'Add to requisition', 'Schedule meeting']) {
       expect(labels, `${gone} belongs in the overflow now`).not.toContain(gone);
     }
 
     await bar.locator('.fo-action-menu-trigger').click();
     const menu = page.getByRole('menu');
     await expect(menu).toBeVisible();
-    for (const item of ['Schedule meeting', 'Print profile', 'Submit', 'Merge duplicate…']) {
+    for (const item of ['Schedule meeting', 'Print profile', 'Add to requisition', 'Merge duplicate…']) {
       await expect(menu.getByRole('menuitem', { name: item })).toBeVisible();
     }
   });
@@ -362,14 +363,14 @@ test.describe('C: paging and the date field', () => {
       'the dialog has to write people, which nothing in the app did until 2026-09-14',
     ).toBe(headline);
 
-    const section = page.locator('#candidate-information');
-    await expect(section).toHaveCount(1);
-    if ((await section.getAttribute('data-open')) !== 'true') {
-      await page.getByRole('button', { name: /^Candidate Information/ }).click();
+    const details = page.locator('#more-details');
+    await expect(details).toHaveCount(1);
+    if ((await details.getAttribute('data-open')) !== 'true') {
+      await page.getByRole('button', { name: /^More Details/ }).click();
     }
-    await expect(section).toHaveAttribute('data-open', 'true', { timeout: 15000 });
+    await expect(details).toHaveAttribute('data-open', 'true', { timeout: 15000 });
 
-    const editable = section.locator(
+    const editable = details.locator(
       '.info-form-grid input:not([disabled]), .info-form-grid textarea:not([disabled])',
     );
     await expect(
@@ -386,11 +387,11 @@ test.describe('C: paging and the date field', () => {
     await signIn(page, PERSONA_EMAILS.admin);
 
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
-    await page.getByRole('button', { name: /^Candidate Information/ }).click();
-    await page.waitForSelector('.info-form-grid .date-field-row');
+    await page.getByRole('button', { name: /^More Details/ }).click();
+    await page.waitForSelector('#more-details .info-form-grid .date-field-row');
 
     const inset = await page.evaluate(() => {
-      const row = document.querySelector('.info-form-grid .date-field-row') as HTMLElement;
+      const row = document.querySelector('#more-details .info-form-grid .date-field-row') as HTMLElement;
       const input = row.querySelector('input') as HTMLElement;
       const button = row.querySelector('.date-field-btn') as HTMLElement;
       return {
@@ -580,11 +581,11 @@ test.describe('C: grading', () => {
   test('C13: Amir Grade leads the grading group on its own line', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
-    await page.getByRole('button', { name: /^Candidate Information/ }).click();
-    await page.waitForSelector('.cand-grade-row');
+    await page.getByRole('button', { name: /^More Details/ }).click();
+    await page.waitForSelector('#more-details .cand-grade-row');
 
     const shape = await page.evaluate(() => {
-      const group = Array.from(document.querySelectorAll('.info-group')).find(
+      const group = Array.from(document.querySelectorAll('#more-details .info-group')).find(
         (g) =>
           (g.querySelector('.info-group-label') as HTMLElement | null)?.innerText ===
           'Grading and salary',
@@ -625,18 +626,23 @@ test.describe('C: the candidate record sections', () => {
     expect(labels, 'the fields are split into named groups').toContain('Name');
     expect(labels).toContain('Contact');
     expect(labels).toContain('Location');
-    expect(labels).toContain('Grading and salary');
+    expect(labels).not.toContain('Grading and salary');
+
+    await page.getByRole('button', { name: /^More Details/ }).click();
+    await expect(
+      page.locator('#more-details').getByRole('heading', { name: 'Grading and salary', exact: true }),
+    ).toBeVisible();
 
     expect(
       await page.locator('.record-section h2[style]').count(),
       'the two inline-styled sub-headings are gone',
     ).toBe(0);
     expect(
-      await page.locator('.info-form-grid').count(),
+      await page.locator('#more-details .info-form-grid').count(),
       'the editable fields get a form grid, not the label/value grid',
     ).toBe(1);
     expect(
-      await page.locator('.info-form-grid .field-wide textarea').count(),
+      await page.locator('#more-details .info-form-grid .field-wide textarea').count(),
       'the grade comment spans the full width instead of squeezing into a column',
     ).toBe(1);
   });
@@ -761,21 +767,21 @@ test.describe('C: submit and print', () => {
     await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
   });
 
-  test('C18: Submit puts the candidate forward on a requisition', async ({ page }) => {
+  test('C18: adding the candidate creates a submitted requisition application', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.waitForSelector('.record-action-bar');
 
     await page.getByRole('button', { name: 'More actions' }).click();
-    await page.getByRole('menuitem', { name: 'Submit' }).click();
+    await page.getByRole('menuitem', { name: 'Add to requisition' }).click();
 
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Submit to a requisition');
+    await expect(dialog).toContainText('Add candidate to a requisition');
     await dialog.getByLabel('Search requisitions').fill(REQ_TITLE);
 
     const row = dialog.locator('.panel-item', { hasText: REQ_TITLE });
     await expect(row).toBeVisible({ timeout: 15000 });
-    await row.getByRole('button', { name: 'Submit', exact: true }).click();
+    await row.getByRole('button', { name: 'Add to requisition', exact: true }).click();
     await expect(dialog).toHaveCount(0, { timeout: 15000 });
 
     const admin = await clientAs('admin');
@@ -806,7 +812,7 @@ test.describe('C: submit and print', () => {
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.waitForSelector('.record-action-bar');
     await page.getByRole('button', { name: 'More actions' }).click();
-    await page.getByRole('menuitem', { name: 'Submit' }).click();
+    await page.getByRole('menuitem', { name: 'Add to requisition' }).click();
 
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Search requisitions').fill(REQ_TITLE);
@@ -837,7 +843,7 @@ test.describe('C: submit and print', () => {
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.waitForSelector('.record-action-bar');
     await page.getByRole('button', { name: 'More actions' }).click();
-    await page.getByRole('menuitem', { name: 'Submit' }).click();
+    await page.getByRole('menuitem', { name: 'Add to requisition' }).click();
 
     const panel = page.locator('.rq-dialog.cand-submit-dialog');
     await expect(panel).toBeVisible();
@@ -907,6 +913,45 @@ test.describe('C: submit and print', () => {
       untouched.headAlign,
       'and .panel-item-head keeps its baseline alignment everywhere else',
     ).toBe('baseline');
+  });
+
+  test('C23: a candidate stays on other requisitions when removed from one', async ({ page }) => {
+    const admin = await clientAs('admin');
+    const { error: addError } = await admin.from('applications').upsert(
+      { requisition_id: SECOND_REQUISITION, person_id: person, stage: 'screening' },
+      { onConflict: 'requisition_id,person_id' },
+    );
+    expect(addError).toBeNull();
+    const { data: primaryReq } = await admin
+      .from('requisitions')
+      .select('display_code')
+      .eq('id', requisition)
+      .single();
+    const { data: secondReq } = await admin
+      .from('requisitions')
+      .select('display_code')
+      .eq('id', SECOND_REQUISITION)
+      .single();
+
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
+    await page.getByRole('button', { name: /^Requisition Summary/ }).click();
+    const summary = page.locator('#requisition-summary');
+    await expect(summary.locator('.approver-line')).toHaveCount(2);
+    await summary.getByRole('button', { name: `Remove from ${primaryReq!.display_code}` }).click();
+
+    const confirmation = page.getByRole('dialog', { name: 'Remove candidate from requisition?' });
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Remove from requisition' }).click();
+
+    await expect(summary.locator('.approver-line')).toHaveCount(1, { timeout: 15000 });
+    await expect(summary).toContainText(secondReq!.display_code);
+    await expect(summary).not.toContainText(primaryReq!.display_code);
+    const { data: remaining } = await admin
+      .from('applications')
+      .select('requisition_id')
+      .eq('person_id', person);
+    expect(remaining).toEqual([{ requisition_id: SECOND_REQUISITION }]);
   });
 
 });

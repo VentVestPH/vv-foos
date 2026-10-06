@@ -3,6 +3,8 @@ import { supabase } from '../../../lib/supabase';
 import type { CompanyType } from '../../../lib/database.types';
 import { useStaffList } from '../hooks';
 import type { Company } from '../lib';
+import { EMAIL_PATTERN, PHONE_PATTERN, PHONE_RULE } from '../../../lib/personValidation';
+import { countryOptions } from '../../../lib/countries';
 
 const ALL_TYPES: CompanyType[] = ['client', 'employer', 'prospect'];
 
@@ -23,12 +25,12 @@ export function CompanyEditDialog({ company, onClose, onSaved }: CompanyEditDial
     { kind: 'url', key: 'website', label: 'Website', section: 'Contact', placeholder: 'https://…' },
     { kind: 'url', key: 'site', label: 'Site', section: 'Contact' },
     { kind: 'email', key: 'email', label: 'Email', section: 'Contact' },
-    { kind: 'text', key: 'phone', label: 'Phone', section: 'Contact' },
+    { kind: 'text', key: 'phone', label: 'Phone', section: 'Contact', placeholder: '+63 2 8123 4567' },
     { kind: 'text', key: 'street', label: 'Street', section: 'Location', span: true },
     { kind: 'text', key: 'city', label: 'City', section: 'Location' },
     { kind: 'text', key: 'state', label: 'State / region', section: 'Location' },
     { kind: 'text', key: 'postal_code', label: 'Postal code', section: 'Location' },
-    { kind: 'text', key: 'country', label: 'Country', section: 'Location' },
+    { kind: 'select', key: 'country', label: 'Country', section: 'Location', options: countryOptions(company.country), placeholder: 'No country' },
     { kind: 'select', key: 'owner_id', label: 'Owner', section: 'Ownership', options: staffOptions, placeholder: 'Unassigned' },
     { kind: 'textarea', key: 'description', label: 'Description', section: 'Ownership' },
     { kind: 'checkbox', key: 'is_test', label: 'Demo record (is_test)', section: 'Ownership' },
@@ -56,6 +58,10 @@ export function CompanyEditDialog({ company, onClose, onSaved }: CompanyEditDial
   const text = (v: EditValue | undefined) => (typeof v === 'string' ? v.trim() || null : null);
 
   const save = async (draft: Record<string, EditValue>) => {
+    const phone = text(draft.phone);
+    if (phone && !PHONE_PATTERN.test(phone)) throw new Error(PHONE_RULE);
+    const email = text(draft.email);
+    if (email && !EMAIL_PATTERN.test(email)) throw new Error('Enter a valid email address.');
     const { error } = await supabase
       .from('companies')
       .update({

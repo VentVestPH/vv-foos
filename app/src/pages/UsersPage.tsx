@@ -102,7 +102,6 @@ export function UsersPage() {
     {
       key: 'fullName',
       header: 'Name',
-      sortable: true,
       render: (u) => (
         <span className="sales-badges">
           {u.fullName}
@@ -110,11 +109,10 @@ export function UsersPage() {
         </span>
       ),
     },
-    { key: 'email', header: 'Email', sortable: true },
+    { key: 'email', header: 'Email' },
     {
       key: 'role',
       header: 'Role',
-      sortable: true,
       render: (u) => <Badge tone={ROLE_TONE[u.role] ?? 'neutral'}>{u.role}</Badge>,
     },
     {
@@ -126,7 +124,6 @@ export function UsersPage() {
     {
       key: 'canSignIn',
       header: 'Sign-in',
-      sortable: true,
       sortValue: (u) => (u.canSignIn ? '1' : '0'),
       render: (u) =>
         u.canSignIn ? (
@@ -142,7 +139,6 @@ export function UsersPage() {
     {
       key: 'lastSignInAt',
       header: 'Last sign-in',
-      sortable: true,
       render: (u) => fmtWhen(u.lastSignInAt),
     },
     {
@@ -178,6 +174,7 @@ export function UsersPage() {
 
   return (
     <ListPage
+      className="fo-page-table-gap"
       breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Users' }]}
       title="Users"
       icon={<UsersIcon size={32} />}
@@ -216,6 +213,8 @@ export function UsersPage() {
         />
       ) : (
         <Table
+          pageSize={20}
+          className="users-table"
           columns={columns}
           rows={rows}
           rowKey={(u) => u.staffId}

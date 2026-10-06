@@ -119,7 +119,7 @@ export function CandidateSubmitDialog({ person, onClose, onSubmitted }: Candidat
 
   return (
     <Dialog
-      title="Submit to a requisition"
+      title="Add candidate to a requisition"
       className="cand-submit-dialog"
       onClose={onClose}
     >
@@ -168,7 +168,7 @@ export function CandidateSubmitDialog({ person, onClose, onSubmitted }: Candidat
                   }
                   onClick={() => void submit(req.id)}
                 >
-                  {submitted ? 'Submitted' : already ? 'Move to submitted' : 'Submit'}
+                  {submitted ? 'Submitted' : already ? 'Move to submitted' : 'Add to requisition'}
                 </Button>
               </div>
             </div>
