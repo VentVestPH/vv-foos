@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { missingRequiredMappings, planAccounts, planRequisitions } from '../../app/src/modules/intake/recordImport';
+import { missingRequiredMappings, planAccounts, planRequisitions, staffLookup } from '../../app/src/modules/intake/recordImport';
 
 const ACCOUNT_MAP = { name: 'Name', types: 'Type', email: 'Email', phone: 'Phone', website: 'Web' };
 const REQ_MAP = {
@@ -89,5 +89,43 @@ describe('requisition import plan', () => {
     expect(plan.rows[0]!.skipReason).toBe('Job code AA-1 already exists');
     expect(plan.issues.map((issue) => issue.row)).toEqual([3, 4, 5, 6, 7, 8]);
     expect(plan.issues[0]!.message).toMatch(/does not exist/);
+  });
+});
+
+describe('import owners', () => {
+  const staff = staffLookup([
+    { id: 'staff-1', full_name: 'Rita Recruiter', email: 'rita@ventvest.com' },
+    { id: 'staff-2', full_name: 'Ben Bd', email: 'ben@ventvest.com' },
+  ]);
+
+  it('sets an account owner by email or name and defaults to the importer', () => {
+    const plan = planAccounts(
+      [{ Name: 'One', Owner: 'BEN@ventvest.com' }, { Name: 'Two', Owner: 'rita recruiter' }, { Name: 'Three' }],
+      { name: 'Name', owner: 'Owner' },
+      new Set(),
+      staff,
+      'staff-9',
+    );
+    expect(plan.issues).toEqual([]);
+    expect(plan.rows.map((row) => row.insert?.owner_id)).toEqual(['staff-2', 'staff-1', 'staff-9']);
+  });
+
+  it('refuses an account owner who is not on staff', () => {
+    const plan = planAccounts([{ Name: 'One', Owner: 'nobody@example.com' }], { name: 'Name', owner: 'Owner' }, new Set(), staff);
+    expect(plan.issues[0]!.message).toMatch(/not a staff member/);
+  });
+
+  it('resolves requisition owners and gives each row an id to attach them to', () => {
+    const plan = planRequisitions(
+      [{ Title: 'Engineer', Account: 'Aster', Owners: 'rita@ventvest.com; Ben Bd' }],
+      { title: 'Title', account: 'Account', owners: 'Owners' },
+      new Map([['aster', 'company-1']]),
+      new Set(),
+      staff,
+      () => 'req-1',
+    );
+    expect(plan.issues).toEqual([]);
+    expect(plan.rows[0]!.insert?.id).toBe('req-1');
+    expect(plan.rows[0]!.owners).toEqual(['staff-1', 'staff-2']);
   });
 });

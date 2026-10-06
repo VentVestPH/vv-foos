@@ -20,6 +20,7 @@ interface PlannedRow<T> {
   label: string;
   insert: T | null;
   skipReason: string | null;
+  owners?: string[];
 }
 
 export interface ImportPlan<T> {
@@ -37,8 +38,10 @@ const COMPANY_TYPES: CompanyType[] = ['client', 'employer', 'prospect'];
 const ACCOUNT_FIELDS: ImportField[] = [
   { key: 'name', label: 'Account name', required: true },
   { key: 'types', label: 'Type (client, employer, prospect)' },
+  { key: 'account_number', label: 'Account number' },
   { key: 'industry', label: 'Industry' },
   { key: 'website', label: 'Website' },
+  { key: 'site', label: 'Site' },
   { key: 'email', label: 'Email' },
   { key: 'phone', label: 'Phone' },
   { key: 'street', label: 'Street' },
@@ -46,6 +49,7 @@ const ACCOUNT_FIELDS: ImportField[] = [
   { key: 'state', label: 'State / region' },
   { key: 'postal_code', label: 'Postal code' },
   { key: 'country', label: 'Country' },
+  { key: 'owner', label: 'Owner (staff name or email)' },
   { key: 'description', label: 'Description' },
 ];
 
@@ -55,7 +59,8 @@ const REQUISITION_FIELDS: ImportField[] = [
   { key: 'job_code', label: 'Job code' },
   { key: 'status', label: 'Status (draft, open, on hold, filled, closed)' },
   { key: 'location', label: 'Location' },
-  { key: 'employment_type', label: 'Employment type' },
+  { key: 'employment_type', label: 'Employment duration' },
+  { key: 'owners', label: 'Owners (staff names or emails, separated by ;)' },
   { key: 'num_openings', label: 'Openings' },
   { key: 'pay_min', label: 'Pay minimum' },
   { key: 'pay_max', label: 'Pay maximum' },
@@ -67,8 +72,10 @@ const REQUISITION_FIELDS: ImportField[] = [
 export const ACCOUNT_TEMPLATE: Record<string, string> = {
   name: 'Northwind Logistics',
   types: 'client',
+  account_number: 'ACC-1001',
   industry: 'Logistics',
   website: 'https://northwind.example',
+  site: 'Head office',
   email: 'hello@northwind.example',
   phone: '+63 2 8123 4567',
   street: '1 Ayala Avenue',
@@ -76,6 +83,7 @@ export const ACCOUNT_TEMPLATE: Record<string, string> = {
   state: 'Metro Manila',
   postal_code: '1226',
   country: 'Philippines',
+  owner: 'foos.bd@ventvest.com',
   description: 'Regional freight forwarder',
 };
 
@@ -86,6 +94,7 @@ export const REQUISITION_TEMPLATE: Record<string, string> = {
   status: 'draft',
   location: 'Makati',
   employment_type: 'Full-time',
+  owners: 'foos.recruiter@ventvest.com',
   num_openings: '1',
   pay_min: '120000',
   pay_max: '150000',
@@ -110,6 +119,17 @@ function reader(map: ColumnMap) {
   };
 }
 
+export type StaffLookup = Map<string, string>;
+
+export function staffLookup(staff: { id: string; full_name: string; email: string }[]): StaffLookup {
+  const lookup: StaffLookup = new Map();
+  for (const member of staff) {
+    lookup.set(member.email.trim().toLowerCase(), member.id);
+    if (!lookup.has(member.full_name.trim().toLowerCase())) lookup.set(member.full_name.trim().toLowerCase(), member.id);
+  }
+  return lookup;
+}
+
 function websiteValue(raw: string): string | null {
   const candidate = /^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`;
   try {
@@ -120,7 +140,13 @@ function websiteValue(raw: string): string | null {
   }
 }
 
-export function planAccounts(rows: Sheet, map: ColumnMap, existingNames: Set<string>): ImportPlan<CompanyInsert> {
+export function planAccounts(
+  rows: Sheet,
+  map: ColumnMap,
+  existingNames: Set<string>,
+  staff: StaffLookup = new Map(),
+  defaultOwner: string | null = null,
+): ImportPlan<CompanyInsert> {
   const read = reader(map);
   const issues: RowIssue[] = [];
   const seen = new Set<string>();
@@ -148,6 +174,9 @@ export function planAccounts(rows: Sheet, map: ColumnMap, existingNames: Set<str
     const websiteRaw = read(row, 'website');
     const website = websiteRaw ? websiteValue(websiteRaw) : null;
     if (websiteRaw && !website) return fail('the website is not a valid web address.');
+    const ownerRaw = read(row, 'owner');
+    const ownerId = ownerRaw ? staff.get(ownerRaw.toLowerCase()) : defaultOwner;
+    if (ownerRaw && !ownerId) return fail(`owner “${ownerRaw}” is not a staff member.`);
 
     const optional = (key: string) => read(row, key) || null;
     return {
@@ -157,8 +186,11 @@ export function planAccounts(rows: Sheet, map: ColumnMap, existingNames: Set<str
       insert: {
         name,
         types: [...new Set(types)] as CompanyType[],
+        account_number: optional('account_number'),
         industry: optional('industry'),
         website,
+        site: optional('site'),
+        owner_id: ownerId ?? null,
         email: email || null,
         phone: phone || null,
         street: optional('street'),
@@ -196,6 +228,8 @@ export function planRequisitions(
   map: ColumnMap,
   companyIdByName: Map<string, string>,
   existingJobCodes: Set<string>,
+  staff: StaffLookup = new Map(),
+  newId: () => string = () => crypto.randomUUID(),
 ): ImportPlan<RequisitionInsert> {
   const read = reader(map);
   const issues: RowIssue[] = [];
@@ -232,13 +266,19 @@ export function planRequisitions(
     if (currency && !CURRENCIES.includes(currency)) return fail(`pay currency ${currency} is not one of ${CURRENCIES.join(', ')}.`);
     const opened = read(row, 'opened_date');
     if (opened && !validIsoDate(opened)) return fail('the opened date must be a real date written YYYY-MM-DD.');
+    const ownerNames = read(row, 'owners').split(/[;,]+/).map((value) => value.trim()).filter(Boolean);
+    const unknownOwners = ownerNames.filter((value) => !staff.has(value.toLowerCase()));
+    if (unknownOwners.length) return fail(`owner ${unknownOwners.map((value) => `“${value}”`).join(', ')} is not a staff member.`);
+    const owners = [...new Set(ownerNames.map((value) => staff.get(value.toLowerCase())!))];
 
     const optional = (key: string) => read(row, key) || null;
     return {
       row: line,
       label: title,
       skipReason: null,
+      owners,
       insert: {
+        id: newId(),
         title,
         company_id: companyId,
         job_code: jobCode || null,

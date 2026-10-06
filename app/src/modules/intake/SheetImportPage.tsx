@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { downloadCsv } from '../../lib/csv';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { checkDedup, useOpenRequisitions, type RequisitionOption } from './hooks';
-import { useRole } from '../../auth/SessionProvider';
+import { useRole, useSession } from '../../auth/SessionProvider';
 import { EMAIL_PATTERN, PHONE_PATTERN, validateContactPerson } from '../../lib/personValidation';
 import { fetchAllRows } from '../../lib/fetchAll';
 import type { TablesInsert } from '../../lib/database.types';
@@ -22,16 +22,21 @@ import {
   missingRequiredMappings,
   planAccounts,
   planRequisitions,
+  staffLookup,
   type DirectTarget,
   type ImportPlan,
 } from './recordImport';
 
 const TEMPLATE_EXAMPLE: Record<string, string> = {
   first_name: 'Marisol',
+  middle_name: 'Santos',
   last_name: 'Reyes',
   headline: 'Staff Platform Engineer',
   email: 'marisol.reyes@example.com',
+  work_email: 'marisol@northwind.example',
   phone: '+63 917 555 0142',
+  street: '1 Ayala Avenue',
+  city: 'Makati',
   current_employer: 'Northwind Logistics',
   current_title: 'Staff Platform Engineer',
   country: 'Philippines',
@@ -42,6 +47,13 @@ const TEMPLATE_EXAMPLE: Record<string, string> = {
   current_salary: '100000',
   salary_currency: 'PHP',
   salary_flag: 'Flexible',
+  star_grade: '3',
+  grade_comment: 'Strong platform background',
+  initial_date: '2026-10-01',
+  average_score: '63.0',
+  numerical_proficiency: '32.0',
+  detail_acuity: '80.0',
+  cognitive_quotient: '68.0',
   university: 'University of the Philippines',
   bachelor_discipline: 'Computer Science',
   education_year: '2018',
@@ -53,15 +65,20 @@ const TEMPLATE_EXAMPLE: Record<string, string> = {
   experience_end_date: 'Present',
   experience_description: 'Platform engineering leadership',
   linkedin_url: 'https://www.linkedin.com/in/marisol-reyes',
+  twitter_url: 'https://twitter.com/marisolreyes',
 };
 
 const PARSED_FIELDS = [
   { key: 'name', label: 'Full name' },
   { key: 'first_name', label: 'First name' },
+  { key: 'middle_name', label: 'Middle name' },
   { key: 'last_name', label: 'Last name' },
   { key: 'headline', label: 'Headline' },
-  { key: 'email', label: 'Email' },
-  { key: 'phone', label: 'Phone' },
+  { key: 'email', label: 'Email (personal)' },
+  { key: 'work_email', label: 'Email (work)' },
+  { key: 'phone', label: 'Phone (main)' },
+  { key: 'street', label: 'Street' },
+  { key: 'city', label: 'City' },
   { key: 'current_employer', label: 'Current employer' },
   { key: 'current_title', label: 'Current title' },
   { key: 'country', label: 'Country' },
@@ -72,6 +89,13 @@ const PARSED_FIELDS = [
   { key: 'current_salary', label: 'Current salary' },
   { key: 'salary_currency', label: 'Salary currency' },
   { key: 'salary_flag', label: 'Salary flag' },
+  { key: 'star_grade', label: 'Star grade (1-3)' },
+  { key: 'grade_comment', label: 'Grade comment' },
+  { key: 'initial_date', label: 'Initial date (YYYY-MM-DD)' },
+  { key: 'average_score', label: 'Average score (%)' },
+  { key: 'numerical_proficiency', label: 'Numerical proficiency test %' },
+  { key: 'detail_acuity', label: 'Detail acuity assessment %' },
+  { key: 'cognitive_quotient', label: 'Cognitive quotient survey %' },
   { key: 'university', label: 'University' },
   { key: 'bachelor_discipline', label: 'Bachelor discipline' },
   { key: 'education_year', label: 'Education year' },
@@ -83,6 +107,7 @@ const PARSED_FIELDS = [
   { key: 'experience_end_date', label: 'Experience end date' },
   { key: 'experience_description', label: 'Experience description' },
   { key: 'linkedin_url', label: 'LinkedIn URL' },
+  { key: 'twitter_url', label: 'ZI/Twitter URL' },
 ] as const;
 
 const CONTACT_FIELDS = [
@@ -158,6 +183,7 @@ export function SheetImportPage() {
   useDocumentTitle('Intake: Sheet import');
   const navigate = useNavigate();
   const role = useRole();
+  const { staff: me } = useSession();
   const canAssignRequisition = role === 'admin' || role === 'recruiter';
   const targetOptions: { value: Target; label: string }[] = [
     { value: 'candidate', label: 'Candidate' },
@@ -261,8 +287,11 @@ export function SheetImportPage() {
       const companies = await fetchAllRows((from, to) =>
         supabase.from('companies').select('id, name').order('id').range(from, to),
       );
+      const staff = staffLookup(await fetchAllRows((from, to) =>
+        supabase.from('staff').select('id, full_name, email').order('id').range(from, to),
+      ));
       const next: DirectPlan = target === 'account'
-        ? planAccounts(fetched.rows, columnMap, new Set(companies.map((c) => c.name.trim().toLowerCase())))
+        ? planAccounts(fetched.rows, columnMap, new Set(companies.map((c) => c.name.trim().toLowerCase())), staff, me?.id ?? null)
         : planRequisitions(
           fetched.rows,
           columnMap,
@@ -272,6 +301,7 @@ export function SheetImportPage() {
               supabase.from('requisitions').select('job_code').not('job_code', 'is', null).order('id').range(from, to),
             )).map((r) => (r.job_code ?? '').toLowerCase()),
           ),
+          staff,
         );
       if (next.issues.length) {
         setProblems(next.issues.map((issue) => ({ message: `Row ${issue.row}: ${issue.message}` })));
@@ -315,6 +345,28 @@ export function SheetImportPage() {
           if (!first || !last) found.push({ message: `Row ${index + 2}: first and last name are required.` });
           if (!EMAIL_PATTERN.test(email)) {
             found.push({ message: `Row ${index + 2}: enter a valid email address.` });
+          }
+          const cell = (key: string) => (columnMap[key] ? row[columnMap[key]]?.trim() ?? '' : '');
+          const workEmail = cell('work_email');
+          if (workEmail && !EMAIL_PATTERN.test(workEmail)) {
+            found.push({ message: `Row ${index + 2}: enter a valid work email address.` });
+          }
+          const stars = cell('star_grade');
+          if (stars && !/^[123]$/.test(stars)) {
+            found.push({ message: `Row ${index + 2}: star grade must be 1, 2 or 3.` });
+          } else if (stars && !cell('grade_comment')) {
+            found.push({ message: `Row ${index + 2}: a star grade needs a grade comment.` });
+          }
+          const initial = cell('initial_date');
+          if (initial && (!/^\d{4}-\d{2}-\d{2}$/.test(initial) || Number.isNaN(Date.parse(`${initial}T00:00:00Z`)))) {
+            found.push({ message: `Row ${index + 2}: the initial date must be written YYYY-MM-DD.` });
+          }
+          for (const key of ['average_score', 'numerical_proficiency', 'detail_acuity', 'cognitive_quotient']) {
+            const score = cell(key);
+            if (score && !(/^\d+(\.\d+)?$/.test(score) && Number(score) <= 100)) {
+              found.push({ message: `Row ${index + 2}: assessment scores must be numbers from 0 to 100.` });
+              break;
+            }
           }
           const phoneColumn = columnMap.phone;
           const phone = phoneColumn ? row[phoneColumn]?.trim() ?? '' : '';
@@ -383,6 +435,19 @@ export function SheetImportPage() {
         return;
       }
       done += count ?? chunk.length;
+    }
+    if (target === 'requisition') {
+      const owners = current.rows.flatMap((row) =>
+        row.insert && row.owners ? row.owners.map((staffId) => ({ requisition_id: (row.insert as TablesInsert<'requisitions'>).id!, staff_id: staffId })) : [],
+      );
+      for (let start = 0; start < owners.length; start += 200) {
+        const { error: ownerError } = await supabase.from('requisition_owners').insert(owners.slice(start, start + 200));
+        if (ownerError) {
+          setBusy(false);
+          setError(`${done} requisitions were imported, but their owners could not be saved: ${ownerError.message}`);
+          return;
+        }
+      }
     }
     setBusy(false);
     setCreated(done);

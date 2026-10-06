@@ -89,6 +89,17 @@ Deno.serve(async (req) => {
       if (phone && !/^\+?[0-9][0-9\s(),-]*$/.test(phone)) {
         return json({ error: `Row ${index + 2}: phone contains unsupported characters.` }, 400);
       }
+      const workEmail = get(row, "work_email");
+      if (workEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(workEmail)) {
+        return json({ error: `Row ${index + 2}: enter a valid work email address.` }, 400);
+      }
+      const stars = get(row, "star_grade");
+      if (stars && !/^[123]$/.test(stars)) {
+        return json({ error: `Row ${index + 2}: star grade must be 1, 2 or 3.` }, 400);
+      }
+      if (stars && !get(row, "grade_comment")) {
+        return json({ error: `Row ${index + 2}: a star grade needs a grade comment.` }, 400);
+      }
       for (const field of ["expected_salary", "current_salary"]) {
         const amount = get(row, field);
         if (amount && !/^[0-9]+(\.[0-9]+)?$/.test(amount)) {
@@ -168,6 +179,16 @@ Deno.serve(async (req) => {
       Object.fromEntries(Object.entries(value).filter(([, field]) => field));
     const educationFields = present(education);
     const experienceFields = present(experience);
+    const starGrade = /^[123]$/.test(get(row, "star_grade")) ? Number(get(row, "star_grade")) : null;
+    const gradeComment = get(row, "grade_comment");
+    const scores = Object.fromEntries(
+      [
+        ["Average Score (%)", get(row, "average_score")],
+        ["Numerical Profiency Test %", get(row, "numerical_proficiency")],
+        ["Detail Acuity Assessment %", get(row, "detail_acuity")],
+        ["Cognitive Quotient Survey %", get(row, "cognitive_quotient")],
+      ].filter(([, value]) => value),
+    );
     const requisitionCode = get(row, "requisition").toLowerCase();
     const rowRequisitionId = requisitionCode
       ? requisitionByCode.get(requisitionCode)
@@ -181,12 +202,21 @@ Deno.serve(async (req) => {
       batch_label: body.batchLabel.trim(),
       submitted_by: user.id,
       raw_payload: row,
+      star_grade: body.targetType === "candidate" ? starGrade : null,
+      grade_comment: body.targetType === "candidate" && starGrade ? gradeComment || null : null,
       parsed: {
         name,
         first_name: firstName || undefined,
+        middle_name: get(row, "middle_name") || undefined,
         last_name: lastName || undefined,
         email: email || undefined,
+        work_email: get(row, "work_email") || undefined,
         phone: phone || undefined,
+        street: get(row, "street") || undefined,
+        city: get(row, "city") || undefined,
+        initial_date: get(row, "initial_date") || undefined,
+        assessment_scores: Object.keys(scores).length ? scores : undefined,
+        twitter_url: get(row, "twitter_url") || undefined,
         company: company || undefined,
         title: title || undefined,
         current_title: title || undefined,
@@ -204,7 +234,7 @@ Deno.serve(async (req) => {
         headline: headline || undefined,
         linkedin_url: linkedinUrl || undefined,
       },
-      status: "parsed" as const,
+      status: body.targetType === "candidate" && starGrade && gradeComment ? "graded" as const : "parsed" as const,
     };
   });
 
