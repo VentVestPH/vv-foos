@@ -10,12 +10,12 @@ export interface ImportField {
   required?: boolean;
 }
 
-export interface RowIssue {
+interface RowIssue {
   row: number;
   message: string;
 }
 
-export interface PlannedRow<T> {
+interface PlannedRow<T> {
   row: number;
   label: string;
   insert: T | null;
@@ -34,7 +34,7 @@ type RequisitionInsert = TablesInsert<'requisitions'>;
 
 const COMPANY_TYPES: CompanyType[] = ['client', 'employer', 'prospect'];
 
-export const ACCOUNT_FIELDS: ImportField[] = [
+const ACCOUNT_FIELDS: ImportField[] = [
   { key: 'name', label: 'Account name', required: true },
   { key: 'types', label: 'Type (client, employer, prospect)' },
   { key: 'industry', label: 'Industry' },
@@ -49,7 +49,7 @@ export const ACCOUNT_FIELDS: ImportField[] = [
   { key: 'description', label: 'Description' },
 ];
 
-export const REQUISITION_FIELDS: ImportField[] = [
+const REQUISITION_FIELDS: ImportField[] = [
   { key: 'title', label: 'Title', required: true },
   { key: 'account', label: 'Account name', required: true },
   { key: 'job_code', label: 'Job code' },

@@ -131,7 +131,7 @@ export interface DateRange {
   to: string;
 }
 
-export const ALL_TIME_FROM = '1970-01-01';
+const ALL_TIME_FROM = '1970-01-01';
 
 export const RANGE_PRESETS: { value: Exclude<DateRangePreset, 'custom'>; label: string }[] = [
   { value: 'all', label: 'All time' },

@@ -23,7 +23,7 @@ function formatDay(value: string): string {
   return parseIsoDate(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function rangeLabel(range: DateRange): string {
+function rangeLabel(range: DateRange): string {
   if (range.preset !== 'custom') return RANGE_PRESETS.find((preset) => preset.value === range.preset)?.label ?? 'Custom range';
   if (range.from === range.to) return formatDay(range.from);
   return `${formatDay(range.from)} – ${formatDay(range.to)}`;

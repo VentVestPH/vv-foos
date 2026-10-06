@@ -20,8 +20,8 @@ export interface UploadedFile {
   name: string;
 }
 
-export const TICKET_FILE_LIMIT = 12;
-export const TICKET_FILE_MAX_BYTES = 25 * 1024 * 1024;
+const TICKET_FILE_LIMIT = 12;
+const TICKET_FILE_MAX_BYTES = 25 * 1024 * 1024;
 export const TICKET_DESCRIPTION_MAX = 30000;
 export const TICKET_COMMENT_MAX = 10000;
 

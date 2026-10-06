@@ -27,7 +27,7 @@ const REACH = 'Contact';
 const PLACE = 'Location';
 const LINKS = 'Profiles';
 
-export const PERSON_EDIT_FIELDS: EditField[] = [
+const PERSON_EDIT_FIELDS: EditField[] = [
   { kind: 'text', key: 'first_name', label: 'First name', section: NAME },
   { kind: 'text', key: 'middle_name', label: 'Middle name', section: NAME },
   { kind: 'text', key: 'last_name', label: 'Last name', section: NAME },
@@ -54,7 +54,7 @@ export function personEditFields(person: EditablePerson): EditField[] {
 
 export type PersonKind = 'candidate' | 'contact';
 
-export function validatePersonDraft(draft: Record<string, EditValue>, kind: PersonKind): string | null {
+function validatePersonDraft(draft: Record<string, EditValue>, kind: PersonKind): string | null {
   const read = (key: string) => (typeof draft[key] === 'string' ? (draft[key] as string).trim() : '');
   const validate = kind === 'candidate' ? validateCandidateContact : validateContactPerson;
   return validate(read('first_name'), read('last_name'), read('email'), read('phone'));
