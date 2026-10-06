@@ -157,3 +157,33 @@ export async function checkDedup(item: DedupInput): Promise<DedupMatch | null> {
     hasContactProfile: !!conp,
   };
 }
+
+export interface RequisitionOption {
+  id: string;
+  display_code: string;
+  title: string;
+  status: string;
+}
+
+export function useOpenRequisitions(enabled: boolean): RequisitionOption[] {
+  const [requisitions, setRequisitions] = useState<RequisitionOption[]>([]);
+  useEffect(() => {
+    if (!enabled) {
+      setRequisitions([]);
+      return undefined;
+    }
+    let cancelled = false;
+    void supabase
+      .from('requisition_list')
+      .select('id, display_code, title, status')
+      .in('status', ['open', 'waiting_approval', 'on_hold'])
+      .order('display_code', { ascending: true })
+      .then(({ data }) => {
+        if (!cancelled) setRequisitions((data as RequisitionOption[]) ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+  return requisitions;
+}

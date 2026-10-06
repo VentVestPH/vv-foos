@@ -5,7 +5,9 @@ import {
 } from '../../../components/ui/RecordEditDialog';
 import { supabase } from '../../../lib/supabase';
 import type { Json } from '../../../lib/database.types';
-import { CHANNEL_LABEL, STATUS_LABEL, TARGET_LABEL, type IntakeItem } from '../lib';
+import { CHANNEL_LABEL, STATUS_LABEL, TARGET_LABEL, canAttachRequisition, type IntakeItem } from '../lib';
+import { useOpenRequisitions } from '../hooks';
+import { useRole } from '../../../auth/SessionProvider';
 import { validateCandidateContact } from '../../../lib/personValidation';
 
 export interface IntakeEditDialogProps {
@@ -25,6 +27,9 @@ export function IntakeEditDialog({ item, onClose, onSaved }: IntakeEditDialogPro
     : {};
   const parsedText = (key: string) => typeof parsed[key] === 'string' ? parsed[key] as string : '';
   const requiredCandidate = item.target_type === 'candidate';
+  const role = useRole();
+  const requisitionRequired = requiredCandidate && canAttachRequisition(role);
+  const requisitions = useOpenRequisitions(requisitionRequired);
   const fields: EditField[] = [
     { kind: 'text', key: 'full_name', label: 'Name', span: true },
     { kind: 'text', key: 'first_name', label: 'First name' },
@@ -32,6 +37,16 @@ export function IntakeEditDialog({ item, onClose, onSaved }: IntakeEditDialogPro
     { kind: 'email', key: 'email', label: 'Email', section: 'Candidate contact' },
     { kind: 'text', key: 'phone', label: 'Phone', section: 'Candidate contact' },
     { kind: 'url', key: 'linkedin_url', label: 'LinkedIn URL', span: true },
+    ...(requisitionRequired
+      ? [{
+          kind: 'select' as const,
+          key: 'requisition_id',
+          label: 'Requisition',
+          span: true,
+          placeholder: 'Choose a requisition',
+          options: requisitions.map((req) => ({ value: req.id, label: `${req.display_code} · ${req.title}` })),
+        }]
+      : []),
     {
       kind: 'select',
       key: 'target_type',
@@ -61,6 +76,7 @@ export function IntakeEditDialog({ item, onClose, onSaved }: IntakeEditDialogPro
     last_name: parsedText('last_name'),
     email: parsedText('email'),
     phone: parsedText('phone'),
+    requisition_id: parsedText('requisition_id'),
     linkedin_url: item.linkedin_url ?? '',
     target_type: item.target_type,
     channel: item.channel,
@@ -81,12 +97,15 @@ export function IntakeEditDialog({ item, onClose, onSaved }: IntakeEditDialogPro
       const validationError = validateCandidateContact(firstName, lastName, email, phone);
       if (validationError) throw new Error(validationError);
     }
+    const requisitionId = String(draft.requisition_id ?? '').trim();
+    if (requisitionRequired && !requisitionId) throw new Error('Attach the candidate to a requisition.');
     const nextParsed: Record<string, Json> = { ...(parsed as Record<string, Json>) };
     for (const [key, value] of Object.entries({
       first_name: firstName,
       last_name: lastName,
       email,
       phone,
+      ...(requisitionRequired ? { requisition_id: requisitionId } : {}),
     })) {
       if (value) nextParsed[key] = value;
       else delete nextParsed[key];
@@ -116,7 +135,7 @@ export function IntakeEditDialog({ item, onClose, onSaved }: IntakeEditDialogPro
       title="Edit intake item"
       fields={fields}
       values={values}
-      required={requiredCandidate ? ['first_name', 'last_name', 'email'] : []}
+      required={requiredCandidate ? ['first_name', 'last_name', 'email', ...(requisitionRequired ? ['requisition_id'] : [])] : []}
       onClose={onClose}
       onSave={save}
       footNote="The raw payload is what the channel delivered and is kept as received. Editing here changes only the parsed fields the queue works from."

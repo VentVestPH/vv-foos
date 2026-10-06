@@ -95,7 +95,7 @@ test.describe('Intake flows (criteria 5.1, 5.2, 5.4)', () => {
         full_name: 'QA Grading Gate',
         linkedin_url: `https://linkedin.com/in/${BATCH.toLowerCase()}-grade-${stamp}`,
         batch_label: `${BATCH}-${stamp}`,
-        parsed: { email: `qa-grade-${stamp}@example.test` },
+        parsed: { email: `qa-grade-${stamp}@example.test`, requisition_id: 'd0000000-0000-4000-8000-000000000001' },
         status: 'parsed',
       })
       .select('id')

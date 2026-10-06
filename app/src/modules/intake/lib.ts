@@ -81,6 +81,16 @@ export function canImport(item: IntakeItem): boolean {
   return true;
 }
 
+export function canAttachRequisition(role: string | null): boolean {
+  return role === 'admin' || role === 'recruiter';
+}
+
+export function missingRequisition(item: IntakeItem, role: string | null): boolean {
+  if (item.target_type !== 'candidate' || !canAttachRequisition(role)) return false;
+  const id = parsedOf(item).requisition_id;
+  return typeof id !== 'string' || id.trim() === '';
+}
+
 export function canReject(item: IntakeItem): boolean {
   return !isReadOnly(item) && item.status !== 'imported' && item.status !== 'rejected';
 }

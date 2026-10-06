@@ -10,7 +10,7 @@ import { Inbox as InboxIcon, Sheet as SheetIcon, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { downloadCsv } from '../../lib/csv';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { checkDedup } from './hooks';
+import { checkDedup, useOpenRequisitions, type RequisitionOption } from './hooks';
 import { useRole } from '../../auth/SessionProvider';
 import { EMAIL_PATTERN, PHONE_PATTERN, validateContactPerson } from '../../lib/personValidation';
 import { fetchAllRows } from '../../lib/fetchAll';
@@ -137,13 +137,6 @@ interface MappingTemplate {
   target_type: 'candidate' | 'contact';
 }
 
-interface RequisitionOption {
-  id: string;
-  display_code: string;
-  title: string;
-  status: string;
-}
-
 function downloadTemplate(target: Target): void {
   if (isDirect(target)) {
     downloadCsv(
@@ -184,8 +177,8 @@ export function SheetImportPage() {
   const [fetched, setFetched] = useState<FetchResult | null>(null);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [templates, setTemplates] = useState<MappingTemplate[]>([]);
-  const [requisitions, setRequisitions] = useState<RequisitionOption[]>([]);
   const [defaultRequisitionId, setDefaultRequisitionId] = useState('');
+  const requisitions = useOpenRequisitions(targetType === 'candidate' && canAssignRequisition);
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [dedupFlags, setDedupFlags] = useState<Map<number, string>>(new Map());
   const [checkingDedup, setCheckingDedup] = useState(false);
@@ -205,23 +198,7 @@ export function SheetImportPage() {
   }, [targetType]);
 
   useEffect(() => {
-    if (targetType !== 'candidate' || !canAssignRequisition) {
-      setRequisitions([]);
-      setDefaultRequisitionId('');
-      return;
-    }
-    let cancelled = false;
-    void supabase
-      .from('requisition_list')
-      .select('id, display_code, title, status')
-      .in('status', ['open', 'waiting_approval', 'on_hold'])
-      .order('display_code', { ascending: true })
-      .then(({ data }) => {
-        if (!cancelled) setRequisitions((data as RequisitionOption[]) ?? []);
-      });
-    return () => {
-      cancelled = true;
-    };
+    if (targetType !== 'candidate' || !canAssignRequisition) setDefaultRequisitionId('');
   }, [targetType, canAssignRequisition]);
 
   async function doFetch() {
@@ -347,6 +324,8 @@ export function SheetImportPage() {
           const requisitionCode = columnMap.requisition ? row[columnMap.requisition]?.trim() : '';
           if (requisitionCode && !requisitionForRow(row)) {
             found.push({ message: `Row ${index + 2}: requisition ${requisitionCode} is not available.` });
+          } else if (canAssignRequisition && !requisitionForRow(row)) {
+            found.push({ message: `Row ${index + 2}: attach a requisition, either a default below or a requisition code column.` });
           }
         });
       }
@@ -618,8 +597,9 @@ export function SheetImportPage() {
           />
           {targetType === 'candidate' && canAssignRequisition && (
             <Select
-              label="Add candidates to a requisition (optional)"
-              placeholder="Leave unassigned"
+              label="Requisition"
+              required={!columnMap.requisition}
+              placeholder={columnMap.requisition ? 'Use each row\'s requisition code' : 'Choose a requisition'}
               value={defaultRequisitionId}
               onChange={(e) => setDefaultRequisitionId(e.target.value)}
               options={requisitions.map((req) => ({

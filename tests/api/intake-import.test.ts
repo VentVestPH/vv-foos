@@ -76,6 +76,7 @@ describe('Intake import writes the documented fields (criteria 5.7 and 5.8)', ()
           name: `${TAG} Candidate`,
           email: `qa-import-${Date.now()}@example.com`,
           headline: 'Staff Engineer at Probe Corp',
+          requisition_id: 'd0000000-0000-4000-8000-000000000001',
         },
       })
       .select('id')
@@ -135,7 +136,11 @@ describe('Intake import writes the documented fields (criteria 5.7 and 5.8)', ()
         star_grade: 1,
         grade_comment: 'Speculative application',
         submitted_by: 'a0000000-0000-4000-8000-000000000003',
-        parsed: { name: `${TAG} Candidate Email`, email: `qa-email-${Date.now()}@example.com` },
+        parsed: {
+          name: `${TAG} Candidate Email`,
+          email: `qa-email-${Date.now()}@example.com`,
+          requisition_id: 'd0000000-0000-4000-8000-000000000001',
+        },
       })
       .select('id')
       .single();
@@ -327,5 +332,31 @@ describe('Intake import writes the documented fields (criteria 5.7 and 5.8)', ()
       .select('requisition_id')
       .eq('person_id', personId);
     expect(applications).toEqual([{ requisition_id: requisitionId }]);
+  });
+
+  it('refuses an admin candidate import with no requisition attached', async () => {
+    const admin = await clientAs('admin');
+    const { data: item, error: insErr } = await admin
+      .from('intake_items')
+      .insert({
+        channel: 'manual',
+        target_type: 'candidate',
+        full_name: `${TAG} No Requisition`,
+        status: 'parsed',
+        parsed: {
+          first_name: 'No',
+          last_name: 'Requisition',
+          email: `qa-noreq-${Date.now()}@example.com`,
+        },
+      })
+      .select('id')
+      .single();
+    expect(insErr).toBeNull();
+
+    const { error } = await admin.rpc('import_intake_item', { p_intake_id: item!.id, p_mode: 'new' });
+    expect(error?.message).toContain('Attach the candidate to a requisition before importing');
+
+    const { data: after } = await admin.from('intake_items').select('status, person_id').eq('id', item!.id).single();
+    expect(after).toEqual({ status: 'parsed', person_id: null });
   });
 });

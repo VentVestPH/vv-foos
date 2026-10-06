@@ -8,12 +8,15 @@ import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { Info as InfoIcon, PencilLine, Upload, UserCheck as UserCheckIcon } from 'lucide-react';
 import { IntakeEditDialog } from './IntakeEditDialog';
 import { supabase } from '../../../lib/supabase';
-import { checkDedup, type DedupMatch } from '../hooks';
+import { checkDedup, useOpenRequisitions, type DedupMatch } from '../hooks';
+import { useRole } from '../../../auth/SessionProvider';
 import {
   CHANNEL_LABEL,
+  canAttachRequisition,
   canImport,
   canReject,
   isReadOnly,
+  missingRequisition,
   parsedOf,
   requiresGradingBeforeImport,
   STATUS_LABEL,
@@ -60,6 +63,10 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
   const showSkeleton = useMinimumVisible(checkingDedup);
 
   const needsGrading = requiresGradingBeforeImport(item);
+  const role = useRole();
+  const needsRequisition = missingRequisition(item, role);
+  const requisitions = useOpenRequisitions(item.target_type === 'candidate' && canAttachRequisition(role) && !needsRequisition && !isReadOnly(item));
+  const attachedRequisition = requisitions.find((req) => req.id === parsed.requisition_id);
   const alreadyGraded = item.status === 'graded';
 
   async function saveGrade() {
@@ -160,6 +167,12 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
 
       <RecordSection title="Parsed fields">
         <dl className="intake-field-list">
+          {item.target_type === 'candidate' && !isReadOnly(item) && canAttachRequisition(role) && (
+            <>
+              <dt>Requisition</dt>
+              <dd>{needsRequisition ? 'Not attached. Use Edit to choose one.' : attachedRequisition ? `${attachedRequisition.display_code} · ${attachedRequisition.title}` : requisitions.length ? 'No longer open. Use Edit to choose another.' : 'Attached'}</dd>
+            </>
+          )}
           {parsed.headline && (
             <>
               <dt>Headline</dt>
@@ -293,11 +306,13 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
           <Button
             variant="primary"
             onClick={doImport}
-            disabled={busy || !canImport({ ...item, star_grade: grade })}
+            disabled={busy || needsRequisition || !canImport({ ...item, star_grade: grade })}
             title={
               needsGrading && !alreadyGraded
                 ? 'Grade this candidate before importing (linkedin_url channel)'
-                : undefined
+                : needsRequisition
+                  ? 'Attach a requisition with Edit before importing'
+                  : undefined
             }
           >
             <Upload size={20} aria-hidden="true" />
