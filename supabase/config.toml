@@ -460,3 +460,18 @@ verify_jwt = false
 
 [functions.admin-users]
 verify_jwt = true
+
+[functions.calendar-create-meeting]
+verify_jwt = true
+
+[functions.gmail-send]
+verify_jwt = true
+
+[functions.google-oauth-start]
+verify_jwt = true
+
+[functions.intake-sheet-commit]
+verify_jwt = true
+
+[functions.intake-sheet-fetch]
+verify_jwt = true
