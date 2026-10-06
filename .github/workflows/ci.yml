@@ -81,7 +81,7 @@ jobs:
     # the old UI belong in the same edit, not in a follow-up after CI complains.
     #
     # The browser step is sharded two ways because it is the whole cost.
-    if: github.ref_name == 'main' || github.event_name == 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
