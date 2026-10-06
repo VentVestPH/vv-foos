@@ -16,7 +16,25 @@ That collapses four of the twelve X items. **X1 and X2** assumed creating a fres
 
 One correction to how this used to read. This paragraph said "nothing in this document was executed against a hosted project", and the first real run of `scripts/check-cutover.mjs` had already gone to the live project by reading `VITE_SUPABASE_URL` out of `app/.env`. It made read-only requests as `anon`, all refused or informational, and it is written up as QA-017 in `tests/DEFECT_LOG.md`. The script now refuses to guess a target at all.
 
-**Nothing here has served a request from a hosted origin.**
+**Corrected 2026-10-06: the site is live.** It serves from `https://vv-foos.vvph.workers.dev`, a Cloudflare Workers site with static assets (`wrangler.jsonc`, `name: vv-foos`), not a Pages project named `foos` as `package.json`'s `deploy:pages` script assumes.
+
+## Deploying, as of 2026-10-06
+
+Every push to `develop` deploys. Three mechanisms, only one of them in this repository:
+
+| What | How | Credentials |
+| :---- | :---- | :---- |
+| Migrations | `.github/workflows/deploy.yml` runs `supabase db push --db-url "$SUPABASE_DB_URL" --yes` | `SUPABASE_DB_URL`, the session pooler URI on port 5432, in the GitHub environment `dev` |
+| Frontend | Cloudflare's git integration builds and publishes on the same push | Held by Cloudflare, nothing in GitHub |
+| Edge Functions | By hand: `supabase functions deploy <name> --project-ref hilieyehhecrlccdveta` | The developer's own `supabase login` |
+
+Read before relying on it:
+
+- **A function change is not live until someone runs the deploy command.** The workflow does not deploy functions, because that needs a Supabase access token or the Supabase GitHub integration, and neither was adopted. `intake-sheet-commit` was deployed this way on 2026-10-06.
+- **The migration ledgers match.** `supabase migration list --linked`, read on 2026-10-06, showed every migration up to `20260909000006` recorded remotely, so the `LegacyDbPushMissingLocalError` reason for gating `db push` no longer holds. `npm run db:push` is still gated, because the workflow is the path to production, not a developer's machine.
+- **Migrations and the frontend deploy in parallel**, with nothing ordering them. A frontend that needs a new column can reach users a minute before the column exists.
+- **A tab opened before a deploy** asks for chunk hashes the new build no longer serves. `app/src/lib/staleBuild.ts` reloads the page once when that happens.
+- **The CI `integration` job runs only on `workflow_dispatch`** (Klent, 2026-10-06). Nothing runs the browser suite on a merge.
 
 ## What is settled and is not relitigated
 
