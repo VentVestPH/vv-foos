@@ -500,7 +500,3 @@
 .fo-skel-cell[data-wide='true'] {
   width: 85%;
 }
-
-.fo-skel-head + .fo-skeleton-sections {
-  margin-top: calc(var(--sp-4) + var(--sp-1) - var(--sp-2));
-}

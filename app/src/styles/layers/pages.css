@@ -8,8 +8,12 @@
   gap: 0;
 }
 
-.list-page[data-flush='true'] .list-page-table > :is(.fo-skeleton-card, .fo-table-skeleton, .dash-widgets-panel):first-child {
+.list-page[data-flush='true'] .list-page-table > :is(.fo-skeleton-card, .fo-table-skeleton):first-child {
   margin-top: calc(var(--sp-4) + var(--sp-1));
+}
+
+.list-page[data-flush='true'] .list-page-table > .dash-widgets-panel:first-child {
+  margin-top: var(--sp-2);
 }
 
 .list-page-head {
