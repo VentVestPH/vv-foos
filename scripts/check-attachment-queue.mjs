@@ -1,6 +1,7 @@
+import { assertTarget } from './local-stack.mjs';
 import { execFileSync } from 'node:child_process';
 
-const DB_URL = process.env.FOOS_LOCAL_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
+const DB_URL = assertTarget(process.env.FOOS_LOCAL_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:56322/postgres', 'db');
 
 function q(sql) {
   return execFileSync('psql', [DB_URL, '-At', '-c', sql], { encoding: 'utf8' }).trim();

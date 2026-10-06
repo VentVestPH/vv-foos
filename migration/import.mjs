@@ -1,6 +1,6 @@
+import { supabase, assertTarget } from '../scripts/local-stack.mjs';
 import { readFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 import { deterministicId, isDuplicateKey, normalizeZohoId } from './src/deterministic-id.mjs';
 import { parseCsvRecords } from './src/csv.mjs';
@@ -40,11 +40,11 @@ const ALLOW_REMOTE = has('--allow-remote');
 const SHOW_NAMES = has('--show-names');
 
 function localKeys() {
-  const url = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+  const url = assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote'));
   let key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
   if (!key) {
     try {
-      const env = execSync('supabase status -o env', { encoding: 'utf8' });
+      const env = supabase(['status', '-o', 'env'], { encoding: 'utf8' });
       key = /^SERVICE_ROLE_KEY="?([^"\n]+)"?$/m.exec(env)?.[1] ?? null;
     } catch {
       key = null;

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321';
 const CAREERS_BASE = process.env.FOOS_CAREERS_URL ?? `${SUPABASE_URL}/functions/v1/careers-page`;
 
 const RUN_IP = `test-${Math.random().toString(36).slice(2, 10)}-e2e`;

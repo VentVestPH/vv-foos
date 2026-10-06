@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
+import './localTarget';
 
 function env(name: string): string {
   const v = process.env[name];

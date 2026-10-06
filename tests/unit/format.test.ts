@@ -40,7 +40,7 @@ describe('formatMoney', () => {
 
 describe('the recruit fallback the requisition grid depends on', () => {
   it('returns an empty string, so the info-grid filter still removes empty fields', async () => {
-    vi.stubEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:55321');
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://127.0.0.1:56321');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
     const { fmtDate, fmtDateTime } = await import('../../app/src/modules/recruit/lib');
     expect(fmtDate(null), "RequisitionRecordPage filters on v !== ''").toBe('');

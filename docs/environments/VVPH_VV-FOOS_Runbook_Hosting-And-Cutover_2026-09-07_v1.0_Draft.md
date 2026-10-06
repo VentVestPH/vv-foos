@@ -33,7 +33,7 @@ Two row counts in this document are easy to confuse and are both correct: **73,0
 Saying "`npm run db:reset` exercises this on every local run" is true but is not a rehearsal of X2, because `db:reset` also seeds and it destroys the working database, which currently holds the imported corpus. So the run went into a scratch database on the same local Postgres instead:
 
 ```
-createdb foos_x2_rehearsal on 127.0.0.1:55322 (PostgreSQL 17.6)
+createdb foos_x2_rehearsal on 127.0.0.1:56322 (PostgreSQL 17.6)
 psql -f supabase/tests/local_shim.sql        -> shim ok
 54 migrations applied in lexical order       -> ok 1..54, failed 0
 ```
@@ -143,11 +143,11 @@ The comment above it in the file is the part that matters: `A list of *exact* UR
 
 **X7 is the same origin from the other side.** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` go into the host's environment, and `lib/supabase.ts` throws at boot if either is absent, so a missing variable is a blank page rather than a degraded one. Both are baked into the bundle at build time, which is why changing them needs a rebuild and not just a restart.
 
-**The bundle in this tree currently points at the live project, and that is worth knowing before anyone deploys it.** Vite loads `app/.env.development` at higher priority than `app/.env` in dev mode, which is the only reason `npm run dev` talks to `http://127.0.0.1:55321`; there is **no `app/.env.production`**, so `npm run build` falls back to `app/.env` and bakes `https://mebfbbvrqdctamnzvbbs.supabase.co`. Verified both ways rather than assumed:
+**The bundle in this tree currently points at the live project, and that is worth knowing before anyone deploys it.** Vite loads `app/.env.development` at higher priority than `app/.env` in dev mode, which is the only reason `npm run dev` talks to `http://127.0.0.1:56321`; there is **no `app/.env.production`**, so `npm run build` falls back to `app/.env` and bakes `https://mebfbbvrqdctamnzvbbs.supabase.co`. Verified both ways rather than assumed:
 
 ```
 curl -s http://localhost:5175/src/lib/supabase.ts | grep -oE 'https?://[a-z0-9.:]+'
-  http://127.0.0.1:55321
+  http://127.0.0.1:56321
 
 grep -ohoE 'https://[a-z0-9]+\.supabase\.co' app/dist/assets/*.js | sort -u
   https://mebfbbvrqdctamnzvbbs.supabase.co
@@ -250,7 +250,7 @@ The other three hits are views over those tables (`relkind` `v`), so they carry 
 `scripts/check-cutover.mjs` runs the checks that can be automated against **a target you name explicitly**, and it **skips rather than passes** anything it cannot reach:
 
 ```
-CUTOVER_SUPABASE_URL=http://127.0.0.1:55321 \
+CUTOVER_SUPABASE_URL=http://127.0.0.1:56321 \
 CUTOVER_SUPABASE_ANON_KEY=<anon key for that project> \
 node scripts/check-cutover.mjs
 ```
@@ -283,7 +283,7 @@ A third thing the wrong-project run exposed, which was not a defect: **`careers-
 **Against the local stack, named explicitly, all twelve reachable checks pass:**
 
 ```
-target http://127.0.0.1:55321
+target http://127.0.0.1:56321
 
 ok   dash exposed to the Data API       reachable, refused by RLS as it should be: permission denied for schema dash
 ok   function careers-page              OPTIONS -> 200
@@ -313,7 +313,7 @@ careers-status       deployed, OPTIONS -> 204
 
 The three `FAIL` lines are the design rule working, not a problem: **a check that cannot run says so rather than passing.** Each names what to set.
 
-**There is no root `.env` in this checkout**, and knowing which file holds what matters here more than usual: `app/.env` carries `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` **and points at the live project**, `tests/.env` carries the `FOOS_` pair and points at `http://127.0.0.1:55321`, and `supabase/functions/.env` carries four function secrets. `source .env` from the repository root succeeds and sets nothing, which is what produced `Error: supabaseUrl is required.` at `validateSupabaseUrl`. The check reads none of them, on purpose.
+**There is no root `.env` in this checkout**, and knowing which file holds what matters here more than usual: `app/.env` carries `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` **and points at the live project**, `tests/.env` carries the `FOOS_` pair and points at `http://127.0.0.1:56321`, and `supabase/functions/.env` carries four function secrets. `source .env` from the repository root succeeds and sets nothing, which is what produced `Error: supabaseUrl is required.` at `validateSupabaseUrl`. The check reads none of them, on purpose.
 
 ## If Cloudflare: the port is done, and the first version of it would have broken the site
 

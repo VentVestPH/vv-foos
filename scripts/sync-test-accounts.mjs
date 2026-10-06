@@ -1,6 +1,6 @@
 #!/usr/bin/env node
+import { supabase, assertTarget } from './local-stack.mjs';
 import { createClient } from '@supabase/supabase-js';
-import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 
 const APPLY = process.argv.includes('--apply');
@@ -13,7 +13,7 @@ const TEST_ACCOUNTS = [
   'foos.bd@ventvest.com',
 ];
 
-const target = process.env.FOOS_TARGET_URL ?? process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const target = assertTarget(process.env.FOOS_TARGET_URL ?? process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote'));
 const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/)/.test(target);
 
 if (!isLocal && !ALLOW_REMOTE) {
@@ -40,7 +40,7 @@ function serviceKey() {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) return process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!isLocal) return null;
   try {
-    const env = execSync('supabase status -o env', { encoding: 'utf8' });
+    const env = supabase(['status', '-o', 'env'], { encoding: 'utf8' });
     return /^SERVICE_ROLE_KEY="?([^"\n]+)"?$/m.exec(env)?.[1] ?? null;
   } catch {
     return null;

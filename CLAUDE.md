@@ -14,6 +14,8 @@ This tree is a git repository on branch `develop`, with `origin/main` and `origi
 
 ## Commands
 
+Local isolation is defined in `docs/environments/LOCAL-ISOLATION.md`. Use `npm run local:check`, `local:start`, `local:status` and `local:stop`; the backend reserves 56320–56329, including Mailpit web/SMTP/POP3. Never select a container by a shared prefix or attach this stack to another project's Docker network. `db:reset` explicitly targets local FOOS, and `db:validate` rejects a different database endpoint. Run `npm run test:local-isolation` after changing lifecycle scripts.
+
 Root is an npm workspace host (`app`, `tests`). Install once at the root; dependencies hoist to `./node_modules`.
 
 ```sh
@@ -55,7 +57,7 @@ Local schema validation runs on plain Postgres 14+, no Supabase needed (see READ
 ## Test-suite caveats
 
 - `tests/vitest.config.ts` includes `api/**/*.test.ts` and `mocks/**/*.test.ts`, and runs files serially. `mocks/gmail-calendar-mocked.test.ts` throws at import time unless `FOOS_INTAKE_PARSER_SECRET` in `tests/.env` matches `INTAKE_EMAIL_PARSER_SECRET` in `supabase/functions/.env`. Both files are gitignored, so a fresh clone must set them.
-- The Vitest tests sign in as real per-role personas against whatever `tests/.env` points at. Point it at the local stack (`FOOS_SUPABASE_URL=http://127.0.0.1:55321`), not the hosted project. Personas come from `tests/fixtures/personas.sql` and are seeded by `npm run db:reset`.
+- The Vitest tests sign in as real per-role personas against whatever `tests/.env` points at. Point it at the local stack (`FOOS_SUPABASE_URL=http://127.0.0.1:56321`), not the hosted project. Personas come from `tests/fixtures/personas.sql` and are seeded by `npm run db:reset`.
 - `tests/playwright.config.ts` defaults to port 5175, two workers, and starts the dev server itself. Override with `FOOS_PORT`, `FOOS_BASE_URL`, `FOOS_PW_WORKERS`, or `FOOS_SKIP_WEBSERVER=1` to run against a server that is already up.
 - `tests/sql/pgtap_suite.sql` is run manually through the Supabase SQL editor, not by any npm script.
 - `tests/DEFECT_LOG.md`, `RETEST_MATRIX.md`, `REGRESSION_CHECKLIST.md`, `EVENT_PIPELINE.md` and `PURGE_VERIFICATION.md` carry the QA state of the project. Check `DEFECT_LOG.md` before assuming a failure is new.
@@ -299,7 +301,7 @@ The only remote reading taken is the one from 2026-09-01, when `supabase migrati
 |---|---|
 | `.env` (root) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. **Absent in this checkout as of 2026-09-07**, and because it is gitignored the absence is silent: `source .env` succeeds and sets nothing. Use `app/.env`'s `VITE_` pair or `tests/.env`'s `FOOS_` pair, or pass the URL explicitly |
 | `app/.env` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (client throws at boot if either is missing). **This one points at the LIVE project**, and it is what a production build bakes in |
-| `app/.env.development` | the same two names pointing at `http://127.0.0.1:55321`, committed and safe to commit. **Vite loads it at higher priority than `.env` in dev mode**, which is the only reason `npm run dev` talks to the local stack rather than to production. There is no `app/.env.production`, so `npm run build` falls back to `.env` and bakes the live ref: `grep -o 'https://[a-z0-9]*\.supabase\.co' app/dist/assets/*.js` confirms it. That is X7's whole point, and it means the built bundle in this tree must not be deployed as-is |
+| `app/.env.development` | the same two names pointing at `http://127.0.0.1:56321`, committed and safe to commit. **Vite loads it at higher priority than `.env` in dev mode**, which is the only reason `npm run dev` talks to the local stack rather than to production. There is no `app/.env.production`, so `npm run build` falls back to `.env` and bakes the live ref: `grep -o 'https://[a-z0-9]*\.supabase\.co' app/dist/assets/*.js` confirms it. That is X7's whole point, and it means the built bundle in this tree must not be deployed as-is |
 | `tests/.env` | `FOOS_SUPABASE_URL`, `FOOS_SUPABASE_ANON_KEY`, `FOOS_QA_TEST_PASSWORD`, optional `FOOS_BASE_URL` |
 
 ## Things migrations cannot do

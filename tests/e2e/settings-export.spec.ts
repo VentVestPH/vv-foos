@@ -106,7 +106,7 @@ test.describe('U3.4: application attachments have a surface', () => {
     test.setTimeout(90000);
     const { createClient } = await import('@supabase/supabase-js');
     const api = createClient(
-      process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321',
+      process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321',
       process.env.FOOS_SUPABASE_ANON_KEY ?? '',
     );
     const { error: authErr } = await api.auth.signInWithPassword({

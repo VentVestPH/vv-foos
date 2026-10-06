@@ -1,6 +1,6 @@
 #!/usr/bin/env node
+import { supabase, assertTarget } from './local-stack.mjs';
 import { createClient } from '@supabase/supabase-js';
-import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseCsvRecords } from '../migration/src/csv.mjs';
@@ -62,13 +62,13 @@ function readBulkRecords(dir) {
 }
 
 function url() {
-  return process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+  return assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote'));
 }
 
 function serviceKey() {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) return process.env.SUPABASE_SERVICE_ROLE_KEY;
   try {
-    const env = execSync('supabase status -o env', { encoding: 'utf8' });
+    const env = supabase(['status', '-o', 'env'], { encoding: 'utf8' });
     return /^SERVICE_ROLE_KEY="?([^"\n]+)"?$/m.exec(env)?.[1] ?? null;
   } catch {
     return null;

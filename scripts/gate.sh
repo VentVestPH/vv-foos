@@ -4,8 +4,9 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:55322/postgres}"
+DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:56322/postgres}"
 export DATABASE_URL
+node scripts/local-db.mjs check "$DATABASE_URL" || exit 1
 
 PASSES="${1:-1}"
 overall=0

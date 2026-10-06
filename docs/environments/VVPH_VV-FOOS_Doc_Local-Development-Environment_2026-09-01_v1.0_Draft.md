@@ -13,7 +13,7 @@ supabase start                          # first run pulls images
 # deliberately (QA-003: the previous hardcoded literal is a working credential
 # against the live project, so it must not live in this repository).
 export FOOS_QA_TEST_PASSWORD='choose-a-local-value'
-psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 \
+psql "postgresql://postgres:postgres@127.0.0.1:56322/postgres" -v ON_ERROR_STOP=1 \
   -c "set foos.qa_test_password = '$FOOS_QA_TEST_PASSWORD';" \
   -f tests/fixtures/personas.sql
 
@@ -28,15 +28,15 @@ Sign in as any seeded persona with the password you chose: `demo-admin@ventvest.
 
 | Service | Port | Standard default |
 | :---- | :---- | :---- |
-| API / PostgREST | 55321 | 54321 |
-| Postgres | 55322 | 54322 |
-| Shadow DB | 55320 | 54320 |
-| Studio | 55323 | 54323 |
-| Mail catcher | 55324 | 54324 |
-| Analytics | 55327 | 54327 |
-| Pooler | 55329 | 54329 |
+| API / PostgREST | 56321 | 54321 |
+| Postgres | 56322 | 54322 |
+| Shadow DB | 56320 | 54320 |
+| Studio | 56323 | 54323 |
+| Mail catcher | 56324 | 54324 |
+| Analytics | 56327 | 54327 |
+| Pooler | 56329 | 54329 |
 
-The sibling repository `Kappa-Omini-typescript` runs its own Supabase stack on the standard 543xx range on this machine. Both must run at once, so this project takes 553xx. Verified: 12 `supabase_*_VV-FoOS` containers running alongside Kappa's 12, no collision.
+FOOS uses its own project identity, Docker network, containers, volumes and 56320–56329 port range. See [the current isolation runbook](LOCAL-ISOLATION.md) for guarded lifecycle commands and Mailpit endpoints. Earlier verification results below are historical.
 
 ## 3. What the config fixes permanently
 
@@ -56,7 +56,7 @@ The sibling repository `Kappa-Omini-typescript` runs its own Supabase stack on t
 | `pg_cron` installed | Yes, all three jobs scheduled: `foos-reminder-due`, `dash-refresh-materialized-views`, `dash-refresh-success-metrics` |
 | Four personas sign in | Pass |
 | `dash` views over REST as signed-in admin | HTTP 200 |
-| App reads local, not hosted | Confirmed by network trace: contacts `127.0.0.1:55321`, renders 7 candidate rows (local seed) against production's 83 |
+| App reads local, not hosted | Confirmed by network trace: contacts `127.0.0.1:56321`, renders 7 candidate rows (local seed) against production's 83 |
 
 That `pg_cron` result also confirms the D14 guard added to migration 04 did not change Supabase behaviour: the jobs still schedule where `pg_cron` exists.
 
@@ -94,7 +94,7 @@ Everything done on 2026-09-01 was applied to the **local** stack only. Verified 
 
 All eight migrations written on 2026-09-01 (`20260901000001` to `20260901000008`) report `remote: ""`. **None of them is on the hosted project.** Neither are the Edge Function changes: the fail-closed guards on `intake-email-parser` and `google-sync` exist only in the repo, because `supabase functions deploy` was never run.
 
-Every schema change in that session was applied with an explicit local connection string, `postgresql://postgres:postgres@127.0.0.1:55322/postgres`. `supabase db reset` acts on the local database only; its own output says so.
+Every schema change in that session was applied with an explicit local connection string, `postgresql://postgres:postgres@127.0.0.1:56322/postgres`. `supabase db reset` acts on the local database only; its own output says so.
 
 ### This checkout is linked to production
 

@@ -17,6 +17,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm run test:local-isolation
       - run: npm run lint --workspace=app
       - run: npm run typecheck --workspace=app
       - run: npm run typecheck --workspace=tests
@@ -114,7 +115,7 @@ jobs:
             "$FOOS_INTAKE_PARSER_SECRET" > supabase/functions/.env
 
       - name: Start the local Supabase stack
-        run: supabase start
+        run: npm run local:start
 
       - name: Capture the local keys
         id: keys
@@ -127,20 +128,20 @@ jobs:
       - name: Write the test env
         run: |
           {
-            echo "FOOS_SUPABASE_URL=http://127.0.0.1:55321"
+            echo "FOOS_SUPABASE_URL=http://127.0.0.1:56321"
             echo "FOOS_SUPABASE_ANON_KEY=${{ steps.keys.outputs.anon }}"
             echo "FOOS_QA_TEST_PASSWORD=$FOOS_QA_TEST_PASSWORD"
             echo "FOOS_INTAKE_PARSER_SECRET=$FOOS_INTAKE_PARSER_SECRET"
             echo "FOOS_BASE_URL=http://localhost:5175"
           } > tests/.env
-          printf 'VITE_SUPABASE_URL=http://127.0.0.1:55321\nVITE_SUPABASE_ANON_KEY=%s\n' \
+          printf 'VITE_SUPABASE_URL=http://127.0.0.1:56321\nVITE_SUPABASE_ANON_KEY=%s\n' \
             "${{ steps.keys.outputs.anon }}" > app/.env.development.local
 
       - name: Check for migration drift
         run: node scripts/check-migrations.mjs
 
       - name: Validate the schema
-        run: psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
+        run: psql "postgresql://postgres:postgres@127.0.0.1:56322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
       - name: API and RLS tests
         if: matrix.shard == 1

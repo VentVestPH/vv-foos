@@ -1,3 +1,4 @@
+import { assertTarget } from './local-stack.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -8,7 +9,7 @@ const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
 
 const DB_URL =
-  process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
+  assertTarget(process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:56322/postgres', 'db', process.argv.includes('--allow-remote'));
 
 function isLocal(u) {
   return /@(127\.0\.0\.1|localhost|\[::1\])[:/]/.test(u);

@@ -10,7 +10,7 @@ import {
   signIn,
 } from './helpers';
 
-const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
 const CANDIDATE = 'b0000000-0000-4000-8000-000000000002';
 const PDF = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a]);

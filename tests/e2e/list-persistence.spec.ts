@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 import { gotoAsSignedIn, openFilterRail, optionNames, PERSONA_EMAILS, searchList, signIn } from './helpers';
 
-const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 const VIEW_NAME = `QA Saved View ${RUN} recruiter`;

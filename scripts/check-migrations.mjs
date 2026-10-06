@@ -1,11 +1,12 @@
 #!/usr/bin/env node
+import { assertTarget } from './local-stack.mjs';
 import { readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const MIGRATIONS_DIR = 'supabase/migrations';
-const DEFAULT_DB = 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
+const DEFAULT_DB = 'postgresql://postgres:postgres@127.0.0.1:56322/postgres';
 
-const dbUrl = process.env.SUPABASE_DB_URL || DEFAULT_DB;
+const dbUrl = assertTarget(process.env.SUPABASE_DB_URL || DEFAULT_DB, 'db');
 
 const repoVersions = readdirSync(MIGRATIONS_DIR)
   .filter((f) => f.endsWith('.sql'))

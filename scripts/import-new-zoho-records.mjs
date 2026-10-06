@@ -1,3 +1,4 @@
+import { assertTarget } from './local-stack.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, writeFileSync, copyFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
@@ -15,7 +16,7 @@ const MODULES = [
 ];
 
 const DB_URL =
-  process.env.DATABASE_URL_LOCAL ?? 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
+  assertTarget(process.env.DATABASE_URL_LOCAL ?? 'postgresql://postgres:postgres@127.0.0.1:56322/postgres', 'db');
 
 function psql(sql) {
   return execFileSync('psql', [DB_URL, '-v', 'ON_ERROR_STOP=1', '-At', '-c', sql], {
