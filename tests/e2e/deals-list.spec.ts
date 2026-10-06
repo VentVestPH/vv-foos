@@ -70,7 +70,8 @@ test('D1b: the saved view opens with matching content and the first stage meets 
   await expect(page.locator('.table-wrap table')).toBeVisible({ timeout: 25000 });
 
   await page.getByRole('tab', { name: 'Kanban' }).click();
-  await expect(page.locator('.sales-deals-board .kanban-col').first()).toBeVisible({ timeout: 25000 });
+  await expect(page.getByRole('status', { name: 'Loading deal pipeline' })).toHaveCount(0, { timeout: 25000 });
+  await expect(page.locator('.sales-deals-board .kanban-card').first()).toBeVisible({ timeout: 25000 });
   const [boardLeft, firstColumnLeft] = await Promise.all([
     page.locator('.sales-deals-board').evaluate((element) => element.getBoundingClientRect().left),
     page.locator('.sales-deals-board .kanban-col').first().evaluate((element) => element.getBoundingClientRect().left),

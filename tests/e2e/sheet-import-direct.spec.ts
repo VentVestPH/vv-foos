@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, chooseOption, expandSection, gotoAsSignedIn, signIn } from './helpers';
 
 const RUN = `${process.pid}${Math.random().toString(36).slice(2, 8)}`;
 const NEW_ACCOUNT = `QA Import Account ${RUN}`;
@@ -44,6 +44,8 @@ test('FOOS-8: an account import previews new and existing rows, then creates onl
   await pick(page, /^Phone/, 'Phone number');
   await page.getByRole('button', { name: 'Continue to preview' }).click();
 
+  await expect(page.locator('.fo-table-paged .fo-pager').first(), 'the preview table keeps a pager even on one page').toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next page' }).first()).toBeDisabled();
   const preview = page.locator('.table-wrap tbody');
   await expect(preview).toContainText('Will be imported');
   await expect(preview).toContainText('Skipped: An account with this name already exists');
@@ -75,4 +77,46 @@ test('FOOS-8: a sourcer is not offered account or requisition imports', async ({
   await page.getByRole('combobox', { name: 'Target' }).click();
   await expect(page.getByRole('option', { name: /Account/ })).toHaveCount(0);
   await expect(page.getByRole('option', { name: /Requisition/ })).toHaveCount(0);
+});
+
+test('QA-2: the contact template carries contact columns, not candidate ones', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await gotoAsSignedIn(page, '/intake/sheet');
+  const headerOf = async () => {
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download template' }).click();
+    const file = await download;
+    const chunks: Buffer[] = [];
+    for await (const chunk of await file.createReadStream()) chunks.push(chunk as Buffer);
+    return { name: file.suggestedFilename(), header: Buffer.concat(chunks).toString('utf8').split(/\r?\n/, 1)[0] ?? '' };
+  };
+  const candidate = await headerOf();
+  await pick(page, /^Target/, 'Contact');
+  const contact = await headerOf();
+  expect(candidate.name).toBe('candidate-import-template.csv');
+  expect(contact.name).toBe('contact-import-template.csv');
+  expect(contact.header).toContain('Company');
+  expect(contact.header).not.toContain('Expected salary');
+  expect(contact.header).not.toContain('Requisition code');
+});
+
+test('QA-4: the data export table keeps a pager', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await gotoAsSignedIn(page, '/settings');
+  await expandSection(page, 'Data Export:');
+  const card = page.getByTestId('data-export');
+  await expect(card.locator('.fo-pager')).toBeVisible({ timeout: 25000 });
+});
+
+test('QA-5: a new account rejects a malformed email and writes nothing', async ({ page }) => {
+  await signIn(page, PERSONA_EMAILS.admin);
+  await gotoAsSignedIn(page, '/sales/companies/new');
+  const name = `QA Email Account ${RUN}`;
+  await page.getByLabel(/^Name/).first().fill(name);
+  await page.getByLabel('Email', { exact: true }).fill('not-an-email');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Enter a valid email address.').first()).toBeVisible();
+  const admin = await clientAs('admin');
+  const { data } = await admin.from('companies').select('id').eq('name', name);
+  expect(data ?? []).toHaveLength(0);
 });

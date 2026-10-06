@@ -272,7 +272,7 @@ test.describe('I: the rest of the intake queue', () => {
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download template' }).click();
     const file = await download;
-    expect(file.suggestedFilename()).toBe('intake-sheet-template.csv');
+    expect(file.suggestedFilename()).toBe('candidate-import-template.csv');
     const stream = await file.createReadStream();
     const chunks: Buffer[] = [];
     for await (const chunk of stream) chunks.push(chunk as Buffer);

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ArrowRightLeft } from 'lucide-react';
 import { EmptyState } from './EmptyState';
+import { Table } from './Table';
 
 export interface StatusChange {
   id: string;
@@ -14,6 +15,8 @@ interface StatusHistoryRow {
   label: string;
   previous: string;
   status: string;
+  occurredAt: string;
+  outAt: string | null;
   dateIn: string;
   dateOut: string | null;
   duration: string;
@@ -73,6 +76,8 @@ function buildRows(changes: StatusChange[]): StatusHistoryRow[] {
       label: row.label,
       previous: row.previous,
       status: row.status,
+      occurredAt: row.occurredAt,
+      outAt: dateOut,
       dateIn: formatDate(row.occurredAt),
       dateOut: dateOut ? formatDate(dateOut) : null,
       duration: formatDuration(row.occurredAt, dateOut),
@@ -96,32 +101,18 @@ export function StatusHistory({ changes }: { changes: StatusChange[] }) {
   }
 
   return (
-    <div className="table-wrap">
-      <table className="table zebra">
-        <caption className="visually-hidden">Status history</caption>
-        <thead>
-          <tr>
-            <th scope="col">Status</th>
-            <th scope="col">Previous status</th>
-            <th scope="col">Duration</th>
-            <th scope="col">Date in</th>
-            <th scope="col">Date out</th>
-            <th scope="col">Comments</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              <td>{row.status}</td>
-              <td>{row.previous}</td>
-              <td>{row.duration}</td>
-              <td>{row.dateIn}</td>
-              <td>{row.dateOut ?? 'Current'}</td>
-              <td>{row.comments}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      pageSize={10}
+      columns={[
+        { key: 'status', header: 'Status' },
+        { key: 'previous', header: 'Previous status' },
+        { key: 'duration', header: 'Duration' },
+        { key: 'dateIn', header: 'Date in', sortValue: (row) => row.occurredAt },
+        { key: 'dateOut', header: 'Date out', render: (row) => row.dateOut ?? 'Current', sortValue: (row) => row.outAt ?? '9999' },
+        { key: 'comments', header: 'Comments' },
+      ]}
+      rows={rows}
+      rowKey={(row) => row.id}
+    />
   );
 }

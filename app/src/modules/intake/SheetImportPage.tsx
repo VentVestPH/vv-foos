@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
+import { Table } from '../../components/ui/Table';
 import { ErrorSummary, type FieldError } from '../../components/ui/ErrorSummary';
 import { Inbox as InboxIcon, Sheet as SheetIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -62,7 +63,6 @@ const PARSED_FIELDS = [
   { key: 'email', label: 'Email' },
   { key: 'phone', label: 'Phone' },
   { key: 'current_employer', label: 'Current employer' },
-  { key: 'company', label: 'Company (contact import)' },
   { key: 'current_title', label: 'Current title' },
   { key: 'country', label: 'Country' },
   { key: 'requisition', label: 'Requisition code' },
@@ -84,6 +84,31 @@ const PARSED_FIELDS = [
   { key: 'experience_description', label: 'Experience description' },
   { key: 'linkedin_url', label: 'LinkedIn URL' },
 ] as const;
+
+const CONTACT_FIELDS = [
+  { key: 'name', label: 'Full name' },
+  { key: 'first_name', label: 'First name' },
+  { key: 'last_name', label: 'Last name' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'company', label: 'Company' },
+  { key: 'title', label: 'Title' },
+  { key: 'headline', label: 'Headline' },
+  { key: 'country', label: 'Country' },
+  { key: 'linkedin_url', label: 'LinkedIn URL' },
+] as const;
+
+const CONTACT_TEMPLATE: Record<string, string> = {
+  first_name: 'Dana',
+  last_name: 'Cruz',
+  email: 'dana.cruz@northwind.example',
+  phone: '+63 2 8123 4567',
+  company: 'Northwind Logistics',
+  title: 'Head of Talent',
+  headline: 'Hiring manager, platform team',
+  country: 'Philippines',
+  linkedin_url: 'https://www.linkedin.com/in/dana-cruz',
+};
 
 type Step = 'url' | 'mapping' | 'preview' | 'done';
 type Target = 'candidate' | 'contact' | DirectTarget;
@@ -128,10 +153,11 @@ function downloadTemplate(target: Target): void {
     );
     return;
   }
+  const contact = target === 'contact';
   downloadCsv(
-    'intake-sheet-template.csv',
-    [TEMPLATE_EXAMPLE],
-    PARSED_FIELDS.map((f) => ({ key: f.key, header: f.label })),
+    `${target}-import-template.csv`,
+    [contact ? CONTACT_TEMPLATE : TEMPLATE_EXAMPLE],
+    (contact ? CONTACT_FIELDS : PARSED_FIELDS).map((f) => ({ key: f.key, header: f.label })),
   );
 }
 
@@ -471,26 +497,21 @@ export function SheetImportPage() {
           <p className="text-secondary">
             {ready} new {ready === 1 ? label.one : label.many} will be created. Rows that already exist are skipped, never overwritten.
           </p>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Row</th>
-                  <th>{targetType === 'account' ? 'Account' : 'Requisition'}</th>
-                  <th>Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                {plan.rows.map((row) => (
-                  <tr key={row.row}>
-                    <td>{row.row}</td>
-                    <td>{row.label}</td>
-                    <td>{row.insert ? 'Will be imported' : <span className="badge-tone badge-dup">Skipped: {row.skipReason}</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            pageSize={20}
+            columns={[
+              { key: 'row', header: 'Row' },
+              { key: 'label', header: targetType === 'account' ? 'Account' : 'Requisition' },
+              {
+                key: 'result',
+                header: 'Result',
+                sortValue: (row) => (row.insert ? 0 : 1),
+                render: (row) => (row.insert ? 'Will be imported' : <span className="badge-tone badge-dup">Skipped: {row.skipReason}</span>),
+              },
+            ]}
+            rows={plan.rows as { row: number; label: string; insert: unknown; skipReason: string | null }[]}
+            rowKey={(row) => String(row.row)}
+          />
           {error && <p className="field-error-text" role="alert">{error}</p>}
           <div className="intake-form-actions">
             <Button variant="primary" onClick={commit} loading={busy} disabled={ready === 0}
@@ -517,42 +538,32 @@ export function SheetImportPage() {
         </div>
         <RecordSection title="Preview:">
           {checkingDedup && <p className="text-secondary">Checking for duplicates…</p>}
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Current employer</th>
-                  <th>Requisition</th>
-                  <th>Dedup</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fetched.rows.map((row, i) => (
-                  <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>
-                      {columnMap.name
-                        ? row[columnMap.name]
-                        : [columnMap.first_name ? row[columnMap.first_name] : '', columnMap.last_name ? row[columnMap.last_name] : ''].filter(Boolean).join(' ')}
-                    </td>
-                    <td>{columnMap.email ? row[columnMap.email] : ''}</td>
-                    <td>{columnMap.current_employer ? row[columnMap.current_employer] : columnMap.company ? row[columnMap.company] : ''}</td>
-                    <td>{requisitionForRow(row)?.display_code ?? ''}</td>
-                    <td>
-                      {dedupFlags.has(i) ? (
-                        <span className="badge-tone badge-dup">matches {dedupFlags.get(i)}</span>
-                      ) : (
-                        ''
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            pageSize={20}
+            columns={[
+              { key: 'index', header: '#', render: (row) => row.index + 1, sortValue: (row) => row.index },
+              { key: 'name', header: 'Name' },
+              { key: 'email', header: 'Email' },
+              { key: 'employer', header: 'Current employer' },
+              { key: 'requisition', header: 'Requisition' },
+              {
+                key: 'dedup',
+                header: 'Dedup',
+                render: (row) => (row.dedup ? <span className="badge-tone badge-dup">matches {row.dedup}</span> : ''),
+              },
+            ]}
+            rows={fetched.rows.map((row, index) => ({
+              index,
+              name: columnMap.name
+                ? row[columnMap.name] ?? ''
+                : [columnMap.first_name ? row[columnMap.first_name] : '', columnMap.last_name ? row[columnMap.last_name] : ''].filter(Boolean).join(' '),
+              email: columnMap.email ? row[columnMap.email] ?? '' : '',
+              employer: columnMap.current_employer ? row[columnMap.current_employer] ?? '' : columnMap.company ? row[columnMap.company] ?? '' : '',
+              requisition: requisitionForRow(row)?.display_code ?? '',
+              dedup: dedupFlags.get(index) ?? '',
+            }))}
+            rowKey={(row) => String(row.index)}
+          />
           {error && <p className="field-error-text" role="alert">{error}</p>}
           <div className="intake-form-actions">
             <Button variant="primary" onClick={commit} loading={busy} disabled={checkingDedup}>
@@ -630,7 +641,9 @@ export function SheetImportPage() {
 
           {(isDirect(targetType)
             ? fieldsFor(targetType)
-            : PARSED_FIELDS.filter((field) => field.key !== 'requisition' || canAssignRequisition)
+            : targetType === 'contact'
+              ? CONTACT_FIELDS
+              : PARSED_FIELDS.filter((field) => field.key !== 'requisition' || canAssignRequisition)
           ).map((f) => (
             <Select
               key={f.key}
@@ -662,26 +675,12 @@ export function SheetImportPage() {
         </RecordSection>
 
         <RecordSection title="Sample Rows:">
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  {fetched.columns.map((c) => (
-                    <th key={c}>{c}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {fetched.rows.slice(0, 10).map((row, i) => (
-                  <tr key={i}>
-                    {fetched.columns.map((c) => (
-                      <td key={c}>{row[c]}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            pageSize={10}
+            columns={fetched.columns.map((column) => ({ key: column, header: column, sortValue: (row: Record<string, string>) => row[column] ?? '' }))}
+            rows={fetched.rows.map((row, index) => ({ ...row, __row: String(index) }))}
+            rowKey={(row) => row.__row ?? ''}
+          />
         </RecordSection>
       </div>
     );

@@ -10,7 +10,7 @@ import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSumma
 import { Handshake as HandshakeIcon } from 'lucide-react';
 import { useStaffList } from '../hooks';
 import type { CompanyType } from '../../../lib/database.types';
-import { PHONE_PATTERN, PHONE_RULE } from '../../../lib/personValidation';
+import { EMAIL_PATTERN, PHONE_PATTERN, PHONE_RULE } from '../../../lib/personValidation';
 import { COUNTRIES } from '../../../lib/countries';
 
 const ALL_TYPES: CompanyType[] = ['client', 'employer', 'prospect'];
@@ -26,6 +26,7 @@ export function CompanyNewPage() {
   const [types, setTypes] = useState<CompanyType[]>(INITIAL_TYPES);
   const [website, setWebsite] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
@@ -61,6 +62,10 @@ export function CompanyNewPage() {
       setProblems([{ field: 'company-name', message: 'Company name is required.' }]);
       return;
     }
+    if (email.trim() && !EMAIL_PATTERN.test(email.trim())) {
+      setProblems([{ field: 'company-email', message: 'Enter a valid email address.' }]);
+      return;
+    }
     if (phone.trim() && !PHONE_PATTERN.test(phone.trim())) {
       setProblems([{ field: 'company-phone', message: PHONE_RULE }]);
       return;
@@ -75,6 +80,7 @@ export function CompanyNewPage() {
         types,
         website: website.trim() || null,
         phone: phone.trim() || null,
+        email: email.trim().toLowerCase() || null,
         city: city.trim() || null,
         state: state.trim() || null,
         country: country.trim() || null,
@@ -135,6 +141,14 @@ export function CompanyNewPage() {
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
             placeholder="https://…"
+          />
+          <Input
+            id="company-email"
+            label="Email"
+            type="email"
+            value={email}
+            error={problems.find((p) => p.field === 'company-email')?.message}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <Input
             id="company-phone"
