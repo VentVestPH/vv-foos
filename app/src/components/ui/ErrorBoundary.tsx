@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { reportError } from '../../lib/errorReporter';
+import { isStaleBuildError, reloadForStaleBuild } from '../../lib/staleBuild';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -19,6 +20,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    if (isStaleBuildError(error) && reloadForStaleBuild()) return;
     reportError(
       `boundary:${this.props.label ?? 'app'}`,
       error,

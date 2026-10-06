@@ -4,8 +4,10 @@ import { createRoot } from 'react-dom/client';
 import { LucideProvider } from 'lucide-react';
 import App from './App';
 import { installGlobalErrorReporting } from './lib/errorReporter';
+import { installStaleBuildReload } from './lib/staleBuild';
 
 installGlobalErrorReporting();
+installStaleBuildReload();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
