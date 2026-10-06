@@ -438,43 +438,10 @@
   width: min(420px, 100%);
 }
 
-.fo-skel-section {
-  display: flex;
-  flex-direction: column;
-  background: var(--fo-surface);
-}
 
-.fo-skel-section-head {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-2);
-  background: var(--section-tint);
-  color: var(--text);
-  font-size: var(--fs-section);
-  font-weight: 700;
-}
 
-.fo-skel-widgets {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-  gap: var(--sp-3);
-  padding: var(--section-pad);
-}
 
-.fo-skel-widget {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1-5);
-  padding: var(--section-pad);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
 
-.fo-skel-widget-title {
-  width: 180px;
-  height: var(--sp-2);
-}
 
 .fo-skel-widget-body {
   display: flex;

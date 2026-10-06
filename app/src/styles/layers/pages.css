@@ -8,6 +8,10 @@
   gap: 0;
 }
 
+.list-page[data-flush='true'] > .list-page-body {
+  margin-top: var(--sp-2);
+}
+
 .list-page-head {
   display: flex;
   align-items: center;

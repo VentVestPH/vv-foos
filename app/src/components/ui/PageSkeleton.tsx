@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { SectionSkeleton } from './RecordSkeleton';
 import { Skeleton } from './Skeleton';
 import { TableSkeleton } from './TableSkeleton';
 
 const ROUTE_DELAY_MS = 200;
 
 export const USERS_COLUMNS = ['Name', 'Email', 'Role', 'Title', 'Sign-in', 'Last sign-in'];
-const REPORT_SECTIONS = ['Pipeline by Stage', 'Requisition Aging', 'Recruiter/Sourcer Activity', 'Time in Stage', 'Source Effectiveness'];
+const REPORT_SECTIONS = 5;
 
 function HeadSkeleton({ search = true }: { search?: boolean }) {
   return (
@@ -39,29 +39,11 @@ export function WidgetBodySkeleton({ kpis = 0, bars = 5 }: { kpis?: number; bars
   );
 }
 
-export function ReportsSkeleton() {
+function ReportsSkeleton() {
   return (
-    <div className="fo-page-skeleton" role="status" aria-label="Loading reports">
+    <div className="fo-page-skeleton">
       <HeadSkeleton />
-      {REPORT_SECTIONS.map((section, index) => (
-        <div key={section} className="fo-skel-section" aria-hidden="true">
-          <div className="fo-skel-section-head">
-            {index === 0 ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-            <span>{section}</span>
-          </div>
-          {index === 0 && (
-            <div className="fo-skel-widgets">
-              {[0, 1].map((widget) => (
-                <div key={widget} className="fo-skel-widget">
-                  <span className="skeleton-row fo-skel-widget-title" />
-                  <span className="skeleton-row fo-skel-line" />
-                  <WidgetBodySkeleton kpis={widget === 1 ? 2 : 0} bars={widget === 1 ? 4 : 6} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
+      <SectionSkeleton label="Loading reports" sections={REPORT_SECTIONS} />
     </div>
   );
 }
