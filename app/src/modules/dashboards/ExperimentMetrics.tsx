@@ -87,7 +87,6 @@ export function ExperimentMetrics({ range }: { range: DateRange }) {
     {
       key: 'metric_key',
       header: 'Metric',
-      sortable: true,
       render: (r) => (
         <span>
           {METRIC_LABELS[r.metric_key] ?? r.metric_key}
@@ -99,11 +98,10 @@ export function ExperimentMetrics({ range }: { range: DateRange }) {
         </span>
       ),
     },
-    { key: 'week_start', header: 'Week of', sortable: true },
+    { key: 'week_start', header: 'Week of' },
     {
       key: 'value',
       header: 'Value',
-      sortable: true,
       sortValue: (r) => r.value ?? 0,
       render: formatValue,
     },
@@ -133,6 +131,7 @@ export function ExperimentMetrics({ range }: { range: DateRange }) {
         {status}
       </p>
       <Table
+        pageSize={10}
         columns={columns}
         rows={rows}
         busy={refreshing}

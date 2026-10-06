@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import './localTarget';
 
 for (const name of ['FOOS_SUPABASE_URL', 'FOOS_SUPABASE_ANON_KEY']) {
   if (!process.env[name]) {

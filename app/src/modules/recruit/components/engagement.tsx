@@ -23,7 +23,7 @@ import {
   PENDING_FILE_LABEL,
   PENDING_FILE_REASON,
 } from '../../../lib/attachments';
-import { BellRing, CalendarDays, ListChecks, MessageSquare, Paperclip, Trash2 } from 'lucide-react';
+import { BellRing, CalendarDays, ListChecks, MessageSquare, Paperclip, Plus, Trash2 } from 'lucide-react';
 import { ConfirmDeleteDialog } from '../../../components/ui/ConfirmDeleteDialog';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
@@ -482,6 +482,7 @@ export function TasksPanel({ items, allowCreate, onCreate, onToggle, onDelete }:
               disabled={!subject.trim()}
               title={subject.trim() ? undefined : 'Give the task a subject first'}
             >
+              <Plus size={20} aria-hidden="true" />
               Add task
             </Button>
           </div>
@@ -585,6 +586,7 @@ export function RemindersPanel({
                     : undefined
               }
             >
+              <Plus size={20} aria-hidden="true" />
               Add reminder
             </Button>
           </div>

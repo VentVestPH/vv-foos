@@ -362,7 +362,6 @@ export function CandidateListPage() {
             <FlagIcon size={20} />
           </span>
         ),
-        sortable: true,
         sortValue: (r) => (r.flags ? 1 : 0),
         width: '32px',
         render: (r) =>
@@ -375,7 +374,6 @@ export function CandidateListPage() {
       {
         key: 'name',
         header: 'Name',
-        sortable: true,
         nowrap: true,
         render: (r) => (
           <button
@@ -393,13 +391,11 @@ export function CandidateListPage() {
       {
         key: 'updated_at',
         header: 'Last updated',
-        sortable: true,
         render: (r) => fmtDate(r.updated_at),
       },
       {
         key: 'has_resume',
         header: 'Resume',
-        sortable: true,
         align: 'center',
         sortValue: (r) => (r.has_resume ? 1 : 0),
         render: (r) => (
@@ -415,19 +411,17 @@ export function CandidateListPage() {
           </span>
         ),
       },
-      { key: 'location', header: 'Location', sortable: true, minWidth: '200px' },
-      { key: 'source', header: 'Source', sortable: true },
+      { key: 'location', header: 'Location', minWidth: '200px' },
+      { key: 'source', header: 'Source' },
       {
         key: 'initial_date',
         header: 'Initial date',
-        sortable: true,
         render: (r) => fmtDate(r.initial_date),
       },
       {
         key: 'star_grade',
         width: '92px',
         header: 'Grade',
-        sortable: true,
         sortValue: (r) => r.star_grade ?? 0,
         render: (r) => {
           const prof = profiles.find((p) => p.person_id === r.id);
@@ -445,7 +439,6 @@ export function CandidateListPage() {
       {
         key: 'grade_comment',
         header: 'Grade comment',
-        sortable: true,
         render: (r) => {
           const prof = profiles.find((p) => p.person_id === r.id);
           return (
@@ -470,11 +463,10 @@ export function CandidateListPage() {
           );
         },
       },
-      { key: 'status', header: 'Main status', sortable: true },
+      { key: 'status', header: 'Main status' },
       {
         key: 'requisitions',
         header: 'Requisitions',
-        sortable: true,
         render: (r) => (
           <span className="chip-row">
             {r.requisitions
@@ -488,9 +480,9 @@ export function CandidateListPage() {
           </span>
         ),
       },
-      { key: 'current_title', header: 'Current title', sortable: true },
-      { key: 'current_employer', header: 'Current employer', sortable: true },
-      { key: 'sourcer', header: 'Sourcer', sortable: true, nowrap: true },
+      { key: 'current_title', header: 'Current title' },
+      { key: 'current_employer', header: 'Current employer' },
+      { key: 'sourcer', header: 'Sourcer', nowrap: true },
     ];
     const byKey = new Map(defs.map((c) => [c.key, c]));
     return visibleCols
@@ -583,7 +575,7 @@ export function CandidateListPage() {
           <CandidateBulkActions
             selected={selected}
             profiles={profiles}
-            statuses={lookups.statuses}
+            statuses={lookups.statuses.filter((status) => status.is_active)}
             canEdit={canBulkEdit}
             onDone={load}
             onClear={() => setSelected(new Set())}

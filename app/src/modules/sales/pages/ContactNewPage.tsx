@@ -11,6 +11,7 @@ import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSumma
 import { Contact as ContactCardIcon } from 'lucide-react';
 import { useCompanyOptions } from '../hooks';
 import { normalizeEmail, personName, todayISO, type Person } from '../lib';
+import { validateContactPerson } from '../../../lib/personValidation';
 
 interface DedupMatch {
   person: Person;
@@ -105,10 +106,14 @@ export function ContactNewPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!firstName.trim() && !lastName.trim()) {
-      setProblems([
-        { field: 'contact-first-name', message: 'A first or last name is required.' },
-      ]);
+    const invalid = validateContactPerson(firstName, lastName, email, phone);
+    if (invalid) {
+      const field = invalid.startsWith('Phone')
+        ? 'contact-phone'
+        : invalid.startsWith('Enter a valid email')
+          ? 'contact-email'
+          : 'contact-first-name';
+      setProblems([{ field, message: invalid }]);
       return;
     }
     setProblems([]);
@@ -172,15 +177,20 @@ export function ContactNewPage() {
             Give at least a first or a last name.
           </span>
           <Input
+            id="contact-email"
             label="Email"
             type="email"
             value={email}
+            error={problems.find((p) => p.field === 'contact-email')?.message}
             onChange={(e) => setEmail(e.target.value)}
             onBlur={checkDuplicates}
           />
           <Input
+            id="contact-phone"
             label="Phone"
+            type="tel"
             value={phone}
+            error={problems.find((p) => p.field === 'contact-phone')?.message}
             onChange={(e) => setPhone(e.target.value)}
           />
           <Select

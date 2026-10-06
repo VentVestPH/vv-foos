@@ -14,7 +14,7 @@ test.describe('U6: the Settings data exporter', () => {
     test.skip(!(await hasImportedDataset()), NEEDS_IMPORT);
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/settings');
-    await expandSection(page, 'Data Export:');
+    await page.getByRole('tab', { name: /Data export/ }).click();
 
     const card = page.getByTestId('data-export');
     await expect(card).toBeVisible({ timeout: 30000 });
@@ -43,7 +43,7 @@ test.describe('U6: the Settings data exporter', () => {
     test.setTimeout(60000);
     await signIn(page, PERSONA_EMAILS.bd);
     await gotoAsSignedIn(page, '/settings');
-    await expandSection(page, 'Data Export:');
+    await page.getByRole('tab', { name: /Data export/ }).click();
 
     await expect(page.getByTestId('export-not-admin')).toBeVisible({ timeout: 30000 });
     await expect(
@@ -58,7 +58,7 @@ test.describe('U6: the Settings data exporter', () => {
     test.setTimeout(90000);
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/settings');
-    await expandSection(page, 'Data Export:');
+    await page.getByRole('tab', { name: /Data export/ }).click();
 
     const card = page.getByTestId('data-export');
     const count = card.getByTestId('count-companies');
@@ -106,7 +106,7 @@ test.describe('U3.4: application attachments have a surface', () => {
     test.setTimeout(90000);
     const { createClient } = await import('@supabase/supabase-js');
     const api = createClient(
-      process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321',
+      process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321',
       process.env.FOOS_SUPABASE_ANON_KEY ?? '',
     );
     const { error: authErr } = await api.auth.signInWithPassword({

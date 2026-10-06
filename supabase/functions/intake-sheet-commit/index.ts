@@ -23,6 +23,7 @@ interface CommitBody {
   rows: Record<string, string>[];
   columnMap: Record<string, string>;
   targetType: "candidate" | "contact";
+  requisitionId?: string;
   batchLabel: string;
   saveTemplate?: { name: string; sourceHint?: string };
 }
@@ -52,7 +53,11 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid JSON body" }, 400);
   }
 
-  if (!Array.isArray(body.rows) || body.rows.length === 0) {
+  if (
+    !Array.isArray(body.rows) ||
+    body.rows.length === 0 ||
+    body.rows.some((row) => !row || typeof row !== "object" || Array.isArray(row))
+  ) {
     return json({ error: "rows is required and must be non-empty" }, 400);
   }
   if (!body.targetType || !["candidate", "contact"].includes(body.targetType)) {
@@ -63,17 +68,110 @@ Deno.serve(async (req) => {
   }
 
   const map = body.columnMap ?? {};
-  const get = (row: Record<string, string>, field: string) =>
-    map[field] ? (row[map[field]] ?? "").trim() : "";
+  const get = (row: Record<string, string>, field: string) => {
+    const value = map[field] ? row[map[field]] : "";
+    return value === null || value === undefined ? "" : String(value).trim();
+  };
+
+  if (body.targetType === "candidate") {
+    for (const [index, row] of body.rows.entries()) {
+      const fullName = get(row, "name");
+      const nameParts = fullName.split(/\s+/).filter(Boolean);
+      const firstName = get(row, "first_name") || nameParts[0] || "";
+      const lastName = get(row, "last_name") || nameParts.slice(1).join(" ");
+      if (!firstName || !lastName) {
+        return json({ error: `Row ${index + 2}: first and last name are required.` }, 400);
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(get(row, "email"))) {
+        return json({ error: `Row ${index + 2}: enter a valid email address.` }, 400);
+      }
+      const phone = get(row, "phone");
+      if (phone && !/^\+?[0-9][0-9\s(),-]*$/.test(phone)) {
+        return json({ error: `Row ${index + 2}: phone contains unsupported characters.` }, 400);
+      }
+      for (const field of ["expected_salary", "current_salary"]) {
+        const amount = get(row, field);
+        if (amount && !/^[0-9]+(\.[0-9]+)?$/.test(amount)) {
+          return json({ error: `Row ${index + 2}: ${field.replace("_", " ")} must be numeric.` }, 400);
+        }
+      }
+    }
+  }
+
+  if (body.targetType === "contact") {
+    for (const [index, row] of body.rows.entries()) {
+      if (!get(row, "name") && !get(row, "first_name") && !get(row, "last_name")) {
+        return json({ error: `Row ${index + 2}: a contact needs at least a first or last name.` }, 400);
+      }
+      const email = get(row, "email");
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return json({ error: `Row ${index + 2}: enter a valid email address.` }, 400);
+      }
+      const phone = get(row, "phone");
+      if (phone && !/^\+?[0-9][0-9\s(),-]*$/.test(phone)) {
+        return json({ error: `Row ${index + 2}: phone contains unsupported characters.` }, 400);
+      }
+    }
+  }
+
+  const requisitionByCode = new Map<string, string>();
+  const requisitionIds = new Set<string>();
+  if (body.targetType === "candidate") {
+    const hasRowCodes = body.rows.some((row) => get(row, "requisition"));
+    if (body.requisitionId || hasRowCodes) {
+      const { data: available, error: requisitionError } = await sb
+        .from("requisition_list")
+        .select("id, display_code")
+        .in("status", ["open", "waiting_approval", "on_hold"]);
+      if (requisitionError) return json({ error: requisitionError.message }, 400);
+      for (const requisition of available ?? []) {
+        requisitionByCode.set(requisition.display_code.toLowerCase(), requisition.id);
+        requisitionIds.add(requisition.id);
+      }
+      if (body.requisitionId && !requisitionIds.has(body.requisitionId)) {
+        return json({ error: "The selected requisition is no longer available." }, 400);
+      }
+      for (const [index, row] of body.rows.entries()) {
+        const code = get(row, "requisition");
+        if (code && !requisitionByCode.has(code.toLowerCase())) {
+          return json({ error: `Row ${index + 2}: requisition ${code} is not available.` }, 400);
+        }
+      }
+    }
+  }
 
   const insertRows = body.rows.map((row) => {
-    const name = get(row, "name");
+    const firstName = get(row, "first_name");
+    const lastName = get(row, "last_name");
+    const name = get(row, "name") || [firstName, lastName].filter(Boolean).join(" ");
     const email = get(row, "email");
     const phone = get(row, "phone");
-    const company = get(row, "company");
-    const title = get(row, "title");
+    const company = get(row, "current_employer") || get(row, "company");
+    const title = get(row, "current_title") || get(row, "title");
     const headline = get(row, "headline");
     const linkedinUrl = get(row, "linkedin_url");
+    const education = {
+      university: get(row, "university"),
+      bachelor_discipline: get(row, "bachelor_discipline"),
+      year: get(row, "education_year"),
+      higher_degrees: get(row, "higher_degrees"),
+      other_degrees: get(row, "other_degrees"),
+    };
+    const experience = {
+      title: get(row, "experience_title"),
+      employer: get(row, "experience_employer"),
+      start_date: get(row, "experience_start_date"),
+      end_date: get(row, "experience_end_date"),
+      description: get(row, "experience_description"),
+    };
+    const present = (value: Record<string, string>) =>
+      Object.fromEntries(Object.entries(value).filter(([, field]) => field));
+    const educationFields = present(education);
+    const experienceFields = present(experience);
+    const requisitionCode = get(row, "requisition").toLowerCase();
+    const rowRequisitionId = requisitionCode
+      ? requisitionByCode.get(requisitionCode)
+      : body.requisitionId;
 
     return {
       channel: "sheet_import" as const,
@@ -85,10 +183,24 @@ Deno.serve(async (req) => {
       raw_payload: row,
       parsed: {
         name,
+        first_name: firstName || undefined,
+        last_name: lastName || undefined,
         email: email || undefined,
         phone: phone || undefined,
         company: company || undefined,
         title: title || undefined,
+        current_title: title || undefined,
+        current_employer: company || undefined,
+        country: get(row, "country") || undefined,
+        status: get(row, "candidate_status") || undefined,
+        requisition_id: body.targetType === "candidate" ? rowRequisitionId || undefined : undefined,
+        tenure_note: get(row, "tenure_note") || undefined,
+        expected_salary: get(row, "expected_salary") || undefined,
+        current_salary: get(row, "current_salary") || undefined,
+        salary_currency: get(row, "salary_currency") || undefined,
+        salary_flag: get(row, "salary_flag") || undefined,
+        education: Object.keys(educationFields).length ? [educationFields] : undefined,
+        experience: Object.keys(experienceFields).length ? [experienceFields] : undefined,
         headline: headline || undefined,
         linkedin_url: linkedinUrl || undefined,
       },

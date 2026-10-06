@@ -14,7 +14,7 @@ insert into sources (name) values
 -- nothing gets renamed. FOOS adds only 'Placed' as the end state.
 
 insert into candidate_statuses (label, sort_order, is_active) values
-  ('Resume Provided by Third Party', 1, true),
+  ('Resume Provided by Third Party', 1, false),
   ('Candidate to Review Info',       2, true),
   ('Sent InMail I (Linkedin)',       3, true),
   ('Placed',                         4, true);
@@ -82,7 +82,7 @@ insert into people (id, first_name, last_name, headline, emails, linkedin_public
 insert into candidate_profiles (person_id, status_id, star_grade, grade_comment, current_title, current_employer, source_id, sourcer_id) values
   ('b0000000-0000-4000-8000-000000000001', (select id from candidate_statuses where label = 'Sent InMail I (Linkedin)'), 3, 'Strong pipeline fit', 'Data engineer', 'Aster Analytics', (select id from sources where name = 'LinkedIn'), 'a0000000-0000-4000-8000-000000000003'),
   ('b0000000-0000-4000-8000-000000000002', (select id from candidate_statuses where label = 'Candidate to Review Info'), 2, 'Good, verify stack',  'Frontend developer', 'Freelance',   (select id from sources where name = 'LinkedIn'), 'a0000000-0000-4000-8000-000000000003'),
-  ('b0000000-0000-4000-8000-000000000003', (select id from candidate_statuses where label = 'Resume Provided by Third Party'), 1, 'Weak tenure history', 'DevOps engineer', 'Corvid Systems', (select id from sources where name = 'Agency'), 'a0000000-0000-4000-8000-000000000003'),
+  ('b0000000-0000-4000-8000-000000000003', (select id from candidate_statuses where label = 'Resume Provided'), 1, 'Weak tenure history', 'DevOps engineer', 'Corvid Systems', (select id from sources where name = 'Agency'), 'a0000000-0000-4000-8000-000000000003'),
   ('b0000000-0000-4000-8000-000000000004', (select id from candidate_statuses where label = 'Candidate to Review Info'), 2, null, 'QA analyst', 'Dune Retail Group', (select id from sources where name = 'Referral'), null),
   ('b0000000-0000-4000-8000-000000000005', (select id from candidate_statuses where label = 'Sent InMail I (Linkedin)'), 3, null, 'Product designer', 'Ember Health', (select id from sources where name = 'LinkedIn'), null),
   ('b0000000-0000-4000-8000-000000000009', (select id from candidate_statuses where label = 'Placed'), 3, 'Placed at Aster', 'Senior engineer', 'Aster Analytics', (select id from sources where name = 'Referral'), null),

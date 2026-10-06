@@ -41,24 +41,30 @@ interface PagerProps {
   pageCount: number;
   onPage: (page: number) => void;
   totalPending?: boolean;
+  countLabel?: string;
+  disabled?: boolean;
 }
 
-export function Pager({ from, to, total, page, pageCount, onPage, totalPending }: PagerProps) {
+export function Pager({ from, to, total, page, pageCount, onPage, totalPending, countLabel: countLabelOverride, disabled = false }: PagerProps) {
   const single = pageCount <= 1;
   const empty = total === 0;
   const atStart = page === 0;
   const atEnd = page >= pageCount - 1;
-  const startTitle = empty
+  const startTitle = disabled
+    ? 'Pagination is unavailable in this view'
+    : empty
     ? 'There are no rows to page through'
     : single
       ? 'There is only one page'
       : 'You are on the first page';
-  const endTitle = empty
+  const endTitle = disabled
+    ? 'Pagination is unavailable in this view'
+    : empty
     ? 'There are no rows to page through'
     : single
       ? 'There is only one page'
       : 'You are on the last page';
-  const countLabel =
+  const countLabel = countLabelOverride ??
     total === null
       ? to > 0
         ? `${from}-${to}`
@@ -73,7 +79,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
         <button
           type="button"
           onClick={() => onPage(0)}
-          disabled={atStart}
+          disabled={disabled || atStart}
           aria-label="First page"
           title={atStart ? startTitle : 'First page'}
         >
@@ -82,7 +88,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
         <button
           type="button"
           onClick={() => onPage(page - 1)}
-          disabled={atStart}
+          disabled={disabled || atStart}
           aria-label="Previous page"
           title={atStart ? startTitle : 'Previous page'}
         >
@@ -94,7 +100,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
         <button
           type="button"
           onClick={() => onPage(page + 1)}
-          disabled={atEnd}
+          disabled={disabled || atEnd}
           aria-label="Next page"
           title={atEnd ? endTitle : 'Next page'}
         >
@@ -103,7 +109,7 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending }
         <button
           type="button"
           onClick={() => onPage(pageCount - 1)}
-          disabled={atEnd || totalPending === true}
+          disabled={disabled || atEnd || totalPending === true}
           aria-label="Last page"
           title={
             totalPending === true ? 'Still counting the rows' : atEnd ? endTitle : 'Last page'

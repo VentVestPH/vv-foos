@@ -59,7 +59,7 @@ Legend: **PASS** (re-ran it, green) · **FAIL** (re-ran it, red, see defect log)
 | 3.5 | New deal gets DEAL-#### code, defaults stage=lead/owner=self | `validate.sql` check 4 (code format) | PASS |
 | 3.6 | application.hired → promotion → 1 contact_profiles row, no duplicate person | Cross-module flow test (this pass) | PASS |
 | 3.7 | bd session: zero candidate data anywhere, incl. direct API | `validate.sql` check 11 **+ real HTTP call this pass** (bd JWT sees 0 candidate_profiles/requisitions) | PASS |
-| 3.8 | Tickets read-only, no mutation controls | `tests/e2e/record-ui.spec.ts` (New Ticket disabled, zero enabled inputs or selects in the table, empty state names the CS module) | PASS |
+| 3.8 | Create and open tickets with comments and draft image attachments | `tests/e2e/record-ui.spec.ts` (wide two-column dialog places fields on the right, supports existing/new tags and a custom date picker, saves comments, delays image upload until save, and opens tickets from table and Kanban) | PASS |
 | 3.9 | Design tokens, WCAG AA, tablet-width rendering | `scripts/check-contrast.mjs` + `tests/e2e/record-ui.spec.ts` tablet and desktop widths | PASS |
 | 3.10 | Full BD-rep demo script click-through | Already run at Agent 3's own Gate 3 (2026-07-25); folded into regression checklist | TRACED |
 

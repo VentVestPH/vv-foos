@@ -1,5 +1,9 @@
 # Zoho importer
 
+**The migration is complete.** The Zoho pull and the Singapore move finished on 2026-09-09; the record is `docs/environments/VVPH_VV-FOOS_Record_Zoho-Pull-And-Singapore-Migration_2026-09-09_v1.0_Final.md`. This README is kept for the mapping reference in "What each entity maps to" and "Known Zoho quirks the parser handles", which still describe live data.
+
+**Deleted 2026-09-14, because the migration they served is done:** `scripts/verify-zoho-migration.mjs`, `scripts/verify-zoho-sample.mjs`, `scripts/bulk-load-triggers.mjs` and `scripts/seed-scale-candidates.mjs`. Commands below that name them no longer run. Recover them from git history if a re-import is ever needed.
+
 Reads Zoho Recruit and Zoho CRM CSV exports and writes them into FOOS. Idempotent,
 dry-run by default, and refuses to touch a non-local database without an explicit flag.
 

@@ -53,7 +53,6 @@ a[aria-disabled='true'],
 
 .fo-dialog-close:hover:not(:disabled),
 .fo-nav-scroll-btn:hover:not(:disabled),
-.fo-report-tab-gear:hover:not(:disabled),
 .fo-cal-view-btn:hover:not(:disabled):not([aria-pressed='true']) {
   color: var(--fo-primary);
 }
@@ -68,4 +67,3 @@ a[aria-disabled='true'] svg,
 .btn-danger:disabled svg {
   color: inherit;
 }
-

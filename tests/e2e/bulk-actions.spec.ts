@@ -109,6 +109,7 @@ test.describe('Q1: bulk actions on the candidate list', () => {
     const { data: statuses } = await admin
       .from('candidate_statuses')
       .select('id, label')
+      .eq('is_active', true)
       .order('sort_order');
 
     await signIn(page, PERSONA_EMAILS.recruiter);

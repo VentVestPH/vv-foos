@@ -9,6 +9,7 @@ interface FoDialogProps {
   footer?: ReactNode | ((close: () => void) => ReactNode);
   onClose: () => void;
   children: ReactNode;
+  hideHeader?: boolean;
 }
 
 export function FoDialog({
@@ -18,6 +19,7 @@ export function FoDialog({
   footer,
   onClose,
   children,
+  hideHeader = false,
 }: FoDialogProps) {
   const bodyShade = useScrollShadow<HTMLDivElement>();
   const panel = ['fo-dialog-panel', wide ? 'fo-dialog-panel-wide' : null, className]
@@ -37,6 +39,7 @@ export function FoDialog({
       footClass="fo-dialog-foot"
       closeClass="fo-dialog-x"
       closeLabel="Close dialog"
+      hideHeader={hideHeader}
     >
       {children}
     </Dialog>

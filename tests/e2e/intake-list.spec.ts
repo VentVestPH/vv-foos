@@ -272,7 +272,27 @@ test.describe('I: the rest of the intake queue', () => {
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download template' }).click();
     const file = await download;
-    expect(file.suggestedFilename()).toBe('intake-sheet-template.csv');
+    expect(file.suggestedFilename()).toBe('candidate-import-template.csv');
+    const stream = await file.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    const header = Buffer.concat(chunks).toString('utf8').split(/\r?\n/, 1)[0] ?? '';
+    for (const field of [
+      'First name',
+      'Last name',
+      'Email',
+      'Phone',
+      'Current employer',
+      'Current title',
+      'Country',
+      'Requisition code',
+      'Main status',
+      'Expected salary',
+      'University',
+      'Experience employer',
+    ]) {
+      expect(header, `the template includes ${field}`).toContain(field);
+    }
   });
 });
 

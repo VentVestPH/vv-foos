@@ -1,4 +1,4 @@
-import { forwardRef, useRef, type FormEvent, type ReactNode } from 'react';
+import { forwardRef, useRef, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Search as SearchIcon, X as ClearIcon } from 'lucide-react';
 
 interface SearchFieldProps {
@@ -16,6 +16,12 @@ interface SearchFieldProps {
   onClear?: (() => void) | undefined;
   trailing?: ReactNode;
   children?: ReactNode;
+  combobox?: {
+    expanded: boolean;
+    controls: string;
+    activeDescendant: string | undefined;
+    onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  } | undefined;
 }
 
 export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function SearchField(
@@ -34,6 +40,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
     onClear,
     trailing,
     children,
+    combobox,
   },
   ref,
 ) {
@@ -65,6 +72,12 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
           onChange={(e) => onValueChange(e.target.value)}
           onFocus={onFocus}
           aria-label={ariaLabel}
+          role={combobox ? 'combobox' : undefined}
+          aria-autocomplete={combobox ? 'list' : undefined}
+          aria-expanded={combobox?.expanded}
+          aria-controls={combobox?.controls}
+          aria-activedescendant={combobox?.activeDescendant}
+          onKeyDown={combobox?.onKeyDown}
           placeholder={placeholder}
           autoComplete="off"
           autoFocus={autoFocus}

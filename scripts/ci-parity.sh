@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DB_URL="${DB_URL:-postgresql://postgres:postgres@127.0.0.1:55322/postgres}"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+DB_URL="${DB_URL:-postgresql://postgres:postgres@127.0.0.1:56322/postgres}"
+node scripts/local-db.mjs check "$DB_URL"
 SNAPSHOT="${SNAPSHOT:-$HOME/.foos-ci-parity-snapshot.sql}"
 
 # Both halves of this need a client whose major version matches the server.

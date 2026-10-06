@@ -506,23 +506,6 @@
   justify-content: flex-end;
 }
 
-.fo-report-toggle-row,
-.fo-report-tab-row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-1);
-}
-
-.fo-report-tab-row {
-  margin-bottom: var(--sp-2);
-}
-
-.fo-report-tab-gear {
-  margin-left: var(--sp-1);
-}
-
 .shell-content {
   scroll-padding-top: calc(var(--shell-action-bar-h) + var(--sp-1));
 }
-

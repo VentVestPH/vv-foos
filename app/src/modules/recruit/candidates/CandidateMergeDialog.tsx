@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Table } from '../../../components/ui/Table';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { supabase } from '../../../lib/supabase';
@@ -151,24 +152,20 @@ export function CandidateMergeDialog({ survivor, onClose, onMerged }: CandidateM
       )}
 
       {chosen && (
-        <table className="table merge-compare">
-          <thead>
-            <tr>
-              <th scope="col">Field</th>
-              <th scope="col">Kept</th>
-              <th scope="col">Merged in</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(['name', 'email', 'headline', 'location'] as const).map((field) => (
-              <tr key={field}>
-                <th scope="row">{field}</th>
-                <td>{keeper[field] || '—'}</td>
-                <td>{chosen[field] || '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table
+          className="merge-compare"
+          columns={[
+            { key: 'field', header: 'Field' },
+            { key: 'kept', header: 'Kept' },
+            { key: 'merged', header: 'Merged in' },
+          ]}
+          rows={(['name', 'email', 'headline', 'location'] as const).map((field) => ({
+            field,
+            kept: keeper[field] || '—',
+            merged: chosen[field] || '—',
+          }))}
+          rowKey={(row) => row.field}
+        />
       )}
 
       {error && <span className="field-error-text" role="alert">{error}</span>}

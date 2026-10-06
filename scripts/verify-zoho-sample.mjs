@@ -1,4 +1,5 @@
-import { execFileSync, execSync } from 'node:child_process';
+import { supabase, assertTarget } from './local-stack.mjs';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
@@ -248,7 +249,7 @@ async function token(product = 'recruit') {
 
 function serviceKey() {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) return process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const env = execSync('supabase status -o env', { encoding: 'utf8' });
+  const env = supabase(['status', '-o', 'env'], { encoding: 'utf8' });
   return /^SERVICE_ROLE_KEY="?([^"\n]+)"?$/m.exec(env)?.[1] ?? null;
 }
 
@@ -256,7 +257,7 @@ function psql(sql) {
   return execFileSync(
     'psql',
     [
-      process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55322/postgres',
+      assertTarget(process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:56322/postgres', 'db', process.argv.includes('--allow-remote')),
       '-v',
       'ON_ERROR_STOP=1',
       '-At',
@@ -327,7 +328,7 @@ function normalise(value) {
   return unescapeEntities(s);
 }
 
-const db = createClient(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321', serviceKey(), {
+const db = createClient(assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote')), serviceKey(), {
   auth: { persistSession: false },
 });
 const lookups = await loadLookups(db);

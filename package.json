@@ -9,11 +9,13 @@
   ],
   "scripts": {
     "db:push": "node scripts/confirm-production-push.mjs && supabase db push",
-    "db:reset": "supabase db reset && node scripts/post-reset.mjs",
-    "db:validate": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql",
+    "db:reset": "node scripts/local.mjs reset",
+    "db:validate": "node scripts/local-db.mjs validate",
     "test": "npm run test --workspace=tests",
     "test:e2e": "npm run e2e --workspace=tests",
     "db:seed:personas": "node scripts/post-reset.mjs --personas-only",
+    "db:seed:tickets:local": "node scripts/seed-local-tickets.mjs",
+    "db:seed:workforce:local": "node scripts/seed-local-workforce.mjs",
     "db:add-staff": "node scripts/add-local-staff.mjs",
     "db:sync-test-accounts": "node scripts/sync-test-accounts.mjs",
     "check:env": "node scripts/check-env-target.mjs",
@@ -21,7 +23,12 @@
     "check:licences": "node scripts/check-licences.mjs --list",
     "check:dead": "knip",
     "gate": "bash scripts/gate.sh",
-    "deploy:pages": "npm run build --workspace=app && npx wrangler pages deploy app/dist --project-name \"${CF_PAGES_PROJECT:-foos}\" --commit-dirty=true"
+    "deploy:pages": "npm run build --workspace=app && npx wrangler pages deploy app/dist --project-name \"${CF_PAGES_PROJECT:-foos}\" --commit-dirty=true",
+    "local:check": "node scripts/local.mjs check",
+    "local:start": "node scripts/local.mjs start",
+    "local:stop": "node scripts/local.mjs stop",
+    "local:status": "node scripts/local.mjs status",
+    "test:local-isolation": "node --test tests/local-isolation.test.mjs"
   },
   "devDependencies": {
     "knip": "^6.34.0"

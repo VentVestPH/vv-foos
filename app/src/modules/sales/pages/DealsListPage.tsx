@@ -19,8 +19,10 @@ import { dealSearchHints } from '../../../lib/searchHints';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { Table, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
-import { Skeleton } from '../../../components/ui/Skeleton';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
+import { useViewPref } from '../../../hooks/useViewPref';
+import { KanbanSkeleton } from '../../../components/ui/KanbanSkeleton';
+import { Skeleton } from '../../../components/ui/Skeleton';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import { LostReasonDialog } from '../components/LostReasonDialog';
 import { DealDeleteDialog, type DealDeleteTarget } from '../components/DealDeleteDialog';
@@ -90,6 +92,8 @@ type DealQuery = ReturnType<typeof dealBaseQuery>;
 
 type ViewMode = 'kanban' | 'table';
 
+const DEAL_VIEWS = ['kanban', 'table'] as const;
+
 export function DealsListPage() {
   const navigate = useNavigate();
   const openRecord = useListLink();
@@ -109,7 +113,7 @@ export function DealsListPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
-  const [view, setView] = useState<ViewMode>('kanban');
+  const { view, setView } = useViewPref<ViewMode>('foos.deals.view', DEAL_VIEWS, 'kanban');
   const {
     input: searchInput,
     setInput: setSearchInput,
@@ -158,9 +162,9 @@ export function DealsListPage() {
 
   const beginLoad = useLatestOnly();
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     const isCurrent = beginLoad();
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       if (view === 'kanban') {
         const columns = await Promise.all(
@@ -235,7 +239,7 @@ export function DealsListPage() {
       .eq('id', deal.id);
     if (error) {
       setMoveError(`Could not move ${deal.display_code}: ${error.message}`);
-      await load();
+      await load(true);
       return;
     }
     setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, ...patch } : d)));
@@ -330,11 +334,10 @@ export function DealsListPage() {
 
   const columns = useMemo<TableColumn<DealListRow>[]>(() => {
     const defs: Record<string, TableColumn<DealListRow>> = {
-      display_code: { key: 'display_code', header: 'Code', sortable: true },
+      display_code: { key: 'display_code', header: 'Code' },
       name: {
         key: 'name',
         header: 'Deal',
-        sortable: true,
         render: (d) => (
           <span className="sales-badges">
             <button
@@ -354,21 +357,18 @@ export function DealsListPage() {
       company: {
         key: 'company',
         header: 'Company',
-        sortable: true,
         sortValue: (d) => companyName(d.company_id),
         render: (d) => companyName(d.company_id),
       },
       stage: {
         key: 'stage',
         header: 'Stage',
-        sortable: true,
         sortValue: (d) => DEAL_STAGES.indexOf(d.stage),
         render: (d) => <StatusBadge status={d.stage} />,
       },
       value: {
         key: 'value',
         header: 'Value',
-        sortable: true,
         sortValue: (d) => d.value ?? 0,
         render: (d) => fmtMoney(d.value, d.currency),
       },
@@ -380,21 +380,18 @@ export function DealsListPage() {
       expected_close: {
         key: 'expected_close',
         header: 'Expected close',
-        sortable: true,
         sortValue: (d) => d.expected_close ?? '',
         render: (d) => fmtDate(d.expected_close),
       },
       owner: {
         key: 'owner',
         header: 'Owner',
-        sortable: true,
         sortValue: (d) => staffName(d.owner_id),
         render: (d) => staffName(d.owner_id),
       },
       updated_at: {
         key: 'updated_at',
         header: 'Last Updated',
-        sortable: true,
         render: (d) => fmtDate(d.updated_at),
       },
     };
@@ -474,7 +471,7 @@ export function DealsListPage() {
       setHiddenCols(ALL_COLUMN_KEYS.filter((k) => !saved.includes(k)));
     }
     setSort(state.sort);
-  }, []);
+  }, [setView]);
 
   const pageCount = Math.max(1, Math.ceil(total / DEAL_PAGE_SIZE));
   const pager = {
@@ -520,19 +517,6 @@ export function DealsListPage() {
         }
         actions={
           <>
-            <SegmentedToggle
-              ariaLabel="Deal view"
-              value={view}
-              onChange={setView}
-              options={[
-                { value: 'table', label: 'Table', icon: <TableIcon size={20} aria-hidden="true" /> },
-                {
-                  value: 'kanban',
-                  label: 'Kanban',
-                  icon: <KanbanIcon size={20} aria-hidden="true" />,
-                },
-              ]}
-            />
             {canEdit && (
               <Button variant="primary" onClick={() => navigate('/sales/deals/new')}>
                 <Plus size={20} aria-hidden="true" />
@@ -603,7 +587,18 @@ export function DealsListPage() {
           </p>
         )}
 
-        {view === 'table' && (
+        <div className="fo-list-toolbar">
+          <SegmentedToggle
+            ariaLabel="Deal view"
+            value={view}
+            onChange={(next) => {
+              setView(next);
+            }}
+            options={[
+              { value: 'table', label: '', title: 'Table', icon: <TableIcon size={20} aria-hidden="true" /> },
+              { value: 'kanban', label: '', title: 'Kanban', icon: <KanbanIcon size={20} aria-hidden="true" /> },
+            ]}
+          />
           <Pager
             from={pager.from}
             to={pager.to}
@@ -611,20 +606,31 @@ export function DealsListPage() {
             page={pager.page}
             pageCount={pager.pageCount}
             onPage={pager.setPage}
+            disabled={view === 'kanban'}
           />
-        )}
+        </div>
 
         {moveError && <div className="form-error" role="alert">{moveError}</div>}
-        {view === 'kanban' ? (
-          <KanbanBoard
-            stages={visibleStages.map((s) => ({ key: s, label: stageLabel(s) }))}
-            cards={kanbanCards}
-            onMove={onMove}
-            columnExtras={columnExtras}
-          />
+        {showSkeleton && view === 'kanban' ? (
+          <div className="sales-deals-board">
+            <KanbanSkeleton
+              label="Loading deal pipeline"
+              cards={3}
+              stages={visibleStages.map((stage) => ({ key: stage, label: stageLabel(stage) }))}
+            />
+          </div>
         ) : showSkeleton ? (
           <div className="fo-skeleton-card">
             <Skeleton rows={8} label="Loading deals" />
+          </div>
+        ) : view === 'kanban' ? (
+          <div className="sales-deals-board">
+            <KanbanBoard
+              stages={visibleStages.map((s) => ({ key: s, label: stageLabel(s) }))}
+              cards={kanbanCards}
+              onMove={onMove}
+              columnExtras={columnExtras}
+            />
           </div>
         ) : (
           <Table
@@ -641,17 +647,6 @@ export function DealsListPage() {
             onRowClick={(d) => openRecord(`/sales/deals/${d.id}`)}
             emptyIcon={<BriefcaseIcon size={32} />}
             emptyText="No deals match."
-          />
-        )}
-
-        {view === 'table' && (
-          <Pager
-            from={pager.from}
-            to={pager.to}
-            total={pager.total}
-            page={pager.page}
-            pageCount={pager.pageCount}
-            onPage={pager.setPage}
           />
         )}
 

@@ -23,6 +23,67 @@
     color var(--motion-instant) var(--ease-out);
 }
 
+.fo-nav-tab {
+  transition:
+    background-color var(--motion-quick) var(--ease-out),
+    color var(--motion-quick) var(--ease-out);
+}
+
+.fo-nav-tab::after {
+  transition:
+    transform var(--motion-panel) var(--ease-out),
+    opacity var(--motion-quick) var(--ease-out);
+}
+
+.login-page .btn {
+  transition:
+    background-color var(--motion-quick) var(--ease-out),
+    border-color var(--motion-quick) var(--ease-out),
+    color var(--motion-quick) var(--ease-out),
+    box-shadow var(--motion-quick) var(--ease-out),
+    filter var(--motion-quick) var(--ease-out);
+}
+
+.login-page .btn-primary:hover:not(:disabled) {
+  border-color: var(--login-primary-hover);
+  background: var(--login-primary-hover);
+  box-shadow: var(--login-primary-shadow);
+}
+
+.login-page .btn-primary:active:not(:disabled) {
+  filter: brightness(0.94);
+  box-shadow: var(--login-primary-press-shadow);
+}
+
+.login-page .login-google-btn:hover:not(:disabled) {
+  border-color: var(--login-google-hover-border);
+  background: var(--login-google-hover-bg);
+  color: var(--login-google-hover-text);
+}
+
+.login-page .login-google-mark {
+  transition: transform var(--motion-quick) var(--ease-out);
+}
+
+.login-page .login-google-btn:hover:not(:disabled) .login-google-mark {
+  transform: scale(1.08);
+}
+
+.login-page .login-signup {
+  transition:
+    background-color var(--motion-quick) var(--ease-out),
+    border-color var(--motion-quick) var(--ease-out),
+    color var(--motion-quick) var(--ease-out),
+    box-shadow var(--motion-quick) var(--ease-out);
+}
+
+.login-page .login-signup:focus-visible,
+.login-page .btn-primary:focus-visible,
+.login-page .login-google-btn:focus-visible {
+  outline: 3px solid var(--login-eyebrow);
+  outline-offset: 3px;
+}
+
 .record-section-chevron {
   transition: transform var(--motion-quick) var(--ease-out);
 }
@@ -66,7 +127,6 @@
 .fo-cal-view-btn,
 .fo-gear-btn,
 .fo-nav-scroll-btn,
-.fo-report-tab-gear,
 .fo-dialog-close,
 .rq-dialog-x {
   transition:

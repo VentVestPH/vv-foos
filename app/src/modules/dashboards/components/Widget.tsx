@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
+import { Download } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { ErrorBoundary } from '../../../components/ui/ErrorBoundary';
-import { Skeleton } from '../../../components/ui/Skeleton';
+import { WidgetBodySkeleton } from '../../../components/ui/PageSkeleton';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { downloadCsv } from '../../../lib/csv';
 
@@ -49,7 +50,9 @@ export function Widget({
               size="sm"
               onClick={() => downloadCsv(exportFilename ?? `${title}.csv`, exportRows)}
               disabled={exportRows.length === 0}
+              title={exportRows.length === 0 ? 'There is nothing in this panel to export' : undefined}
             >
+              <Download size={20} aria-hidden="true" />
               Export CSV
             </Button>
           )}
@@ -57,9 +60,8 @@ export function Widget({
       </header>
       <ErrorBoundary label={title}>
         {showSkeleton ? (
-          <div className="dash-widget-loading">
-            {kpis > 0 && <Skeleton variant="card" rows={kpis} label={`Loading ${title}`} />}
-            {bars > 0 && <Skeleton rows={bars} label={`Loading ${title}`} />}
+          <div className="dash-widget-loading" role="status" aria-label={`Loading ${title}`}>
+            <WidgetBodySkeleton kpis={kpis} bars={bars} />
           </div>
         ) : (
           children

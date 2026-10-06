@@ -44,14 +44,13 @@ export function RequisitionAging({ range }: { range: DateRange }) {
   const unviewedTotal = open.reduce((s, r) => s + r.unviewed_applications, 0);
 
   const columns: TableColumn<RequisitionAgingRow>[] = [
-    { key: 'display_code', header: 'Code', sortable: true },
-    { key: 'title', header: 'Title', sortable: true },
-    { key: 'company_name', header: 'Company', sortable: true },
-    { key: 'status', header: 'Status', sortable: true },
+    { key: 'display_code', header: 'Code' },
+    { key: 'title', header: 'Title' },
+    { key: 'company_name', header: 'Company' },
+    { key: 'status', header: 'Status' },
     {
       key: 'days_open',
       header: 'Days open',
-      sortable: true,
       sortValue: (r) => r.days_open,
       render: (r) => (
         <span>
@@ -65,11 +64,10 @@ export function RequisitionAging({ range }: { range: DateRange }) {
         </span>
       ),
     },
-    { key: 'open_applications', header: 'Open apps', sortable: true },
+    { key: 'open_applications', header: 'Open apps' },
     {
       key: 'unviewed_applications',
       header: 'Unviewed (me)',
-      sortable: true,
       render: (r) => (r.i_am_owner ? r.unviewed_applications : EMPTY_CELL),
     },
   ];
@@ -93,6 +91,7 @@ export function RequisitionAging({ range }: { range: DateRange }) {
         <KpiCard label="Unviewed applications (mine)" value={unviewedTotal} />
       </KpiRow>
       <Table
+        pageSize={10}
         columns={columns}
         rows={open}
         rowKey={(r) => r.requisition_id}

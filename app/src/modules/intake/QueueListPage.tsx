@@ -22,8 +22,8 @@ import {
   Inbox as InboxIcon,
   Link2 as LinkIcon,
   RefreshCw as RefreshIcon,
-  Sheet as SheetIcon,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import { useIntakeQueue } from './hooks';
 import {
@@ -99,7 +99,6 @@ export function QueueListPage() {
       key: 'channel',
       header: '',
       width: '36px',
-      sortable: true,
       sortValue: (r) => CHANNEL_LABEL[r.channel],
       render: (r) => {
         const Icon = CHANNEL_ICON[r.channel];
@@ -112,12 +111,11 @@ export function QueueListPage() {
   };
 
   const optionalColumns: TableColumn<IntakeItem>[] = [
-    { key: 'full_name', header: 'Name', sortable: true },
+    { key: 'full_name', header: 'Name' },
     {
       key: 'headline',
       header: 'Headline / role',
       capped: true,
-      sortable: true,
       sortValue: (r) => {
         const p = parsedOf(r);
         return [p.headline, p.company, p.title].filter(Boolean).join(' · ').toLowerCase();
@@ -130,14 +128,12 @@ export function QueueListPage() {
     {
       key: 'target_type',
       header: 'Target',
-      sortable: true,
       render: (r) => TARGET_LABEL[r.target_type],
     },
-    { key: 'batch_label', header: 'Batch', sortable: true },
+    { key: 'batch_label', header: 'Batch' },
     {
       key: 'status',
       header: 'Status',
-      sortable: true,
       render: (r) => (
         <span className={r.duplicate_of ? 'badge-tone badge-dup' : 'badge-tone'}>
           {STATUS_LABEL[r.status]}
@@ -148,7 +144,6 @@ export function QueueListPage() {
     {
       key: 'created_at',
       header: 'Received',
-      sortable: true,
       render: (r) => new Date(r.created_at).toLocaleString(),
     },
   ];
@@ -254,7 +249,7 @@ export function QueueListPage() {
           </Link>
           <Link to="/intake/sheet">
             <Button size="sm">
-              <SheetIcon size={20} aria-hidden="true" />
+              <Upload size={20} aria-hidden="true" />
               Import
             </Button>
           </Link>

@@ -34,7 +34,7 @@ if (!URL_IN || !ANON_IN) {
     'Name the target explicitly. This script deliberately does not read VITE_SUPABASE_URL or\n' +
       'FOOS_SUPABASE_URL, because app/.env points at the live project and picking it up silently\n' +
       'is how an earlier run of this script talked to production.\n\n' +
-      '  CUTOVER_SUPABASE_URL=http://127.0.0.1:55321 \\\n' +
+      '  CUTOVER_SUPABASE_URL=http://127.0.0.1:56321 \\\n' +
       '  CUTOVER_SUPABASE_ANON_KEY=<the local anon key> \\\n' +
       '  node scripts/check-cutover.mjs\n\n' +
       'or pass --url= and --anon=. Optional: CUTOVER_APP_ORIGIN, or --origin=, for the deep-link\n' +

@@ -158,6 +158,7 @@ export function StaffActivity({ range }: { range: DateRange }) {
         exportFilename={exportFilename('staff-activity', 'grade-split', range)}
       >
         <Table
+          pageSize={10}
           columns={GRADE_COLUMNS}
           rows={splitRows}
           rowKey={(r) => r.staff}

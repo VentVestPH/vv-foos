@@ -1,9 +1,10 @@
+import { assertTarget } from './local-stack.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
-const DB_URL = process.env.FOOS_LOCAL_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
-const API_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const DB_URL = assertTarget(process.env.FOOS_LOCAL_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:56322/postgres', 'db');
+const API_URL = assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', false);
 const BUCKET = 'attachments';
 const DRY_RUN = !process.argv.includes('--apply');
 

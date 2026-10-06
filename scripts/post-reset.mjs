@@ -1,8 +1,15 @@
 import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { ROOT, API_URL, DB_URL as LOCAL_DB_URL, assertConfig, assertTarget, cliEnv, restartService } from './local-stack.mjs';
+
+process.chdir(ROOT);
+assertConfig();
+assertTarget(process.env.FOOS_SUPABASE_URL ?? API_URL);
+assertTarget(process.env.FOOS_TARGET_URL ?? API_URL);
+const childEnv = { ...cliEnv(), FOOS_SUPABASE_URL: API_URL, FOOS_TARGET_URL: API_URL };
 
 const PERSONAS_ONLY = process.argv.includes('--personas-only');
-const DB_URL = process.env.FOOS_LOCAL_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
+const DB_URL = assertTarget(process.env.FOOS_LOCAL_DB_URL ?? LOCAL_DB_URL, 'db');
 
 function readTestPassword() {
   if (process.env.FOOS_QA_TEST_PASSWORD) return process.env.FOOS_QA_TEST_PASSWORD;
@@ -39,49 +46,12 @@ function seedPersonas() {
 
 function syncTestAccounts() {
   try {
-    const out = execSync('node scripts/sync-test-accounts.mjs --apply', { encoding: 'utf8' });
+    const out = execSync('node scripts/sync-test-accounts.mjs --apply', { encoding: 'utf8', cwd: ROOT, env: childEnv });
     const changed = /^(\d+) test account\(s\) now share/m.exec(out)?.[1] ?? '0';
     console.log(`post-reset: ${changed} test account(s) share the configured password.`);
   } catch (e) {
     console.warn(`post-reset: test accounts not synced (${e.message.split('\n')[0]}).`);
   }
-}
-
-function restartEdgeRuntime() {
-
-  let name;
-  try {
-    name = execSync("docker ps --format '{{.Names}}' | grep '^supabase_edge_runtime_' | head -1", {
-      encoding: 'utf8',
-    }).trim();
-  } catch {
-    name = '';
-  }
-  if (!name) {
-    console.warn('post-reset: no running supabase_edge_runtime_* container found; skipping restart.');
-    return;
-  }
-  execFileSync('docker', ['restart', name], { stdio: 'ignore' });
-  console.log(`post-reset: ${name} restarted (clears stale storage connections).`);
-}
-
-function restartKong() {
-  let name;
-  try {
-    name = execSync("docker ps --format '{{.Names}}' | grep '^supabase_kong_' | head -1", {
-      encoding: 'utf8',
-      shell: '/bin/sh',
-    }).trim();
-  } catch {
-    name = '';
-  }
-  if (!name) {
-    console.warn('post-reset: no running supabase_kong_* container found; skipping restart.');
-    return false;
-  }
-  execFileSync('docker', ['restart', name], { stdio: 'ignore' });
-  console.log(`post-reset: ${name} restarted (clears the stale auth upstream).`);
-  return true;
 }
 
 async function authAnswers(apiUrl) {
@@ -94,7 +64,7 @@ async function authAnswers(apiUrl) {
 }
 
 async function waitForAuth() {
-  const apiUrl = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+  const apiUrl = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321';
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
     if (await authAnswers(apiUrl)) {
@@ -104,7 +74,7 @@ async function waitForAuth() {
     await new Promise((r) => setTimeout(r, 750));
   }
 
-  if (!restartKong()) return;
+  if (!restartService('kong')) return;
   const second = Date.now() + 30000;
   while (Date.now() < second) {
     if (await authAnswers(apiUrl)) {
@@ -121,7 +91,7 @@ async function waitForAuth() {
 
 async function waitForStack() {
 
-  const apiUrl = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+  const apiUrl = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321';
   const checks = [
     ['REST', `${apiUrl}/rest/v1/`],
     ['careers-page function', `${apiUrl}/functions/v1/careers-page`],
@@ -153,7 +123,7 @@ async function waitForStack() {
 function seedLegacyOwners() {
   if (!existsSync('migration/zoho-exports')) return;
   try {
-    const out = execSync('node scripts/add-legacy-owners.mjs --apply', { encoding: 'utf8' });
+    const out = execSync('node scripts/add-legacy-owners.mjs --apply', { encoding: 'utf8', cwd: ROOT, env: childEnv });
     const created = /Created (\d+) inactive staff row/.exec(out)?.[1] ?? '0';
     console.log(`post-reset: ${created} inactive legacy-owner staff row(s) seeded from the Zoho exports.`);
   } catch (e) {
@@ -163,7 +133,7 @@ function seedLegacyOwners() {
 
 seedPersonas();
 if (!PERSONAS_ONLY) {
-  restartEdgeRuntime();
+  restartService('edge_runtime');
   await waitForStack();
   await waitForAuth();
   syncTestAccounts();

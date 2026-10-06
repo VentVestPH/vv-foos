@@ -15,9 +15,11 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
+import { ConfirmDeleteDialog } from '../../components/ui/ConfirmDeleteDialog';
 import { scopeLabel, hasScope, type GoogleTokensSummary } from './lib';
 
 export function GoogleIntegrationCard() {
+  const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
   const [status, setStatus] = useState<GoogleTokensSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -63,12 +65,12 @@ export function GoogleIntegrationCard() {
   }
 
   async function disconnect() {
-    if (!confirm('Disconnect Google? Sync, send, and meeting-creation will stop until reconnected.')) return;
     setBusy('disconnect');
     const { error: err } = await supabase.rpc('disconnect_my_google');
     setBusy(null);
-    if (err) setError(err.message);
-    else await reload();
+    if (err) throw new Error(err.message);
+    setConfirmingDisconnect(false);
+    await reload();
   }
 
   const connected = !!status;
@@ -76,7 +78,7 @@ export function GoogleIntegrationCard() {
   return (
     <section className="settings-card">
       <div className="settings-card-head">
-        <h2>Google (Gmail + Calendar)</h2>
+        <h3>Google (Gmail + Calendar)</h3>
         <span className={`settings-status-pill ${connected ? 'on' : 'off'}`}>
           {connected ? 'Connected' : 'Not connected'}
         </span>
@@ -117,8 +119,8 @@ export function GoogleIntegrationCard() {
                     {busy === 'calendar' ? 'Opening Google…' : 'Grant calendar access'}
                   </Button>
                 )}
-                <Button size="sm" variant="danger" onClick={disconnect} disabled={busy === 'disconnect'}>
-                  {busy === 'disconnect' ? 'Disconnecting…' : 'Disconnect'}
+                <Button size="sm" variant="danger" onClick={() => setConfirmingDisconnect(true)}>
+                  Disconnect
                 </Button>
               </div>
             </>
@@ -126,7 +128,7 @@ export function GoogleIntegrationCard() {
             <>
               <p className="text-secondary">
                 Connect your Google account to sync Gmail and Calendar activity onto candidate and
-                contact records, send email as yourself, and create Meet meetings — all from
+                contact records, send email as yourself, and create Meet meetings, all from
                 inside FOOS.
               </p>
               <div className="settings-card-actions">
@@ -137,6 +139,17 @@ export function GoogleIntegrationCard() {
             </>
           )}
         </>
+      )}
+      {confirmingDisconnect && (
+        <ConfirmDeleteDialog
+          title="Disconnect Google?"
+          confirmLabel="Disconnect"
+          busyLabel="Disconnecting…"
+          onClose={() => setConfirmingDisconnect(false)}
+          onConfirm={disconnect}
+        >
+          <p>Gmail sync, sending email as yourself and creating meetings stop until you connect again.</p>
+        </ConfirmDeleteDialog>
       )}
     </section>
   );

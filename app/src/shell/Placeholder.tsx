@@ -104,7 +104,7 @@ export function PlaceholderAction({
   size,
   caret = false,
   className,
-
+  icon,
 }: {
   label: string;
   detail?: string;
@@ -113,6 +113,7 @@ export function PlaceholderAction({
   size?: 'sm' | 'md';
   caret?: boolean;
   className?: string;
+  icon?: ReactNode;
 }) {
   const { show } = usePlaceholder();
   const classes = [
@@ -130,6 +131,7 @@ export function PlaceholderAction({
       className={classes}
       onClick={() => show(label, detail, lead)}
     >
+      {icon}
       {label}
       {caret && (
         <span className="fo-utility-caret" aria-hidden="true">

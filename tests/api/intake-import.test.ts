@@ -23,6 +23,28 @@ async function cleanup() {
 describe('Intake import writes the documented fields (criteria 5.7 and 5.8)', () => {
   afterEach(cleanup);
 
+  it('keeps only the requested main statuses active', async () => {
+    const admin = await clientAs('admin');
+    const { data, error } = await admin
+      .from('candidate_statuses')
+      .select('label')
+      .eq('is_active', true)
+      .order('label');
+    expect(error).toBeNull();
+    expect(data?.map((row) => row.label)).toEqual([
+      'Candidate to Review Info',
+      'Do Not Pursue',
+      'Flag',
+      'Placed',
+      'Reference Provider',
+      'Rejected',
+      'Resume Provided',
+      'Sent InMail I (Linkedin)',
+      'Submitted',
+      'Talent Pool',
+    ]);
+  });
+
   it('5.7 a candidate import sets status, grade, source, sourcer and initial_date', async () => {
     const admin = await clientAs('admin');
     const sourcerId = 'a0000000-0000-4000-8000-000000000003';
@@ -31,8 +53,7 @@ describe('Intake import writes the documented fields (criteria 5.7 and 5.8)', ()
       .from('candidate_statuses')
       .select('id')
       .eq('is_active', true)
-      .order('sort_order', { ascending: true })
-      .limit(1)
+      .eq('label', 'Talent Pool')
       .single();
     const { data: expectedSource } = await admin
       .from('sources')
@@ -84,7 +105,7 @@ describe('Intake import writes the documented fields (criteria 5.7 and 5.8)', ()
 
     expect(profile?.star_grade).toBe(3);
     expect(profile?.grade_comment).toBe('Strong match on the core stack');
-    expect(profile?.status_id, 'status defaults to the first active status by sort_order').toBe(
+    expect(profile?.status_id, 'an import with no status lands in Talent Pool').toBe(
       expectedStatus!.id,
     );
     expect(profile?.source_id, 'source is derived from the intake channel').toBe(expectedSource!.id);
@@ -229,5 +250,82 @@ describe('Intake import writes the documented fields (criteria 5.7 and 5.8)', ()
       .eq('person_id', row!.person_id!)
       .single();
     expect(contact?.company_id).toBe(existing!.id);
+  });
+
+  it('imports candidate details and creates an application for the selected requisition', async () => {
+    const admin = await clientAs('admin');
+    const requisitionId = 'd0000000-0000-4000-8000-000000000001';
+    const email = `qa-sheet-${Date.now()}@example.test`;
+    const { data: item, error: insertError } = await admin
+      .from('intake_items')
+      .insert({
+        channel: 'sheet_import',
+        target_type: 'candidate',
+        full_name: `${TAG} Sheet Candidate`,
+        batch_label: `${TAG} ${Date.now()}`,
+        parsed: {
+          name: `${TAG} Sheet Candidate`,
+          first_name: 'Sheet',
+          last_name: 'Candidate',
+          email,
+          phone: '+63 (917) 555-0142',
+          country: 'Philippines',
+          current_employer: 'Probe Corporation',
+          current_title: 'Platform Engineer',
+          tenure_note: 'Four years',
+          expected_salary: '120000',
+          current_salary: '100000',
+          salary_currency: 'PHP',
+          salary_flag: 'Flexible',
+          education: [{ university: 'University of the Philippines', year: '2018' }],
+          experience: [{ title: 'Platform Engineer', employer: 'Probe Corporation' }],
+          requisition_id: requisitionId,
+        },
+        status: 'parsed',
+      })
+      .select('id')
+      .single();
+    expect(insertError).toBeNull();
+
+    const { data: imported, error: importError } = await admin.rpc('import_intake_item', {
+      p_intake_id: item!.id,
+      p_mode: 'new',
+    });
+    expect(importError).toBeNull();
+    const personId = imported!.person_id as string;
+
+    const { data: person } = await admin
+      .from('people')
+      .select('first_name, last_name, country, education, experience')
+      .eq('id', personId)
+      .single();
+    expect(person).toMatchObject({
+      first_name: 'Sheet',
+      last_name: 'Candidate',
+      country: 'Philippines',
+      education: [{ university: 'University of the Philippines', year: '2018' }],
+      experience: [{ title: 'Platform Engineer', employer: 'Probe Corporation' }],
+    });
+
+    const { data: profile } = await admin
+      .from('candidate_profiles')
+      .select('current_employer, current_title, tenure_note, expected_salary, current_salary, salary_currency, salary_flag')
+      .eq('person_id', personId)
+      .single();
+    expect(profile).toMatchObject({
+      current_employer: 'Probe Corporation',
+      current_title: 'Platform Engineer',
+      tenure_note: 'Four years',
+      expected_salary: 120000,
+      current_salary: 100000,
+      salary_currency: 'PHP',
+      salary_flag: 'Flexible',
+    });
+
+    const { data: applications } = await admin
+      .from('applications')
+      .select('requisition_id')
+      .eq('person_id', personId);
+    expect(applications).toEqual([{ requisition_id: requisitionId }]);
   });
 });

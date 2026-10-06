@@ -32,6 +32,8 @@ interface KanbanBoardProps {
   onMove: (cardId: string, toStage: string) => void;
 
   columnExtras?: (stageKey: string) => ReactNode;
+  stageCounts?: Record<string, number>;
+  disabled?: boolean;
 }
 
 function Card({
@@ -41,6 +43,7 @@ function Card({
   position,
   count,
   grabbed,
+  disabled,
   onKeyDown,
 }: {
   card: KanbanCard;
@@ -49,9 +52,10 @@ function Card({
   position: number;
   count: number;
   grabbed: boolean;
+  disabled: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, cardId: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id, disabled });
   const style = undefined;
   const className = ['kanban-card'];
   if (isDragging) className.push('is-placeholder');
@@ -81,6 +85,8 @@ function Column({
   settlingId,
   grabbedId,
   onCardKeyDown,
+  count,
+  disabled,
 }: {
   stage: KanbanStage;
   cards: KanbanCard[];
@@ -88,6 +94,8 @@ function Column({
   settlingId: string | null;
   grabbedId: string | null;
   onCardKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, cardId: string) => void;
+  count: number;
+  disabled: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   return (
@@ -98,7 +106,7 @@ function Column({
       <div className="kanban-col-header">
         {stage.label}
         {extras}
-        <span className="kanban-col-count">{cards.length}</span>
+        <span className="kanban-col-count">{count}</span>
       </div>
       <div className="kanban-col-body">
         {cards.map((c, i) => (
@@ -110,6 +118,7 @@ function Column({
             position={i + 1}
             count={cards.length}
             grabbed={c.id === grabbedId}
+            disabled={disabled}
             onKeyDown={onCardKeyDown}
           />
         ))}
@@ -123,6 +132,8 @@ export function KanbanBoard({
   cards,
   onMove,
   columnExtras,
+  stageCounts = {},
+  disabled = false,
 }: KanbanBoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -177,6 +188,7 @@ export function KanbanBoard({
 
   const onCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, cardId: string) => {
     if (e.target !== e.currentTarget) return;
+    if (disabled) return;
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
       if (grabbedId === cardId) {
@@ -282,6 +294,8 @@ export function KanbanBoard({
               settlingId={settlingId}
               grabbedId={grabbedId}
               onCardKeyDown={onCardKeyDown}
+              count={stageCounts[stage.key] ?? cards.filter((c) => c.stage === stage.key).length}
+              disabled={disabled}
             />
           ))}
         </div>

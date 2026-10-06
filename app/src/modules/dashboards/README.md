@@ -103,9 +103,8 @@ anything:
    candidates that sourcer sourced (RLS pass-through) and the CRM tab is
    empty (sourcers have no CRM access).
 3. As bd, confirm the reverse — CRM tab populated, ATS tab empty.
-4. Change the date-range preset (7/30/90/quarter) and confirm every widget
-   re-queries and the KPI numbers change; switch to Custom and pick a
-   specific from/to.
+4. Open the date-range picker, choose a preset (Today, Last 7/30/90 days, This month, Last month, This quarter, Year to date, Last 12 months) or click a start and end day on the two-month calendar, and confirm every widget
+   re-queries and the KPI numbers change.
 5. Click a CRM pipeline-by-stage bar (e.g. "negotiation") — confirm it lands
    on `/sales/deals` pre-filtered to that stage. Click a Requisition Aging
    row — confirm it lands on `/recruit/requisitions` pre-filtered to that

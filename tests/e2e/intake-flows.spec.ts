@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from './helpers';
 
-const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
 const BATCH = `QA-E2E-Intake-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -95,6 +95,7 @@ test.describe('Intake flows (criteria 5.1, 5.2, 5.4)', () => {
         full_name: 'QA Grading Gate',
         linkedin_url: `https://linkedin.com/in/${BATCH.toLowerCase()}-grade-${stamp}`,
         batch_label: `${BATCH}-${stamp}`,
+        parsed: { email: `qa-grade-${stamp}@example.test` },
         status: 'parsed',
       })
       .select('id')

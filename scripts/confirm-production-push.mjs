@@ -27,7 +27,7 @@ different names. Pushing after a \`migration repair --status reverted\` would
 attempt those six against a database where the objects already exist.
 
 Read the "Deployment state" section of
-docs/07-environments/VVPH_VV-FOOS_Doc_Local-Development-Environment_2026-09-01_v1.0_Draft.md
+docs/environments/VVPH_VV-FOOS_Doc_Local-Development-Environment_2026-09-01_v1.0_Draft.md
 before going further. It sets out the safe order: dump production, reconcile the
 ledger per object, rehearse against a throwaway copy of the dump, then push only
 the September migrations.

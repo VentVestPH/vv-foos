@@ -75,6 +75,7 @@ const REQ_SORT_COLUMNS: Record<string, string> = {
   opened_date: 'opened_date',
   updated_at: 'updated_at',
   applications: 'application_count',
+  unviewed: 'unviewed_count',
 };
 
 function reqLikeLiteral(value: string): string {
@@ -344,12 +345,11 @@ export function RequisitionListPage() {
 
   const columns = useMemo<TableColumn<ReqRow>[]>(() => {
     const defs: TableColumn<ReqRow>[] = [
-      { key: 'job_code', header: COLUMN_HEADER.job_code, sortable: true },
-      { key: 'display_code', header: COLUMN_HEADER.display_code, sortable: true, nowrap: true },
+      { key: 'job_code', header: COLUMN_HEADER.job_code },
+      { key: 'display_code', header: COLUMN_HEADER.display_code, nowrap: true },
       {
         key: 'title',
         header: COLUMN_HEADER.title,
-        sortable: true,
         render: (r) => (
           <button
             type="button"
@@ -366,7 +366,6 @@ export function RequisitionListPage() {
       {
         key: 'applications',
         header: COLUMN_HEADER.applications,
-        sortable: true,
         sortValue: (r) => r.applications,
         render: (r) => (
           <span className="fo-candidates-cell">
@@ -378,26 +377,22 @@ export function RequisitionListPage() {
       {
         key: 'updated_at',
         header: COLUMN_HEADER.updated_at,
-        sortable: true,
         render: (r) => fmtDate(r.updated_at),
       },
-      { key: 'location', header: COLUMN_HEADER.location, sortable: true },
+      { key: 'location', header: COLUMN_HEADER.location },
       {
         key: 'status',
         header: COLUMN_HEADER.status,
-        sortable: true,
         render: (r) => <StatusBadge status={r.status} />,
       },
       {
         key: 'owners',
         header: COLUMN_HEADER.owners,
-        sortable: true,
         render: (r) => <CappedCell text={r.owners} />,
       },
       {
         key: 'unviewed',
         header: COLUMN_HEADER.unviewed,
-        sortable: true,
         sortValue: (r) => r.unviewed,
         render: (r) => (
           <span className="fo-next-steps-cell">
@@ -415,17 +410,15 @@ export function RequisitionListPage() {
           </span>
         ),
       },
-      { key: 'company', header: COLUMN_HEADER.company, sortable: true, hideWhenEmpty: true },
+      { key: 'company', header: COLUMN_HEADER.company, hideWhenEmpty: true },
       {
         key: 'num_openings',
         header: COLUMN_HEADER.num_openings,
-        sortable: true,
         sortValue: (r) => r.num_openings,
       },
       {
         key: 'opened_date',
         header: COLUMN_HEADER.opened_date,
-        sortable: true,
         render: (r) => fmtDate(r.opened_date),
       },
     ];

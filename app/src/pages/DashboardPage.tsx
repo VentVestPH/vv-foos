@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 import { RecordSection } from '../components/ui/RecordPage';
 import { CollapseAllButton } from '../components/ui/SectionCollapse';
-import { PlaceholderAction } from '../shell/Placeholder';
 import { Button } from '../components/ui/Button';
 import {
   ChartPie as PieChartIcon,
@@ -23,6 +22,10 @@ import { MyReminders } from './MyReminders';
 import { MyTasks } from './MyTasks';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
+import { ListPage } from '../components/ui/ListPage';
+import { useSubmittedSearch } from '../lib/quickSearch';
+import { localSearchHints } from '../lib/searchHints';
+import { EmptyState } from '../components/ui/EmptyState';
 
 export type DashboardView = 'myview' | 'pipeline' | 'reports';
 
@@ -217,67 +220,59 @@ function ReportsTab() {
   const sections = useDashboardWidgetSections();
   const prefs = useSectionPrefs('dashboard.reports');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { input: searchInput, setInput: setSearchInput, term: submittedTerm, submit: submitSearch } = useSubmittedSearch();
+  const [range, setRange] = useState<DateRange>(DEFAULT_RANGE);
+  const term = submittedTerm.trim().toLocaleLowerCase();
+  const visibleSections = sections.filter((section) =>
+    !prefs.isHidden(section) && section.toLocaleLowerCase().includes(term),
+  );
+  const searchableKey = sections.filter((section) => !prefs.isHidden(section)).join('\n');
+  const searchHints = useMemo(
+    () =>
+      localSearchHints(
+        '/reports',
+        searchableKey
+          .split('\n')
+          .filter(Boolean)
+          .map((section) => ({ key: `report:${section}`, primary: section, meta: 'Report', text: [section] })),
+      ),
+    [searchableKey],
+  );
 
   return (
-    <div className="list-page">
-      <div className="fo-page-head">
-        <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Run Report' }]} />
-        <div className="fo-page-header">
-          <span className="fo-page-icon">
-            <PieChartIcon size={32} />
-          </span>
-          <div className="fo-page-header-text">
-            <div className="fo-page-header-title-row">
-              <h1>Run Report</h1>
-              <div className="fo-page-header-actions">
-                <CollapseAllButton />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="fo-report-toggle-row">
-        <PlaceholderAction
-          label="Recruit"
-          variant="secondary"
-          className="fo-report-toggle fo-report-toggle-active"
-        />
-        <PlaceholderAction
-          label="Onboard"
-          variant="primary"
-          className="fo-report-toggle"
-        />
-      </div>
-
-      <div className="fo-report-tab-row">
-        <PlaceholderAction
-          label="Candidate"
-          variant="ghost"
-          className="fo-report-tab fo-report-tab-active"
-        />
-        <PlaceholderAction label="Requisition" variant="ghost" className="fo-report-tab" />
-        <PlaceholderAction label="Compliance" variant="ghost" className="fo-report-tab" />
-        <PlaceholderAction label="More" variant="ghost" caret className="fo-report-tab" />
-        <SettingsButton
-          label="Configure report categories"
-          className="fo-report-tab-gear"
-          onClick={() => setSettingsOpen(true)}
-        />
-      </div>
-
-      {settingsOpen && (
-        <SectionSettingsDialog
-          title="Report categories"
-          hint="Choose which report categories appear below. The choice is saved to your account."
-          sections={sections}
-          prefs={prefs}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
-
-      <DashboardWidgetsPanel isSectionHidden={prefs.isHidden} />
-    </div>
+    <ListPage
+      breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Run Report' }]}
+      title="Run Report"
+      icon={<PieChartIcon size={32} />}
+      description="Review recruiting activity across your open work."
+      flush
+      search={searchInput}
+      onSearchChange={setSearchInput}
+      onSearchSubmit={submitSearch}
+      searchPlaceholder="Search reports…"
+      searchHints={searchHints}
+      actions={<>
+        <CollapseAllButton />
+        <SettingsButton label="Report settings" onClick={() => setSettingsOpen(true)} />
+      </>}
+      toolbarActions={<DateRangeFilter range={range} onChange={setRange} />}
+    >
+      {visibleSections.length ? <DashboardWidgetsPanel
+        isSectionHidden={(section) => !visibleSections.includes(section)}
+        range={range}
+        onRangeChange={setRange}
+      /> : <EmptyState
+        icon={<PieChartIcon size={32} />}
+        title={term ? 'No reports match that search' : 'No reports selected'}
+        hint={term ? 'Try a different report name.' : 'Choose report sections in Report settings.'}
+      />}
+      {settingsOpen && <SectionSettingsDialog
+        title="Report settings"
+        hint="Choose which report sections appear here. The choice is saved to your account."
+        sections={sections}
+        prefs={prefs}
+        onClose={() => setSettingsOpen(false)}
+      />}
+    </ListPage>
   );
 }
-

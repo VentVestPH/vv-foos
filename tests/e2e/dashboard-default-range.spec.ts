@@ -17,7 +17,7 @@ test('S1: the default dashboard range shows the data that exists rather than zer
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, '/pipeline');
 
-  await expect(page.getByRole('combobox', { name: 'Date range' })).toHaveText('All time');
+  await expect(page.getByRole('button', { name: 'Date range' })).toHaveText('All time');
 
   const aging = page.getByRole('button', { name: /^Requisition Aging/ });
   await expect(aging).toBeVisible({ timeout: 25000 });

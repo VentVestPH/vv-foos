@@ -76,3 +76,7 @@ Limits of local RLS testing: policies are exercised by setting `request.jwt.clai
 - `events_outbox` rows carry event_name, aggregate_id, payload, created_at, processed_at (null = pending). Edge Functions consume with the service role, which bypasses RLS.
 - `integration_settings` uses two partial unique indexes instead of `unique nulls not distinct` so the schema also runs on Postgres 14.
 - `audit_log` writes come from a generic security definer trigger on every business table; application_views and integration_settings are excluded (per-user view markers and sync-cursor churn would drown the log).
+
+## Isolated local services
+
+Use `npm run local:check`, `npm run local:start`, and `npm run local:status` for the FOOS local stack. All backend services use the dedicated `56320–56329` range, including Mailpit; the frontend uses port 5176. See [local isolation](docs/environments/LOCAL-ISOLATION.md) for endpoints, environment setup and scoped stop/reset commands.

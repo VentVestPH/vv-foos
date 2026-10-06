@@ -3,7 +3,7 @@ import {
   type EditField,
   type EditValue,
 } from '../../../components/ui/RecordEditDialog';
-import { PERSON_EDIT_FIELDS, personEditValues, savePerson } from '../../../components/ui/personEdit';
+import { personEditFields, personEditValues, savePerson } from '../../../components/ui/personEdit';
 import { supabase } from '../../../lib/supabase';
 import { useCompanyOptions } from '../hooks';
 import type { ContactProfile, Person } from '../lib';
@@ -19,7 +19,7 @@ export function ContactEditDialog({ person, profile, onClose, onSaved }: Contact
   const { companyOptions } = useCompanyOptions();
 
   const fields: EditField[] = [
-    ...PERSON_EDIT_FIELDS,
+    ...personEditFields(person),
     {
       kind: 'select',
       key: 'company_id',
@@ -48,7 +48,7 @@ export function ContactEditDialog({ person, profile, onClose, onSaved }: Contact
   };
 
   const save = async (draft: Record<string, EditValue>) => {
-    await savePerson(person, draft);
+    await savePerson(person, draft, 'contact');
     const text = (v: EditValue | undefined) => (typeof v === 'string' ? v.trim() || null : null);
     const { error } = await supabase
       .from('contact_profiles')

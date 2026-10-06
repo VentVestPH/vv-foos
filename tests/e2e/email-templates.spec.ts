@@ -16,14 +16,18 @@ test.describe('Q4: email templates', () => {
     await signIn(page, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page, '/settings');
 
-    const card = page.locator('.settings-card').filter({ hasText: 'Email templates' });
+    await page.getByRole('tab', { name: /Email templates/ }).click();
+    const card = page.locator('.settings-templates');
     await expect(card).toBeVisible({ timeout: 25000 });
-    await card.getByLabel('Template name').fill(`${tag} screen invite`);
-    await card.getByLabel('Subject').fill('Screening call, {{first_name}}');
-    await card
+    await card.getByRole('button', { name: 'New template' }).click();
+    const form = page.getByRole('dialog', { name: 'New template' });
+    await form.getByLabel('Template name').fill(`${tag} screen invite`);
+    await form.getByLabel('Subject').fill('Screening call, {{first_name}}');
+    await form
       .getByLabel('Message')
       .fill('Hi {{first_name}} {{last_name}}, are you free this week?');
-    await card.getByRole('button', { name: 'Add template' }).click();
+    await form.getByRole('button', { name: 'Add template' }).click();
+    await expect(form).toHaveCount(0, { timeout: 20000 });
 
     await expect(card.getByText(`${tag} screen invite`)).toBeVisible({ timeout: 20000 });
 
@@ -60,10 +64,10 @@ test.describe('Q4: email templates', () => {
     expect(error, error?.message).toBeNull();
 
     await signIn(page, PERSONA_EMAILS.sourcer);
-    await gotoAsSignedIn(page, '/settings');
-    const card = page.locator('.settings-card').filter({ hasText: 'Email templates' });
+    await gotoAsSignedIn(page, '/settings?section=templates');
+    const card = page.locator('.settings-templates');
     await expect(card.getByText(`${tag} readonly`)).toBeVisible({ timeout: 25000 });
-    await expect(card.getByRole('button', { name: 'Add template' })).toHaveCount(0);
+    await expect(card.getByRole('button', { name: 'New template' })).toHaveCount(0);
     await expect(card.getByRole('button', { name: 'Edit' })).toHaveCount(0);
 
     const sourcer = await clientAs('sourcer');
@@ -83,8 +87,8 @@ test.describe('Q4: email templates', () => {
     expect(again.error?.code).toBe('23505');
 
     await signIn(page, PERSONA_EMAILS.admin);
-    await gotoAsSignedIn(page, '/settings');
-    const card = page.locator('.settings-card').filter({ hasText: 'Email templates' });
+    await gotoAsSignedIn(page, '/settings?section=templates');
+    const card = page.locator('.settings-templates');
     await expect(card.getByText(name, { exact: true })).toHaveCount(1, { timeout: 25000 });
   });
 });

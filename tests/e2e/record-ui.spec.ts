@@ -7,6 +7,7 @@ const RAIL_KEY = 'ui.recentlyViewed';
 const RAIL_PERSONA = 'recruiter';
 
 const RAIL_ROOM = 50;
+const TICKET_DRAFT_TITLE = `QA ticket ${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 
 async function resetRail(): Promise<void> {
   for (const persona of ['admin', RAIL_PERSONA] as const) {
@@ -33,26 +34,219 @@ test.describe('Record and list UI criteria', () => {
   test.afterEach(async () => {
     const admin = await clientAs('admin');
     await admin.from('activities').delete().like('subject', `${RAIL_NOTE}%`);
+    const { data: drafts } = await admin.from('tickets').select('id').like('subject', `${TICKET_DRAFT_TITLE}%`);
+    for (const ticket of drafts ?? []) {
+      const { data: attachments } = await admin.from('attachments').select('id, storage_path').eq('parent_type', 'ticket').eq('parent_id', ticket.id);
+      if (attachments?.length) {
+        await admin.storage.from('attachments').remove(attachments.map((attachment) => attachment.storage_path));
+        await admin.from('attachments').delete().in('id', attachments.map((attachment) => attachment.id));
+      }
+      await admin.from('tickets').delete().eq('id', ticket.id);
+    }
     await resetRail();
   });
 
-  test('3.8 the tickets list is read-only, with no working mutation control', async ({ page }) => {
+  test('tickets can be created with pasted images and opened from either view', async ({ page }) => {
+    test.setTimeout(60000);
     await gotoAsSignedIn(page, '/sales/tickets');
     await expect(page.getByRole('heading', { name: /^Tickets/ })).toBeVisible();
+    await expect(page.locator('.fo-list-toolbar .fo-pager')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'First page' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Last page' })).toBeVisible();
     const newTicket = page.getByRole('button', { name: 'New Ticket', exact: true });
     await expect(newTicket).toBeVisible();
     await newTicket.click();
-    await expect(page.locator('.fo-placeholder-modal')).toContainText(
-      /still in development/i,
-    );
-    await expect(
-      page.locator('.fo-placeholder-modal'),
-      'the copy says what happens next, not just that something is missing',
-    ).toContainText(/Customer Success module/i);
+    await expect(page.getByRole('dialog', { name: 'New ticket' })).toBeVisible();
+    const dialogBox = await page.getByRole('dialog', { name: 'New ticket' }).boundingBox();
+    expect(dialogBox?.width ?? 0, 'the ticket editor should use a genuinely wide dialog').toBeGreaterThan(1100);
+    const fieldsBox = await page.locator('.sales-ticket-create-sidebar').boundingBox();
+    const contentBox = await page.locator('.sales-ticket-editor-main').boundingBox();
+    expect(fieldsBox && contentBox && fieldsBox.x > contentBox.x, 'fields belong in the right side rail').toBeTruthy();
+    await page.getByRole('button', { name: 'Choose a date' }).click();
+    await expect(page.getByRole('button', { name: 'Next month' })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.locator('.fo-placeholder-modal')).toHaveCount(0);
-    await expect(page.locator('.table-wrap input:not([disabled]), .table-wrap select:not([disabled])')).toHaveCount(0);
-    await expect(page.locator('.table-wrap tbody')).toContainText(/No tickets/i);
+    const description = page.locator('#ticket-description');
+    await page.getByLabel('Title').fill(TICKET_DRAFT_TITLE);
+    await description.fill('Steps to reproduce: paste a screenshot and submit the request.');
+    await page.evaluate(() => {
+      const editor = document.querySelector<HTMLDivElement>('#ticket-description');
+      if (!editor) throw new Error('ticket description is missing');
+      const bytes = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jS7sAAAAASUVORK5CYII='), (character) => character.charCodeAt(0));
+      const clipboard = new DataTransfer();
+      clipboard.items.add(new File([bytes], 'pasted-screenshot.png', { type: 'image/png' }));
+      editor.dispatchEvent(new ClipboardEvent('paste', { clipboardData: clipboard, bubbles: true }));
+    });
+    await expect(page.getByAltText('pasted-screenshot.png')).toBeVisible();
+    const uploads: string[] = [];
+    page.on('request', (request) => {
+      if (/\/storage\/v1\/object\/attachments\//.test(request.url())) uploads.push(request.url());
+    });
+    expect(uploads, 'pasting must not upload before the ticket is saved').toHaveLength(0);
+    await page.getByLabel('Add context for your team').fill('Initial note: investigating the report.');
+    await page.getByRole('dialog', { name: 'New ticket' }).locator('.fo-dialog-body').evaluate((element) => { element.scrollTop = 0; });
+    await page.getByRole('button', { name: 'Create ticket' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 20000 });
+    expect(uploads).toHaveLength(1);
+    await expect(page.locator('.table-wrap tbody')).toContainText(
+      TICKET_DRAFT_TITLE,
+    );
+    let continueTicketRequest!: () => void;
+    const ticketRequestGate = new Promise<void>((resolve) => { continueTicketRequest = resolve; });
+    await page.route((url) => url.pathname === '/rest/v1/tickets' && url.searchParams.has('id'), async (route) => {
+      await ticketRequestGate;
+      await route.continue();
+    });
+    await page.getByText(TICKET_DRAFT_TITLE, { exact: true }).click();
+    await expect(page).toHaveURL(/\/sales\/tickets\?id=[0-9a-f-]{36}/);
+    const loadingDialog = page.getByRole('dialog', { name: 'Loading ticket' });
+    await expect(loadingDialog).toBeVisible();
+    await expect(loadingDialog.locator('.sales-ticket-detail-skeleton')).toBeVisible();
+    const loadingBox = await loadingDialog.boundingBox();
+    expect(loadingBox?.width ?? 0, 'the loading modal keeps the wide detail layout').toBeGreaterThan(1100);
+    continueTicketRequest();
+    await expect(page.getByRole('dialog', { name: /TKT.*QA ticket/ })).toBeVisible();
+    await page.unrouteAll();
+    const detailBox = await page.getByRole('dialog').boundingBox();
+    const closeBox = await page.getByRole('button', { name: 'Close dialog' }).boundingBox();
+    expect(detailBox && closeBox && closeBox.x + closeBox.width > detailBox.x + detailBox.width - 52).toBeTruthy();
+    await expect(page.getByRole('dialog')).toContainText('Steps to reproduce: paste a screenshot');
+    await expect(page.getByRole('dialog')).toContainText('Initial note: investigating the report.');
+    await expect(page.locator('.sales-ticket-description-body img')).toBeVisible();
+    await expect(page.getByRole('dialog')).not.toContainText('No comments yet');
+    await expect(page.getByRole('dialog').getByText('Tags', { exact: true }), 'tags are no longer part of the ticket UI').toHaveCount(0);
+    for (const [label, tabName] of [['All', /^All$/], ['Comments', /^Comments/], ['History', /^History$/]] as const) {
+      const tab = page.getByRole('tab', { name: tabName });
+      await tab.click();
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
+      await expect(page.getByRole('tabpanel'), `${label} shows its panel without a loading delay`).toBeVisible();
+      await expect(page.getByRole('status', { name: 'Loading ticket activity' })).toHaveCount(0);
+    }
+    await page.getByRole('tab', { name: /^All$/ }).click();
+    const sidebar = page.locator('.sales-ticket-sidebar');
+    const sidebarBeforeFieldEdit = await sidebar.boundingBox();
+    await sidebar.locator('[data-ticket-sidebar-field="status"]').click();
+    await expect(page.getByRole('combobox', { name: 'Status' })).toBeVisible();
+    const sidebarDuringFieldEdit = await sidebar.boundingBox();
+    expect(sidebarBeforeFieldEdit && sidebarDuringFieldEdit && Math.abs(sidebarBeforeFieldEdit.height - sidebarDuringFieldEdit.height) < 4, 'inline field editing should not shift the sidebar layout').toBeTruthy();
+    await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.getByRole('combobox', { name: 'Status' })).toHaveCount(0);
+    await sidebar.locator('[data-ticket-sidebar-field="due"]').click();
+    await expect(page.getByLabel('Due time')).toBeVisible();
+    await page.getByLabel('Due time').fill('09:37');
+    await expect(page.getByLabel('Due time'), 'any minute can be typed, not only quarter hours').toHaveValue('09:37');
+    await page.getByRole('tab', { name: /^All$/ }).click();
+    await expect(page.getByLabel('Due time')).toHaveCount(0);
+    await page.locator('.sales-ticket-description').click();
+    const detailImage = page.locator('.sales-ticket-description-input img').first();
+    await detailImage.click();
+    const resizeHandle = page.getByRole('button', { name: 'Resize image' });
+    await expect(resizeHandle).toBeVisible();
+    const handleBox = await resizeHandle.boundingBox();
+    if (!handleBox) throw new Error('image resize handle is missing its position');
+    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(handleBox.x + handleBox.width / 2 + 96, handleBox.y + handleBox.height / 2 + 56, { steps: 6 });
+    await page.mouse.up();
+    await expect.poll(() => detailImage.getAttribute('width')).not.toBeNull();
+    expect(Number(await detailImage.getAttribute('width'))).toBeGreaterThan(80);
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.locator('.sales-ticket-description-body img').first()).toHaveAttribute('width', /\d+/);
+    await page.keyboard.press('Escape');
+
+    await page.getByRole('tab', { name: 'Kanban view' }).click();
+    await expect(page.locator('.sales-ticket-board')).toContainText(TICKET_DRAFT_TITLE);
+    await page.getByRole('button', { name: new RegExp(TICKET_DRAFT_TITLE) }).click();
+    await expect(page.getByRole('dialog')).toContainText(TICKET_DRAFT_TITLE);
+    await expect(page.getByRole('tab', { name: /^All$/ })).toBeVisible();
+    await expect(page.getByText('Initial note: investigating the report.', { exact: true })).toBeVisible();
+    await expect(page.locator('.sales-ticket-related-work')).toBeVisible();
+    expect(await page.locator('.sales-ticket-related-work').evaluate((node) => node.compareDocumentPosition(document.querySelector('.sales-ticket-activity')!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+    const relationship = page.getByRole('combobox', { name: 'Link relationship' });
+    await relationship.click();
+    await page.getByRole('option', { name: 'Is blocked by' }).click();
+    await expect(relationship).toHaveText('Is blocked by');
+    const relationBox = await relationship.boundingBox();
+    const relationMenuBox = await page.locator('.field-select-menu[data-fit-content="true"]').boundingBox();
+    expect(relationBox?.width ?? 999, 'relationship field should fit the selected label').toBeLessThan(180);
+    const linkLabelBox = await page.locator('.sales-ticket-external-link-form > .input:first-child').boundingBox();
+    expect(relationBox && linkLabelBox && Math.abs(relationBox.width - linkLabelBox.width) < 2).toBeTruthy();
+    await relationship.click();
+    const menuBox = await page.locator('.field-select-menu[data-fit-content="true"]').boundingBox();
+    expect(relationBox && menuBox && menuBox.width >= relationBox.width).toBeTruthy();
+    await page.getByRole('option', { name: 'Relates to' }).click();
+    const defaultRelationBox = await relationship.boundingBox();
+    expect(defaultRelationBox && relationBox && defaultRelationBox.width < relationBox.width).toBeTruthy();
+    const searchLinkBox = await page.getByRole('combobox', { name: 'Search tickets to link' }).boundingBox();
+    expect(searchLinkBox && defaultRelationBox && searchLinkBox.width > defaultRelationBox.width * 2).toBeTruthy();
+    await page.getByRole('combobox', { name: 'Search tickets to link' }).fill('hiring team asked');
+    const ticketSuggestions = page.getByRole('listbox', { name: 'Suggested results' });
+    await expect(ticketSuggestions).toBeVisible();
+    await expect(ticketSuggestions).toContainText('Confirm interview panel availability');
+    await expect(ticketSuggestions).toContainText('hiring team asked');
+    await ticketSuggestions.getByRole('option', { name: /Confirm interview panel availability/ }).click();
+    await page.getByRole('button', { name: 'Add ticket link' }).click();
+    await expect(page.getByRole('tab', { name: /^All$/ })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByText(/Confirm interview panel availability/).last()).toBeVisible();
+    await page.getByLabel('Link label').fill('Project docs');
+    await page.getByLabel('Link URL').fill('example.com/tickets/guide');
+    await page.getByRole('button', { name: 'Add link', exact: true }).click();
+    await expect(page.getByRole('link', { name: 'Project docs' })).toHaveAttribute('href', 'https://example.com/tickets/guide');
+    const commentEditor = page.locator('#ticket-comment');
+    await commentEditor.fill('Screenshot attached from the ticket activity editor.');
+    await commentEditor.evaluate((editor) => {
+      const bytes = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jS7sAAAAASUVORK5CYII='), (character) => character.charCodeAt(0));
+      const clipboard = new DataTransfer();
+      clipboard.items.add(new File([bytes], 'comment-screenshot.png', { type: 'image/png' }));
+      editor.dispatchEvent(new ClipboardEvent('paste', { clipboardData: clipboard, bubbles: true }));
+    });
+    await expect(commentEditor.locator('img[alt="comment-screenshot.png"]')).toBeVisible();
+    const commentUploads: string[] = [];
+    page.on('request', (request) => {
+      if (/\/storage\/v1\/object\/attachments\//.test(request.url())) commentUploads.push(request.url());
+    });
+    expect(commentUploads, 'comment files stay local before posting').toHaveLength(0);
+    await page.getByRole('button', { name: 'Post comment' }).click();
+    await expect(page.getByText('Screenshot attached from the ticket activity editor.', { exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: /^All$/ }).click();
+    await expect(page.locator('.sales-ticket-all-comment img')).toBeVisible();
+    expect(commentUploads).toHaveLength(1);
+    const displayedTitleSize = await page.locator('.sales-ticket-workitem-title').evaluate((element) => getComputedStyle(element).fontSize);
+    await page.locator('.sales-ticket-workitem-title').click();
+    await expect(page.getByText('Description:', { exact: true })).toBeVisible();
+    const editTitle = page.getByLabel('Title');
+    await expect(editTitle).toBeVisible();
+    await expect(page.getByRole('toolbar', { name: 'Description formatting' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Description' })).toHaveCount(0);
+    const inputTitleSize = await editTitle.evaluate((element) => getComputedStyle(element).fontSize);
+    expect(inputTitleSize).toBe(displayedTitleSize);
+    await editTitle.fill(`${TICKET_DRAFT_TITLE} canceled`);
+    await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.locator('.sales-ticket-workitem-title')).toHaveText(TICKET_DRAFT_TITLE);
+    await page.locator('.sales-ticket-description').click();
+    await expect(page.getByRole('textbox', { name: 'Description' })).toBeVisible();
+    await expect(page.getByLabel('Title')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await page.locator('.sales-ticket-workitem-title').click();
+    await page.getByLabel('Title').fill(`${TICKET_DRAFT_TITLE} discarded`);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.sales-ticket-workitem-title')).toHaveText(TICKET_DRAFT_TITLE);
+    await page.locator('.sales-ticket-workitem-title').click();
+    await page.getByLabel('Title').fill(`${TICKET_DRAFT_TITLE} updated`);
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.locator('.sales-ticket-workitem-title')).toHaveText(`${TICKET_DRAFT_TITLE} updated`);
+    await page.locator('.sales-ticket-workitem-title').click();
+    await page.getByLabel('Title').fill(TICKET_DRAFT_TITLE);
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL('/sales/tickets');
+    await expect.poll(() => page.evaluate(() => window.localStorage.getItem('foos.tickets.view'))).toBe('kanban');
+    await page.reload();
+    await expect(page.getByRole('tab', { name: 'Kanban view' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.sales-ticket-board')).toContainText(TICKET_DRAFT_TITLE);
+    await page.getByRole('button', { name: new RegExp(TICKET_DRAFT_TITLE) }).click();
+    await expect(page).toHaveURL(/\/sales\/tickets\?id=[0-9a-f-]{36}/);
+    await page.reload();
+    await expect(page.getByRole('dialog')).toContainText(TICKET_DRAFT_TITLE);
   });
 
   test('3.1 a company record shows contacts, deals, requisitions and an activity timeline', async ({ page }) => {

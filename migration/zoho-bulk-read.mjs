@@ -32,7 +32,7 @@ const PAGE_CEILING = 200000;
 const POLL_INTERVAL_MS = Number(valueOf('--poll-ms', '4000'));
 const POLL_LIMIT = Number(valueOf('--poll-limit', '150'));
 const COUNTS_ONLY = has('--counts-only');
-const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
+const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:56322/postgres';
 
 const PRODUCTS = {
   ZohoRecruit: {

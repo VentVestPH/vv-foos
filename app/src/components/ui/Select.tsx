@@ -37,6 +37,7 @@ interface SelectProps {
   className?: string;
   'aria-label'?: string;
   title?: string | undefined;
+  fitMenuContent?: boolean;
   onChange?: (event: SelectChangeEvent) => void;
 }
 
@@ -72,6 +73,7 @@ export function Select({
   className,
   'aria-label': ariaLabel,
   title,
+  fitMenuContent = false,
 }: SelectProps) {
   const autoId = useId();
   const selectId = id ?? autoId;
@@ -360,6 +362,7 @@ export function Select({
             id={listId}
             role="listbox"
             className="field-select-menu fo-scroll-shade"
+            data-fit-content={fitMenuContent ? 'true' : undefined}
             data-closing={closing ? 'true' : undefined}
             aria-labelledby={label !== undefined ? labelId : undefined}
             style={{

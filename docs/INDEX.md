@@ -1,123 +1,63 @@
 # VV-FOOS Documentation Index
 
-**Project:** VentVest Front Office OS (VV-FOOS) · **Last updated:** 2026-09-10 (candidates pass recorded: the Quick Search contract no list page implemented, F23 closed with a caller guard, and the CI browser job sharded two ways)
+**Project:** VentVest Front Office OS (VV-FOOS) · **Last updated:** 2026-09-14
 
-Documentation for the FOOS CRM and ATS improvement programme. Project documents follow the VVPH ISO naming convention (`VVPH_<ProjectCode>_<DocType>_<Descriptive-Name>_<YYYY-MM-DD>_v<major.minor>_<Status>.<ext>`). Folders are numbered in reading order.
+Documentation for the FOOS CRM and ATS programme. Every claim is marked as measured, verified live, or estimated. Where a document contradicts an earlier one, the newer measurement wins and the discrepancy is recorded rather than quietly corrected.
 
-Everything here was produced on 2026-09-01 and is evidence-based: claims are marked as measured, verified live, or estimated. Where a document contradicts an earlier one, the newer measurement wins and the discrepancy is recorded rather than quietly corrected.
+## Settled decisions, so they are not relitigated
+
+| Item | Decision | Date |
+| :---- | :---- | :---- |
+| Host | **Cloudflare Pages**, static assets only. Vercel is not used and `vercel.json` is deleted | 2026-09-14 |
+| Supabase plan | **Pro** | 2026-09-14 |
+| Environments | **Two, and only two.** A developer's local stack, and the Cloudflare Pages site on the existing project `hilieyehhecrlccdveta` (Singapore). No develop project, no staging, no preview environment | 2026-09-14 |
+| Frontend | `foos_redesign_2` is the only tree anyone changes. The two siblings are archived | 2026-09-02 |
 
 ## Start here
 
 | If you want | Read |
 | :---- | :---- |
-| The plan and the decisions needed | `03-plan/…Plan_CRM-ATS-Improvement…` |
-| What is still open, as a checklist | `03-plan/…Plan_CRM-ATS-Improvement…` section 8 |
-| What is broken and how bad | `01-current-state/…Register_Defects-and-Risks…` |
-| How close the UI is to Taleo | `02-taleo-fidelity/…Report_Taleo-Fidelity-Audit…` |
-| What is documented about Taleo versus assumed | `04-research/…Report_External-Research-Findings…` |
-| Exactly what to change, with values | `02-taleo-fidelity/…Spec_Taleo-Fidelity-Gap-Closure…` |
-| Which icons Kappa uses, and whether to copy them | `04-research/…Report_Icon-Strategy-and-Kappa-Comparison…` |
-| How to add polish without breaking the replica | `06-ux-and-motion/…Spec_UX-and-Motion-Discovery…` |
-| What the requisitions UI pass changed, and the four CSS traps it paid for | `06-ux-and-motion/…Record_Requisitions-UI-Pass…` |
-| Why the browser suite takes as long as it does, measured | `06-ux-and-motion/…Record_Requisitions-UI-Pass…` section 4 |
-| Why CI is sharded two ways and not three | `06-ux-and-motion/…Record_Candidates-Pass-And-Quick-Search…` section 3 |
-| Why a signed-in user could fire someone else's reminders, and the guard | `06-ux-and-motion/…Record_Candidates-Pass-And-Quick-Search…` section 2 |
-| What the candidates pass changed, and the search contract it found dead | `06-ux-and-motion/…Record_Candidates-Pass-And-Quick-Search…` |
-| How to run the app locally without touching live data | `07-environments/…Doc_Local-Development-Environment…` |
-| What was measured and what got faster | `08-performance/…Report_Performance-Baseline-and-Optimisation…` |
-| The human checks left before cutover | `09-uat/…Script_Gate-5-UAT…` |
-| Which acceptance criteria are actually verified | `../tests/RETEST_MATRIX.md` |
-| Which source document governs a question | `05-reference/…Index_Drive-Source-Documents…` |
-| Why a browser test passes here and fails in CI | `05-reference/…Runbook_Why-CI-Fails-And-How-To-Write-A-Test-That-Does-Not…` |
+| What exists today and what is missing | `reference/` System State and Inventory |
+| What is left to do | `plan/` the improvement plan, workstream table |
+| How to deploy, and what must be set in the Supabase Dashboard | `environments/` the cutover runbook |
+| Why CI failed and how to write a test that does not | `reference/` the CI runbook |
+| How the Zoho migration and the Singapore move went | `environments/` the migration record |
+| What changed in a recent UI pass | `ux-and-motion/` the pass records |
+| The script for user acceptance testing | `uat/`, **incomplete**: no steps for Accounts, Contacts, Deals or Users |
 
-## 01-current-state
+## Folders
 
-| Document | Contents |
+Folder names carry no number. Numbering was dropped on 2026-09-14: after eight folders were deleted the sequence had gaps, and a number that has to be maintained is a number that goes wrong.
+
+| Folder | Holds |
 | :---- | :---- |
-| `VVPH_VV-FOOS_Report_System-Inventory-and-Verified-State_2026-09-01_v1.0_Draft.md` | Frontends, toolchain, routes, backend, live data counts, accounts, environment variables, and the settings no migration can apply |
-| `VVPH_VV-FOOS_Report_Drive-Review-and-Meeting-Reconciliation_2026-09-01_v1.0_Draft.md` | Full read of every Drive document (22 files, the workbook, all six CSV exports), reconciled against the 2026-09-01 meeting summary. Grades each meeting claim as confirmed, contradicted, internally inconsistent, or correct-with-caveat |
-| `VVPH_VV-FOOS_Register_Defects-and-Risks_2026-09-01_v1.0_Draft.md` | Gate 4 items carried forward, thirteen findings verified 2026-09-01, the QA-003 re-rating, and the environment blockers now cleared |
+| `plan/` | The improvement plan and its workstream table, the goals document, the parked and blocked register, and the `goal-armed/` brief for Goal 6 |
+| `reference/` | Reference material that stays true: the CI runbook |
+| `ux-and-motion/` | Records of each UI pass, written after the work. Three: requisitions, candidates, deals |
+| `environments/` | Local development, the cutover runbook, the Zoho and Singapore migration record |
+| `uat/` | The acceptance script. Written 2026-09-01 and not extended since; it must be brought up to the current 27 routes before Gate 5 |
 
-## 02-taleo-fidelity
+## What was removed on 2026-09-14, and why
 
-| Document | Contents |
+Eight folders and 47 files were deleted in three passes. All of them are the working papers of workstreams that are complete, or were superseded by a document that measures the same thing more recently. **Everything is recoverable from git history**; nothing was archived to another directory because git is the archive.
+
+| Removed | Reason |
 | :---- | :---- |
-| `VVPH_VV-FOOS_Report_Taleo-Fidelity-Audit_2026-09-01_v1.0_Draft.md` | The visual check the redesign delivery report left open. 20 routes captured at 2560 x 1600, DOM-measured against spec, 13 deviations, contrast ratios, accessibility results, placeholder inventory |
-| `VVPH_VV-FOOS_Spec_Taleo-Fidelity-Gap-Closure_2026-09-01_v1.0_Draft.md` | Implementation detail for closing all 11, with computed replacement token values. Deltas only; it does not restate the Taleo design language |
+| `plan/` workstream V and W goal documents | V is 13 of 13, W is 24 of 24 |
+| `03-plan/goal-armed/` briefs for goals 1 to 5 and 7 to 11 | Those goals are complete, so the brief can never usefully be armed again. `goal-6.md` and `_always.md` remain |
+| `reference/` Drive source index | The Drive pull finished on 2026-09-09 |
+| `ux-and-motion/` UX and Motion Discovery spec | Workstreams G and R are 10 of 10 and 8 of 8. Its survey was also 80 percent out: it counted 76 `.tsx` files, 13,792 lines and 7 stylesheets against 137, 24,819 and 21 today |
+| `01-current-state/` | Superseded. The inventory is now `reference/`, and the defect register is `tests/DEFECT_LOG.md` |
+| `02-taleo-fidelity/` | Workstream C is 17 of 17 |
+| `04-research/` | One-off research whose conclusions are absorbed into the plan |
+| `06-notes/` | A single session note, superseded by the second brain |
+| `08-performance/` | Workstream K is 12 of 12 |
+| `10-discovery/` | Screen-by-screen discovery, superseded by the product |
+| `11-component-audit/` | Workstream V is 13 of 13 |
+| `12-full-audit/` | Goal 5 is complete, and its remaining-work list was stale |
 
-## 03-plan
+## Naming
 
-| Document | Contents |
-| :---- | :---- |
-| `VVPH_VV-FOOS_Plan_CRM-ATS-Improvement_2026-09-01_v1.0_Draft.md` | Sixteen workstreams (A to R), priority order by consequence of delay, a schedule bounded by the Gate 6 measurement window, the decisions still needed, a tasklist of everything open in section 8, and explicit scope exclusions. Revised through 2026-09-02: H and J (frontend consistency, repository cleanup), then K to Q from the seven audits, then R (interaction polish) after looking at the running app |
-| `VVPH_VV-FOOS_Register_Parked-and-Blocked-Items_2026-09-02_v1.0_Draft.md` | Every item that cannot move without a credential, an account, a production write or a decision from someone else, with what exactly is needed to unblock each one |
+`VVPH_<ProjectCode>_<DocType>_<Descriptive-Name>_v<major.minor>.<ext>`
 
-## 04-research
-
-| Document | Contents |
-| :---- | :---- |
-| `VVPH_VV-FOOS_Report_Icon-Strategy-and-Kappa-Comparison_2026-09-01_v1.0_Draft.md` | `lucide-react` 1.25.0 confirmed in Kappa with 801 import sites and 147 icons; coverage test against the 20 glyph roles FOOS needs; the Timeline emoji defect; a scoped adoption recommendation |
-| `VVPH_VV-FOOS_Report_External-Research-Findings_2026-09-01_v1.0_Draft.md` | Cited external research, adversarially verified with three skeptical voters per claim. 11 findings with vote counts. Headline result: most Taleo UI specifics are undocumented outside your screenshots. Also found two defects the internal audit missed, and records the two angles that returned nothing |
-
-## 06-ux-and-motion
-
-| Document | Contents |
-| :---- | :---- |
-| `VVPH_VV-FOOS_Spec_UX-and-Motion-Discovery_2026-09-01_v1.0_Draft.md` | Whole-application discovery (76 files, 13,792 lines) finding zero motion and zero reduced-motion handling; the three-category discipline that decides when motion diverges from Taleo and when it cannot; motion tokens with a 220ms ceiling; per-component specification; eight UX fixes needing no motion; and five verification checks |
-| `VVPH_VV-FOOS_Record_Requisitions-UI-Pass_2026-09-10_v1.0_Final.md` | What the requisition list, record and edit pages became; the nine shared components it produced; nine product defects with their evidence; the StrictMode, sticky-clamp, overflow and layer-order traps; the CI contrast failure that did not reproduce locally; and the measured cost of the browser suite |
-| `VVPH_VV-FOOS_Record_Candidates-Pass-And-Quick-Search_2026-09-10_v1.0_Final.md` | The candidate list header, page-head skeleton and column settings; the sidebar Quick Search navigating with a `?search=` parameter no list page had ever read, plus the name search that could not match across a middle name; the two flag columns where the one asked to be removed held the only data; F23's caller guard on `fn_fire_due_reminders`; and why the CI browser job is sharded two ways rather than three or weakened |
-
-## 07-environments
-
-| Document | Contents |
-| :---- | :---- |
-| `VVPH_VV-FOOS_Doc_Local-Development-Environment_2026-09-01_v1.0_Draft.md` | Running local Supabase, the 553xx port map and why it differs, what `config.toml` fixes permanently (QA-001), the verification results, and the dev-versus-production env split for Vercel or Fly |
-
-## 08-performance
-
-| Document | Contents |
-| :---- | :---- |
-| `VVPH_VV-FOOS_Report_Performance-Baseline-and-Optimisation_2026-09-01_v1.0_Draft.md` | Sourcemap-attributed bundle composition, the code-splitting and webfont changes, before/after timings under throttling, remaining ceilings, and the four committed guard scripts |
-
-## 09-uat
-
-| Document | Contents |
-| :---- | :---- |
-| `VVPH_VV-FOOS_Script_Gate-5-UAT_2026-09-01_v1.0_Draft.md` | 79 numbered steps: a recruiter script for the ATS, a BD script for the CRM, the Google integration checks, and the exit criteria. Covers only what a person must judge, since 57 API tests and 22 browser tests now cover the mechanical guarantees. Includes the known-open items testers will notice, so they do not write them up |
-
-## 05-reference
-
-| Document | Contents |
-| :---- | :---- |
-| `VVPH_VV-FOOS_Index_Drive-Source-Documents_2026-09-01_v1.0_Draft.md` | All 22 Drive documents, the workbook, six CSVs and 26 screenshots, each with what it is authoritative for, plus the authority order to apply when two disagree |
-
-## Related, outside this folder
-
-| Path | Contents |
-| :---- | :---- |
-| `../README.md` | Setup, migration order, and the local validation loop |
-| `../CLAUDE.md` | Repository guidance for future Claude Code sessions |
-
-## Authority order
-
-When documents conflict:
-
-1. `Arch_Master-Architecture` (Drive) for schema, entities, stage sets, events, RLS. Locked at Gate 1.
-2. The 26 Taleo screenshots for visual questions.
-3. `Prompt_Taleo-Exact-UI-Redesign` for UI detail, except where its starting token values conflict with the screenshots.
-4. `Plan_FOOS-Delivery-Plan` v1.3 for delivery status.
-5. The application code for what works today.
-
-Two known unresolved conflicts, both awaiting John: long-text capping versus wrapping, and the QA-002 severity call. Both are listed in the plan's decisions section.
-
-A third source of authority was added on 2026-09-01: for questions about what Taleo *documents*, the Oracle sources cited in the external research report outrank the screenshots. For questions about what VentVest's own instance *looked like*, the screenshots remain primary. Most concrete UI specifics fall in the second category, which is why the screenshots cannot be discarded.
-
-## Structure note
-
-Folders here are numbered in reading order, with `03-plan` as the hub that references `04`, `05` and `06`. The sibling `Kappa-Omini-typescript` repository organises its 46 documents by taxonomy instead (`requirements`, `architecture`, `governance`, `codebase-review`, `engineering`, `reference`) with an `INDEX.md` at the root. That taxonomy scales better past roughly 20 documents. Realigning this tree to match is a straightforward move if consistency across the two VentVest repositories is worth more than reading order here.
-
-## 10-discovery
-
-| Document | Contents |
-| :---- | :---- |
-| `VVPH_VV-FOOS_Report_Screen-by-Screen-Discovery_2026-09-03_v1.0_Draft.md` | Every one of the 27 screens captured at desktop and phone width and measured: DOM size, interactive and placeholder counts, axe at AA, console errors, sideways scroll and document title. Records the two accessibility defects it found and fixed, the uncapped activity timeline, and the 175-control placeholder surface. The 54 screenshots live in a gitignored `discovery/` directory |
+**The version is enough.** Status and date do not belong in a filename: both change, and renaming a file to record that breaks every reference to it. They live in the document's metadata table instead. Files created before 2026-09-14 still carry `_<date>_<Status>` and are left alone rather than renamed, because the cross-references between them cite the full filename.

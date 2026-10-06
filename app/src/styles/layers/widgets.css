@@ -2,6 +2,24 @@
   vertical-align: middle;
 }
 
+.users-table .table th:not(.sortable),
+.users-table .table td {
+  padding-inline: var(--section-pad);
+}
+
+.users-table .table th.sortable .th-sort-btn {
+  padding-inline: var(--section-pad);
+}
+
+.module-list-table .table th:not(.sortable),
+.module-list-table .table td {
+  padding-inline: var(--section-pad);
+}
+
+.module-list-table .table th.sortable .th-sort-btn {
+  padding-inline: var(--section-pad);
+}
+
 .table tbody tr:has(input[type='checkbox']:checked) {
   background: var(--fo-row-hover);
 }
@@ -375,4 +393,110 @@
   background: var(--surface);
   border: 1px solid var(--border);
   padding: var(--section-pad);
+}
+
+.kanban-skeleton .kanban-col-header .skeleton-row {
+  width: var(--sp-3);
+  height: var(--sp-1-5);
+  margin-left: auto;
+}
+
+.kanban-skeleton .kanban-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+}
+
+.kanban-skeleton .skeleton-card {
+  width: 100%;
+  flex: 0 0 96px;
+}
+
+.fo-skel-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1-5);
+}
+
+.fo-skel-crumb {
+  width: 120px;
+  height: var(--sp-1-5);
+}
+
+.fo-skel-title {
+  width: 220px;
+  height: var(--sp-3);
+}
+
+.fo-skel-line {
+  width: min(520px, 70%);
+  height: var(--sp-1-5);
+}
+
+.fo-skel-search {
+  width: min(420px, 100%);
+}
+
+
+
+
+
+
+.fo-skel-widget-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1-5);
+}
+
+.fo-skel-kpis {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.fo-skel-kpi {
+  width: 146px;
+  height: 76px;
+}
+
+.fo-skel-bar-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.fo-skel-bar-label,
+.fo-skel-bar-track,
+.fo-skel-bar-count {
+  height: var(--sp-1-5);
+}
+
+.fo-skel-bar-label {
+  width: 100px;
+}
+
+.fo-skel-bar-count {
+  width: 28px;
+  justify-self: end;
+}
+
+.fo-skel-pager {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fo-skel-pager > span {
+  width: 220px;
+}
+
+.fo-skel-cell {
+  width: 70%;
+  height: var(--sp-1-5);
+}
+
+.fo-skel-cell[data-wide='true'] {
+  width: 85%;
 }

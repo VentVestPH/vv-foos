@@ -6,11 +6,13 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { ActionMenu } from '../components/ui/ActionMenu';
 import { FoDialog } from '../components/ui/FoDialog';
-import { Skeleton } from '../components/ui/Skeleton';
+import { TableSkeleton } from '../components/ui/TableSkeleton';
+import { USERS_COLUMNS } from '../components/ui/PageSkeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useMinimumVisible } from '../hooks/useMinimumVisible';
 import { useSubmittedSearch } from '../lib/quickSearch';
 import { EMPTY_CELL } from '../lib/format';
+import { localSearchHints } from '../lib/searchHints';
 import {
   listUsers,
   issueTempPassword,
@@ -59,6 +61,20 @@ export function UsersPage() {
     void load();
   }, [load]);
 
+  const searchHints = useMemo(
+    () =>
+      localSearchHints(
+        '/users',
+        users.map((u) => ({
+          key: `user:${u.staffId}`,
+          primary: u.fullName,
+          meta: [u.email, u.role, u.title].filter(Boolean).join(' · '),
+          text: [u.fullName, u.email, u.role, u.title ?? ''],
+        })),
+      ),
+    [users],
+  );
+
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return users;
@@ -102,19 +118,17 @@ export function UsersPage() {
     {
       key: 'fullName',
       header: 'Name',
-      sortable: true,
       render: (u) => (
-        <span className="sales-badges">
+        <span className="fo-badges">
           {u.fullName}
           {!u.isActive && <Badge tone="neutral">Inactive</Badge>}
         </span>
       ),
     },
-    { key: 'email', header: 'Email', sortable: true },
+    { key: 'email', header: 'Email' },
     {
       key: 'role',
       header: 'Role',
-      sortable: true,
       render: (u) => <Badge tone={ROLE_TONE[u.role] ?? 'neutral'}>{u.role}</Badge>,
     },
     {
@@ -126,7 +140,6 @@ export function UsersPage() {
     {
       key: 'canSignIn',
       header: 'Sign-in',
-      sortable: true,
       sortValue: (u) => (u.canSignIn ? '1' : '0'),
       render: (u) =>
         u.canSignIn ? (
@@ -142,7 +155,6 @@ export function UsersPage() {
     {
       key: 'lastSignInAt',
       header: 'Last sign-in',
-      sortable: true,
       render: (u) => fmtWhen(u.lastSignInAt),
     },
     {
@@ -187,11 +199,7 @@ export function UsersPage() {
       onSearchChange={setSearchInput}
       onSearchSubmit={submitSearch}
       searchPlaceholder="Search name, email, role…"
-      actions={
-        <Button onClick={() => void load()} disabled={loading}>
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </Button>
-      }
+      searchHints={searchHints}
     >
       {error && (
         <p className="form-error" role="alert">
@@ -205,9 +213,7 @@ export function UsersPage() {
       )}
 
       {showSkeleton ? (
-        <div className="fo-skeleton-card">
-          <Skeleton rows={8} label="Loading users" />
-        </div>
+        <TableSkeleton columns={USERS_COLUMNS} label="Loading users" />
       ) : rows.length === 0 && !error ? (
         <EmptyState
           icon={<UsersIcon size={64} aria-hidden="true" />}
@@ -216,6 +222,8 @@ export function UsersPage() {
         />
       ) : (
         <Table
+          pageSize={20}
+          className="users-table"
           columns={columns}
           rows={rows}
           rowKey={(u) => u.staffId}

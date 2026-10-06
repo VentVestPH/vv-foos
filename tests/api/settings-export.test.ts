@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { EXPORTABLE_MODULES } from '../../app/src/modules/settings/lib';
 import { PERSONA_CREDENTIALS } from '../env';
 
-const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const SUPABASE_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321';
 const ANON_KEY = process.env.FOOS_SUPABASE_ANON_KEY ?? '';
 const PASSWORD = process.env.FOOS_QA_TEST_PASSWORD ?? '';
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;

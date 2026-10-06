@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { Table } from '../../components/ui/Table';
 import { downloadCsv } from '../../lib/csv';
 import { supabase } from '../../lib/supabase';
 import { useLatestOnly } from '../../lib/useLatestOnly';
@@ -94,51 +95,59 @@ export function DataExportCard() {
       {error && <p className="form-error" role="alert">{error}</p>}
       {done && <p className="settings-export-done">{done}</p>}
 
-      <table className="table settings-export-table">
-        <thead>
-          <tr>
-            <th scope="col">Module</th>
-            <th scope="col" className="settings-export-count">Rows</th>
-            <th scope="col">Export</th>
-          </tr>
-        </thead>
-        <tbody>
-          {EXPORTABLE_MODULES.map((m) => {
-            const n = counts[m.key];
-            return (
-              <tr key={m.key}>
-                <th scope="row">{m.label}</th>
-                <td className="settings-export-count" data-testid={`count-${m.key}`}>
+      <Table
+        className="settings-export-table"
+        pageSize={10}
+        columns={[
+          { key: 'label', header: 'Module' },
+          {
+            key: 'rows',
+            header: 'Rows',
+            sortValue: (m) => counts[m.key] ?? -1,
+            render: (m) => {
+              const n = counts[m.key];
+              return (
+                <span className="settings-export-count" data-testid={`count-${m.key}`}>
                   {n === undefined ? '…' : n === null ? 'unavailable' : n.toLocaleString()}
-                </td>
-                <td>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={busy !== null || n === null || n === 0}
-                    title={
-                      busy !== null
-                        ? 'Another export is running'
-                        : n === null
-                          ? 'The row count is unavailable'
-                          : n === 0
-                            ? 'There is nothing to export'
-                            : undefined
-                    }
-                    onClick={() => void exportModule(m)}
-                    data-testid={`export-${m.key}`}
-                  >
-                    <Download size={20} />
-                    {busy === m.key
-                      ? `Exporting… ${progress.toLocaleString()} of ${(n ?? 0).toLocaleString()}`
-                      : 'Export CSV'}
-                  </Button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </span>
+              );
+            },
+          },
+          {
+            key: 'export',
+            header: 'Export',
+            sortValue: (m) => m.label,
+            render: (m) => {
+              const n = counts[m.key];
+              return (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy !== null || n === null || n === 0}
+                  title={
+                    busy !== null
+                      ? 'Another export is running'
+                      : n === null
+                        ? 'The row count is unavailable'
+                        : n === 0
+                          ? 'There is nothing to export'
+                          : undefined
+                  }
+                  onClick={() => void exportModule(m)}
+                  data-testid={`export-${m.key}`}
+                >
+                  <Download size={20} />
+                  {busy === m.key
+                    ? `Exporting… ${progress.toLocaleString()} of ${(n ?? 0).toLocaleString()}`
+                    : 'Export CSV'}
+                </Button>
+              );
+            },
+          },
+        ]}
+        rows={EXPORTABLE_MODULES}
+        rowKey={(m) => m.key}
+      />
     </div>
   );
 }

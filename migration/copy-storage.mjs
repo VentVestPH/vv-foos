@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { supabase, assertTarget } from '../scripts/local-stack.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const args = process.argv.slice(2);
@@ -15,11 +15,11 @@ const PAGE = 1000;
 
 function localServiceKey() {
   if (process.env.FOOS_LOCAL_SERVICE_ROLE_KEY) return process.env.FOOS_LOCAL_SERVICE_ROLE_KEY;
-  const env = execSync('supabase status -o env', { encoding: 'utf8' });
+  const env = supabase(['status', '-o', 'env'], { encoding: 'utf8' });
   return /^SERVICE_ROLE_KEY="?([^"\n]+)"?$/m.exec(env)?.[1] ?? null;
 }
 
-const SRC_URL = process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:55321';
+const SRC_URL = assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote'));
 const SRC_KEY = localServiceKey();
 const DST_URL = process.env.SUPABASE_URL;
 const DST_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;

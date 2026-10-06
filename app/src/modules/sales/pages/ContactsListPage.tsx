@@ -55,12 +55,14 @@ const CONTACT_VIEW_COLUMNS =
   'person_id, first_name, middle_name, last_name, full_name, emails, phones, city, state, country, is_test, person_updated_at, company_id, company_name, title, is_primary, since_date';
 
 const CONTACT_SORT_COLUMNS: Record<string, string> = {
+  id: 'person_id',
   name: 'last_name',
   updated_at: 'person_updated_at',
   company: 'company_name',
   title: 'title',
-  since_date: 'since_date',
-  email: 'first_name',
+  email: 'emails',
+  phone: 'phones',
+  since: 'since_date',
 };
 
 function contactLikeLiteral(value: string): string {
@@ -188,7 +190,6 @@ export function ContactsListPage() {
     {
       key: 'name',
       header: 'Name',
-      sortable: true,
       sortValue: (r) => personName(r.person),
       render: (r) => (
         <span className="sales-badges">
@@ -210,14 +211,12 @@ export function ContactsListPage() {
     {
       key: 'updated_at',
       header: 'Last Updated',
-      sortable: true,
       sortValue: (r) => r.person.person_updated_at,
       render: (r) => fmtDate(r.person.person_updated_at),
     },
     {
       key: 'company',
       header: 'Account',
-      sortable: true,
       sortValue: (r) => companyName(r.profile.company_id),
       render: (r) => companyName(r.profile.company_id),
     },
@@ -239,7 +238,6 @@ export function ContactsListPage() {
     {
       key: 'since',
       header: 'Since',
-      sortable: true,
       hideWhenEmpty: true,
       sortValue: (r) => r.profile.since_date ?? '',
       render: (r) => fmtDate(r.profile.since_date),
@@ -446,6 +444,7 @@ export function ContactsListPage() {
         </EmptyState>
       ) : (
         <Table
+          className="contacts-table"
           busy={loading}
           columns={columns}
           rows={pager.pageRows}

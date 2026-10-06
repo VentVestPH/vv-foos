@@ -1,6 +1,8 @@
 import type { EditField, EditValue } from './RecordEditDialog';
 import { supabase } from '../../lib/supabase';
 import type { Json } from '../../lib/database.types';
+import { countryOptions } from '../../lib/countries';
+import { validateCandidateContact, validateContactPerson } from '../../lib/personValidation';
 
 export interface EditablePerson {
   id: string;
@@ -25,7 +27,7 @@ const REACH = 'Contact';
 const PLACE = 'Location';
 const LINKS = 'Profiles';
 
-export const PERSON_EDIT_FIELDS: EditField[] = [
+const PERSON_EDIT_FIELDS: EditField[] = [
   { kind: 'text', key: 'first_name', label: 'First name', section: NAME },
   { kind: 'text', key: 'middle_name', label: 'Middle name', section: NAME },
   { kind: 'text', key: 'last_name', label: 'Last name', section: NAME },
@@ -36,11 +38,27 @@ export const PERSON_EDIT_FIELDS: EditField[] = [
   { kind: 'text', key: 'city', label: 'City', section: PLACE },
   { kind: 'text', key: 'state', label: 'State / region', section: PLACE },
   { kind: 'text', key: 'postal_code', label: 'Postal code', section: PLACE },
-  { kind: 'text', key: 'country', label: 'Country', section: PLACE },
+  { kind: 'select', key: 'country', label: 'Country', section: PLACE, options: countryOptions(null) },
   { kind: 'url', key: 'linkedin_public_url', label: 'LinkedIn public', section: LINKS },
   { kind: 'url', key: 'linkedin_recruiter_url', label: 'LinkedIn Recruiter', section: LINKS },
   { kind: 'url', key: 'online_resume_url', label: 'Online resume', section: LINKS, span: true },
 ];
+
+export function personEditFields(person: EditablePerson): EditField[] {
+  return PERSON_EDIT_FIELDS.map((field) =>
+    field.key === 'country' && field.kind === 'select'
+      ? { ...field, options: countryOptions(person.country) }
+      : field,
+  );
+}
+
+export type PersonKind = 'candidate' | 'contact';
+
+function validatePersonDraft(draft: Record<string, EditValue>, kind: PersonKind): string | null {
+  const read = (key: string) => (typeof draft[key] === 'string' ? (draft[key] as string).trim() : '');
+  const validate = kind === 'candidate' ? validateCandidateContact : validateContactPerson;
+  return validate(read('first_name'), read('last_name'), read('email'), read('phone'));
+}
 
 function firstEntry(value: Json, key: 'address' | 'number'): string {
   if (!Array.isArray(value)) return '';
@@ -87,11 +105,13 @@ export function personEditValues(person: EditablePerson): Record<string, EditVal
 export async function savePerson(
   person: EditablePerson,
   draft: Record<string, EditValue>,
+  kind: PersonKind,
 ): Promise<void> {
   const text = (v: EditValue | undefined) => (typeof v === 'string' ? v.trim() || null : null);
+  const validationError = validatePersonDraft(draft, kind);
+  if (validationError) throw new Error(validationError);
   const first = text(draft.first_name);
   const last = text(draft.last_name);
-  if (!first && !last) throw new Error('A person needs at least a first or last name.');
 
   const { error } = await supabase
     .from('people')

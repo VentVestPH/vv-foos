@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
+import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
 
 function dateInput(page: import('@playwright/test').Page) {
   return page.locator('.filter-rail .date-field-input').first();
@@ -94,30 +94,23 @@ test('the calendar is a modal grid driven entirely by the keyboard', async ({ pa
   await expect(trigger).toBeFocused();
 });
 
-test('the range fields refuse a date outside min and max', async ({ page }) => {
+test('the report range picker orders a reversed pick and can jump to another year', async ({ page }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, '/reports');
-  const preset = page.getByRole('combobox').first();
-  await expect(preset).toBeVisible({ timeout: 25000 });
-  await preset.click();
-  await page.getByRole('option', { name: 'Custom' }).click();
+  const trigger = page.getByRole('button', { name: 'Date range' });
+  await expect(trigger).toHaveText('All time', { timeout: 25000 });
+  await trigger.click();
+  const picker = page.getByRole('dialog', { name: 'Choose a date range' });
+  await expect(picker).toBeVisible();
 
-  const start = page.getByLabel('Range start');
-  const end = page.getByLabel('Range end');
-  await expect(start).toBeVisible();
-  const endValue = await end.inputValue();
-  console.log(`PROBE rangeEnd=${endValue}`);
+  await chooseOption(page, picker.getByRole('combobox', { name: 'First calendar year' }), '2024');
+  await chooseOption(page, picker.getByRole('combobox', { name: 'First calendar month' }), 'March');
+  await picker.locator('[data-day="2024-03-20"]').click();
+  await expect(picker.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  await picker.locator('[data-day="2024-03-05"]').click();
+  await picker.getByRole('button', { name: 'Apply' }).click();
 
-  await start.fill('2099-01-01');
-  await start.press('Enter');
-  const outOfRange = page.locator('.field-error-text').filter({ hasText: /Pick a date/ }).first();
-  await expect(outOfRange).toBeVisible();
-  console.log(`PROBE rangeMessage="${(await outOfRange.textContent()) ?? ''}"`);
-  expect(await start.inputValue()).toBe('2099-01-01');
-
-  await start.fill('2026-02-31');
-  await start.press('Enter');
-  await expect(
-    page.locator('.field-error-text').filter({ hasText: /YYYY-MM-DD/ }).first(),
-  ).toBeVisible();
+  await expect(picker).toHaveCount(0);
+  const label = (await trigger.innerText()).trim();
+  expect(label, 'the earlier day becomes the start whichever order it was clicked in').toMatch(/^Mar 5, 2024 – Mar 20, 2024$/);
 });
