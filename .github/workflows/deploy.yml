@@ -53,4 +53,7 @@ jobs:
       - name: Confirm the bundle targets the configured project
         run: grep -q "$VITE_SUPABASE_URL" app/dist/assets/*.js
       - name: Publish to Cloudflare Pages
-        run: npx wrangler pages deploy app/dist --project-name "$CF_PAGES_PROJECT" --branch develop --commit-hash "$GITHUB_SHA"
+        run: |
+          export CLOUDFLARE_ACCOUNT_ID="$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')"
+          export CLOUDFLARE_API_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')"
+          npx wrangler pages deploy app/dist --project-name "$CF_PAGES_PROJECT" --branch develop --commit-hash "$GITHUB_SHA"
