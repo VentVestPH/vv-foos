@@ -119,7 +119,7 @@ export function UsersPage() {
       key: 'fullName',
       header: 'Name',
       render: (u) => (
-        <span className="sales-badges">
+        <span className="fo-badges">
           {u.fullName}
           {!u.isActive && <Badge tone="neutral">Inactive</Badge>}
         </span>

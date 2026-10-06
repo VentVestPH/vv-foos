@@ -1479,3 +1479,10 @@ select:focus-visible {
   padding-left: var(--cell-pad);
   white-space: nowrap;
 }
+
+.fo-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
