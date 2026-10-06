@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { searchWords } from './quickSearch';
 import { sentenceCase } from './format';
+import type { EmployeeStatus } from './database.types';
 
 export const HINT_MIN_CHARS = 3;
 const HINT_LIMIT = 10;
@@ -271,5 +272,80 @@ export async function candidateSearchHints(term: string): Promise<SearchHintResu
       href: `/recruit/candidates/${r.person_id}`,
     })),
     total: count ?? 0,
+  };
+}
+
+function listSearchHref(base: string, term: string): string {
+  return `${base}?search=${encodeURIComponent(term)}`;
+}
+
+export function employeeSearchHints(base: string, statuses: EmployeeStatus[] | null): SearchHintFetcher {
+  return async (term) => {
+    let query = supabase
+      .from('employee_list')
+      .select('id, display_code, full_name, job_title, department, status', { count: 'exact' })
+      .limit(HINT_LIMIT)
+      .order('full_name', { ascending: true })
+      .order('id', { ascending: true });
+    if (statuses) query = query.in('status', statuses);
+    for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+    const { data, count } = await query;
+
+    return {
+      hints: (data ?? []).map((r) => ({
+        key: `employee:${r.id}`,
+        primary: r.full_name,
+        meta: [r.display_code, r.job_title, r.department, sentenceCase(r.status)].filter(Boolean).join(' · '),
+        href: listSearchHref(base, r.full_name),
+      })),
+      total: count ?? 0,
+    };
+  };
+}
+
+export async function courseSearchHints(term: string): Promise<SearchHintResult> {
+  let query = supabase
+    .from('course_list')
+    .select('id, display_code, title, status', { count: 'exact' })
+    .limit(HINT_LIMIT)
+    .order('title', { ascending: true })
+    .order('id', { ascending: true });
+  for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+  const { data, count } = await query;
+
+  return {
+    hints: (data ?? []).map((r) => ({
+      key: `course:${r.id}`,
+      primary: r.title,
+      meta: [r.display_code, sentenceCase(r.status)].filter(Boolean).join(' · '),
+      href: listSearchHref('/courses', r.title),
+    })),
+    total: count ?? 0,
+  };
+}
+
+export interface LocalHintRow {
+  key: string;
+  primary: string;
+  meta: string;
+  text: string[];
+}
+
+export function localSearchHints(base: string, rows: LocalHintRow[]): SearchHintFetcher {
+  return async (term) => {
+    const words = searchWords(term);
+    const matches = rows.filter((row) => {
+      const haystack = row.text.join(' ').toLowerCase();
+      return words.every((word) => haystack.includes(word));
+    });
+    return {
+      hints: matches.slice(0, HINT_LIMIT).map((row) => ({
+        key: row.key,
+        primary: row.primary,
+        meta: row.meta,
+        href: listSearchHref(base, row.primary),
+      })),
+      total: matches.length,
+    };
   };
 }

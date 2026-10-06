@@ -22,6 +22,7 @@ import { EMAIL_PATTERN } from '../lib/personValidation';
 import { useSubmittedSearch } from '../lib/quickSearch';
 import { supabase } from '../lib/supabase';
 import { useLatestOnly } from '../lib/useLatestOnly';
+import { courseSearchHints, employeeSearchHints } from '../lib/searchHints';
 import type { Database, EmployeeStatus } from '../lib/database.types';
 
 type ModuleKey = 'employees' | 'onboard' | 'courses';
@@ -421,6 +422,10 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
   ];
 
   const list = module === 'courses' ? courses : employees;
+  const searchHints = useMemo(
+    () => (module === 'courses' ? courseSearchHints : employeeSearchHints(`/${module}`, statuses)),
+    [module, statuses],
+  );
 
   return (
     <ListPage
@@ -433,6 +438,7 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
       onSearchChange={setInput}
       onSearchSubmit={submit}
       searchPlaceholder={`Search ${config.title.toLowerCase()}…`}
+      searchHints={searchHints}
       actions={
         <>
           {module === 'employees' && (

@@ -12,6 +12,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { useMinimumVisible } from '../hooks/useMinimumVisible';
 import { useSubmittedSearch } from '../lib/quickSearch';
 import { EMPTY_CELL } from '../lib/format';
+import { localSearchHints } from '../lib/searchHints';
 import {
   listUsers,
   issueTempPassword,
@@ -59,6 +60,20 @@ export function UsersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const searchHints = useMemo(
+    () =>
+      localSearchHints(
+        '/users',
+        users.map((u) => ({
+          key: `user:${u.staffId}`,
+          primary: u.fullName,
+          meta: [u.email, u.role, u.title].filter(Boolean).join(' · '),
+          text: [u.fullName, u.email, u.role, u.title ?? ''],
+        })),
+      ),
+    [users],
+  );
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -184,6 +199,7 @@ export function UsersPage() {
       onSearchChange={setSearchInput}
       onSearchSubmit={submitSearch}
       searchPlaceholder="Search name, email, role…"
+      searchHints={searchHints}
     >
       {error && (
         <p className="form-error" role="alert">

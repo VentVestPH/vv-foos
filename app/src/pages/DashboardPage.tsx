@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 import { RecordSection } from '../components/ui/RecordPage';
 import { CollapseAllButton } from '../components/ui/SectionCollapse';
@@ -24,6 +24,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { ListPage } from '../components/ui/ListPage';
 import { useSubmittedSearch } from '../lib/quickSearch';
+import { localSearchHints } from '../lib/searchHints';
 import { EmptyState } from '../components/ui/EmptyState';
 
 export type DashboardView = 'myview' | 'pipeline' | 'reports';
@@ -225,6 +226,18 @@ function ReportsTab() {
   const visibleSections = sections.filter((section) =>
     !prefs.isHidden(section) && section.toLocaleLowerCase().includes(term),
   );
+  const searchableKey = sections.filter((section) => !prefs.isHidden(section)).join('\n');
+  const searchHints = useMemo(
+    () =>
+      localSearchHints(
+        '/reports',
+        searchableKey
+          .split('\n')
+          .filter(Boolean)
+          .map((section) => ({ key: `report:${section}`, primary: section, meta: 'Report', text: [section] })),
+      ),
+    [searchableKey],
+  );
 
   return (
     <ListPage
@@ -237,6 +250,7 @@ function ReportsTab() {
       onSearchChange={setSearchInput}
       onSearchSubmit={submitSearch}
       searchPlaceholder="Search reports…"
+      searchHints={searchHints}
       actions={<>
         <CollapseAllButton />
         <SettingsButton label="Report settings" onClick={() => setSettingsOpen(true)} />

@@ -20,6 +20,7 @@ import { fmtDate } from '../lib';
 import { EMPTY_CELL } from '../../../lib/format';
 import { Button } from '../../../components/ui/Button';
 import { TicketDialog } from '../components/TicketDialog';
+import { ticketSearchHints } from '../../../lib/searchHints';
 import { useCanEditCrm } from '../hooks';
 
 const TICKET_PAGE_SIZE = 20;
@@ -279,6 +280,7 @@ export function TicketsListPage() {
       onSearchChange={setSearchInput}
       onSearchSubmit={submitSearch}
       searchPlaceholder="Search tickets…"
+      searchHints={ticketSearchHints}
       actions={
         <>
           {canEdit && <Button variant="primary" onClick={() => setCreateDialogOpen(true)}><Plus size={20} /> New Ticket</Button>}
