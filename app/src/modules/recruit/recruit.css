@@ -669,7 +669,7 @@
   margin-top: var(--sp-2);
 }
 
-.merge-compare th[scope='row'] {
+.merge-compare td:first-child {
   text-transform: capitalize;
   white-space: nowrap;
 }

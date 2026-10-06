@@ -6,7 +6,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { ActionMenu } from '../components/ui/ActionMenu';
 import { FoDialog } from '../components/ui/FoDialog';
-import { Skeleton } from '../components/ui/Skeleton';
+import { TableSkeleton } from '../components/ui/TableSkeleton';
+import { USERS_COLUMNS } from '../components/ui/PageSkeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useMinimumVisible } from '../hooks/useMinimumVisible';
 import { useSubmittedSearch } from '../lib/quickSearch';
@@ -196,9 +197,7 @@ export function UsersPage() {
       )}
 
       {showSkeleton ? (
-        <div className="fo-skeleton-card">
-          <Skeleton rows={8} label="Loading users" />
-        </div>
+        <TableSkeleton columns={USERS_COLUMNS} label="Loading users" />
       ) : rows.length === 0 && !error ? (
         <EmptyState
           icon={<UsersIcon size={64} aria-hidden="true" />}

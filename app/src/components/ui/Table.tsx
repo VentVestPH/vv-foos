@@ -9,7 +9,6 @@ export interface TableColumn<T> {
   key: string;
 
   header: ReactNode;
-  sortable?: boolean;
 
   sortValue?: (row: T) => string | number | null;
 
@@ -284,12 +283,11 @@ export function Table<T>({
               </th>
             )}
             {visibleColumns.map((col) => {
-              const sortable = col.sortable !== false;
               return (
               <th
                 key={col.key}
                 className={
-                  [sortable ? 'sortable' : '', col.align === 'center' ? 'cell-center' : '']
+                  ['sortable', col.align === 'center' ? 'cell-center' : '']
                     .filter(Boolean)
                     .join(' ') || undefined
                 }
@@ -309,8 +307,7 @@ export function Table<T>({
                     : undefined
                 }
               >
-                {sortable ? (
-                  <button
+                <button
                     type="button"
                     className="th-sort-btn"
                     onClick={() => toggleSort(col.key)}
@@ -325,9 +322,6 @@ export function Table<T>({
                       <ChevronDown size={20} />
                     </span>
                   </button>
-                ) : (
-                  col.header
-                )}
               </th>
               );
             })}

@@ -116,7 +116,7 @@ export function DataExportCard() {
           {
             key: 'export',
             header: 'Export',
-            sortable: false,
+            sortValue: (m) => m.label,
             render: (m) => {
               const n = counts[m.key];
               return (

@@ -4,8 +4,6 @@ import {
   ClipboardCheck as ChecklistPersonIcon,
   GraduationCap as AssignIcon,
   IdCard as IdBadgeIcon,
-  LogIn,
-  LogOut,
   Plus,
   UserPlus,
 } from 'lucide-react';
@@ -13,7 +11,6 @@ import { Button } from '../components/ui/Button';
 import { ListPage } from '../components/ui/ListPage';
 import { Pager } from '../components/ui/Pager';
 import { RecordEditDialog, type EditField, type EditValue } from '../components/ui/RecordEditDialog';
-import { SegmentedToggle } from '../components/ui/SegmentedToggle';
 import { Skeleton } from '../components/ui/Skeleton';
 import { StatusBadge } from '../components/ui/Badge';
 import { Table, type TableColumn } from '../components/ui/Table';
@@ -28,7 +25,6 @@ import { useLatestOnly } from '../lib/useLatestOnly';
 import type { Database, EmployeeStatus } from '../lib/database.types';
 
 type ModuleKey = 'employees' | 'onboard' | 'courses';
-type ProcessView = 'onboarding' | 'offboarding';
 type EmployeeRow = Database['public']['Views']['employee_list']['Row'];
 type CourseRow = Database['public']['Views']['course_list']['Row'];
 type Option = { value: string; label: string };
@@ -379,14 +375,13 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
   const role = useRole();
   const canWrite = role === 'admin' || role === 'recruiter';
   const { input, setInput, term, submit } = useSubmittedSearch();
-  const [processView, setProcessView] = useState<ProcessView>('onboarding');
   const [refreshKey, setRefreshKey] = useState(0);
   const [dialog, setDialog] = useState<'onboard' | 'assign' | 'course' | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const refresh = useCallback(() => setRefreshKey((key) => key + 1), []);
   const statuses = useMemo<EmployeeStatus[] | null>(
-    () => (module === 'onboard' ? [processView] : null),
-    [module, processView],
+    () => (module === 'onboard' ? ['onboarding', 'offboarding'] : null),
+    [module],
   );
 
   const employees = useServerList<EmployeeRow>('employee_list', EMPLOYEE_COLUMNS_SELECT, EMPLOYEE_SORT, 'display_code', term, statuses, refreshKey, module !== 'courses');
@@ -409,7 +404,7 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
 
   const processColumns: TableColumn<EmployeeRow>[] = [
     { key: 'full_name', header: 'Employee' },
-    { key: 'status', header: 'Packet', sortable: false, render: (row) => (row.status === 'onboarding' ? 'Onboarding' : 'Offboarding') },
+    { key: 'status', header: 'Packet', render: (row) => (row.status === 'onboarding' ? 'Onboarding' : 'Offboarding') },
     { key: 'manager_name', header: 'Owner', render: (row) => row.manager_name ?? EMPTY_CELL },
     { key: 'courses', header: 'Status', render: (row) => (row.open_course_count ? `${row.open_course_count} course${row.open_course_count === 1 ? '' : 's'} open` : 'No open courses') },
     { key: 'start_date', header: 'Due Date', render: (row) => localDate(row.start_date), nowrap: true },
@@ -440,17 +435,6 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
       searchPlaceholder={`Search ${config.title.toLowerCase()}…`}
       actions={
         <>
-          {module === 'onboard' && (
-            <SegmentedToggle
-              ariaLabel="Employee process"
-              value={processView}
-              onChange={setProcessView}
-              options={[
-                { value: 'onboarding', label: 'Onboarding', icon: <LogIn size={20} aria-hidden="true" /> },
-                { value: 'offboarding', label: 'Offboarding', icon: <LogOut size={20} aria-hidden="true" /> },
-              ]}
-            />
-          )}
           {module === 'employees' && (
             <>
               <Button variant="primary" disabled={!canWrite} title={writeTitle} onClick={() => setDialog('onboard')}>
@@ -506,7 +490,7 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
             emptyIcon={module === 'onboard' ? <ChecklistPersonIcon size={32} /> : <IdBadgeIcon size={32} />}
             emptyText={
               module === 'onboard'
-                ? searching ? `No ${processView} employees match that search.` : `No employees are ${processView === 'onboarding' ? 'being onboarded' : 'being offboarded'}.`
+                ? searching ? 'No onboarding or offboarding employees match that search.' : 'No employees are being onboarded or offboarded.'
                 : searching ? 'No employee records match that search.' : 'No employee records yet. Use Onboard Employee to add one.'
             }
           />
