@@ -9,7 +9,7 @@
 }
 
 .list-page[data-flush='true'] > .list-page-body :is(.fo-skeleton-card, .fo-table-skeleton) {
-  margin-top: var(--sp-2);
+  margin-top: calc(var(--sp-4) + var(--sp-1));
 }
 
 .list-page-head {
