@@ -12,6 +12,7 @@ concurrency:
 jobs:
   database:
     runs-on: ubuntu-latest
+    environment: dev
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
@@ -20,7 +21,7 @@ jobs:
         with:
           version: 2.110.0
       - name: Require the database secret
-        run: test -n "$SUPABASE_DB_URL" || { echo "SUPABASE_DB_URL is not set in the repository secrets"; exit 1; }
+        run: test -n "$SUPABASE_DB_URL" || { echo "SUPABASE_DB_URL is not set in the repository or dev environment secrets"; exit 1; }
       - name: Pending migrations
         run: supabase migration list --db-url "$SUPABASE_DB_URL"
       - name: Apply migrations
@@ -29,6 +30,7 @@ jobs:
   frontend:
     needs: database
     runs-on: ubuntu-latest
+    environment: dev
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -44,7 +46,7 @@ jobs:
       - name: Require the frontend secrets
         run: |
           for name in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
-            test -n "${!name}" || { echo "$name is not set in the repository secrets"; exit 1; }
+            test -n "${!name}" || { echo "$name is not set in the repository or dev environment secrets"; exit 1; }
           done
       - run: npm ci
       - run: npm run build --workspace=app
