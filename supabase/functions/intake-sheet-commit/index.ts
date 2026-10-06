@@ -98,6 +98,22 @@ Deno.serve(async (req) => {
     }
   }
 
+  if (body.targetType === "contact") {
+    for (const [index, row] of body.rows.entries()) {
+      if (!get(row, "name") && !get(row, "first_name") && !get(row, "last_name")) {
+        return json({ error: `Row ${index + 2}: a contact needs at least a first or last name.` }, 400);
+      }
+      const email = get(row, "email");
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return json({ error: `Row ${index + 2}: enter a valid email address.` }, 400);
+      }
+      const phone = get(row, "phone");
+      if (phone && !/^\+?[0-9][0-9\s(),-]*$/.test(phone)) {
+        return json({ error: `Row ${index + 2}: phone contains unsupported characters.` }, 400);
+      }
+    }
+  }
+
   const requisitionByCode = new Map<string, string>();
   const requisitionIds = new Set<string>();
   if (body.targetType === "candidate") {

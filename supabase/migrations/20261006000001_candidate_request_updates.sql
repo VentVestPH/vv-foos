@@ -1,18 +1,31 @@
 -- Candidate request updates.
--- 1. Narrows the active candidate statuses to the eleven the recruiting team uses. The
---    seeded sort order is left alone (validate.sql check 9 pins it), so an import with no
---    status names Talent Pool explicitly rather than taking the first active status.
+-- 1. Narrows the active candidate statuses to the ten FOOSCR-2 lists. 'Resume Provided' is
+--    new and absorbs 'Resume Provided by Third Party' and 'Resume Provided By Candidate':
+--    their candidates move to it (the status trigger records each move as a status change)
+--    and the two variants go inactive. Labels are never renamed and the seeded sort order
+--    is left alone (validate.sql check 9 pins both), so an import with no status names
+--    Talent Pool explicitly rather than taking the first active status.
 -- 2. remove_candidate_from_requisition: an admin or recruiter can take a candidate off a
 --    requisition before an offer. Notes, tasks, reminders and files move to the person so
 --    nothing is lost; trg_applications_audit records the delete in audit_log. Offer and
 --    hired applications are refused because they are placement history.
 -- 3. import_intake_item: candidate imports require first name, last name and a valid email,
 --    carry salary, status, education, experience and an optional requisition.
+insert into public.candidate_statuses (label, sort_order, is_active)
+select 'Resume Provided', (select coalesce(max(sort_order), 0) + 1 from public.candidate_statuses), true
+where not exists (select 1 from public.candidate_statuses where label = 'Resume Provided');
+
+update public.candidate_profiles
+set status_id = (select id from public.candidate_statuses where label = 'Resume Provided')
+where status_id in (
+  select id from public.candidate_statuses
+  where label in ('Resume Provided by Third Party', 'Resume Provided By Candidate')
+);
+
 update public.candidate_statuses
 set is_active = label in (
   'Talent Pool',
-  'Resume Provided by Third Party',
-  'Resume Provided By Candidate',
+  'Resume Provided',
   'Candidate to Review Info',
   'Sent InMail I (Linkedin)',
   'Placed',

@@ -71,6 +71,8 @@ migration is not an arrival. There is no Zoho intake data to recover.
 | `/intake/linkedin` | Paste LinkedIn URLs, batch label, grading flow (Deniece/VVPH workflow) |
 | `/intake/sheet` | Google Sheet / hosted .xlsx import — fetch, map, preview, commit |
 
+**Import targets (FOOS-8, 2026-10-06).** Candidates and contacts are staged as `intake_items` and reviewed in the queue. Accounts (admin, bd) and requisitions (admin, recruiter) skip the queue: `recordImport.ts` validates every row in the browser, the preview lists each row as imported or skipped, and the commit inserts in chunks of 200 under the caller's own RLS. Required columns, chosen from the schema because the Plane item listed none: candidates need first name, last name and a valid email; contacts need a first or last name, with email and phone checked when present; accounts need a name, and a row whose name matches an existing account is skipped rather than overwritten; requisitions need a title and the name of an existing account, a row with an existing job code is skipped, status defaults to draft and openings to 1. Every target downloads its own template from the first step.
+
 ## Edge Functions (`foos/supabase/functions/`)
 
 - **`intake-sheet-fetch`** — authenticated. Fetches a Google Sheet or hosted

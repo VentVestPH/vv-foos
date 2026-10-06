@@ -11,7 +11,19 @@ import { downloadCsv } from '../../lib/csv';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { checkDedup } from './hooks';
 import { useRole } from '../../auth/SessionProvider';
-import { EMAIL_PATTERN, PHONE_PATTERN } from '../../lib/personValidation';
+import { EMAIL_PATTERN, PHONE_PATTERN, validateContactPerson } from '../../lib/personValidation';
+import { fetchAllRows } from '../../lib/fetchAll';
+import type { TablesInsert } from '../../lib/database.types';
+import {
+  ACCOUNT_TEMPLATE,
+  REQUISITION_TEMPLATE,
+  fieldsFor,
+  missingRequiredMappings,
+  planAccounts,
+  planRequisitions,
+  type DirectTarget,
+  type ImportPlan,
+} from './recordImport';
 
 const TEMPLATE_EXAMPLE: Record<string, string> = {
   first_name: 'Marisol',
@@ -74,6 +86,17 @@ const PARSED_FIELDS = [
 ] as const;
 
 type Step = 'url' | 'mapping' | 'preview' | 'done';
+type Target = 'candidate' | 'contact' | DirectTarget;
+type DirectPlan = ImportPlan<TablesInsert<'companies'>> | ImportPlan<TablesInsert<'requisitions'>>;
+
+const DIRECT_LABEL: Record<DirectTarget, { one: string; many: string; list: string }> = {
+  account: { one: 'account', many: 'accounts', list: '/sales/companies' },
+  requisition: { one: 'requisition', many: 'requisitions', list: '/recruit/requisitions' },
+};
+
+function isDirect(target: Target): target is DirectTarget {
+  return target === 'account' || target === 'requisition';
+}
 
 interface FetchResult {
   columns: string[];
@@ -96,7 +119,15 @@ interface RequisitionOption {
   status: string;
 }
 
-function downloadTemplate(): void {
+function downloadTemplate(target: Target): void {
+  if (isDirect(target)) {
+    downloadCsv(
+      `${target}-import-template.csv`,
+      [target === 'account' ? ACCOUNT_TEMPLATE : REQUISITION_TEMPLATE],
+      fieldsFor(target).map((f) => ({ key: f.key, header: f.label })),
+    );
+    return;
+  }
   downloadCsv(
     'intake-sheet-template.csv',
     [TEMPLATE_EXAMPLE],
@@ -109,9 +140,17 @@ export function SheetImportPage() {
   const navigate = useNavigate();
   const role = useRole();
   const canAssignRequisition = role === 'admin' || role === 'recruiter';
+  const targetOptions: { value: Target; label: string }[] = [
+    { value: 'candidate', label: 'Candidate' },
+    { value: 'contact', label: 'Contact' },
+    ...(role === 'admin' || role === 'bd' ? [{ value: 'account' as const, label: 'Account (imports directly)' }] : []),
+    ...(canAssignRequisition ? [{ value: 'requisition' as const, label: 'Requisition (imports directly)' }] : []),
+  ];
   const [step, setStep] = useState<Step>('url');
   const [url, setUrl] = useState('');
-  const [targetType, setTargetType] = useState<'candidate' | 'contact'>('candidate');
+  const [targetType, setTargetType] = useState<Target>('candidate');
+  const [plan, setPlan] = useState<DirectPlan | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [batchLabel, setBatchLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +166,10 @@ export function SheetImportPage() {
   const [created, setCreated] = useState(0);
 
   useEffect(() => {
+    if (isDirect(targetType)) {
+      setTemplates([]);
+      return;
+    }
     supabase
       .from('intake_mapping_templates')
       .select('*')
@@ -202,8 +245,51 @@ export function SheetImportPage() {
     return requisitions.find((req) => req.id === defaultRequisitionId);
   }
 
+  async function planDirect(target: DirectTarget) {
+    if (!fetched) return;
+    const missing = missingRequiredMappings(target, columnMap);
+    if (missing.length) {
+      setProblems(missing.map((label) => ({ message: `Map a column to ${label}; it is required.` })));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const companies = await fetchAllRows((from, to) =>
+        supabase.from('companies').select('id, name').order('id').range(from, to),
+      );
+      const next: DirectPlan = target === 'account'
+        ? planAccounts(fetched.rows, columnMap, new Set(companies.map((c) => c.name.trim().toLowerCase())))
+        : planRequisitions(
+          fetched.rows,
+          columnMap,
+          new Map(companies.map((c) => [c.name.trim().toLowerCase(), c.id])),
+          new Set(
+            (await fetchAllRows((from, to) =>
+              supabase.from('requisitions').select('job_code').not('job_code', 'is', null).order('id').range(from, to),
+            )).map((r) => (r.job_code ?? '').toLowerCase()),
+          ),
+        );
+      if (next.issues.length) {
+        setProblems(next.issues.map((issue) => ({ message: `Row ${issue.row}: ${issue.message}` })));
+        return;
+      }
+      setProblems([]);
+      setPlan(next);
+      setStep('preview');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function goToPreview() {
     if (!fetched) return;
+    if (isDirect(targetType)) {
+      await planDirect(targetType);
+      return;
+    }
     const found: FieldError[] = [];
     if (!batchLabel.trim()) {
       found.push({ field: 'sheet-batch-label', message: 'A batch label is required.' });
@@ -238,8 +324,22 @@ export function SheetImportPage() {
           }
         });
       }
-    } else if (!columnMap.name && !columnMap.email) {
-      found.push({ message: 'Map at least a name or email column before continuing.' });
+    } else {
+      if (!columnMap.name && !columnMap.first_name && !columnMap.last_name) {
+        found.push({ message: 'Map a full name column, or first and last name columns, for contact imports.' });
+      } else {
+        fetched.rows.forEach((row, index) => {
+          const value = (key: string) => (columnMap[key] ? row[columnMap[key]]?.trim() ?? '' : '');
+          const names = value('name').split(/\s+/).filter(Boolean);
+          const invalid = validateContactPerson(
+            value('first_name') || names[0] || '',
+            value('last_name') || names.slice(1).join(' '),
+            value('email'),
+            value('phone'),
+          );
+          if (invalid) found.push({ message: `Row ${index + 2}: ${invalid}` });
+        });
+      }
     }
     setProblems(found);
     if (found.length > 0) return;
@@ -262,15 +362,42 @@ export function SheetImportPage() {
     setCheckingDedup(false);
   }
 
+  async function commitDirect(target: DirectTarget, current: DirectPlan) {
+    setBusy(true);
+    setError(null);
+    const inserts = current.rows.flatMap((row) => (row.insert ? [row.insert] : []));
+    let done = 0;
+    for (let start = 0; start < inserts.length; start += 200) {
+      const chunk = inserts.slice(start, start + 200);
+      const { count, error: insertError } = target === 'account'
+        ? await supabase.from('companies').insert(chunk as TablesInsert<'companies'>[], { count: 'exact' })
+        : await supabase.from('requisitions').insert(chunk as TablesInsert<'requisitions'>[], { count: 'exact' });
+      if (insertError) {
+        setBusy(false);
+        setError(`${done} ${DIRECT_LABEL[target].many} were imported before this failed: ${insertError.message}`);
+        return;
+      }
+      done += count ?? chunk.length;
+    }
+    setBusy(false);
+    setCreated(done);
+    setSkipped(current.rows.length - inserts.length);
+    setStep('done');
+  }
+
   async function commit() {
     if (!fetched) return;
+    if (isDirect(targetType)) {
+      if (plan) await commitDirect(targetType, plan);
+      return;
+    }
     setBusy(true);
     setError(null);
     const { data, error: err } = await supabase.functions.invoke('intake-sheet-commit', {
       body: {
         rows: fetched.rows,
         columnMap,
-        targetType,
+        targetType: targetType as 'candidate' | 'contact',
         requisitionId: targetType === 'candidate' ? defaultRequisitionId || undefined : undefined,
         batchLabel: batchLabel.trim(),
         saveTemplate: saveTemplateName.trim()
@@ -289,6 +416,27 @@ export function SheetImportPage() {
     setStep('done');
   }
 
+  if (step === 'done' && isDirect(targetType)) {
+    const label = DIRECT_LABEL[targetType];
+    return (
+      <div className="record-page intake-sheet-page">
+        <div className="record-title-row">
+          <span className="fo-page-icon">
+            <InboxIcon size={32} />
+          </span>
+          <h1>Sheet Imported</h1>
+        </div>
+        <p className="text-secondary">
+          {created} {created === 1 ? label.one : label.many} imported
+          {skipped > 0 ? `, ${skipped} skipped because they already exist` : ''}.
+        </p>
+        <Button variant="primary" onClick={() => navigate(label.list)}>
+          Go to {label.many}
+        </Button>
+      </div>
+    );
+  }
+
   if (step === 'done') {
     return (
       <div className="record-page intake-sheet-page">
@@ -304,6 +452,56 @@ export function SheetImportPage() {
         <Button variant="primary" onClick={() => navigate('/intake')}>
           Go to queue
         </Button>
+      </div>
+    );
+  }
+
+  if (step === 'preview' && fetched && isDirect(targetType) && plan) {
+    const label = DIRECT_LABEL[targetType];
+    const ready = plan.rows.filter((row) => row.insert).length;
+    return (
+      <div className="record-page intake-sheet-page">
+        <div className="record-title-row">
+          <span className="fo-page-icon">
+            <InboxIcon size={32} />
+          </span>
+          <h1>Import Preview ({fetched.rows.length} rows)</h1>
+        </div>
+        <RecordSection title="Preview:">
+          <p className="text-secondary">
+            {ready} new {ready === 1 ? label.one : label.many} will be created. Rows that already exist are skipped, never overwritten.
+          </p>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Row</th>
+                  <th>{targetType === 'account' ? 'Account' : 'Requisition'}</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plan.rows.map((row) => (
+                  <tr key={row.row}>
+                    <td>{row.row}</td>
+                    <td>{row.label}</td>
+                    <td>{row.insert ? 'Will be imported' : <span className="badge-tone badge-dup">Skipped: {row.skipReason}</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {error && <p className="field-error-text" role="alert">{error}</p>}
+          <div className="intake-form-actions">
+            <Button variant="primary" onClick={commit} loading={busy} disabled={ready === 0}
+              title={ready === 0 ? `Every row already exists, so there is nothing to import` : undefined}>
+              Import {ready} {ready === 1 ? label.one : label.many}
+            </Button>
+            <Button onClick={() => setStep('mapping')} disabled={busy}>
+              Back to mapping
+            </Button>
+          </div>
+        </RecordSection>
       </div>
     );
   }
@@ -385,7 +583,7 @@ export function SheetImportPage() {
             Sample of {fetched.rows.length} row(s). Unmapped columns stay in the raw payload.
           </p>
 
-          {templates.length > 0 && (
+          {!isDirect(targetType) && templates.length > 0 && (
             <div className="field">
               <Select
                 label="Recall a saved mapping"
@@ -399,11 +597,11 @@ export function SheetImportPage() {
           <Select
             label="Target"
             value={targetType}
-            onChange={(e) => setTargetType(e.target.value as 'candidate' | 'contact')}
-            options={[
-              { value: 'candidate', label: 'Candidate' },
-              { value: 'contact', label: 'Contact' },
-            ]}
+            onChange={(e) => {
+              setTargetType(e.target.value as Target);
+              setPlan(null);
+            }}
+            options={targetOptions}
           />
           {targetType === 'candidate' && canAssignRequisition && (
             <Select
@@ -418,20 +616,26 @@ export function SheetImportPage() {
               emptyLabel="No open requisitions available"
             />
           )}
-          <Input
-            id="sheet-batch-label"
-            label="Batch label"
-            required
-            error={problems.find((p) => p.field === 'sheet-batch-label')?.message}
-            value={batchLabel}
-            onChange={(e) => setBatchLabel(e.target.value)}
-            placeholder="Q3 partner list import"
-          />
+          {!isDirect(targetType) && (
+            <Input
+              id="sheet-batch-label"
+              label="Batch label"
+              required
+              error={problems.find((p) => p.field === 'sheet-batch-label')?.message}
+              value={batchLabel}
+              onChange={(e) => setBatchLabel(e.target.value)}
+              placeholder="Q3 partner list import"
+            />
+          )}
 
-          {PARSED_FIELDS.filter((field) => field.key !== 'requisition' || canAssignRequisition).map((f) => (
+          {(isDirect(targetType)
+            ? fieldsFor(targetType)
+            : PARSED_FIELDS.filter((field) => field.key !== 'requisition' || canAssignRequisition)
+          ).map((f) => (
             <Select
               key={f.key}
               label={f.label}
+              required={'required' in f && f.required === true}
               placeholder="— not mapped —"
               value={columnMap[f.key] ?? ''}
               onChange={(e) => setColumnMap((m) => ({ ...m, [f.key]: e.target.value }))}
@@ -439,12 +643,14 @@ export function SheetImportPage() {
             />
           ))}
 
-          <Input
-            label="Save this mapping as a template (optional)"
-            value={saveTemplateName}
-            onChange={(e) => setSaveTemplateName(e.target.value)}
-            placeholder="e.g. Google Sheet — partner contacts"
-          />
+          {!isDirect(targetType) && (
+            <Input
+              label="Save this mapping as a template (optional)"
+              value={saveTemplateName}
+              onChange={(e) => setSaveTemplateName(e.target.value)}
+              placeholder="e.g. Google Sheet — partner contacts"
+            />
+          )}
 
           {error && <p className="field-error-text" role="alert">{error}</p>}
           <div className="intake-form-actions">
@@ -491,7 +697,16 @@ export function SheetImportPage() {
       </div>
       <RecordSection title="Sheet Source:">
         <ErrorSummary errors={problems} />
-        <p className="text-secondary">A Google Sheet URL (any sharing link) or a hosted .xlsx/.csv URL.</p>
+        <p className="text-secondary">A Google Sheet URL (any sharing link) or a hosted .xlsx/.csv URL. Candidates and contacts go to the intake queue for review; accounts and requisitions are created directly after a preview.</p>
+        <Select
+          label="Target"
+          value={targetType}
+          onChange={(e) => {
+            setTargetType(e.target.value as Target);
+            setPlan(null);
+          }}
+          options={targetOptions}
+        />
         <Input
           id="sheet-url"
           label="Sheet URL"
@@ -506,7 +721,7 @@ export function SheetImportPage() {
           <Button variant="primary" onClick={doFetch} loading={busy}>
             Fetch
           </Button>
-          <Button onClick={downloadTemplate}>
+          <Button onClick={() => downloadTemplate(targetType)}>
             <SheetIcon size={20} aria-hidden="true" />
             Download template
           </Button>
