@@ -22,8 +22,8 @@ import {
   Inbox as InboxIcon,
   Link2 as LinkIcon,
   RefreshCw as RefreshIcon,
-  Sheet as SheetIcon,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import { useIntakeQueue } from './hooks';
 import {
@@ -249,7 +249,7 @@ export function QueueListPage() {
           </Link>
           <Link to="/intake/sheet">
             <Button size="sm">
-              <SheetIcon size={20} aria-hidden="true" />
+              <Upload size={20} aria-hidden="true" />
               Import
             </Button>
           </Link>

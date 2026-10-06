@@ -113,7 +113,6 @@ test('the report categories gear hides a report section, and the choice survives
   await expect(section).toBeVisible();
 
   await expect(page.locator('.fo-page-toolbar')).toBeVisible();
-  await expect(page.locator('.fo-page-table-gap > .list-page-body')).toHaveCSS('margin-top', '16px');
   await page.getByRole('button', { name: 'Report settings' }).click();
   const dialog = page.getByRole('dialog', { name: 'Report settings' });
   await expect(dialog).toBeVisible();
@@ -167,7 +166,6 @@ test('the four Taleo module placeholders no longer offer a configuration gear', 
     await gotoAsSignedIn(page, path);
     await expect(page.locator('.list-page')).toBeVisible();
     await expect(page.locator('.fo-page-toolbar')).toBeVisible();
-    await expect(page.locator('.fo-page-table-gap > .list-page-body')).toHaveCSS('margin-top', '16px');
     await expect(page.getByRole('button', { name: 'Configure this list' })).toHaveCount(0);
   }
 });

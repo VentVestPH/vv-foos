@@ -6,7 +6,7 @@ import { Select } from '../../components/ui/Select';
 import { RecordSection } from '../../components/ui/RecordPage';
 import { Table } from '../../components/ui/Table';
 import { ErrorSummary, type FieldError } from '../../components/ui/ErrorSummary';
-import { Inbox as InboxIcon, Sheet as SheetIcon } from 'lucide-react';
+import { Inbox as InboxIcon, Sheet as SheetIcon, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { downloadCsv } from '../../lib/csv';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -516,6 +516,7 @@ export function SheetImportPage() {
           <div className="intake-form-actions">
             <Button variant="primary" onClick={commit} loading={busy} disabled={ready === 0}
               title={ready === 0 ? `Every row already exists, so there is nothing to import` : undefined}>
+              <Upload size={20} aria-hidden="true" />
               Import {ready} {ready === 1 ? label.one : label.many}
             </Button>
             <Button onClick={() => setStep('mapping')} disabled={busy}>
@@ -567,6 +568,7 @@ export function SheetImportPage() {
           {error && <p className="field-error-text" role="alert">{error}</p>}
           <div className="intake-form-actions">
             <Button variant="primary" onClick={commit} loading={busy} disabled={checkingDedup}>
+              <Upload size={20} aria-hidden="true" />
               Import all {fetched.rows.length} rows
             </Button>
             <Button onClick={() => setStep('mapping')} disabled={busy}>

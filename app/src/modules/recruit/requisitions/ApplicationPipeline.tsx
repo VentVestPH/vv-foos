@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Star } from 'lucide-react';
+import { Download, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../../auth/SessionProvider';
 import {
@@ -559,6 +559,7 @@ export function ApplicationPipeline({
               : []),
             {
               label: 'Export CSV',
+              icon: <Download size={20} aria-hidden="true" />,
               disabled: rows.length === 0,
               onSelect: () =>
                 downloadCsv(

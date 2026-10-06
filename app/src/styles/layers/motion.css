@@ -23,6 +23,18 @@
     color var(--motion-instant) var(--ease-out);
 }
 
+.fo-nav-tab {
+  transition:
+    background-color var(--motion-quick) var(--ease-out),
+    color var(--motion-quick) var(--ease-out);
+}
+
+.fo-nav-tab::after {
+  transition:
+    transform var(--motion-panel) var(--ease-out),
+    opacity var(--motion-quick) var(--ease-out);
+}
+
 .login-page .btn {
   transition:
     background-color var(--motion-quick) var(--ease-out),

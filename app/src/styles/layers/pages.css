@@ -57,10 +57,6 @@
   align-items: flex-start;
 }
 
-.fo-page-table-gap > .list-page-body {
-  margin-top: var(--sp-2);
-}
-
 .fo-page-skeleton {
   display: flex;
   flex-direction: column;

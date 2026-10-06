@@ -14,7 +14,7 @@ test.describe('U6: the Settings data exporter', () => {
     test.skip(!(await hasImportedDataset()), NEEDS_IMPORT);
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/settings');
-    await expandSection(page, 'Data Export:');
+    await page.getByRole('tab', { name: /Data export/ }).click();
 
     const card = page.getByTestId('data-export');
     await expect(card).toBeVisible({ timeout: 30000 });
@@ -43,7 +43,7 @@ test.describe('U6: the Settings data exporter', () => {
     test.setTimeout(60000);
     await signIn(page, PERSONA_EMAILS.bd);
     await gotoAsSignedIn(page, '/settings');
-    await expandSection(page, 'Data Export:');
+    await page.getByRole('tab', { name: /Data export/ }).click();
 
     await expect(page.getByTestId('export-not-admin')).toBeVisible({ timeout: 30000 });
     await expect(
@@ -58,7 +58,7 @@ test.describe('U6: the Settings data exporter', () => {
     test.setTimeout(90000);
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/settings');
-    await expandSection(page, 'Data Export:');
+    await page.getByRole('tab', { name: /Data export/ }).click();
 
     const card = page.getByTestId('data-export');
     const count = card.getByTestId('count-companies');

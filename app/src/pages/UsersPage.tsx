@@ -174,7 +174,6 @@ export function UsersPage() {
 
   return (
     <ListPage
-      className="fo-page-table-gap"
       breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Users' }]}
       title="Users"
       icon={<UsersIcon size={32} />}
@@ -184,11 +183,6 @@ export function UsersPage() {
       onSearchChange={setSearchInput}
       onSearchSubmit={submitSearch}
       searchPlaceholder="Search name, email, role…"
-      actions={
-        <Button onClick={() => void load()} disabled={loading}>
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </Button>
-      }
     >
       {error && (
         <p className="form-error" role="alert">

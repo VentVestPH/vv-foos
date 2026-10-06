@@ -130,9 +130,9 @@ export function UtilityHeader() {
               data-closing={admin.closing ? 'true' : undefined}
               role="menu"
             >
-              <a className="fo-utility-menu-item is-placeholder" href="/settings" role="menuitem">
+              <Link className="fo-utility-menu-item" to="/settings" role="menuitem" onClick={() => setAdminOpen(false)}>
                 Settings
-              </a>
+              </Link>
               <button
                 type="button"
                 className="fo-utility-menu-item is-placeholder"

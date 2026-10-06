@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, chooseOption, expandSection, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, signIn } from './helpers';
 
 const RUN = `${process.pid}${Math.random().toString(36).slice(2, 8)}`;
 const NEW_ACCOUNT = `QA Import Account ${RUN}`;
@@ -103,7 +103,7 @@ test('QA-2: the contact template carries contact columns, not candidate ones', a
 test('QA-4: the data export table keeps a pager', async ({ page }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   await gotoAsSignedIn(page, '/settings');
-  await expandSection(page, 'Data Export:');
+  await page.getByRole('tab', { name: /Data export/ }).click();
   const card = page.getByTestId('data-export');
   await expect(card.locator('.fo-pager')).toBeVisible({ timeout: 25000 });
 });

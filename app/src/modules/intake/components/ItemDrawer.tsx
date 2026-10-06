@@ -5,7 +5,7 @@ import { RecordSection } from '../../../components/ui/RecordPage';
 import { SectionSkeleton } from '../../../components/ui/RecordSkeleton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
-import { Info as InfoIcon, PencilLine, UserCheck as UserCheckIcon } from 'lucide-react';
+import { Info as InfoIcon, PencilLine, Upload, UserCheck as UserCheckIcon } from 'lucide-react';
 import { IntakeEditDialog } from './IntakeEditDialog';
 import { supabase } from '../../../lib/supabase';
 import { checkDedup, type DedupMatch } from '../hooks';
@@ -300,6 +300,7 @@ export function ItemDrawer({ item, onClose, onSaved, onDone }: ItemDrawerProps) 
                 : undefined
             }
           >
+            <Upload size={20} aria-hidden="true" />
             Import
           </Button>
           {canReject(item) && !showReject && (

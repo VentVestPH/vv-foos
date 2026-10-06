@@ -228,7 +228,6 @@ function ReportsTab() {
 
   return (
     <ListPage
-      className="fo-page-table-gap"
       breadcrumbs={[{ label: 'Home', to: '/' }, { label: 'Run Report' }]}
       title="Run Report"
       icon={<PieChartIcon size={32} />}

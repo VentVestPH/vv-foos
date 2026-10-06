@@ -154,11 +154,11 @@
   box-shadow: var(--shadow-raised);
 }
 
-.fo-utility-menu > *:first-of-type {
+.fo-utility-menu > :first-child {
   margin-top: var(--sp-1);
 }
 
-.fo-utility-menu > *:last-of-type {
+.fo-utility-menu > :last-child {
   margin-bottom: var(--sp-1);
 }
 
@@ -268,6 +268,30 @@
 .fo-primary-nav a:hover,
 .fo-primary-nav button.fo-nav-tab:hover {
   background: var(--tint-on-dark);
+}
+
+.fo-primary-nav button.fo-nav-tab {
+  position: relative;
+}
+
+.fo-primary-nav button.fo-nav-tab::after {
+  content: '';
+  position: absolute;
+  right: var(--sp-2);
+  bottom: 0;
+  left: var(--sp-2);
+  height: 3px;
+  border-radius: var(--radius-pill) var(--radius-pill) 0 0;
+  background: var(--surface);
+  opacity: 0;
+  transform: scaleX(0.4);
+  pointer-events: none;
+}
+
+.fo-primary-nav button.fo-nav-tab:hover:not(.active)::after,
+.fo-primary-nav button.fo-nav-tab:focus-visible:not(.active)::after {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 .fo-primary-nav a.active,

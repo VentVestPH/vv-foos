@@ -4,6 +4,8 @@ import {
   ClipboardCheck as ChecklistPersonIcon,
   GraduationCap as AssignIcon,
   IdCard as IdBadgeIcon,
+  LogIn,
+  LogOut,
   Plus,
   UserPlus,
 } from 'lucide-react';
@@ -427,7 +429,6 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
 
   return (
     <ListPage
-      className="fo-page-table-gap"
       breadcrumbs={[{ label: 'Home', to: '/' }, { label: config.title }]}
       title={config.title}
       icon={config.icon}
@@ -445,8 +446,8 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
               value={processView}
               onChange={setProcessView}
               options={[
-                { value: 'onboarding', label: 'Onboarding' },
-                { value: 'offboarding', label: 'Offboarding' },
+                { value: 'onboarding', label: 'Onboarding', icon: <LogIn size={20} aria-hidden="true" /> },
+                { value: 'offboarding', label: 'Offboarding', icon: <LogOut size={20} aria-hidden="true" /> },
               ]}
             />
           )}
@@ -461,7 +462,7 @@ export function WorkforceRoutes({ module }: { module: ModuleKey }) {
             </>
           )}
           {module === 'onboard' && (
-            <PlaceholderAction label="New Packet" variant="primary" detail="Onboarding and offboarding packets are not available yet." />
+            <PlaceholderAction label="New Packet" variant="primary" icon={<Plus size={20} aria-hidden="true" />} detail="Onboarding and offboarding packets are not available yet." />
           )}
           {module === 'courses' && (
             <Button variant="primary" disabled={!canWrite} title={writeTitle} onClick={() => setDialog('course')}>

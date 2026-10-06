@@ -112,7 +112,18 @@ export interface Threshold {
   days: number;
 }
 
-export type DateRangePreset = 'all' | '7' | '30' | '90' | 'quarter' | 'custom';
+export type DateRangePreset =
+  | 'all'
+  | 'today'
+  | '7'
+  | '30'
+  | '90'
+  | 'month'
+  | 'last_month'
+  | 'quarter'
+  | 'ytd'
+  | '12m'
+  | 'custom';
 
 export interface DateRange {
   preset: DateRangePreset;
@@ -120,10 +131,34 @@ export interface DateRange {
   to: string;
 }
 
-const ALL_TIME_FROM = '1970-01-01';
+export const ALL_TIME_FROM = '1970-01-01';
 
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+export const RANGE_PRESETS: { value: Exclude<DateRangePreset, 'custom'>; label: string }[] = [
+  { value: 'all', label: 'All time' },
+  { value: 'today', label: 'Today' },
+  { value: '7', label: 'Last 7 days' },
+  { value: '30', label: 'Last 30 days' },
+  { value: '90', label: 'Last 90 days' },
+  { value: 'month', label: 'This month' },
+  { value: 'last_month', label: 'Last month' },
+  { value: 'quarter', label: 'This quarter' },
+  { value: 'ytd', label: 'Year to date' },
+  { value: '12m', label: 'Last 12 months' },
+];
+
+const pad = (value: number) => String(value).padStart(2, '0');
+
+export function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function parseIsoDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1);
+}
+
+function daysAgo(today: Date, days: number): Date {
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate() - days);
 }
 
 export function rangeForPreset(
@@ -133,21 +168,30 @@ export function rangeForPreset(
 ): DateRange {
   const today = new Date();
   const to = isoDate(today);
-  if (preset === 'all') {
-    return { preset, from: ALL_TIME_FROM, to };
+  switch (preset) {
+    case 'all':
+      return { preset, from: ALL_TIME_FROM, to };
+    case 'today':
+      return { preset, from: to, to };
+    case 'month':
+      return { preset, from: isoDate(new Date(today.getFullYear(), today.getMonth(), 1)), to };
+    case 'last_month':
+      return {
+        preset,
+        from: isoDate(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
+        to: isoDate(new Date(today.getFullYear(), today.getMonth(), 0)),
+      };
+    case 'quarter':
+      return { preset, from: isoDate(new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1)), to };
+    case 'ytd':
+      return { preset, from: isoDate(new Date(today.getFullYear(), 0, 1)), to };
+    case '12m':
+      return { preset, from: isoDate(new Date(today.getFullYear() - 1, today.getMonth(), today.getDate() + 1)), to };
+    case 'custom':
+      return { preset, from: customFrom ?? isoDate(daysAgo(today, 30)), to: customTo ?? to };
+    default:
+      return { preset, from: isoDate(daysAgo(today, Number(preset))), to };
   }
-  if (preset === 'custom') {
-    return {
-      preset,
-      from: customFrom ?? isoDate(new Date(today.getTime() - 30 * 86400000)),
-      to: customTo ?? to,
-    };
-  }
-  if (preset === 'quarter') {
-    return { preset, from: isoDate(new Date(today.getTime() - 90 * 86400000)), to };
-  }
-  const days = Number(preset);
-  return { preset, from: isoDate(new Date(today.getTime() - days * 86400000)), to };
 }
 
 export const DEFAULT_RANGE: DateRange = rangeForPreset('all');

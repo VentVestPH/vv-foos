@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Download } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { ErrorBoundary } from '../../../components/ui/ErrorBoundary';
 import { Skeleton } from '../../../components/ui/Skeleton';
@@ -49,7 +50,9 @@ export function Widget({
               size="sm"
               onClick={() => downloadCsv(exportFilename ?? `${title}.csv`, exportRows)}
               disabled={exportRows.length === 0}
+              title={exportRows.length === 0 ? 'There is nothing in this panel to export' : undefined}
             >
+              <Download size={20} aria-hidden="true" />
               Export CSV
             </Button>
           )}

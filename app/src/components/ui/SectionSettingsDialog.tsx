@@ -1,3 +1,4 @@
+import { Eye } from 'lucide-react';
 import { Button } from './Button';
 import { SettingsDialog } from './SettingsDialog';
 import type { SectionPrefs } from '../../hooks/useSectionPrefs';
@@ -33,10 +34,12 @@ export function SectionSettingsDialog({
         <>
           <Button
             size="sm"
-            variant="ghost"
+            variant="secondary"
             onClick={prefs.showAll}
             disabled={hiddenCount === 0}
+            title={hiddenCount === 0 ? 'Every section is already showing' : undefined}
           >
+            <Eye size={20} aria-hidden="true" />
             Show all
           </Button>
           <Button size="sm" variant="primary" onClick={dismiss}>
@@ -46,44 +49,50 @@ export function SectionSettingsDialog({
       )}
     >
       {prefs.error && <p className="form-error">{prefs.error}</p>}
-      <div className="fo-section-row fo-section-row-head" aria-hidden="true">
-        <span>Section</span>
-        <span>Open on load</span>
+      <div className="fo-section-table">
+        <div className="fo-section-row fo-section-row-head" aria-hidden="true">
+          <span>Section</span>
+          <span>Show</span>
+          <span>Open on load</span>
+        </div>
+        <div className="fo-section-list fo-scroll-shade" ref={listShadow}>
+          {sections.map((section) => {
+            const shown = !prefs.isHidden(section);
+            const fallback = defaultOpenFor?.(section) ?? true;
+            const lastShown = shown && shownCount === 1;
+            return (
+              <div key={section} className="fo-section-row" data-hidden={shown ? undefined : 'true'}>
+                <span className="fo-section-name">{section}</span>
+                <label className="fo-switch">
+                  <input
+                    type="checkbox"
+                    aria-label={section}
+                    title={lastShown ? 'This is the last section showing. Show another one first.' : undefined}
+                    checked={shown}
+                    disabled={lastShown}
+                    onChange={() => prefs.toggle(section)}
+                  />
+                  <span className="fo-switch-track" aria-hidden="true" />
+                </label>
+                <label className="fo-switch fo-section-row-open">
+                  <input
+                    type="checkbox"
+                    aria-label={`Open ${section} on page load`}
+                    title={shown ? undefined : 'Show the section first'}
+                    checked={shown && prefs.opensOnLoad(section, fallback)}
+                    disabled={!shown}
+                    onChange={() => prefs.toggleOpensOnLoad(section, fallback)}
+                  />
+                  <span className="fo-switch-track" aria-hidden="true" />
+                </label>
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <div className="checkbox-list fo-scroll-shade" ref={listShadow}>
-        {sections.map((section) => {
-          const shown = !prefs.isHidden(section);
-          const fallback = defaultOpenFor?.(section) ?? true;
-          return (
-            <div key={section} className="fo-section-row">
-              <label className="checkline">
-                <input
-                  type="checkbox"
-                  checked={shown}
-                  disabled={shown && shownCount === 1}
-                  title={
-                    shown && shownCount === 1
-                      ? 'This is the last section showing. Tick another one first.'
-                      : undefined
-                  }
-                  onChange={() => prefs.toggle(section)}
-                />
-                {section}
-              </label>
-              <label className="checkline fo-section-row-open">
-                <input
-                  type="checkbox"
-                  checked={shown && prefs.opensOnLoad(section, fallback)}
-                  disabled={!shown}
-                  title={shown ? undefined : 'Show the section first'}
-                  onChange={() => prefs.toggleOpensOnLoad(section, fallback)}
-                />
-                <span className="visually-hidden">{`Open ${section} on page load`}</span>
-              </label>
-            </div>
-          );
-        })}
-      </div>
+      <p className="fo-section-count" role="status">
+        {shownCount} of {sections.length} sections showing
+      </p>
     </SettingsDialog>
   );
 }
