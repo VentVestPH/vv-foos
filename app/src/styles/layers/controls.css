@@ -495,6 +495,43 @@ input[type='number']::-webkit-outer-spin-button {
   box-shadow: var(--shadow-raised);
 }
 
+.field-select-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.field-select-search {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  padding: var(--sp-1);
+  background: var(--fo-surface);
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.field-select-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--cell-pad);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: var(--fo-text);
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius);
+}
+
+.field-select-search-input:focus-visible {
+  outline: none;
+  border-color: var(--fo-primary);
+}
+
+.field-select-menu {
+  scroll-padding-top: calc(var(--control-h) + var(--sp-2));
+}
+
 .field-select-option {
   display: flex;
   align-items: center;

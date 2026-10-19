@@ -18,7 +18,7 @@ async function openDeals(page: Page) {
 
 async function activeText(page: Page): Promise<string> {
   return page.evaluate(() => {
-    const box = document.querySelector('[role="combobox"][aria-expanded="true"]');
+    const box = document.querySelector('.field-select-search-input');
     const id = box?.getAttribute('aria-activedescendant');
     if (id === null || id === undefined) return '';
     return document.getElementById(id)?.textContent?.trim() ?? '';
@@ -80,7 +80,7 @@ test.describe('the select replacement honours the APG combobox contract', () => 
     const box = stageSelect(page);
     await box.focus();
     await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('End');
+    await page.keyboard.press('PageDown');
     expect(await activeText(page)).toBe('Lost');
     await page.keyboard.press('Tab');
     await expect(page.getByRole('listbox')).toHaveCount(0);
@@ -89,51 +89,62 @@ test.describe('the select replacement honours the APG combobox contract', () => 
 
     await box.focus();
     await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('Home');
+    await page.keyboard.press('PageUp');
     await page.keyboard.press('Alt+ArrowUp');
     await expect(page.getByRole('listbox')).toHaveCount(0);
     await expect(box).toContainText('All stages');
     await expect(box).toBeFocused();
   });
 
-  test('Home and End reach the first and last option', async ({ page }) => {
+  test('PageDown and PageUp reach the last and first option', async ({ page }) => {
     await openDeals(page);
     const box = stageSelect(page);
     await box.focus();
     await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('End');
-    expect(await activeText(page)).toBe(STAGES[STAGES.length - 1]);
-    await page.keyboard.press('Home');
-    expect(await activeText(page)).toBe(STAGES[0]);
     await page.keyboard.press('PageDown');
     expect(await activeText(page)).toBe(STAGES[STAGES.length - 1]);
     await page.keyboard.press('PageUp');
     expect(await activeText(page)).toBe(STAGES[0]);
   });
 
-  test('type-ahead: one character, an accumulated string, and a repeated character cycling', async ({
-    page,
-  }) => {
+  test('focus moves into the search field when the popup opens', async ({ page }) => {
+    await openDeals(page);
+    await stageSelect(page).click();
+    await expect(page.getByRole('searchbox', { name: 'Search Stage' })).toBeFocused();
+  });
+
+  test('typing filters the options, ignores case, and Enter commits the first match', async ({ page }) => {
     await openDeals(page);
     const box = stageSelect(page);
     await box.focus();
     await page.keyboard.press('ArrowDown');
 
+    await page.keyboard.type('QUAL');
+    await expect(page.getByRole('option')).toHaveText(['Qualified']);
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(box).toContainText('Qualified');
+    await expect(box).toBeFocused();
+  });
+
+  test('a letter typed on the closed select opens it already filtered', async ({ page }) => {
+    await openDeals(page);
+    const box = stageSelect(page);
+    await box.focus();
     await page.keyboard.press('q');
-    expect(await activeText(page)).toBe('Qualified');
+    await expect(page.getByRole('searchbox', { name: 'Search Stage' })).toHaveValue('q');
+    await expect(page.getByRole('option')).toHaveText(['Qualified']);
+  });
 
-    await page.waitForTimeout(600);
-    await page.keyboard.press('l');
-    await page.keyboard.press('o');
-    expect(await activeText(page)).toBe('Lost');
-
-    await page.waitForTimeout(600);
-    await page.keyboard.press('l');
-    expect(await activeText(page)).toBe('Lead');
-    await page.keyboard.press('l');
-    expect(await activeText(page)).toBe('Lost');
-    await page.keyboard.press('l');
-    expect(await activeText(page)).toBe('Lead');
+  test('a search with no match says so and offers nothing to commit', async ({ page }) => {
+    await openDeals(page);
+    const box = stageSelect(page);
+    await box.click();
+    await page.getByRole('searchbox', { name: 'Search Stage' }).fill('zzzz');
+    await expect(page.getByRole('option')).toHaveText(['No matches']);
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(box).toContainText('All stages');
   });
 
   test('the ARIA state is correct in both states and one option is selected', async ({ page }) => {
@@ -203,7 +214,7 @@ test.describe('the select replacement honours the APG combobox contract', () => 
       .poll(async () => (await optionNames(page, box)).length, { timeout: 25000 })
       .toBeGreaterThan(20);
     await box.click();
-    const list = page.getByRole('listbox');
+    const list = page.locator('.field-select-menu');
     await expect(list).toBeVisible();
     const measured = await list.evaluate((el) => ({
       height: Math.round(el.getBoundingClientRect().height),
@@ -218,7 +229,9 @@ test.describe('the select replacement honours the APG combobox contract', () => 
     expect(measured.overflow).toBe('auto');
     expect(measured.inViewport).toBe(true);
 
-    await page.keyboard.press('End');
+    await page.keyboard.press('PageDown');
+    await page.keyboard.press('PageDown');
+    await page.keyboard.press('PageDown');
     const scrolled = await list.evaluate((el) => el.scrollTop);
     expect(scrolled).toBeGreaterThan(0);
   });
@@ -275,12 +288,31 @@ test.describe('hover never scrolls an option list', () => {
     'the list scrolled itself under the cursor. Only the scrollbar, the wheel and a drag may scroll it',
   ).toBe(before);
 
-  await page.keyboard.press('End');
+  await page.keyboard.press('PageDown');
+  await page.keyboard.press('PageDown');
   await expect
     .poll(async () => menu.evaluate((el) => el.scrollTop), {
       timeout: 5000,
       message: 'the keyboard still has to bring its option into view, which the APG requires',
     })
     .toBeGreaterThan(before);
+  });
+  test('the search field stays pinned to the top of the popup while the options scroll', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/recruit/requisitions');
+    await openFilterRail(page);
+    await page.getByRole('combobox', { name: 'Company' }).click();
+    const menu = page.locator('.field-select-menu');
+    await expect(menu).toBeVisible();
+    const search = page.getByRole('searchbox', { name: 'Search Company' });
+    const offset = async () =>
+      Math.round((await search.boundingBox())!.y - (await menu.boundingBox())!.y);
+    const before = await offset();
+
+    await page.keyboard.press('PageDown');
+    await page.keyboard.press('PageDown');
+    await expect.poll(() => menu.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    await expect(search).toBeInViewport();
+    expect(await offset()).toBe(before);
   });
 });
