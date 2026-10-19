@@ -551,7 +551,7 @@ export function DealsListPage() {
           ) : undefined
         }
         filterRail={
-          <div className="fo-advanced-search-body">
+          <div className="fo-advanced-search-body deals-filter-rail">
             <Select
               label="Stage"
               options={DEAL_STAGES.map((s) => ({
