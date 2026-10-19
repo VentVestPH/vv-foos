@@ -398,25 +398,25 @@ export function RequisitionFormPage({ dialogId, onClose, onSaved }: RequisitionF
               onChange={(e) => set('job_code', e.target.value)}
               placeholder="<Client>-<n>, e.g. Acme-3"
             />
-            <div>
-              <Select
-                label="Company"
-                placeholder="Select company…"
-                options={lookups.companies.map((c) => ({ value: c.id, label: c.name }))}
-                value={form.company_id}
-                onChange={(e) => set('company_id', e.target.value)}
-              />
-              <p className="field-hint">
-                Company not listed?{' '}
-                {role === 'admin' ? (
-                  <a href="/sales/companies/new" target="_blank" rel="noopener noreferrer">
-                    Create the account in a new tab, then reload this page
-                  </a>
-                ) : (
-                  'Ask an admin or BD to add the account, then reload this page.'
-                )}
-              </p>
-            </div>
+            <Select
+              label="Company"
+              placeholder="Select company…"
+              options={lookups.companies.map((c) => ({ value: c.id, label: c.name }))}
+              value={form.company_id}
+              onChange={(e) => set('company_id', e.target.value)}
+              help={
+                <>
+                  Company not listed?{' '}
+                  {role === 'admin' ? (
+                    <a href="/sales/companies/new" target="_blank" rel="noopener noreferrer">
+                      Create the account in a new tab, then reload this page
+                    </a>
+                  ) : (
+                    'Ask an admin or BD to add the account, then reload this page.'
+                  )}
+                </>
+              }
+            />
             <Input
               label="Location"
               value={form.location}

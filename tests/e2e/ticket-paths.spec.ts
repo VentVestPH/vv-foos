@@ -8,6 +8,7 @@ test.describe('FOOSBR-8: a company missing from the requisition form has a way f
   test('an admin is offered the new account page', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, '/recruit/requisitions/new');
+    await page.getByRole('button', { name: 'About Company' }).click({ timeout: 20000 });
     const link = page.getByRole('link', { name: /Create the account in a new tab/ });
     await expect(link).toBeVisible({ timeout: 20000 });
     await expect(link).toHaveAttribute('href', '/sales/companies/new');
@@ -17,8 +18,11 @@ test.describe('FOOSBR-8: a company missing from the requisition form has a way f
   test('a recruiter, who cannot create accounts, is told who can', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.recruiter);
     await gotoAsSignedIn(page, '/recruit/requisitions/new');
+    await page.getByRole('button', { name: 'About Company' }).click({ timeout: 20000 });
     await expect(page.getByText(/Ask an admin or BD to add the account/)).toBeVisible({ timeout: 20000 });
     await expect(page.getByRole('link', { name: /Create the account/ })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(page.getByText(/Ask an admin/)).toHaveCount(0);
   });
 });
 

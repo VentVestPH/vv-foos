@@ -7,11 +7,13 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { useScrollShadow } from '../../hooks/useScrollShadow';
+import { FieldHelp } from './FieldHelp';
 
 interface SelectOption {
   value: string;
@@ -24,6 +26,7 @@ interface SelectChangeEvent {
 
 interface SelectProps {
   label?: string;
+  help?: ReactNode;
   error?: string | undefined;
   options: SelectOption[];
   placeholder?: string;
@@ -59,6 +62,7 @@ const MENU_EXIT_MS = 90;
 
 export function Select({
   label,
+  help,
   error,
   options,
   placeholder,
@@ -414,11 +418,21 @@ export function Select({
 
   return (
     <div className="field">
-      {label !== undefined && (
-        <label className="field-label" id={labelId} htmlFor={selectId}>
-          {label}
-          {required === true && <span className="field-required"> *</span>}
-        </label>
+      {label !== undefined && help !== undefined ? (
+        <div className="field-label-row">
+          <label className="field-label" id={labelId} htmlFor={selectId}>
+            {label}
+            {required === true && <span className="field-required"> *</span>}
+          </label>
+          <FieldHelp label={label}>{help}</FieldHelp>
+        </div>
+      ) : (
+        label !== undefined && (
+          <label className="field-label" id={labelId} htmlFor={selectId}>
+            {label}
+            {required === true && <span className="field-required"> *</span>}
+          </label>
+        )
       )}
       {trigger}
       {name !== undefined && <input type="hidden" name={name} value={current} />}

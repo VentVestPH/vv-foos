@@ -727,4 +727,10 @@
   font-size: var(--fs-meta);
 }
 
+  .rq-form-grid {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(max(var(--form-col-min), calc((100% - 2 * var(--sp-1-5)) / 3)), 1fr)
+    );
+  }
 }
