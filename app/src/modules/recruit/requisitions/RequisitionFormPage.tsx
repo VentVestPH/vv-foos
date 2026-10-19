@@ -381,7 +381,9 @@ export function RequisitionFormPage({ dialogId, onClose, onSaved }: RequisitionF
       name: 'Requisition information',
       content: (
         <>
-          <div className="rq-form-grid">
+          <section className="rq-form-group">
+            <h3 className="rq-form-group-title">Role</h3>
+            <div className="rq-form-grid">
             <div className="fo-form-span">
               <Input
                 id="req-title"
@@ -422,6 +424,11 @@ export function RequisitionFormPage({ dialogId, onClose, onSaved }: RequisitionF
               value={form.location}
               onChange={(e) => set('location', e.target.value)}
             />
+            </div>
+          </section>
+          <section className="rq-form-group">
+            <h3 className="rq-form-group-title">Opening</h3>
+            <div className="rq-form-grid">
             <Select
               label="Employment type"
               placeholder="Select…"
@@ -457,48 +464,57 @@ export function RequisitionFormPage({ dialogId, onClose, onSaved }: RequisitionF
               onChange={(e) => set('reason_for_opening', e.target.value)}
             />
             {form.reason_for_opening === 'Replacement' && (
-              <div className="fo-form-span">
-                <Input
-                  label="Replacement for"
-                  value={form.replacement_for}
-                  onChange={(e) => set('replacement_for', e.target.value)}
+              <Input
+                label="Replacement for"
+                value={form.replacement_for}
+                onChange={(e) => set('replacement_for', e.target.value)}
+              />
+            )}
+            </div>
+          </section>
+          <section className="rq-form-group">
+            <h3 className="rq-form-group-title">Compensation</h3>
+            <div className="rq-form-grid">
+            <Input
+              id="req-pay-min"
+              label="Pay min"
+              type="number"
+              error={showProblems ? validation.find((v) => v.field === 'req-pay-min')?.message : undefined}
+              value={form.pay_min}
+              onChange={(e) => set('pay_min', e.target.value)}
+            />
+            <Input
+              id="req-pay-max"
+              label="Pay max"
+              type="number"
+              error={showProblems ? validation.find((v) => v.field === 'req-pay-max')?.message : undefined}
+              value={form.pay_max}
+              onChange={(e) => set('pay_max', e.target.value)}
+            />
+            <Select
+              label="Pay currency"
+              placeholder="Currency…"
+              options={CURRENCIES.map((v) => ({ value: v, label: v }))}
+              value={form.pay_currency}
+              onChange={(e) => set('pay_currency', e.target.value)}
+            />
+              <div className="field fo-form-span">
+                <label className="field-label" htmlFor="req-pay-notes">
+                  Pay notes
+                </label>
+                <textarea
+                  id="req-pay-notes"
+                  rows={3}
+                  value={form.pay_notes}
+                  onChange={(e) => set('pay_notes', e.target.value)}
+                  placeholder="e.g. plus commission, relocation, bonus terms"
                 />
               </div>
-            )}
-            <div className="fo-form-grid rq-pay-row fo-form-span">
-              <Input
-                id="req-pay-min"
-                label="Pay min"
-                type="number"
-                error={showProblems ? validation.find((v) => v.field === 'req-pay-min')?.message : undefined}
-                value={form.pay_min}
-                onChange={(e) => set('pay_min', e.target.value)}
-              />
-              <Input
-                id="req-pay-max"
-                label="Pay max"
-                type="number"
-                error={showProblems ? validation.find((v) => v.field === 'req-pay-max')?.message : undefined}
-                value={form.pay_max}
-                onChange={(e) => set('pay_max', e.target.value)}
-              />
-              <Select
-                label="Pay currency"
-                placeholder="Currency…"
-                options={CURRENCIES.map((v) => ({ value: v, label: v }))}
-                value={form.pay_currency}
-                onChange={(e) => set('pay_currency', e.target.value)}
-              />
             </div>
-            <div className="fo-form-span">
-              <Input
-                label="Pay notes"
-                value={form.pay_notes}
-                onChange={(e) => set('pay_notes', e.target.value)}
-                placeholder="e.g. plus commission"
-              />
-            </div>
-            <div className="fo-checkstack fo-form-span">
+          </section>
+          <section className="rq-form-group">
+            <h3 className="rq-form-group-title">Visibility</h3>
+            <div className="fo-checkstack">
               <label className="checkline">
                 <input
                   type="checkbox"
@@ -516,7 +532,7 @@ export function RequisitionFormPage({ dialogId, onClose, onSaved }: RequisitionF
                 Test record
               </label>
             </div>
-          </div>
+          </section>
         </>
       ),
     },
