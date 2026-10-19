@@ -19,9 +19,9 @@ interface Task {
   related_id: string | null;
 }
 
-const DONE = new Set(['done', 'complete', 'completed', 'closed']);
+const DONE = new Set(['done', 'complete', 'completed', 'closed', 'cancelled']);
 
-function dueLabel(due: string | null): { text: string; overdue: boolean } {
+export function dueLabel(due: string | null): { text: string; overdue: boolean } {
   if (!due) return { text: 'No due date', overdue: false };
   const at = new Date(`${due}T00:00:00`);
   const today = new Date();

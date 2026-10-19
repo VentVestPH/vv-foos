@@ -500,3 +500,20 @@
 .fo-skel-cell[data-wide='true'] {
   width: 85%;
 }
+
+.task-board {
+  min-width: 0;
+}
+
+.task-board-title {
+  font-weight: 500;
+}
+
+.task-board-meta {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+}
+
+.task-board-meta.is-overdue {
+  color: var(--danger);
+}

@@ -35,7 +35,7 @@ test('K14: New Event writes a real calendar entry that the day view then shows',
   await dialog.getByRole('button', { name: 'Save event' }).click();
   await expect(dialog).toHaveCount(0);
 
-  await expect(page.getByText(subject)).toBeVisible({ timeout: 25000 });
+  await expect(page.locator('.task-list').getByText(subject)).toBeVisible({ timeout: 25000 });
 
   const admin = await clientAs('admin');
   const { data } = await admin.from('activities').select('kind, subject').eq('subject', subject);
@@ -57,7 +57,7 @@ test('K14: New Task writes a real task that My Tasks then lists', async ({ page 
   await dialog.getByRole('button', { name: 'Add task' }).click();
   await expect(dialog).toHaveCount(0);
 
-  await expect(page.getByText(subject)).toBeVisible({ timeout: 25000 });
+  await expect(page.locator('.task-list').getByText(subject)).toBeVisible({ timeout: 25000 });
 
   const admin = await clientAs('admin');
   const { data } = await admin.from('tasks').select('subject, status').eq('subject', subject);

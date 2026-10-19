@@ -20,6 +20,7 @@ import { TaskGroupPanel } from './TaskGroupPanel';
 import { NewCalendarEntryDialog } from './NewCalendarEntryDialog';
 import { MyReminders } from './MyReminders';
 import { MyTasks } from './MyTasks';
+import { MyTaskBoard } from './MyTaskBoard';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { ListPage } from '../components/ui/ListPage';
@@ -41,6 +42,7 @@ const MY_VIEW_SECTIONS = [
   'My Calendar',
   'My Reminders',
   'My Tasks',
+  'My Task Board',
   'Onboarding Employees',
   'Offboarding Employees',
   'My Interviews',
@@ -126,6 +128,12 @@ function MyViewTab() {
             />
           )}
           <MyTasks />
+        </RecordSection>
+      )}
+
+      {!prefs.isHidden('My Task Board') && (
+        <RecordSection title="My Task Board" defaultOpen>
+          <MyTaskBoard />
         </RecordSection>
       )}
 
