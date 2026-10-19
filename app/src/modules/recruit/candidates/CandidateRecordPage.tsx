@@ -952,6 +952,7 @@ export function CandidateRecordPage() {
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
                   onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
                 />
               ),
             },
@@ -968,6 +969,7 @@ export function CandidateRecordPage() {
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
                   onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
                 />
               ),
             },
@@ -984,6 +986,7 @@ export function CandidateRecordPage() {
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
                   onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
                 />
               ),
             },
@@ -1000,6 +1003,7 @@ export function CandidateRecordPage() {
                   allowCreate={false}
                   onCreate={engagement.addActivity}
                   onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
                 />
               ),
             },

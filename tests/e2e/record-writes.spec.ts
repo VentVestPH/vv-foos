@@ -39,6 +39,53 @@ async function cleanupWrites() {
 test.describe('Record write paths (criteria 2.4, 2.5, 3.2)', () => {
   test.beforeEach(cleanupWrites);
   test.afterEach(cleanupWrites);
+  test('2.4b a note can be edited and then deleted from a candidate record, and the edit survives a reload', async ({
+    page,
+  }) => {
+    const subject = `${WRITE_TAG} edit ${Date.now()}`;
+    const edited = `${subject} edited`;
+    const admin = await apiAs(PERSONA_EMAILS.admin);
+    const stored = async (text: string) => {
+      const { data } = await admin
+        .from('activities')
+        .select('subject, body')
+        .eq('person_id', CANDIDATE)
+        .eq('subject', text);
+      return data ?? [];
+    };
+
+    await signIn(page, PERSONA_EMAILS.recruiter);
+    await gotoAsSignedIn(page, `/recruit/candidates/${CANDIDATE}`);
+    const log = await expandSection(page, 'Contact Log');
+    await expect(log).toBeVisible({ timeout: 20000 });
+
+    await log.getByLabel(/new note/i).fill(subject);
+    await log.getByLabel(/note details/i).fill('before');
+    await log.getByRole('button', { name: 'Log note', exact: true }).click();
+    await expect(log.getByText(subject, { exact: true })).toBeVisible({ timeout: 20000 });
+
+    await log.getByRole('button', { name: 'Edit this note' }).first().click();
+    await log.getByLabel('Edit note subject').fill(edited);
+    await log.getByLabel('Edit note details').fill('after');
+    await log.getByRole('button', { name: 'Save note' }).click();
+    await expect(log.getByText(edited, { exact: true })).toBeVisible({ timeout: 20000 });
+
+    await expect.poll(() => stored(edited), { timeout: 20000 }).toEqual([
+      { subject: edited, body: 'after' },
+    ]);
+    expect(await stored(subject)).toEqual([]);
+
+    await page.reload();
+    const reloaded = await expandSection(page, 'Contact Log');
+    await expect(reloaded.getByText(edited, { exact: true })).toBeVisible({ timeout: 20000 });
+    await expect(reloaded.getByText('after', { exact: true })).toBeVisible();
+
+    await reloaded.getByRole('button', { name: 'Delete this note' }).first().click();
+    await page.getByRole('button', { name: 'Delete permanently' }).click();
+    await expect(reloaded.getByText(edited, { exact: true })).toHaveCount(0);
+    await expect.poll(() => stored(edited), { timeout: 20000 }).toEqual([]);
+  });
+
   test('2.4 logging a note from a candidate record writes it and shows it in the timeline', async ({
     page,
   }) => {

@@ -23,7 +23,7 @@ import {
   PENDING_FILE_LABEL,
   PENDING_FILE_REASON,
 } from '../../../lib/attachments';
-import { BellRing, CalendarDays, ListChecks, MessageSquare, Paperclip, Plus, Trash2 } from 'lucide-react';
+import { BellRing, CalendarDays, ListChecks, MessageSquare, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react';
 import { ConfirmDeleteDialog } from '../../../components/ui/ConfirmDeleteDialog';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
@@ -187,6 +187,23 @@ export function useEngagement(parentType: EngagementParentType, parentId: string
     [refresh],
   );
 
+  const updateActivity = useCallback(
+    async (activity: Activity, subject: string, body: string) => {
+      if (activity.kind === 'status_change') {
+        throw new Error('A status change is written by the database and cannot be edited.');
+      }
+      const { data, error: err } = await supabase
+        .from('activities')
+        .update({ subject, body: body || null })
+        .eq('id', activity.id)
+        .select('id');
+      if (err) throw new Error(err.message);
+      if (!data?.length) throw new Error('You do not have permission to edit this entry.');
+      await refresh();
+    },
+    [refresh],
+  );
+
   const deleteTask = useCallback(
     async (id: string) => {
       const { error: err } = await supabase.from('tasks').delete().eq('id', id);
@@ -217,6 +234,7 @@ export function useEngagement(parentType: EngagementParentType, parentId: string
     toggleTask,
     addReminder,
     dismissReminder,
+    updateActivity,
     deleteActivity,
     deleteTask,
     deleteReminder,
@@ -277,6 +295,7 @@ interface ActivityPanelProps {
   kind: ActivityKind;
   kindLabel: string;
   onDelete?: ((activity: Activity) => Promise<void>) | undefined;
+  onUpdate?: ((activity: Activity, subject: string, body: string) => Promise<void>) | undefined;
   emptyText: string;
   allowCreate: boolean;
   onCreate: (kind: ActivityKind, subject: string, body: string) => Promise<void>;
@@ -319,11 +338,107 @@ function PanelDelete({ label, title, body, onDelete }: PanelDeleteProps) {
   );
 }
 
+interface ActivityItemProps {
+  activity: Activity;
+  kindLabel: string;
+  onDelete: ActivityPanelProps['onDelete'];
+  onUpdate: ActivityPanelProps['onUpdate'];
+}
+
+function ActivityItem({ activity: a, kindLabel, onDelete, onUpdate }: ActivityItemProps) {
+  const [editing, setEditing] = useState(false);
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const noun = kindLabel.toLowerCase();
+
+  const startEdit = () => {
+    setSubject(a.subject ?? '');
+    setBody(a.body ?? '');
+    setError(null);
+    setEditing(true);
+  };
+
+  if (editing && onUpdate) {
+    return (
+      <form
+        className="panel-item panel-form"
+        aria-label={`Edit ${noun}`}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!subject.trim() || busy) return;
+          setBusy(true);
+          onUpdate(a, subject.trim(), body.trim())
+            .then(() => setEditing(false))
+            .catch((err: unknown) => setError(errMsg(err)))
+            .finally(() => setBusy(false));
+        }}
+      >
+        <Input
+          label={`Edit ${noun} subject`}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          required
+          autoFocus
+        />
+        <textarea
+          rows={3}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          aria-label={`Edit ${noun} details`}
+        />
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="panel-item-meta">
+          <Button size="sm" variant="primary" type="submit" disabled={busy || !subject.trim()}>
+            Save {noun}
+          </Button>
+          <Button size="sm" type="button" disabled={busy} onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="panel-item">
+      <div className="panel-item-head">
+        <span className="panel-item-title">{a.subject ?? kindLabel}</span>
+        <span className="panel-item-meta">
+          <span className="text-secondary">{fmtDateTime(a.occurred_at)}</span>
+          {onUpdate && a.kind !== 'status_change' && (
+            <button
+              type="button"
+              className="fo-icon-btn panel-item-edit"
+              aria-label={`Edit this ${noun}`}
+              title={`Edit this ${noun}`}
+              onClick={startEdit}
+            >
+              <Pencil size={20} aria-hidden="true" />
+            </button>
+          )}
+          {onDelete && (
+            <PanelDelete
+              label={`Delete this ${noun}`}
+              title={`Delete ${noun}`}
+              body={`This removes "${a.subject ?? kindLabel}" from the record for good. Nothing else references it.`}
+              onDelete={() => onDelete(a)}
+            />
+          )}
+        </span>
+      </div>
+      {a.body && <p className="panel-item-body">{a.body}</p>}
+    </div>
+  );
+}
+
 export function ActivityPanel({
   items,
   kind,
   kindLabel,
   onDelete,
+  onUpdate,
   emptyText,
   allowCreate,
   onCreate,
@@ -373,23 +488,7 @@ export function ActivityPanel({
         <EmptyState compact icon={<MessageSquare size={32} />} title={emptyText} />
       )}
       {items.map((a) => (
-        <div key={a.id} className="panel-item">
-          <div className="panel-item-head">
-            <span className="panel-item-title">{a.subject ?? kindLabel}</span>
-            <span className="panel-item-meta">
-              <span className="text-secondary">{fmtDateTime(a.occurred_at)}</span>
-              {onDelete && (
-                <PanelDelete
-                  label={`Delete this ${kindLabel.toLowerCase()}`}
-                  title={`Delete ${kindLabel.toLowerCase()}`}
-                  body={`This removes "${a.subject ?? kindLabel}" from the record for good. Nothing else references it.`}
-                  onDelete={() => onDelete(a)}
-                />
-              )}
-            </span>
-          </div>
-          {a.body && <p className="panel-item-body">{a.body}</p>}
-        </div>
+        <ActivityItem key={a.id} activity={a} kindLabel={kindLabel} onDelete={onDelete} onUpdate={onUpdate} />
       ))}
     </div>
   );

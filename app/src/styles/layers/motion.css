@@ -140,7 +140,8 @@
     opacity var(--motion-quick) var(--ease-out);
 }
 
-.panel-item-delete {
+.panel-item-delete,
+.panel-item-edit {
   transition: opacity var(--motion-quick) var(--ease-out);
 }
 

@@ -300,12 +300,15 @@
   flex: none;
 }
 
-.panel-item-delete {
+.panel-item-delete,
+.panel-item-edit {
   opacity: 0;
 }
 
 .panel-item:hover .panel-item-delete,
-.panel-item:focus-within .panel-item-delete {
+.panel-item:hover .panel-item-edit,
+.panel-item:focus-within .panel-item-delete,
+.panel-item:focus-within .panel-item-edit {
   opacity: 1;
 }
 
