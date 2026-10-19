@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { realtimeChannel } from '../lib/realtimeChannel';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../auth/SessionProvider';
 import { KanbanBoard } from '../components/ui/KanbanBoard';
@@ -29,7 +28,7 @@ interface BoardTask {
 
 const STAGES = COLUMNS.map(({ key, label }) => ({ key, label }));
 
-export function MyTaskBoard() {
+export function MyTaskBoard({ refreshKey = 0 }: { refreshKey?: number }) {
   const { staff } = useSession();
   const [tasks, setTasks] = useState<BoardTask[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -67,25 +66,9 @@ export function MyTaskBoard() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   useBackstopRefresh(load);
-
-  useEffect(() => {
-    if (!staff?.id) return;
-    const channel = realtimeChannel('my-task-board')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tasks', filter: `assignee_id=eq.${staff.id}` },
-        () => {
-          void load();
-        },
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [load, staff?.id]);
 
   const move = useCallback(
     (taskId: string, to: string) => {

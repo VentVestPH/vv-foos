@@ -35,7 +35,7 @@ export function FieldHelp({ label, children }: { label: string; children: ReactN
         aria-controls={open ? popId : undefined}
         onClick={() => setOpen((v) => !v)}
       >
-        <CircleHelp size={16} aria-hidden="true" />
+        <CircleHelp size={20} aria-hidden="true" />
       </button>
       {open && (
         <span id={popId} role="note" className="field-help-pop">

@@ -54,6 +54,7 @@ function MyViewTab() {
   const prefs = useSectionPrefs('dashboard.myview');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
+  const [taskTick, setTaskTick] = useState(0);
   const staffName = staff?.full_name ?? 'there';
   const roleLabel = role
     ? role.charAt(0).toUpperCase() + role.slice(1)
@@ -124,7 +125,10 @@ function MyViewTab() {
               mode="task"
               staffId={staff?.id ?? null}
               onClose={() => setTaskOpen(false)}
-              onSaved={() => setTaskOpen(false)}
+              onSaved={() => {
+                setTaskOpen(false);
+                setTaskTick((n) => n + 1);
+              }}
             />
           )}
           <MyTasks />
@@ -133,7 +137,7 @@ function MyViewTab() {
 
       {!prefs.isHidden('My Task Board') && (
         <RecordSection title="My Task Board" defaultOpen>
-          <MyTaskBoard />
+          <MyTaskBoard refreshKey={taskTick} />
         </RecordSection>
       )}
 
