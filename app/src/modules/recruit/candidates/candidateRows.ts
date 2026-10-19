@@ -29,6 +29,8 @@ function rowEmails(row: CandidateListRow): PersonEmail[] {
 }
 
 export interface CandFilters {
+  firstName: string;
+  lastName: string;
   statusId: string;
   starGrade: string;
   sourceId: string;
@@ -38,6 +40,8 @@ export interface CandFilters {
 }
 
 export const EMPTY_FILTERS: CandFilters = {
+  firstName: '',
+  lastName: '',
   statusId: '',
   starGrade: '',
   sourceId: '',

@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { FilterFoot, FilterGroup } from '../../../components/ui/FilterGroup';
 import { DateField } from '../../../components/ui/DateField';
+import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import type { Lookups } from '../hooks';
 import type { SortState } from '../lib';
@@ -22,6 +24,36 @@ export interface CandidateFilterRailProps {
   setColumnOrder: (next: string[]) => void;
 }
 
+function NameFilter({
+  label,
+  value,
+  onCommit,
+}: {
+  label: string;
+  value: string;
+  onCommit: (next: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const commit = () => {
+    if (draft !== value) onCommit(draft);
+  };
+  return (
+    <Input
+      label={label}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          commit();
+        }
+      }}
+    />
+  );
+}
+
 export function CandidateFilterRail({
   lookups,
   filters,
@@ -35,6 +67,16 @@ export function CandidateFilterRail({
   return (
       <div className="fo-advanced-search-body">
       <FilterGroup label="Filter" defaultOpen>
+      <NameFilter
+        label="First name"
+        value={filters.firstName}
+        onCommit={(next) => setFilters({ ...filters, firstName: next })}
+      />
+      <NameFilter
+        label="Last name"
+        value={filters.lastName}
+        onCommit={(next) => setFilters({ ...filters, lastName: next })}
+      />
       <Select
         label="Status"
         placeholder="All statuses"

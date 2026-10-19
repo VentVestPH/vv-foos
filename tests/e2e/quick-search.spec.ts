@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { clientAs } from '../env';
-import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, signIn } from './helpers';
+import { PERSONA_EMAILS, chooseOption, gotoAsSignedIn, openFilterRail, signIn } from './helpers';
 
 const HINT_MIN_CHARS = 3;
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
@@ -726,4 +726,32 @@ test('Q20: Export is clickable from first paint, not after the count arrives', a
     'the count starts at 0 while the first page is still in flight, and a control that disables itself for a second reads as broken',
   ).toBeEnabled();
   await page.unroute('**/rest/v1/candidate_list*');
+});
+
+test.describe('FOOSBR-10: first and last name filters in the candidate Advanced Search', () => {
+  test('First name and Last name narrow the list on Enter, and Clear filters empties them', async ({ page }) => {
+    await signIn(page, PERSONA_EMAILS.recruiter);
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    await openFilterRail(page);
+    const rail = page.locator('.filter-rail');
+    const rows = page.locator('.table-wrap tbody tr');
+
+    await rail.getByLabel('First name').fill(FIRST);
+    await rail.getByLabel('First name').press('Enter');
+    await expect(rows).toHaveCount(1, { timeout: 20000 });
+    await expect(rows.first()).toContainText(LAST);
+
+    await rail.getByLabel('Last name').fill(`${LAST}zz`);
+    await rail.getByLabel('Last name').press('Enter');
+    await expect(rows.filter({ hasText: LAST })).toHaveCount(0, { timeout: 20000 });
+
+    await rail.getByLabel('Last name').fill(LAST);
+    await rail.getByLabel('Last name').press('Enter');
+    await expect(rows).toHaveCount(1, { timeout: 20000 });
+
+    await rail.getByRole('button', { name: 'Clear filters' }).click();
+    await expect(rail.getByLabel('First name')).toHaveValue('');
+    await expect(rail.getByLabel('Last name')).toHaveValue('');
+    await expect(rows).not.toHaveCount(1, { timeout: 20000 });
+  });
 });
