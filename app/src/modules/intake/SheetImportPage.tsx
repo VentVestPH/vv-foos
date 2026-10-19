@@ -8,7 +8,8 @@ import { Table } from '../../components/ui/Table';
 import { ErrorSummary, type FieldError } from '../../components/ui/ErrorSummary';
 import { Inbox as InboxIcon, Sheet as SheetIcon, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { downloadCsv } from '../../lib/csv';
+import { csvToTable, downloadCsv } from '../../lib/csv';
+import { FileField } from '../../components/ui/FileField';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { checkDedup, useOpenRequisitions, type RequisitionOption } from './hooks';
 import { useRole, useSession } from '../../auth/SessionProvider';
@@ -148,6 +149,9 @@ function isDirect(target: Target): target is DirectTarget {
   return target === 'account' || target === 'requisition';
 }
 
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_ROWS = 500;
+
 interface FetchResult {
   columns: string[];
   rows: Record<string, string>[];
@@ -254,13 +258,31 @@ export function SheetImportPage() {
       );
       return;
     }
-    setFetched(data as FetchResult);
+    acceptFetched(data as FetchResult);
+  }
 
+  function acceptFetched(result: FetchResult) {
+    setFetched(result);
     const suggested = templates.find(
-      (t) => t.source_hint && data.suggestedTemplateHint?.toLowerCase().includes(t.source_hint.toLowerCase()),
+      (t) => t.source_hint && result.suggestedTemplateHint?.toLowerCase().includes(t.source_hint.toLowerCase()),
     );
     setColumnMap(suggested?.column_map ?? {});
     setStep('mapping');
+  }
+
+  async function readFile(file: File) {
+    setProblems([]);
+    setError(null);
+    if (file.size > MAX_FILE_BYTES) {
+      setError('That file is larger than 5 MB. Split it and import the parts one at a time.');
+      return;
+    }
+    const table = csvToTable(await file.text(), MAX_FILE_ROWS);
+    if (!table || table.rows.length === 0) {
+      setError('That file has no data rows. The first row must be the column headings.');
+      return;
+    }
+    acceptFetched({ columns: table.columns, rows: table.rows, suggestedTemplateHint: file.name });
   }
 
   function applyTemplate(id: string) {
@@ -743,7 +765,7 @@ export function SheetImportPage() {
       </div>
       <RecordSection title="Sheet Source:">
         <ErrorSummary errors={problems} />
-        <p className="text-secondary">A Google Sheet URL (any sharing link) or a hosted .xlsx/.csv URL. Candidates and contacts go to the intake queue for review; accounts and requisitions are created directly after a preview.</p>
+        <p className="text-secondary">Upload a .csv file from your computer, or enter a Google Sheet URL (any sharing link) or a hosted .xlsx/.csv URL. The first row must be the column headings, and the first 500 rows are read. Candidates and contacts go to the intake queue for review; accounts and requisitions are created directly after a preview.</p>
         <Select
           label="Target"
           value={targetType}
@@ -753,10 +775,16 @@ export function SheetImportPage() {
           }}
           options={targetOptions}
         />
+        <FileField
+          label="CSV file"
+          buttonLabel="Choose a CSV file"
+          accept=".csv,text/csv"
+          disabled={busy}
+          onFile={(file) => void readFile(file)}
+        />
         <Input
           id="sheet-url"
           label="Sheet URL"
-          required
           error={problems.find((p) => p.field === 'sheet-url')?.message}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
