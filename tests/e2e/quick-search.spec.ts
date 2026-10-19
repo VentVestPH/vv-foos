@@ -9,6 +9,8 @@ const MIDDLE = `Qsmiddle${RUN}`;
 const LAST = `Qslast${RUN}`;
 
 let person = '';
+let emailPerson = '';
+const EMAIL_TERM = `qsmatch${RUN}`.toLowerCase();
 const VIEW_NAME = `Qsview${RUN}`;
 
 async function headers(page: import('@playwright/test').Page): Promise<string[]> {
@@ -40,12 +42,29 @@ test.beforeAll(async () => {
   person = data.id;
   const profile = await admin.from('candidate_profiles').insert({ person_id: person });
   if (profile.error) throw profile.error;
+
+  const byEmail = await admin
+    .from('people')
+    .insert({
+      first_name: 'Qsmailfirst',
+      last_name: `Qsmaillast${RUN}`,
+      emails: [{ address: `${EMAIL_TERM}@example.test` }],
+      is_test: true,
+    })
+    .select('id')
+    .single();
+  if (byEmail.error) throw byEmail.error;
+  emailPerson = byEmail.data.id;
+  const emailProfile = await admin.from('candidate_profiles').insert({ person_id: emailPerson });
+  if (emailProfile.error) throw emailProfile.error;
 });
 
 test.afterAll(async () => {
   const admin = await clientAs('admin');
   await admin.from('ats_saved_views').delete().eq('name', VIEW_NAME);
   await admin.from('candidate_profiles').delete().eq('person_id', person);
+  await admin.from('candidate_profiles').delete().eq('person_id', emailPerson);
+  await admin.from('people').delete().eq('id', emailPerson);
   const { error } = await admin.from('people').delete().eq('id', person);
   if (error) throw new Error(`could not remove the quick-search fixture: ${error.message}`);
 });
@@ -257,6 +276,19 @@ test.describe('Q: the candidate list header holds its own controls', () => {
 
     await navigation;
     await page.unroute('**/candidate_list*');
+  });
+
+  test('Q10b: a suggestion that matched only on email says so, so the row never looks unrelated to the term', async ({
+    page,
+  }) => {
+    await signIn(page, PERSONA_EMAILS.admin);
+    await gotoAsSignedIn(page, '/recruit/candidates');
+    await page.locator('.list-page-search input').pressSequentially(EMAIL_TERM, { delay: 30 });
+
+    const hint = page.locator('.fo-hint').filter({ hasText: `Qsmaillast${RUN}` });
+    await expect(hint).toBeVisible({ timeout: 15000 });
+    await expect(hint.locator('.fo-hint-primary')).not.toContainText(EMAIL_TERM);
+    await expect(hint.locator('.fo-hint-meta')).toHaveText(`Matched: ${EMAIL_TERM}@example.test`);
   });
 
   test('Q10: the list search suggests records from its own list', async ({ page }) => {
