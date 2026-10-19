@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { supabase } from '../../../lib/supabase';
@@ -128,7 +129,12 @@ export function AddCandidateDialog({
           );
         })}
         {matches.length === 0 && (
-          <p className="text-secondary">No matching candidates.</p>
+          <p className="text-secondary">
+            No matching candidates. Not in FOOS yet? Add them through Intake: paste a{' '}
+            <Link to="/intake/linkedin" onClick={onClose}>LinkedIn profile</Link> or import a{' '}
+            <Link to="/intake/sheet" onClick={onClose}>CSV file</Link>, and choose{' '}
+            {requisition.display_code} as the requisition.
+          </p>
         )}
       </div>
     </Dialog>
