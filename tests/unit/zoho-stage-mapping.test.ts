@@ -5,7 +5,7 @@ import { STAGE_BY_ZOHO_STATUS } from '../../migration/src/map-applications.mjs';
 import { APPLICATION_STAGES } from '../../app/src/lib/database.types';
 
 const STATUS_FILE = fileURLToPath(
-  new URL('../fixtures/zoho-application-statuses.txt', import.meta.url),
+  new URL('../support/fixtures/zoho-application-statuses.txt', import.meta.url),
 );
 
 describe('every Zoho application status lands on a real FOOS stage', () => {

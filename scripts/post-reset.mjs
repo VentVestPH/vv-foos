@@ -38,7 +38,7 @@ function seedPersonas() {
   }
   execFileSync(
     'psql',
-    [DB_URL, '-q', '-v', 'ON_ERROR_STOP=1', '-c', `set foos.qa_test_password = '${password}';`, '-f', 'tests/fixtures/personas.sql'],
+    [DB_URL, '-q', '-v', 'ON_ERROR_STOP=1', '-c', `set foos.qa_test_password = '${password}';`, '-f', 'tests/support/fixtures/personas.sql'],
     { stdio: 'inherit' },
   );
   console.log('post-reset: 4 test personas seeded.');

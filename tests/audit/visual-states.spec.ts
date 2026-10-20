@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, signIn, testPassword } from '../e2e/helpers';
+import { PERSONA_EMAILS, signIn, testPassword } from '../support/e2e-helpers';
 import { DESKTOP, dir, pageHeight, settle, shootFolds, shootFullPage } from './sweep-lib';
 import { join } from 'node:path';
 

@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-const OUT = join(process.cwd(), '..', 'audit', '2026-09-08');
+const OUT = join(process.cwd(), '..', '.artifacts', 'audit', '2026-09-08');
 const GRID = 8;
 const ROLES = ['admin', 'recruiter', 'sourcer', 'bd'];
 
