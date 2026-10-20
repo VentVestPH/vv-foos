@@ -12,7 +12,7 @@ export default defineConfig({
   testDir: '../e2e',
   outputDir: `${ARTIFACTS}/playwright/e2e`,
 
-  workers: Number(process.env.FOOS_PW_WORKERS ?? 4),
+  workers: Number(process.env.FOOS_PW_WORKERS ?? 3),
   maxFailures: Number(process.env.FOOS_PW_MAX_FAILURES ?? 1),
   reporter: [['line']],
   timeout: 30000,

@@ -76,10 +76,11 @@ Move a check down a layer whenever it can be asserted there. A browser test that
 | Command | Runs | Needs the stack |
 | :---- | :---- | :---- |
 | `npm run gate:quick` | static checks, all guard scripts, dead-code check, unit tests, in parallel | no |
+| `npm run gate:affected` | quick, then only the integration tests and browser areas your diff against `develop` can reach (`scripts/affected.mjs` maps files to areas), everything when shared code changed | when the diff reaches them |
 | `npm run gate` | quick, then build and integration tests, the browser suite, then the database checks | yes |
 | `npm run gate:data` | importer dry run and backfill against the Zoho export | yes |
 
-The browser suite does not stop at the first failure inside the gate, so one run lists every failing test. Locally, the browser run stops at the first failure (`FOOS_PW_MAX_FAILURES=0` lifts that). `FOOS_PW_WORKERS`, `FOOS_BASE_URL`, `FOOS_PORT` and `FOOS_SKIP_WEBSERVER=1` tune the browser run.
+The browser suite does not stop at the first failure inside the gate, so one run lists every failing test. Locally, the browser run stops at the first failure (`FOOS_PW_MAX_FAILURES=0` lifts that). `FOOS_PW_WORKERS` (default 3, which measured faster and cleaner than 4 or 5 on this machine), `FOOS_BASE_URL`, `FOOS_PORT` and `FOOS_SKIP_WEBSERVER=1` tune the browser run.
 
 ## Artifacts
 

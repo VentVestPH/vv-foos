@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # The verification gate, staged so the cheapest feedback comes first.
 #
-#   gate.sh quick [N]   static checks, guards and unit tests, in parallel. No database.
+#   gate.sh quick [N]   static checks, guards, unit and tooling tests, in parallel. No database.
+#   gate.sh affected    quick, plus only the integration and browser areas your diff against
+#                       develop can reach (scripts/affected.mjs maps files to areas). Falls
+#                       back to everything when shared code changed.
 #   gate.sh full  [N]   quick, then build and integration tests, then the browser suite,
 #                       then the database checks. The default.
 #   gate.sh data  [N]   the checks that compare the local database with the Zoho export:
@@ -20,8 +23,8 @@ MODE=full
 PASSES=1
 for arg in "$@"; do
   case "$arg" in
-    quick|full|data) MODE="$arg" ;;
-    ''|*[!0-9]*) printf 'usage: gate.sh [quick|full|data] [passes]\n' >&2; exit 2 ;;
+    quick|affected|full|data) MODE="$arg" ;;
+    ''|*[!0-9]*) printf 'usage: gate.sh [quick|affected|full|data] [passes]\n' >&2; exit 2 ;;
     *) PASSES="$arg" ;;
   esac
 done
@@ -104,6 +107,7 @@ static_stage() {
   start comments      node scripts/check-comments.mjs
   start migrations    node scripts/check-migrations.mjs
   start unit          npm run test:unit --workspace=tests
+  start tooling       node --test "tests/tooling/*.test.mjs"
   wait
   finish
 }
@@ -117,10 +121,11 @@ build_and_integration_stage() {
 }
 
 browser_stage() {
-  stage "browser suite"
+  stage "browser suite${*:+ ($*)}"
   local json="$ARTIFACTS/browser-pass-${PASS_LABEL:-1}.json"
+  rm -f "$json"
   start browser env FOOS_PW_MAX_FAILURES=0 PLAYWRIGHT_JSON_OUTPUT_NAME="$json" \
-    npm run e2e --workspace=tests -- --retries=0 --reporter=line,json
+    npm run e2e --workspace=tests -- --retries=0 --reporter=line,json "$@"
   wait
   finish || {
     if [ -s "$json" ]; then
@@ -201,11 +206,42 @@ data_stage() {
   finish
 }
 
+affected_stage() {
+  local plan all integration targets files
+  plan="$(node scripts/affected.mjs "${AFFECTED_BASE:-develop}")"
+  all="$(node -p 'JSON.parse(process.argv[1]).all' "$plan")"
+  integration="$(node -p 'JSON.parse(process.argv[1]).integration' "$plan")"
+  targets="$(node -p 'JSON.parse(process.argv[1]).targets.join(" ")' "$plan")"
+  files="$(node -p 'JSON.parse(process.argv[1]).reasons.length' "$plan")"
+  printf -- '-- affected: %s file(s) reach %s\n' "$files" "${targets:-no browser area}"
+  local fail=0
+  if [ "$integration" = true ] || [ "$all" = true ]; then
+    build_and_integration_stage || fail=1
+  else
+    stage "build"
+    start build npm run build --workspace=app
+    wait
+    finish || fail=1
+  fi
+  if [ -n "$targets" ]; then
+    # shellcheck disable=SC2086
+    browser_stage $targets || fail=1
+  fi
+  if [ "$integration" = true ]; then
+    database_stage || fail=1
+  fi
+  return $fail
+}
+
 one_pass() {
   local fail=0
   case "$MODE" in
     quick)
       static_stage || fail=1
+      ;;
+    affected)
+      static_stage || fail=1
+      affected_stage || fail=1
       ;;
     full)
       static_stage || fail=1
