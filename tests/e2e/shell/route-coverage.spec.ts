@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
-const APP = fileURLToPath(new URL('../../app/src', import.meta.url));
+const APP = fileURLToPath(new URL('../../../app/src', import.meta.url));
 
 const MODULE_MOUNTS: Record<string, string> = {
   recruit: '/recruit',
