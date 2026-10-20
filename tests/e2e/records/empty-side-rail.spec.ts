@@ -3,25 +3,26 @@ import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../../support/e2e-helper
 import { clientAs } from '../../support/env';
 
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
-const NOTE = `QA rail ${RUN}`;
-let contactId: string | null = null;
+let contactId = '';
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const admin = await clientAs('admin');
-  const { data } = await admin.from('contact_list').select('person_id').order('person_id').limit(1);
-  contactId = (data?.[0]?.person_id as string) ?? null;
-  expect(contactId, 'a contact to inspect').toBeTruthy();
-  await admin
-    .from('activities')
-    .delete()
-    .like('subject', 'QA rail %')
-    .eq('body', 'written by the empty-rail test')
-    .lt('occurred_at', new Date(Date.now() - 10 * 60 * 1000).toISOString());
+  const person = await admin
+    .from('people')
+    .insert({ first_name: 'Qsrail', last_name: `Contact${RUN}`, is_test: true })
+    .select('id')
+    .single();
+  expect(person.error, person.error?.message).toBeNull();
+  contactId = person.data?.id ?? '';
+  const profile = await admin.from('contact_profiles').insert({ person_id: contactId });
+  expect(profile.error, profile.error?.message).toBeNull();
 });
 
 test.afterEach(async () => {
   const admin = await clientAs('admin');
-  await admin.from('activities').delete().like('subject', `${NOTE}%`);
+  await admin.from('activities').delete().eq('person_id', contactId);
+  const { error } = await admin.from('people').delete().eq('id', contactId);
+  if (error) throw new Error(`could not remove the empty-rail fixture: ${error.message}`);
 });
 
 test('B6: the tab strip renders on an untouched record, so the kinds on offer are visible', async ({
@@ -48,7 +49,7 @@ test('B6: the rail comes back as soon as there is something to show', async ({ p
   const admin = await clientAs('admin');
   const { error } = await admin.from('activities').insert({
     kind: 'note',
-    subject: `${NOTE} note`,
+    subject: `QA rail ${RUN} note`,
     body: 'written by the empty-rail test',
     occurred_at: new Date().toISOString(),
     person_id: contactId,
