@@ -47,7 +47,7 @@ Eight folders and 47 files were deleted in three passes. All of them are the wor
 | `03-plan/goal-armed/` briefs for goals 1 to 5 and 7 to 11 | Those goals are complete, so the brief can never usefully be armed again. `goal-6.md` and `_always.md` remain |
 | `reference/` Drive source index | The Drive pull finished on 2026-09-09 |
 | `ux-and-motion/` UX and Motion Discovery spec | Workstreams G and R are 10 of 10 and 8 of 8. Its survey was also 80 percent out: it counted 76 `.tsx` files, 13,792 lines and 7 stylesheets against 137, 24,819 and 21 today |
-| `01-current-state/` | Superseded. The inventory is now `reference/`, and the defect register is `tests/DEFECT_LOG.md` |
+| `01-current-state/` | Superseded. The inventory is now `reference/`, and the defect register is `tests/qa/DEFECT_LOG.md` |
 | `02-taleo-fidelity/` | Workstream C is 17 of 17 |
 | `04-research/` | One-off research whose conclusions are absorbed into the plan |
 | `06-notes/` | A single session note, superseded by the second brain |

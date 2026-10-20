@@ -7,6 +7,10 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
@@ -21,6 +25,7 @@ jobs:
       - run: npm run lint --workspace=app
       - run: npm run typecheck --workspace=app
       - run: npm run typecheck --workspace=tests
+      - run: npm run test:unit --workspace=tests
       - run: npm run build --workspace=app
       - run: node scripts/check-contrast.mjs
       - run: node scripts/check-motion.mjs
@@ -69,7 +74,7 @@ jobs:
         run: psql -h localhost -U postgres -d foos -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
   integration:
-    # The full stack: Supabase containers, 269 API/RLS tests and 312 browser
+    # The full stack: Supabase containers, the integration tests and the browser
     # specs. Roughly 40 seconds for frontend and schema against 10 to 15 minutes
     # for this.
     #
@@ -143,9 +148,9 @@ jobs:
       - name: Validate the schema
         run: psql "postgresql://postgres:postgres@127.0.0.1:56322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/validate.sql
 
-      - name: API and RLS tests
+      - name: Integration tests
         if: matrix.shard == 1
-        run: npm run test --workspace=tests
+        run: npm run test:integration --workspace=tests
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -160,7 +165,5 @@ jobs:
         if: failure()
         with:
           name: playwright-artifacts-shard-${{ matrix.shard }}
-          path: |
-            tests/test-results/
-            tests/playwright-report/
+          path: .artifacts/playwright/
           retention-days: 7
