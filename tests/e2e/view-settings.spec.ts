@@ -95,6 +95,43 @@ test('V2: the section gear hides an accordion and remembers it', async ({ page }
   await expect(page.getByRole('button', { name: /^Approvals/ })).toBeVisible();
 });
 
+test('V2b: a choice made before the saved settings arrive is kept, and then saved', async ({ page }) => {
+  test.setTimeout(120000);
+  let release = (): void => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/rest/v1/integration_settings?*key=eq.ui.sections.recruit.requisition.record*', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    const stale = await route.fetch();
+    await held;
+    await route.fulfill({ response: stale });
+  });
+
+  await page.goto(`/recruit/requisitions/${SEEDED_REQUISITION}`);
+  await page.getByRole('button', { name: 'Section settings' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Section settings' });
+  await expect(dialog).toBeVisible({ timeout: 25000 });
+  await dialog.getByRole('checkbox', { name: 'Approvals:', exact: true }).uncheck();
+  await dialog.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByRole('button', { name: /^Approvals/ })).toHaveCount(0);
+
+  release();
+  await expect(page.getByRole('button', { name: 'Section settings' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /^Approvals/ }),
+    'the late read of the saved settings must not bring the section back',
+  ).toHaveCount(0);
+
+  await page.unroute('**/rest/v1/integration_settings?*key=eq.ui.sections.recruit.requisition.record*');
+  await page.reload();
+  await expect(page.locator('.record-section').first()).toBeVisible({ timeout: 25000 });
+  await expect(page.getByRole('button', { name: /^Approvals/ }), 'and the choice was saved').toHaveCount(0);
+});
+
 test('V3: a section can be told to open on page load', async ({ page }) => {
   test.setTimeout(120000);
   await gotoAsSignedIn(page, `/recruit/requisitions/${SEEDED_REQUISITION}`);
