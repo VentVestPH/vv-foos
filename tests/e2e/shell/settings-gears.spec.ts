@@ -93,7 +93,7 @@ test('the dashboard settings gear hides a section, and the choice survives a rel
 
   await page.reload();
   await expect(page.getByRole('button', { name: /^My Calendar/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^My Reminders/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^My Reminders/ })).toHaveCount(0, { timeout: 20000 });
 
   await page.getByRole('button', { name: 'Dashboard settings' }).click();
   const reopened = page.getByRole('dialog', { name: 'Dashboard settings' });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useSession } from '../auth/SessionProvider';
 import { KanbanBoard } from '../components/ui/KanbanBoard';
@@ -35,32 +35,30 @@ export function MyTaskBoard({ refreshKey = 0 }: { refreshKey?: number }) {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const showSkeleton = useMinimumVisible(loading);
+  const movesInFlight = useRef(0);
 
   const load = useCallback(async () => {
-    if (!staff?.id) return;
+    if (!staff?.id || movesInFlight.current > 0) return;
     const results = await Promise.all(
-      COLUMNS.map((column) =>
-        supabase
+      COLUMNS.map(async (column) => {
+        const { data, error, count } = await supabase
           .from('tasks')
           .select('id, subject, due_date, priority', { count: 'exact' })
           .eq('assignee_id', staff.id)
           .in('status', [...column.statuses])
           .order('due_date', { ascending: true, nullsFirst: false })
           .order('id')
-          .limit(COLUMN_LIMIT),
-      ),
+          .limit(COLUMN_LIMIT);
+        return { column, rows: data ?? [], count: count ?? 0, failed: error !== null };
+      }),
     );
-    if (results.some((r) => r.error)) {
+    if (results.some((r) => r.failed)) {
       setStatus('Could not load your tasks.');
       setLoading(false);
       return;
     }
-    setTasks(
-      results.flatMap((r, i) =>
-        (r.data ?? []).map((t) => ({ ...t, column: COLUMNS[i]!.key })),
-      ),
-    );
-    setCounts(Object.fromEntries(results.map((r, i) => [COLUMNS[i]!.key, r.count ?? 0])));
+    setTasks(results.flatMap(({ column, rows }) => rows.map((t) => ({ ...t, column: column.key }))));
+    setCounts(Object.fromEntries(results.map(({ column, count }) => [column.key, count])));
     setLoading(false);
   }, [staff?.id]);
 
@@ -82,12 +80,14 @@ export function MyTaskBoard({ refreshKey = 0 }: { refreshKey?: number }) {
         [from]: Math.max(0, (prev[from] ?? 0) - 1),
         [target.key]: (prev[target.key] ?? 0) + 1,
       }));
+      movesInFlight.current += 1;
       void supabase
         .from('tasks')
         .update({ status: target.writes })
         .eq('id', taskId)
         .select('id')
         .then(({ data, error }) => {
+          movesInFlight.current -= 1;
           if (error || !data?.length) {
             setStatus(`Could not move "${task.subject}".`);
             void load();

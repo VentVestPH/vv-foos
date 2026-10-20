@@ -111,8 +111,7 @@ export function Select({
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const all = items.map((item, index) => ({ item, index }));
-    return needle === '' ? all : all.filter(({ item }) => item.label.toLowerCase().includes(needle));
+    return needle === '' ? items : items.filter((item) => item.label.toLowerCase().includes(needle));
   }, [items, query]);
   const location = useLocation();
 
@@ -172,7 +171,7 @@ export function Select({
 
   const commit = useCallback(
     (index: number, refocus: boolean) => {
-      const item = shown[index]?.item;
+      const item = shown[index];
       if (item !== undefined && item.value !== current) {
         onChange?.({ target: { value: item.value, name: name ?? '' } });
       }
@@ -386,7 +385,7 @@ export function Select({
                   No matches
                 </li>
               )}
-              {shown.map(({ item: o }, i) => (
+              {shown.map((o, i) => (
                 <li
                   key={o.value}
                   id={`${selectId}-opt-${i}`}
@@ -420,23 +419,23 @@ export function Select({
     );
   }
 
+  const labelNode =
+    label === undefined ? null : (
+      <label className="field-label" id={labelId} htmlFor={selectId}>
+        {label}
+        {required === true && <span className="field-required"> *</span>}
+      </label>
+    );
+
   return (
     <div className="field">
       {label !== undefined && help !== undefined ? (
         <div className="field-label-row">
-          <label className="field-label" id={labelId} htmlFor={selectId}>
-            {label}
-            {required === true && <span className="field-required"> *</span>}
-          </label>
+          {labelNode}
           <FieldHelp label={label}>{help}</FieldHelp>
         </div>
       ) : (
-        label !== undefined && (
-          <label className="field-label" id={labelId} htmlFor={selectId}>
-            {label}
-            {required === true && <span className="field-required"> *</span>}
-          </label>
-        )
+        labelNode
       )}
       {trigger}
       {name !== undefined && <input type="hidden" name={name} value={current} />}
