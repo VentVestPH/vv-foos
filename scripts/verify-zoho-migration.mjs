@@ -38,7 +38,7 @@ function psqlScript(sql) {
 }
 
 const BULK = 'migration/zoho-exports/bulk';
-const SCRATCH = resolve(process.env.FOOS_VERIFY_TMP ?? '.verify');
+const SCRATCH = resolve(process.env.FOOS_VERIFY_TMP ?? '.artifacts/verify');
 mkdirSync(SCRATCH, { recursive: true });
 
 const MODULES = [

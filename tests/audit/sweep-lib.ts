@@ -2,16 +2,16 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Locator, Page } from '@playwright/test';
 
-export const OUT = join(process.cwd(), '..', 'audit', '2026-09-08');
+const OUT = join(process.cwd(), '..', '.artifacts', 'audit', '2026-09-08');
 export const DESKTOP = { width: 1440, height: 900 };
 
-export const DESTRUCTIVE =
+const DESTRUCTIVE =
   /delete|remove|purge|erase|merge|archive|deactivate|send|invite|sign out|logout|log out/i;
 
-export const MUTATING =
+const MUTATING =
   /^\d+ stars?\b|\bstars? for\b|grade comment|^complete$|^dismiss$|^shortlist$|^flag$|^applied$|^save\b|^submit$|^go!$|^approve|^reject|^convert|^promote|^advance(?!d)|^hire\b|^publish|^assign|^set /i;
 
-export const STAGE_BUTTON = /^(lead|qualified|proposal|negotiation|won|lost|received|screening|client_interview|offer|hired|rejected|withdrawn)\b/i;
+const STAGE_BUTTON = /^(lead|qualified|proposal|negotiation|won|lost|received|screening|client_interview|offer|hired|rejected|withdrawn)\b/i;
 
 export function repeatKey(name: string): string {
   return name
@@ -24,7 +24,7 @@ export function repeatKey(name: string): string {
 
 export const REPEAT_CAP = 2;
 
-export const BLOCKING = /^print\b|\bprint\b/i;
+const BLOCKING = /^print\b|\bprint\b/i;
 
 export function skipReason(name: string): string | null {
   if (BLOCKING.test(name))
@@ -134,7 +134,7 @@ export async function pageHeight(page: Page): Promise<number> {
   return (await findScroller(page)).scrollHeight;
 }
 
-export const TALL_VIEWPORT_CAP = 9000;
+const TALL_VIEWPORT_CAP = 9000;
 
 export async function shootTallViewport(page: Page, path: string): Promise<{ viewport: number; content: number }> {
   let needed = DESKTOP.height;
@@ -335,7 +335,7 @@ const READ_STATE = `(() => {
   return { kind, fp, closing };
 })()`;
 
-export class RendererStalled extends Error {}
+class RendererStalled extends Error {}
 
 export async function raceTimeout<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
@@ -372,10 +372,6 @@ export async function settledState(page: Page, capMs = 2000): Promise<PageState>
 
 export async function overlayKind(page: Page): Promise<OverlayKind> {
   return (await readState(page)).kind;
-}
-
-export async function overlayOpen(page: Page): Promise<boolean> {
-  return (await overlayKind(page)) !== null;
 }
 
 export async function fingerprint(page: Page): Promise<string> {

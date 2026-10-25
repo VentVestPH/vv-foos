@@ -24,10 +24,13 @@ supabase/functions/**/node_modules/
 # OS
 .DS_Store
 
-# Playwright run artifacts (traces, screenshots, error contexts)
-tests/test-results/
-test-results/
-tests/playwright-report/
+# Every generated artifact lives under .artifacts/: Playwright output, gate
+# logs, the Zoho verification scratch and audit captures (those render real
+# candidate names). One folder to clear, one rule to ignore.
+.artifacts/
+
+# Cloudflare wrangler working files
+.wrangler/
 
 # Zoho export files: real candidate and customer PII. Never committed.
 migration/zoho-exports/
@@ -39,14 +42,6 @@ tests/.scratch-audit/
 
 # knip cache
 .knip/
-
-.gate/
-.verify
-
-# Audit output: screenshots render real candidate names. Never committed.
-# Covers every dated run, audit/2026-09-08/ and every one after it. The old narrow
-# rule named audit/corpus/ only, so a dated sibling was not ignored at all.
-audit/*/
 
 # armed goal + reminder throttle stamp, per-session state
 .claude/goal-armed.md

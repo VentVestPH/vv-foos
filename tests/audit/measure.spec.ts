@@ -1,8 +1,8 @@
 import { test } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../e2e/helpers';
-import { ROUTES, VIEWPORTS, resolveIds, resolvePath } from './routes';
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../support/e2e-helpers';
+import { ROUTES, VIEWPORTS, resolveIds, resolvePath } from '../support/routes';
 import { CORPUS, guardWrites, settle } from './capture';
 
 interface ControlMetric {
@@ -74,7 +74,7 @@ test('measure: control geometry and density', async ({ page }) => {
     for (const route of ROUTES) {
       const path = resolvePath(route, ids);
       if (path === null) continue;
-      await guardWrites(page, route.id);
+      await guardWrites(page);
       await gotoAsSignedIn(page, path);
       await settle(page, 900);
       try {

@@ -1,8 +1,8 @@
 import { test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { clientAs } from '../env';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../e2e/helpers';
+import { clientAs } from '../support/env';
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../support/e2e-helpers';
 import { CORPUS, settle } from './capture';
 
 const RUN = `${process.pid}-${Math.random().toString(36).slice(2, 7)}`;

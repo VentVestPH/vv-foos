@@ -48,7 +48,7 @@ It is safe here in a way it is not elsewhere. **Nothing in the schema references
 
 **The UI does not decide who may delete what; `intake_items_delete` does.** The policy is admin anything, recruiter candidate items, sourcer their own candidate submissions, bd contact items. Mirroring that predicate in the client would be a second hand-maintained list that drifts from the first, which is the failure this codebase already has a rule about. Instead the delete runs `.delete().in('id', ids).select('id')`, and PostgREST returns only the rows that actually went. The difference between what was asked for and what came back is what the notice reports: `3 of 5 deleted. 2 left in place, because your role cannot remove them.`
 
-Verified against the live policy rather than assumed: with one candidate item and one contact item selected, a `bd` sign-in deleted the contact and silently left the candidate; an `admin` sign-in then removed the candidate. `I18` in `tests/e2e/intake-list.spec.ts` holds that behaviour.
+Verified against the live policy rather than assumed: with one candidate item and one contact item selected, a `bd` sign-in deleted the contact and silently left the candidate; an `admin` sign-in then removed the candidate. `I18` in `tests/e2e/intake/intake-list.spec.ts` holds that behaviour.
 
 ## Why the queue was empty
 

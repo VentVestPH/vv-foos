@@ -12,6 +12,8 @@
     "db:reset": "node scripts/local.mjs reset",
     "db:validate": "node scripts/local-db.mjs validate",
     "test": "npm run test --workspace=tests",
+    "test:unit": "npm run test:unit --workspace=tests",
+    "test:integration": "npm run test:integration --workspace=tests",
     "test:e2e": "npm run e2e --workspace=tests",
     "db:seed:personas": "node scripts/post-reset.mjs --personas-only",
     "db:seed:tickets:local": "node scripts/seed-local-tickets.mjs",
@@ -23,12 +25,16 @@
     "check:licences": "node scripts/check-licences.mjs --list",
     "check:dead": "knip",
     "gate": "bash scripts/gate.sh",
+    "gate:quick": "bash scripts/gate.sh quick",
+    "gate:affected": "bash scripts/gate.sh affected",
+    "gate:data": "bash scripts/gate.sh data",
     "deploy:pages": "npm run build --workspace=app && npx wrangler pages deploy app/dist --project-name \"${CF_PAGES_PROJECT:-foos}\" --commit-dirty=true",
     "local:check": "node scripts/local.mjs check",
     "local:start": "node scripts/local.mjs start",
     "local:stop": "node scripts/local.mjs stop",
     "local:status": "node scripts/local.mjs status",
-    "test:local-isolation": "node --test tests/local-isolation.test.mjs"
+    "test:local-isolation": "node --test tests/tooling/local-isolation.test.mjs",
+    "test:tooling": "node --test \"tests/tooling/*.test.mjs\""
   },
   "devDependencies": {
     "knip": "^6.34.0"

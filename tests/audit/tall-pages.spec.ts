@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, signIn } from '../e2e/helpers';
-import { ROUTES, resolveIds, resolvePath } from './routes';
+import { PERSONA_EMAILS, signIn } from '../support/e2e-helpers';
+import { ROUTES, resolveIds, resolvePath } from '../support/routes';
 import { DESKTOP, dir, findScroller, settle, shootTallViewport } from './sweep-lib';
 import { join } from 'node:path';
 

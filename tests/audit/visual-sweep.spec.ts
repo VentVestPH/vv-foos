@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../e2e/helpers';
-import { ROUTES, resolveIds, resolvePath } from './routes';
+import { PERSONA_EMAILS, gotoAsSignedIn, signIn } from '../support/e2e-helpers';
+import { ROUTES, resolveIds, resolvePath } from '../support/routes';
 import {
   DESKTOP,
   type ActedRow,

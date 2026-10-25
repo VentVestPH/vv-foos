@@ -2,15 +2,18 @@
   "name": "foos-qa",
   "version": "0.1.0",
   "private": true,
-  "description": "Agent 8 (QA) test suite \u2014 API/RLS/logic tests (Vitest) and browser flow tests (Playwright) against the live FOOS Supabase project. See README.md for the one-command run and required env vars.",
+  "description": "FOOS test suite: unit and integration tests (Vitest), browser tests (Playwright) and the audit harness. tests/README.md is the map.",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "e2e": "playwright test",
+    "test": "vitest run --workspace config/vitest.workspace.ts --no-file-parallelism",
+    "test:unit": "vitest run --workspace config/vitest.workspace.ts --project unit",
+    "test:integration": "vitest run --workspace config/vitest.workspace.ts --project integration --no-file-parallelism",
+    "test:watch": "vitest --workspace config/vitest.workspace.ts --project unit",
+    "e2e": "playwright test -c config/playwright.config.ts",
+    "audit": "playwright test -c config/playwright.audit.config.ts",
     "e2e:install": "playwright install --with-deps chromium",
     "typecheck": "tsc --noEmit",
-    "cwv": "node scripts/measure-cwv.mjs"
+    "cwv": "node perf/measure-cwv.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",

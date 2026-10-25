@@ -18,18 +18,19 @@
     },
     "tests": {
       "entry": [
-        "api/**/*.test.ts",
         "unit/**/*.test.ts",
-        "mocks/**/*.test.ts",
-        "e2e/**/*.spec.ts"
+        "integration/**/*.test.ts",
+        "e2e/**/*.spec.ts",
+        "config/vitest.workspace.ts",
+        "support/setup.ts"
       ],
       "project": [
         "**/*.ts"
       ],
       "playwright": {
         "config": [
-          "playwright.config.ts",
-          "playwright.audit.config.ts"
+          "config/playwright.config.ts",
+          "config/playwright.audit.config.ts"
         ]
       }
     }

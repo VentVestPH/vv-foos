@@ -157,6 +157,6 @@ A static check for "a `:hover` rule that recolours without a matching transition
 
 ## Related
 
-- `tests/DEFECT_LOG.md` — QA-049, QA-055 to QA-061 carry the run ids and verbatim failures
+- `tests/qa/DEFECT_LOG.md` — QA-049, QA-055 to QA-061 carry the run ids and verbatim failures
 - `CLAUDE.md` — the test-caveat list, fifteen items
 - `scripts/ci-parity.sh`

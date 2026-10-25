@@ -89,6 +89,8 @@ export function CandidateListPage() {
   } = useSubmittedSearch();
 
   const [filters, setFilters] = useState<CandFilters>(() => ({
+    firstName: params.get('first_name') ?? '',
+    lastName: params.get('last_name') ?? '',
     statusId: params.get('status') ?? '',
     starGrade: params.get('star_grade') ?? '',
     sourceId: params.get('source_id') ?? '',
@@ -121,6 +123,8 @@ export function CandidateListPage() {
   const applyWhere = useCallback(
     (q: CandidateQuery): CandidateQuery => {
       let out = q;
+      if (filters.firstName.trim()) out = out.ilike('first_name', `%${likeLiteral(filters.firstName.trim())}%`);
+      if (filters.lastName.trim()) out = out.ilike('last_name', `%${likeLiteral(filters.lastName.trim())}%`);
       if (filters.statusId) out = out.eq('status_id', filters.statusId);
       if (filters.starGrade) out = out.eq('star_grade', Number(filters.starGrade));
       if (filters.sourceId) out = out.eq('source_id', filters.sourceId);

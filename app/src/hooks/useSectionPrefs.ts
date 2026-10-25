@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 import { supabase } from '../lib/supabase';
 
@@ -37,21 +37,25 @@ export function useSectionPrefs(scope: string): SectionPrefs {
   const key = `ui.sections.${scope}`;
   const [hidden, setHidden] = useState<string[]>([]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const [rowId, setRowId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const rowIdRef = useRef<string | null>(null);
+  const changedRef = useRef(false);
+  const queueRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
+    rowIdRef.current = null;
+    changedRef.current = false;
     if (!staffId) {
       setHidden([]);
       setOpen({});
-      setRowId(null);
       setReady(true);
+      queueRef.current = Promise.resolve();
       return;
     }
     let cancelled = false;
     setReady(false);
-    void supabase
+    const loaded = supabase
       .from('integration_settings')
       .select('id, value')
       .eq('staff_id', staffId)
@@ -60,11 +64,14 @@ export function useSectionPrefs(scope: string): SectionPrefs {
       .then(({ data, error: readError }) => {
         if (cancelled) return;
         if (readError) setError(readError.message);
-        setRowId(data?.id ?? null);
-        setHidden(readHidden(data?.value));
-        setOpen(readOpen(data?.value));
+        rowIdRef.current = data?.id ?? null;
+        if (!changedRef.current) {
+          setHidden(readHidden(data?.value));
+          setOpen(readOpen(data?.value));
+        }
         setReady(true);
       });
+    queueRef.current = Promise.resolve(loaded).then(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -72,16 +79,17 @@ export function useSectionPrefs(scope: string): SectionPrefs {
 
   const persist = useCallback(
     (next: string[], nextOpen: Record<string, boolean>) => {
+      changedRef.current = true;
       setHidden(next);
       setOpen(nextOpen);
       if (!staffId) return;
       const value = { hidden: next, open: nextOpen };
-      void (async () => {
-        if (rowId) {
+      queueRef.current = queueRef.current.then(async () => {
+        if (rowIdRef.current) {
           const { error: updateError } = await supabase
             .from('integration_settings')
             .update({ value, updated_at: new Date().toISOString() })
-            .eq('id', rowId);
+            .eq('id', rowIdRef.current);
           setError(updateError ? updateError.message : null);
           return;
         }
@@ -95,10 +103,12 @@ export function useSectionPrefs(scope: string): SectionPrefs {
           return;
         }
         setError(null);
-        setRowId(data?.id ?? null);
-      })();
+        rowIdRef.current = data?.id ?? null;
+      }).catch((writeError: unknown) => {
+        setError(writeError instanceof Error ? writeError.message : String(writeError));
+      });
     },
-    [staffId, key, rowId],
+    [staffId, key],
   );
 
   const toggle = useCallback(

@@ -7,11 +7,13 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { useScrollShadow } from '../../hooks/useScrollShadow';
+import { FieldHelp } from './FieldHelp';
 
 interface SelectOption {
   value: string;
@@ -24,6 +26,7 @@ interface SelectChangeEvent {
 
 interface SelectProps {
   label?: string;
+  help?: ReactNode;
   error?: string | undefined;
   options: SelectOption[];
   placeholder?: string;
@@ -41,7 +44,6 @@ interface SelectProps {
   onChange?: (event: SelectChangeEvent) => void;
 }
 
-const TYPEAHEAD_RESET_MS = 500;
 const PAGE_STEP = 10;
 const MENU_MAX_H = 320;
 const MENU_GAP = 2;
@@ -59,6 +61,7 @@ const MENU_EXIT_MS = 90;
 
 export function Select({
   label,
+  help,
   error,
   options,
   placeholder,
@@ -97,12 +100,19 @@ export function Select({
   const [closing, setClosing] = useState(false);
   const exitTimer = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(selectedIndex >= 0 ? selectedIndex : 0);
+  const [query, setQuery] = useState('');
   const [placement, setPlacement] = useState<Placement | null>(null);
 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const menuRef = useRef<HTMLUListElement | null>(null);
-  const menuShadow = useScrollShadow<HTMLUListElement>();
-  const typed = useRef({ buffer: '', at: 0 });
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const menuShadow = useScrollShadow<HTMLDivElement>();
+
+  const shown = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return needle === '' ? items : items.filter((item) => item.label.toLowerCase().includes(needle));
+  }, [items, query]);
   const location = useLocation();
 
   const measure = useCallback(() => {
@@ -123,9 +133,9 @@ export function Select({
   }, [items.length]);
 
   const openMenu = useCallback(
-    (index: number) => {
+    (index: number, seed = '') => {
       if (disabled === true) return;
-      typed.current = { buffer: '', at: 0 };
+      setQuery(seed);
       keyboardNav.current = true;
       setActiveIndex(index);
       measure();
@@ -161,26 +171,28 @@ export function Select({
 
   const commit = useCallback(
     (index: number, refocus: boolean) => {
-      const item = items[index];
+      const item = shown[index];
       if (item !== undefined && item.value !== current) {
         onChange?.({ target: { value: item.value, name: name ?? '' } });
       }
       closeMenu(refocus);
     },
-    [closeMenu, current, items, name, onChange],
+    [closeMenu, current, shown, name, onChange],
   );
 
   const keyboardNav = useRef(false);
 
   useLayoutEffect(() => {
-    if (!open || items.length === 0 || !keyboardNav.current) return;
-    const list = menuRef.current;
+    if (!open || shown.length === 0 || !keyboardNav.current) return;
+    const list = listRef.current;
     if (list === null) return;
     const el = list.children[activeIndex];
-    if (el instanceof HTMLElement && list.scrollHeight > list.clientHeight) {
-      el.scrollIntoView({ block: 'nearest' });
-    }
-  }, [activeIndex, open, items.length]);
+    if (el instanceof HTMLElement) el.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex, open, shown.length]);
+
+  useEffect(() => {
+    if (open) searchRef.current?.focus({ preventScroll: true });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -211,76 +223,61 @@ export function Select({
     setClosing(false);
   }, [location.pathname]);
 
-  const jump = useCallback(
-    (char: string, from: number) => {
-      const now = Date.now();
-      const buffer =
-        now - typed.current.at < TYPEAHEAD_RESET_MS ? typed.current.buffer + char : char;
-      typed.current = { buffer, at: now };
-      const repeated = buffer.length > 1 && buffer.split('').every((c) => c === buffer[0]);
-      const needle = (repeated ? buffer[0] : buffer).toLowerCase();
-      const start = repeated ? from + 1 : 0;
-      for (let i = 0; i < items.length; i += 1) {
-        const index = (start + i) % items.length;
-        const item = items[index];
-        if (item !== undefined && item.label.toLowerCase().startsWith(needle)) return index;
-      }
-      return -1;
-    },
-    [items],
-  );
-
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     keyboardNav.current = true;
-    const last = items.length - 1;
     const alt = event.altKey;
-
-    if (!open) {
-      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+    if (open) {
+      if (event.key === 'Escape') {
         event.preventDefault();
-        openMenu(selectedIndex >= 0 ? selectedIndex : 0);
-        return;
-      }
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        openMenu(alt ? (selectedIndex >= 0 ? selectedIndex : 0) : 0);
-        return;
-      }
-      if (event.key === 'Home') {
-        event.preventDefault();
-        openMenu(0);
-        return;
-      }
-      if (event.key === 'End') {
-        event.preventDefault();
-        openMenu(last);
-        return;
-      }
-      if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !alt) {
-        const next = jump(event.key, activeIndex);
-        if (next >= 0) {
-          event.preventDefault();
-          openMenu(next);
-        }
+        closeMenu(true);
       }
       return;
     }
+    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openMenu(selectedIndex >= 0 ? selectedIndex : 0);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      openMenu(alt ? (selectedIndex >= 0 ? selectedIndex : 0) : 0);
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      openMenu(0);
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      openMenu(items.length - 1);
+      return;
+    }
+    if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !alt) {
+      event.preventDefault();
+      openMenu(0, event.key);
+    }
+  };
 
+  const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    keyboardNav.current = true;
+    const last = shown.length - 1;
     if (event.key === 'Escape') {
       event.preventDefault();
+      event.stopPropagation();
       closeMenu(true);
       return;
     }
     if (event.key === 'Tab') {
-      commit(activeIndex, false);
+      commit(activeIndex, true);
       return;
     }
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (event.key === 'Enter') {
       event.preventDefault();
       commit(activeIndex, true);
       return;
     }
-    if (event.key === 'ArrowUp' && alt) {
+    if (event.key === 'ArrowUp' && event.altKey) {
       event.preventDefault();
       commit(activeIndex, true);
       return;
@@ -295,16 +292,6 @@ export function Select({
       setActiveIndex((i) => Math.max(0, i - 1));
       return;
     }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      setActiveIndex(0);
-      return;
-    }
-    if (event.key === 'End') {
-      event.preventDefault();
-      setActiveIndex(last);
-      return;
-    }
     if (event.key === 'PageDown') {
       event.preventDefault();
       setActiveIndex((i) => Math.min(last, i + PAGE_STEP));
@@ -313,14 +300,6 @@ export function Select({
     if (event.key === 'PageUp') {
       event.preventDefault();
       setActiveIndex((i) => Math.max(0, i - PAGE_STEP));
-      return;
-    }
-    if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !alt) {
-      const next = jump(event.key, activeIndex);
-      if (next >= 0) {
-        event.preventDefault();
-        setActiveIndex(next);
-      }
     }
   };
 
@@ -341,7 +320,6 @@ export function Select({
       aria-describedby={error !== undefined ? errorId : undefined}
       aria-labelledby={label !== undefined ? labelId : undefined}
       aria-label={label === undefined ? ariaLabel : undefined}
-      aria-activedescendant={open ? `${selectId}-opt-${activeIndex}` : undefined}
       data-placeholder={selected === undefined || selected.value === '' ? 'true' : 'false'}
       onKeyDown={onKeyDown}
       onClick={() => (open ? closeMenu(false) : openMenu(selectedIndex >= 0 ? selectedIndex : 0))}
@@ -354,17 +332,14 @@ export function Select({
   const menu =
     (open || closing) && placement !== null
       ? createPortal(
-          <ul
+          <div
             ref={(el) => {
               menuRef.current = el;
               menuShadow(el);
             }}
-            id={listId}
-            role="listbox"
             className="field-select-menu fo-scroll-shade"
             data-fit-content={fitMenuContent ? 'true' : undefined}
             data-closing={closing ? 'true' : undefined}
-            aria-labelledby={label !== undefined ? labelId : undefined}
             style={{
               left: `${placement.left}px`,
               top: placement.above ? 'auto' : `${placement.top}px`,
@@ -374,30 +349,62 @@ export function Select({
               maxHeight: `${placement.maxHeight}px`,
             }}
           >
-            {items.length === 0 && (
-              <li className="field-select-empty" role="option" aria-disabled="true" aria-selected="false">
-                {emptyLabel}
-              </li>
-            )}
-            {items.map((o, i) => (
-              <li
-                key={o.value}
-                id={`${selectId}-opt-${i}`}
-                role="option"
-                className="field-select-option"
-                aria-selected={o.value === current}
-                data-active={i === activeIndex ? 'true' : 'false'}
-                onPointerDown={(event) => event.preventDefault()}
-                onClick={() => commit(i, true)}
-                onPointerMove={() => {
-                  keyboardNav.current = false;
-                  setActiveIndex(i);
+            <div className="field-select-search">
+              <input
+                ref={searchRef}
+                type="search"
+                className="field-select-search-input"
+                placeholder="Search…"
+                autoComplete="off"
+                spellCheck={false}
+                aria-label={`Search ${label ?? ariaLabel ?? 'options'}`}
+                aria-controls={listId}
+                aria-activedescendant={shown.length > 0 ? `${selectId}-opt-${activeIndex}` : undefined}
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setActiveIndex(0);
                 }}
-              >
-                {o.label}
-              </li>
-            ))}
-          </ul>,
+                onKeyDown={onSearchKeyDown}
+              />
+            </div>
+            <ul
+              ref={listRef}
+              id={listId}
+              role="listbox"
+              className="field-select-list"
+              aria-labelledby={label !== undefined ? labelId : undefined}
+            >
+              {items.length === 0 && (
+                <li className="field-select-empty" role="option" aria-disabled="true" aria-selected="false">
+                  {emptyLabel}
+                </li>
+              )}
+              {items.length > 0 && shown.length === 0 && (
+                <li className="field-select-empty" role="option" aria-disabled="true" aria-selected="false">
+                  No matches
+                </li>
+              )}
+              {shown.map((o, i) => (
+                <li
+                  key={o.value}
+                  id={`${selectId}-opt-${i}`}
+                  role="option"
+                  className="field-select-option"
+                  aria-selected={o.value === current}
+                  data-active={i === activeIndex ? 'true' : 'false'}
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={() => commit(i, true)}
+                  onPointerMove={() => {
+                    keyboardNav.current = false;
+                    setActiveIndex(i);
+                  }}
+                >
+                  {o.label}
+                </li>
+              ))}
+            </ul>
+          </div>,
           document.body,
         )
       : null;
@@ -412,13 +419,23 @@ export function Select({
     );
   }
 
+  const labelNode =
+    label === undefined ? null : (
+      <label className="field-label" id={labelId} htmlFor={selectId}>
+        {label}
+        {required === true && <span className="field-required"> *</span>}
+      </label>
+    );
+
   return (
     <div className="field">
-      {label !== undefined && (
-        <label className="field-label" id={labelId} htmlFor={selectId}>
-          {label}
-          {required === true && <span className="field-required"> *</span>}
-        </label>
+      {label !== undefined && help !== undefined ? (
+        <div className="field-label-row">
+          {labelNode}
+          <FieldHelp label={label}>{help}</FieldHelp>
+        </div>
+      ) : (
+        labelNode
       )}
       {trigger}
       {name !== undefined && <input type="hidden" name={name} value={current} />}

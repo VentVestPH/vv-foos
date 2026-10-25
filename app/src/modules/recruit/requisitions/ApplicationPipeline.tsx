@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, Star } from 'lucide-react';
+import { Download, Star, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../../auth/SessionProvider';
 import {
@@ -14,6 +14,7 @@ import { UnviewedBadge } from '../../../components/ui/UnviewedBadge';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { ActionMenu } from '../../../components/ui/ActionMenu';
+import { ConfirmDeleteDialog } from '../../../components/ui/ConfirmDeleteDialog';
 import { Pager } from '../../../components/ui/Pager';
 import { SegmentedToggle } from '../../../components/ui/SegmentedToggle';
 import { Table2 as TableIcon, Columns3 as KanbanIcon } from 'lucide-react';
@@ -127,6 +128,7 @@ export function ApplicationPipeline({
   const [promoteCompanyId, setPromoteCompanyId] = useState('');
   const [promoteMsg, setPromoteMsg] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState<AppRow | null>(null);
   const [editRowFields, setEditRowFields] = useState(false);
 
   useEffect(() => {
@@ -377,6 +379,16 @@ export function ApplicationPipeline({
     [canEdit, load],
   );
 
+  const removeApplication = useCallback(async () => {
+    if (!removing) return;
+    const { error: err } = await supabase.rpc('remove_candidate_from_requisition', {
+      p_application_id: removing.id,
+    });
+    if (err) throw new Error(err.message);
+    setRemoving(null);
+    await load();
+  }, [removing, load]);
+
   const columns = useMemo<TableColumn<AppRow>[]>(
     () => [
       {
@@ -484,6 +496,38 @@ export function ApplicationPipeline({
         header: 'Rejection reason',
         render: (r) => <CappedCell text={r.rejection_reason} />,
       },
+      ...(canEdit
+        ? [
+            {
+              key: 'remove',
+              header: 'Remove',
+              align: 'center' as const,
+              render: (r: AppRow) => {
+                const placed = r.stage === 'offer' || r.stage === 'hired';
+                const label = `Remove ${r.name} from this requisition`;
+                return (
+                  <button
+                    type="button"
+                    className="fo-icon-btn"
+                    aria-label={label}
+                    title={
+                      placed
+                        ? 'A candidate at offer or hired stays on the requisition as placement history'
+                        : label
+                    }
+                    disabled={placed}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRemoving(r);
+                    }}
+                  >
+                    <UserMinus size={20} aria-hidden="true" />
+                  </button>
+                );
+              },
+            },
+          ]
+        : []),
     ],
     [canEdit, editRowFields, openCandidate, toggleShortlist, setRank, setNextStep],
   );
@@ -702,6 +746,22 @@ export function ApplicationPipeline({
           />
           {promoteMsg && <p className="text-secondary">{promoteMsg}</p>}
         </Dialog>
+      )}
+
+      {removing && (
+        <ConfirmDeleteDialog
+          title="Remove candidate from requisition?"
+          confirmLabel="Remove from requisition"
+          busyLabel="Removing…"
+          onClose={() => setRemoving(null)}
+          onConfirm={removeApplication}
+        >
+          <p>
+            This removes {removing.name} from the requisition pipeline. Candidate details, contact
+            history, files, tasks, and reminders stay on the candidate record, and the removal is
+            recorded in the audit log.
+          </p>
+        </ConfirmDeleteDialog>
       )}
 
       {adding && (

@@ -300,12 +300,15 @@
   flex: none;
 }
 
-.panel-item-delete {
+.panel-item-delete,
+.panel-item-edit {
   opacity: 0;
 }
 
 .panel-item:hover .panel-item-delete,
-.panel-item:focus-within .panel-item-delete {
+.panel-item:hover .panel-item-edit,
+.panel-item:focus-within .panel-item-delete,
+.panel-item:focus-within .panel-item-edit {
   opacity: 1;
 }
 
@@ -495,10 +498,6 @@
   border-top: 0;
   min-height: var(--editor-min-h);
   resize: vertical;
-}
-
-.rq-pay-row {
-  --form-col-min: var(--pay-col-min);
 }
 
 .cand-flag-col {
@@ -724,4 +723,21 @@
   font-size: var(--fs-meta);
 }
 
+  .rq-form-group + .rq-form-group {
+    margin-top: var(--sp-4);
+  }
+
+  .rq-form-group-title {
+    margin: 0 0 var(--sp-1);
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--fo-text);
+  }
+
+  .rq-form-grid {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(max(var(--form-col-min), calc((100% - 2 * var(--sp-1-5)) / 3)), 1fr)
+    );
+  }
 }

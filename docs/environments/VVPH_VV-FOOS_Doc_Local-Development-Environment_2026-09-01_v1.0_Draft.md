@@ -15,7 +15,7 @@ supabase start                          # first run pulls images
 export FOOS_QA_TEST_PASSWORD='choose-a-local-value'
 psql "postgresql://postgres:postgres@127.0.0.1:56322/postgres" -v ON_ERROR_STOP=1 \
   -c "set foos.qa_test_password = '$FOOS_QA_TEST_PASSWORD';" \
-  -f tests/fixtures/personas.sql
+  -f tests/support/fixtures/personas.sql
 
 npm run dev --workspace=app             # http://localhost:5175, now pointed at local
 ```

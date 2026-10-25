@@ -253,14 +253,27 @@ export async function contactSearchHints(term: string): Promise<SearchHintResult
   };
 }
 
+function matchedElsewhere(
+  row: { full_name: string | null; current_title: string | null; current_employer: string | null; search_text: string | null },
+  words: string[],
+): string | null {
+  const shown = [row.full_name, row.current_title, row.current_employer].join(' ').toLowerCase();
+  const unseen = words.filter((word) => !shown.includes(word));
+  if (!unseen.length) return null;
+  const tokens = (row.search_text ?? '').split(' ');
+  const hit = tokens.find((token) => unseen.some((word) => token.includes(word)));
+  return hit ? `Matched: ${hit}` : null;
+}
+
 export async function candidateSearchHints(term: string): Promise<SearchHintResult> {
+  const words = searchWords(term);
   let query = supabase
     .from('candidate_list')
-    .select('person_id, full_name, current_title, current_employer', { count: 'exact' })
+    .select('person_id, full_name, current_title, current_employer, search_text', { count: 'exact' })
     .limit(HINT_LIMIT)
     .order('last_name', { ascending: true })
     .order('person_id', { ascending: true });
-  for (const word of searchWords(term)) query = query.ilike('search_text', like(word));
+  for (const word of words) query = query.ilike('search_text', like(word));
   const { data, count } = await query;
 
   return {
@@ -268,7 +281,8 @@ export async function candidateSearchHints(term: string): Promise<SearchHintResu
       key: `candidate:${r.person_id}`,
       primary: r.full_name ?? 'Unnamed',
       meta:
-        [r.current_title, r.current_employer].filter(Boolean).join(' · ') || 'Candidate',
+        matchedElsewhere(r, words) ??
+        ([r.current_title, r.current_employer].filter(Boolean).join(' · ') || 'Candidate'),
       href: `/recruit/candidates/${r.person_id}`,
     })),
     total: count ?? 0,

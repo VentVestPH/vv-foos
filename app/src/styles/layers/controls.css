@@ -216,10 +216,18 @@ input[type='checkbox']:disabled:indeterminate {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  padding: 0;
+  padding: 0 var(--sp-2);
   display: flex;
   flex-direction: column;
   gap: var(--sp-1-5);
+}
+
+.checkbox-list > :first-child {
+  margin-top: var(--sp-1);
+}
+
+.checkbox-list > :last-child {
+  margin-bottom: var(--sp-1);
 }
 
 
@@ -485,6 +493,43 @@ input[type='number']::-webkit-outer-spin-button {
   border: 1px solid var(--fo-border);
   border-radius: 0;
   box-shadow: var(--shadow-raised);
+}
+
+.field-select-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.field-select-search {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  padding: var(--sp-1);
+  background: var(--fo-surface);
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.field-select-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--cell-pad);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: var(--fo-text);
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius);
+}
+
+.field-select-search-input:focus-visible {
+  outline: none;
+  border-color: var(--fo-primary);
+}
+
+.field-select-menu {
+  scroll-padding-top: calc(var(--control-h) + var(--sp-2));
 }
 
 .field-select-option {
@@ -1485,4 +1530,31 @@ select:focus-visible {
   align-items: center;
   gap: var(--sp-1);
   flex-wrap: wrap;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+}
+
+.field-help {
+  position: relative;
+  display: inline-flex;
+}
+
+.field-help-pop {
+  position: absolute;
+  top: calc(100% + var(--sp-half));
+  left: 0;
+  z-index: var(--z-menu);
+  width: max-content;
+  max-width: 280px;
+  padding: var(--sp-1) var(--sp-1-5);
+  background: var(--fo-surface);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  color: var(--fo-text-secondary);
+  font-size: var(--fs-meta);
 }

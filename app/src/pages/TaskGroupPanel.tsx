@@ -19,7 +19,7 @@ interface TaskGroupPanelProps {
   emptyText: string;
 }
 
-const DONE = new Set(['done', 'complete', 'completed', 'closed']);
+const DONE = new Set(['done', 'complete', 'completed', 'closed', 'cancelled']);
 
 function dueLabel(due: string | null): string {
   if (!due) return 'No due date';
