@@ -1,4 +1,4 @@
-import { supabase, assertTarget } from './local-stack.mjs';
+import { supabase, assertTarget, apiTarget } from './local-stack.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -328,7 +328,7 @@ function normalise(value) {
   return unescapeEntities(s);
 }
 
-const db = createClient(assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote')), serviceKey(), {
+const db = createClient(assertTarget(apiTarget(), 'api', process.argv.includes('--allow-remote')), serviceKey(), {
   auth: { persistSession: false },
 });
 const lookups = await loadLookups(db);

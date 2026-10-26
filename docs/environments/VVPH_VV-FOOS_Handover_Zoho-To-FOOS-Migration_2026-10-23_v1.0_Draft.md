@@ -41,7 +41,9 @@ SUPABASE_SERVICE_ROLE_KEY=...
 DATABASE_URL=...
 ```
 
-Zoho allows 6,250 API calls a day for the whole org. A full pull uses about 2,500.
+`FOOS_SUPABASE_URL` is optional when a command carries `--allow-remote`: the scripts then fall back to `SUPABASE_URL`. Without `--allow-remote` they stay on the local stack whatever the file says.
+
+Zoho allows 6,250 API calls a day for the whole org. A full pull uses about 2,500. An incremental pull (Step 3) uses under 100.
 
 ## 3. The prompt
 
@@ -58,17 +60,21 @@ Run everything from the repo root. Each STOP is a point where Claude shows outpu
 **Step 1. Check the target and the keys (read-only)**
 
 1. Confirm `FOOS_SUPABASE_URL` and `DATABASE_URL` both contain `hilieyehhecrlccdveta`. Anything else, stop.
-2. `node migration/zoho-bulk-read.mjs --counts-only` prints how many records Zoho holds per module.
-3. Count what FOOS already holds:
+2. `node migration/zoho-bulk-read.mjs --counts-only --allow-remote` prints Zoho's count per module, then a table with one row per entity: records in Zoho, records in `zoho_id_map`, and the delta. It reads FOOS through `DATABASE_URL`, and it exits non-zero if any entity is short. The table already folds several modules into one entity, so no hand arithmetic is needed:
 
-```sql
-select entity_type, count(*) from zoho_id_map group by 1 order by 1;
-select count(*) from zoho_id_map;
-```
+| Entity | Zoho modules it sums |
+| :---- | :---- |
+| `company` | Recruit Clients + CRM Accounts (Departments is a duplicate of Clients and is ignored) |
+| `contact` | Recruit Contacts + CRM Contacts |
+| `note` | Recruit Notes + CRM Notes + CRM Leads (each lead writes one note) |
+| `todo`, `review`, `calendlyInvite`, `crmTask`, `crmEvent` | One module each |
+| `attachment` | No module count. Attachments are walked per record |
 
-After the 2026-09-09 load, `zoho_id_map` held 384,990 rows.
+A positive delta means FOOS holds records Zoho has since deleted. FOOS keeps them by design. A negative delta means records are missing.
 
-STOP 1. Show the Zoho counts next to the FOOS counts.
+After the 2026-09-09 load, `zoho_id_map` held 384,990 rows. After the 2026-10-27 top-up it held 385,298.
+
+STOP 1. Show the table.
 
 **Step 2. Back up**
 
@@ -83,7 +89,19 @@ The backup goes outside the repo. `audit_log` and `events_outbox` are excluded b
 
 **Step 3. Pull from Zoho and dry-run**
 
-If `migration/zoho-exports/bulk` already exists, rename it to `bulk-2026-09-09` first. If the folder is missing, that is fine.
+Pick one of two pulls.
+
+**Incremental (use this for a top-up).** It pulls only Recruit records created or updated since the newest `imported_at` in `zoho_id_map`, minus one day of overlap. CRM modules hold about 260 records in total and are re-pulled in full. It writes to `migration/zoho-exports/since-<date>/bulk` and leaves the full export alone.
+
+```sh
+node migration/zoho-users.mjs
+node migration/zoho-bulk-read.mjs --since auto --allow-remote
+node migration/import.mjs --entity all --dir migration/zoho-exports/since-<date> --create-only --allow-remote
+```
+
+`--create-only` inserts records FOOS does not hold and leaves every existing row exactly as it is. It reports existing rows as `skipped` with the reason `already imported, left as is (--create-only)`. Use it unless John wants Zoho's current values written over FOOS edits.
+
+**Full (first load, or to refresh values on purpose).** If `migration/zoho-exports/bulk` already exists, rename it to `bulk-<date of that pull>` first.
 
 ```sh
 node migration/zoho-users.mjs
@@ -91,7 +109,9 @@ node migration/zoho-bulk-read.mjs --budget 4000
 node migration/import.mjs --entity all --allow-remote
 ```
 
-`zoho-users.mjs` maps Zoho user ids to names. Without it, imported rows have no owner. The last command has no `--apply`, so it writes nothing. It leaves a report in `migration/out/zoho-import-*.json`.
+`zoho-users.mjs` maps Zoho user ids to names. Without it, imported rows have no owner. The import commands have no `--apply`, so they write nothing. Each leaves a report in `migration/out/zoho-import-*.json`.
+
+`zoho-bulk-read.mjs` rejects a flag it does not know and exits before any Zoho call. `--help` prints the flags.
 
 For each entity in the report:
 
@@ -120,18 +140,21 @@ node scripts/add-legacy-owners.mjs --apply --allow-remote
 node migration/import.mjs --entity all --apply --allow-remote
 ```
 
-If it stops partway, run the same command again.
+For an incremental pull, add the same `--dir migration/zoho-exports/since-<date> --create-only` that the dry run used. If it stops partway, run the same command again.
 
 Do not pass `--include-identity-documents` unless John asks.
 
 **Step 5. Verify**
 
 ```sh
+node scripts/reconcile-zoho.mjs --entity all --budget 2000 --allow-remote
 node scripts/verify-zoho-migration.mjs --allow-remote
 node scripts/verify-zoho-sample.mjs --size 12 --allow-remote
 ```
 
-The first checks the database against the export on disk and exits non-zero on any gap. The second pulls a random sample from Zoho and compares field by field. Check that every module lists records compared. A run that compares zero records is not a pass.
+`reconcile-zoho.mjs` lists every id Zoho holds and every id in `zoho_id_map`, per entity, and prints the ids Zoho has that FOOS lacks (`missing`) and the ids FOOS holds that Zoho no longer serves (`deleted upstream`). It is read-only and exits non-zero if anything is missing. Counts alone can hide a swap, where one record is deleted and another created, so this is the check that closes it. It costs about 1,900 list calls for `all`, and `note` is 1,060 of those. For a quick check pass the cheap entities: `--entity todo,review,calendlyInvite,crmTask,crmEvent,lead,company,contact` costs about 70. It refuses to start when its estimate is over `--budget`.
+
+`verify-zoho-migration.mjs` checks the database against the export on disk and exits non-zero on any gap. It is only meaningful when the export on disk is as fresh as the pull, so skip it after an incremental pull. `verify-zoho-sample.mjs` pulls a random sample from Zoho and compares field by field. Check that every module lists records compared. A run that compares zero records is not a pass. Records in the sample that Zoho no longer serves are reported separately. The script describes them as upstream deletion or a record the importer synthesised, and the 2026-10-27 run listed three CRM note ids there that were not traced.
 
 Then:
 
@@ -157,7 +180,8 @@ STOP 3. Send John the table with a Result column, the verifier output, the backu
 
 Read from the code on 2026-10-25, not run against live:
 
-- `scripts/import-new-zoho-records.mjs` (the delta script) refuses a live database URL, so it cannot see what is already mapped. Use the full pull in Step 3 instead. It costs more Zoho calls but works.
+- `scripts/import-new-zoho-records.mjs` (the old delta script) refuses a live database URL, so it cannot see what is already mapped. Use the incremental pull with `--create-only` in Step 3 instead.
+- The incremental pull sorts Recruit lists by `Modified_Time`, except Candidates and Applications, which use `Updated_On`. Sorting those two by `Modified_Time` returns an unrelated order with no error.
 - A bulk load of tens of thousands of new rows runs the audit triggers and writes fake events into `events_outbox`. A small update is fine. For a large one, ask John before Step 4: the 2026-09-09 method was to load locally and copy the data to live.
 - Not verified: that Roy's Self Client has the Recruit and CRM scopes the scripts need, and that the Zoho API behaves as it did on 2026-09-09. If Step 1 fails with `INVALID_CLIENT`, `ZOHO_DC` is usually wrong.
 - `migration/README.md` is stale on which scripts exist. This file is right where they differ.

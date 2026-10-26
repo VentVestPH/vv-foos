@@ -36,6 +36,12 @@ export function assertConfig(source = readFileSync(new URL('../supabase/config.t
   }
 }
 
+export function apiTarget(argv = process.argv, env = process.env) {
+  if (env.FOOS_SUPABASE_URL) return env.FOOS_SUPABASE_URL;
+  if (argv.includes('--allow-remote') && env.SUPABASE_URL) return env.SUPABASE_URL;
+  return 'http://127.0.0.1:56321';
+}
+
 export function assertTarget(value, kind = 'api', allowRemote = false) {
   const url = new URL(value);
   const loopback = ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);

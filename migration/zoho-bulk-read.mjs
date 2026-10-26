@@ -9,6 +9,44 @@ const valueOf = (f, d) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : d;
 };
 
+const USAGE = `Usage: node migration/zoho-bulk-read.mjs [flags]
+
+  --counts-only       print Zoho counts next to zoho_id_map counts, download nothing
+  --module A,B        limit to these modules
+  --since auto|ISO    Recruit modules only: pull records created or updated since then
+                      ("auto" reads the newest imported_at from zoho_id_map). CRM modules
+                      are small and are re-pulled in full. Writes to
+                      migration/zoho-exports/since-<date>/bulk unless --out is given
+  --budget N          credit ceiling, default 3000
+  --out DIR           output directory
+  --db URL            database for --counts-only and --since auto
+  --allow-remote      let --db fall back to DATABASE_URL (the live project)
+  --poll-ms N  --poll-limit N
+  --help`;
+
+const KNOWN_FLAGS = new Set([
+  '--counts-only',
+  '--module',
+  '--since',
+  '--budget',
+  '--out',
+  '--db',
+  '--allow-remote',
+  '--poll-ms',
+  '--poll-limit',
+  '--help',
+]);
+
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(USAGE);
+  process.exit(0);
+}
+const unknownFlags = args.filter((a) => a.startsWith('-') && !KNOWN_FLAGS.has(a));
+if (unknownFlags.length > 0) {
+  console.error(`Unknown flag ${unknownFlags.join(', ')}. Nothing was run.\n\n${USAGE}`);
+  process.exit(1);
+}
+
 const DC = (process.env.ZOHO_DC ?? 'com').trim();
 const CLIENT_ID = (process.env.ZOHO_CLIENT_ID ?? '').trim();
 const CLIENT_SECRET = (process.env.ZOHO_CLIENT_SECRET ?? '').trim();
@@ -16,7 +54,13 @@ const orgId = (v) => (v ?? '').trim().replace(/^org/i, '');
 const RECRUIT_ORG = orgId(process.env.ZOHO_RECRUIT_ORG_ID);
 const CRM_ORG = orgId(process.env.ZOHO_CRM_ORG_ID);
 
-const OUT_DIR = valueOf('--out', 'migration/zoho-exports/bulk');
+const SINCE_ARG = valueOf('--since', null);
+const OUT_DIR = valueOf(
+  '--out',
+  SINCE_ARG
+    ? `migration/zoho-exports/since-${new Date().toISOString().slice(0, 10)}/bulk`
+    : 'migration/zoho-exports/bulk',
+);
 const ONLY = valueOf('--module', null);
 const BUDGET = (() => {
   const raw = valueOf('--budget', null);
@@ -145,6 +189,8 @@ async function moduleCount(product, moduleName) {
   return typeof n === 'number' ? n : Number(n ?? Number.NaN);
 }
 
+const ALSO_YIELDS = { 'ZohoCRM/Leads': 'note' };
+
 const ENTITY_OF = {
   'ZohoRecruit/Candidates': 'candidate',
   'ZohoRecruit/Job_Openings': 'requisition',
@@ -157,17 +203,40 @@ const ENTITY_OF = {
   'ZohoCRM/Contacts': 'contact',
   'ZohoCRM/Leads': 'lead',
   'ZohoCRM/Notes': 'note',
+  'ZohoRecruit/To_Dos': 'todo',
+  'ZohoRecruit/Reviews': 'review',
+  'ZohoRecruit/Calendly_Invites': 'calendlyInvite',
+  'ZohoCRM/Tasks': 'crmTask',
+  'ZohoCRM/Events': 'crmEvent',
 };
 
-function heldByEntity() {
-  const url = valueOf('--db', process.env.FOOS_LOCAL_DB_URL ?? LOCAL_DB);
-  const out = execFileSync(
-    'psql',
-    [url, '-tAqc', 'select entity_type, count(*) from zoho_id_map group by 1'],
-    { encoding: 'utf8' },
+function dbUrl() {
+  return valueOf(
+    '--db',
+    process.env.FOOS_LOCAL_DB_URL ??
+      (has('--allow-remote') ? process.env.DATABASE_URL : null) ??
+      LOCAL_DB,
   );
+}
+
+function psqlRows(sql) {
+  const url = dbUrl();
+  try {
+    return execFileSync('psql', [url, '-tAqc', sql], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (err) {
+    const host = url.replace(/^[a-z]+:\/\/[^@]*@/, '');
+    const why = String(err.stderr ?? err.message).split('\n')[0];
+    console.error(
+      `\nCould not read zoho_id_map from ${host}: ${why}\n` +
+        'Start the local stack, or pass --allow-remote to use DATABASE_URL, or pass --db URL.',
+    );
+    process.exit(1);
+  }
+}
+
+function heldByEntity() {
   const held = new Map();
-  for (const line of out.split('\n')) {
+  for (const line of psqlRows('select entity_type, count(*) from zoho_id_map group by 1').split('\n')) {
     const [entity, n] = line.split('|');
     if (entity) held.set(entity.trim(), Number(n));
   }
@@ -200,13 +269,15 @@ async function countsOnly() {
   const held = heldByEntity();
   const wanted = new Map();
   for (const row of rows) {
-    if (!row.entity || typeof row.zoho !== 'number') continue;
-    wanted.set(row.entity, (wanted.get(row.entity) ?? 0) + row.zoho);
+    if (typeof row.zoho !== 'number') continue;
+    for (const entity of [row.entity, ALSO_YIELDS[row.key]]) {
+      if (entity) wanted.set(entity, (wanted.get(entity) ?? 0) + row.zoho);
+    }
   }
 
   const countedKeys = new Set(rows.filter((r) => typeof r.zoho === 'number').map((r) => r.key));
   const contributors = new Map();
-  for (const [key, entity] of Object.entries(ENTITY_OF)) {
+  for (const [key, entity] of [...Object.entries(ENTITY_OF), ...Object.entries(ALSO_YIELDS)]) {
     if (!entity) continue;
     contributors.set(entity, [...(contributors.get(entity) ?? []), key]);
   }
@@ -229,7 +300,7 @@ async function countsOnly() {
       .join(' + ');
     console.log(
       `${entity.padEnd(12)}${String(inZoho ?? '?').padStart(9)}${String(imported).padStart(11)}` +
-        `${(!comparable ? 'partial' : delta > 0 ? `+${delta}` : String(delta)).padStart(10)}  ${from || '(none)'}`,
+        `${(expectedKeys.length === 0 ? 'n/a' : !comparable ? 'partial' : delta > 0 ? `+${delta}` : String(delta)).padStart(10)}  ${from || '(no Zoho module count: attachments are walked per record)'}`,
     );
   }
   const counted = rows.filter((r) => typeof r.zoho === 'number').length;
@@ -292,6 +363,57 @@ async function pagedFallback(product, moduleName, destDir) {
   const dest = join(destDir, `${moduleName}.json`);
   writeFileSync(dest, JSON.stringify(rows, null, 2));
   return { file: dest, rows: rows.length };
+}
+
+const MODIFIED_FIELD = { Candidates: 'Updated_On', Applications: 'Updated_On' };
+
+async function pagedSince(product, moduleName, destDir, sinceMs) {
+  mkdirSync(destDir, { recursive: true });
+  const field = MODIFIED_FIELD[moduleName] ?? 'Modified_Time';
+  const rows = [];
+  let done = false;
+  for (let page = 1; !done; page += 1) {
+    const url =
+      `${PRODUCTS[product].listUrl(moduleName, page, LIST_PER_PAGE)}` +
+      `&sort_by=${field}&sort_order=desc`;
+    const res = await call(product, url);
+    if (res.status === 204) break;
+    if (!res.ok) throw new Error(`paged read of ${moduleName} page ${page} returned ${res.status}`);
+    const json = await res.json().catch(() => null);
+    const batch = json?.data ?? [];
+    for (const row of batch) {
+      const stamp = Date.parse(row[field] ?? row.Created_Time ?? '');
+      if (Number.isNaN(stamp) || stamp < sinceMs) {
+        done = true;
+        break;
+      }
+      rows.push(row);
+    }
+    if (!json?.info?.more_records) break;
+    if (page >= 5000) throw new Error(`paged read of ${moduleName} passed 5000 pages`);
+  }
+  writeFileSync(join(destDir, `${moduleName}.json`), JSON.stringify(rows, null, 2));
+  return { rows: rows.length };
+}
+
+function resolveSince() {
+  if (!SINCE_ARG) return null;
+  let ms;
+  if (SINCE_ARG === 'auto') {
+    const newest = psqlRows('select max(imported_at) from zoho_id_map').trim();
+    ms = Date.parse(newest);
+    if (Number.isNaN(ms)) {
+      console.error(`--since auto could not read a newest imported_at (got "${newest}").`);
+      process.exit(1);
+    }
+  } else {
+    ms = Date.parse(SINCE_ARG);
+    if (Number.isNaN(ms)) {
+      console.error(`--since needs "auto" or a date such as 2026-10-25, got "${SINCE_ARG}".`);
+      process.exit(1);
+    }
+  }
+  return ms - 24 * 60 * 60 * 1000;
 }
 
 async function initiateJob(product, moduleName, page) {
@@ -389,12 +511,18 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
   process.exit(1);
 }
 
+const SINCE_MS = resolveSince();
+
 mkdirSync(OUT_DIR, { recursive: true });
 const summary = [];
 const started = Date.now();
 
 console.log(`Zoho bulk read, data centre .${DC}, credit budget ${BUDGET}`);
-console.log(`Output: ${OUT_DIR}\n`);
+console.log(`Output: ${OUT_DIR}`);
+if (SINCE_MS !== null) {
+  console.log(`Incremental: Recruit records created or updated since ${new Date(SINCE_MS).toISOString()}`);
+}
+console.log('');
 
 for (const [product, cfg] of Object.entries(PRODUCTS)) {
   if (!cfg.org) {
@@ -405,6 +533,13 @@ for (const [product, cfg] of Object.entries(PRODUCTS)) {
     if (ONLY && !ONLY.split(',').includes(moduleName)) continue;
 
     try {
+      if (SINCE_MS !== null && product === 'ZohoRecruit') {
+        const dir = join(OUT_DIR, `${product}_${moduleName}_paged`);
+        const { rows } = await pagedSince(product, moduleName, dir, SINCE_MS);
+        console.log(`${product}/${moduleName}: ${rows} changed`);
+        summary.push({ product, module: moduleName, expected: null, downloaded: rows, pages: 0, reconciled: true, files: [dir] });
+        continue;
+      }
       const expected = await moduleCount(product, moduleName);
       if (expected === 0) {
         console.log(`${product}/${moduleName}: 0 records, skipped`);
@@ -499,4 +634,9 @@ if (mismatches.length > 0) {
   console.log(`\n${mismatches.length} module(s) did not reconcile. Nothing should be imported yet.`);
   process.exit(1);
 }
-console.log('\nEvery module reconciled against its own count endpoint.');
+console.log(
+  SINCE_MS !== null
+    ? `\nIncremental pull written to ${OUT_DIR}. Import it with:\n` +
+        `  node migration/import.mjs --entity all --dir ${OUT_DIR.replace(/\/bulk$/, '')} --allow-remote`
+    : '\nEvery module reconciled against its own count endpoint.',
+);
