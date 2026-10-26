@@ -11,17 +11,6 @@
             "statusMessage": "Checking comments..."
           }
         ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/goal-reminder.sh\" 2>/dev/null || true",
-            "timeout": 10,
-            "statusMessage": "Goal reminder..."
-          }
-        ]
       }
     ],
     "UserPromptSubmit": [
@@ -29,31 +18,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FOOS_REMINDER_SECONDS=0 bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/goal-reminder.sh\" 2>/dev/null || true",
-            "timeout": 10,
-            "statusMessage": "Goal reminder..."
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "zsh \"${CLAUDE_PROJECT_DIR:-.}/scripts/ci-status.sh\" 2>/dev/null || true",
             "timeout": 20,
             "statusMessage": "Checking CI..."
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "FOOS_REMINDER_SECONDS=0 bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/goal-reminder.sh\" 2>/dev/null || true",
-            "timeout": 10,
-            "statusMessage": "Goal reminder..."
           }
         ]
       }
