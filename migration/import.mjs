@@ -1,4 +1,4 @@
-import { supabase, assertTarget } from '../scripts/local-stack.mjs';
+import { supabase, assertTarget, apiTarget } from '../scripts/local-stack.mjs';
 import { readFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
@@ -36,11 +36,12 @@ const OUT_DIR = valueOf('--out', 'migration/out');
 const ENTITIES = valueOf('--entity', 'all');
 const INCLUDE_IDENTITY = has('--include-identity-documents');
 const ALLOW_REMOTE = has('--allow-remote');
+const CREATE_ONLY = has('--create-only');
 
 const SHOW_NAMES = has('--show-names');
 
 function localKeys() {
-  const url = assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote'));
+  const url = assertTarget(apiTarget(), 'api', process.argv.includes('--allow-remote'));
   let key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
   if (!key) {
     try {
@@ -265,6 +266,11 @@ async function importCandidates(lookups, unresolved, idMaps) {
     countFields(t, { ...mapped.person, ...mapped.profile });
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -327,6 +333,11 @@ async function importRequisitions(lookups, unresolved, idMaps) {
 
     const key = normalizeZohoId(mapped.zohoId);
     const known = existing.get(key) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else {
@@ -399,6 +410,11 @@ async function importApplications(lookups, unresolved, idMaps) {
 
     const key = normalizeZohoId(mapped.zohoId);
     const known = existing.get(key) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else {
@@ -456,6 +472,11 @@ async function importCompanies(lookups, unresolved, idMaps) {
     if (Object.keys(mapped.carried).length) t.metadataOnly += 1;
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -515,6 +536,11 @@ async function importContacts(lookups, unresolved, idMaps) {
     countFields(t, { ...mapped.person, ...mapped.profile });
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -573,6 +599,11 @@ async function importClients(lookups, unresolved, idMaps) {
     countFields(t, mapped.company);
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) {
         t.updated += 1;
@@ -629,6 +660,11 @@ async function importRecruitContacts(lookups, unresolved, idMaps) {
     countFields(t, { ...mapped.person, ...mapped.profile });
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -687,6 +723,11 @@ async function importLeads(lookups, unresolved, idMaps) {
     countFields(t, { ...mapped.person, ...mapped.profile });
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -756,6 +797,11 @@ function activityImporter(name, product, moduleName, entityType, mapper) {
       countFields(t, mapped.activity);
 
       const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+      if (known && CREATE_ONLY) {
+        t.skipped += 1;
+        note(t.skipReasons, 'already imported, left as is (--create-only)');
+        continue;
+      }
       if (!APPLY) {
         if (known) t.updated += 1;
         else t.created += 1;
@@ -812,6 +858,11 @@ async function importTodos(lookups, unresolved, idMaps) {
     note(t.warnings, `routed to ${table}`);
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -869,6 +920,11 @@ async function importCrmTasks(lookups, unresolved, idMaps) {
     countFields(t, mapped.task);
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -915,6 +971,11 @@ async function importCrmNotes(lookups, unresolved, idMaps) {
     countFields(t, mapped.activity);
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -968,6 +1029,11 @@ async function importNotes(lookups, unresolved, idMaps) {
     countFields(t, mapped.activity);
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;
@@ -1030,6 +1096,11 @@ async function importAttachments(lookups, unresolved, idMaps) {
     countFields(t, mapped.attachment);
 
     const known = existing.get(normalizeZohoId(mapped.zohoId)) ?? null;
+    if (known && CREATE_ONLY) {
+      t.skipped += 1;
+      note(t.skipReasons, 'already imported, left as is (--create-only)');
+      continue;
+    }
     if (!APPLY) {
       if (known) t.updated += 1;
       else t.created += 1;

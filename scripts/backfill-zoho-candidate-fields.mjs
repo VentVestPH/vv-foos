@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { supabase, assertTarget } from './local-stack.mjs';
+import { supabase, assertTarget, apiTarget } from './local-stack.mjs';
 import { createClient } from '@supabase/supabase-js';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -16,7 +16,7 @@ const SOURCE_CANDIDATES = [
 ];
 const CANDIDATES = SOURCE_ARG ?? SOURCE_CANDIDATES.find((f) => existsSync(f)) ?? SOURCE_CANDIDATES[1];
 
-const target = assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote'));
+const target = assertTarget(apiTarget(), 'api', process.argv.includes('--allow-remote'));
 const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/)/.test(target);
 if (!isLocal && !ALLOW_REMOTE) {
   console.error(

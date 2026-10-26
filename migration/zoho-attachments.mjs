@@ -1,4 +1,4 @@
-import { supabase, assertTarget } from '../scripts/local-stack.mjs';
+import { supabase, assertTarget, apiTarget } from '../scripts/local-stack.mjs';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
@@ -123,7 +123,7 @@ function spend(n, what) {
 }
 
 function url() {
-  return assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote'));
+  return assertTarget(apiTarget(), 'api', process.argv.includes('--allow-remote'));
 }
 function serviceKey() {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) return process.env.SUPABASE_SERVICE_ROLE_KEY;

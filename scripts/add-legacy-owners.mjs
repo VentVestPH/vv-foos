@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { supabase, assertTarget } from './local-stack.mjs';
+import { supabase, assertTarget, apiTarget } from './local-stack.mjs';
 import { createClient } from '@supabase/supabase-js';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -62,7 +62,7 @@ function readBulkRecords(dir) {
 }
 
 function url() {
-  return assertTarget(process.env.FOOS_SUPABASE_URL ?? 'http://127.0.0.1:56321', 'api', process.argv.includes('--allow-remote'));
+  return assertTarget(apiTarget(), 'api', process.argv.includes('--allow-remote'));
 }
 
 function serviceKey() {
