@@ -22,6 +22,7 @@ Documentation for the FOOS CRM and ATS programme. Every claim is marked as measu
 | How to deploy, and what must be set in the Supabase Dashboard | `environments/` the cutover runbook |
 | Why CI failed and how to write a test that does not | `reference/` the CI runbook |
 | How the Zoho migration and the Singapore move went | `environments/` the migration record |
+| What the 2026-10-27 Zoho check found, the top-up and the reconcile tooling | `environments/` the top-up record |
 | What changed in a recent UI pass | `ux-and-motion/` the pass records |
 | The script for user acceptance testing | `uat/`, **incomplete**: no steps for Accounts, Contacts, Deals or Users |
 

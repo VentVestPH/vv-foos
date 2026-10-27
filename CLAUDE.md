@@ -277,7 +277,7 @@ Two more that are not guards and are not in the gate: `scripts/check-env-target.
 
 Teardown belongs in `afterEach`/`afterAll`, never inline at the end of a test: a failing assertion aborts the rest of the block and the rows leak. Delete a storage object **before** its `attachments` row, or the file becomes unreachable (the DELETE policy matches on that row and `remove()` then returns an empty array with no error).
 
-Four migration and repair tools, all of which refuse a non-local target unless `--allow-remote` is passed, and all of which dry-run by default:
+Migration and repair tools, all of which refuse a non-local target unless `--allow-remote` is passed, and all of which dry-run by default:
 
 ```sh
 node migration/import.mjs                              # dry run; --apply to write, --entity to narrow
@@ -285,7 +285,12 @@ node scripts/add-legacy-owners.mjs                     # inactive staff rows for
 node scripts/backfill-zoho-candidate-fields.mjs        # repairs star_grade and initial_date from the export
 node scripts/purge-zoho-import.mjs                     # reverses an import from zoho_id_map
 node scripts/sync-test-accounts.mjs                    # one shared password on the four test accounts
+node migration/zoho-bulk-read.mjs --since auto --allow-remote   # incremental Zoho pull, about 60 credits
+node migration/import.mjs --create-only --dir <since dir> --allow-remote   # insert only, never overwrite
+node scripts/reconcile-zoho.mjs --entity all --budget 2000 --allow-remote  # read-only ID diff, about 1,900 calls
 ```
+
+`docs/environments/VVPH_VV-FOOS_Record_Zoho-Topup-And-Reconcile-Tooling_2026-10-27_v1.0_Final.md` records the 2026-10-27 check and the top-up procedure.
 
 The importer resolves paths relative to the current directory, so **run it from the repository root**; from inside `migration/` it writes its report to `migration/migration/out/`, and those reports contain candidate data.
 
@@ -311,7 +316,7 @@ The only remote reading taken is the one from 2026-09-01, when `supabase migrati
 
 | File | Variables |
 |---|---|
-| `.env` (root) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. **Absent in this checkout as of 2026-09-07**, and because it is gitignored the absence is silent: `source .env` succeeds and sets nothing. Use `app/.env`'s `VITE_` pair or `tests/.env`'s `FOOS_` pair, or pass the URL explicitly |
+| `.env` (root) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `ZOHO_DC`, `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_RECRUIT_ORG_ID`, `ZOHO_CRM_ORG_ID`, `PLANE_API_KEY`. **Corrected 2026-10-27: present** (it was absent on 2026-09-07; modified 2026-10-20 here). It points at the live project. It has no `FOOS_SUPABASE_URL`, so the Zoho scripts target local unless the command carries `--allow-remote`, which makes them fall back to `SUPABASE_URL`. After a database password rotation, update `DATABASE_URL` here and the `SUPABASE_DB_URL` secret in the GitHub environment `dev` |
 | `app/.env` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (client throws at boot if either is missing). **This one points at the LIVE project**, and it is what a production build bakes in |
 | `app/.env.development` | the same two names pointing at `http://127.0.0.1:56321`, committed and safe to commit. **Vite loads it at higher priority than `.env` in dev mode**, which is the only reason `npm run dev` talks to the local stack rather than to production. There is no `app/.env.production`, so `npm run build` falls back to `.env` and bakes the live ref: `grep -o 'https://[a-z0-9]*\.supabase\.co' app/dist/assets/*.js` confirms it. That is X7's whole point, and it means the built bundle in this tree must not be deployed as-is |
 | `tests/.env` | `FOOS_SUPABASE_URL`, `FOOS_SUPABASE_ANON_KEY`, `FOOS_QA_TEST_PASSWORD`, optional `FOOS_BASE_URL` |
