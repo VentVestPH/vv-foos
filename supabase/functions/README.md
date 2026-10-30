@@ -151,3 +151,17 @@ via existing triggers, dedup, honeypot + rate limit, file validation,
 consent gate, mobile-width form, no leaked pay/company fields). None have
 been exercised against a live deployment yet — that verification is the
 first item in the demo script above once this is deployed.
+
+## admin-users
+
+Administrator-only account management behind the Users page. `verify_jwt = true`, and the function re-checks that the caller has an active `staff` row with role `admin` before doing anything. It uses the service role, so the audit trail does not record which admin made a change.
+
+Actions, all `POST` with a JSON body:
+
+- `list` returns every staff row with its sign-in status.
+- `update` changes `fullName`, `email`, `title`, `role` or `isActive` on one staff row. An email change is applied to the sign-in account first and the staff row second, and the sign-in change is reverted if the staff write fails. It refuses to demote or deactivate the last active admin, and refuses an admin demoting or deactivating themselves.
+- `create` makes a sign-in account with a fresh id and a staff row with the same id. If a sign-in account already exists for that email and no staff row owns it, the new staff row adopts its id instead. Google sign-in then attaches to that account.
+- `temp_password` sets a password on the sign-in account, creating the account at the staff id if there is none.
+- `send_reset` sends a password reset email.
+
+The validation and the last-admin guard live in `_shared/staff-admin.ts` and are covered by `tests/unit/staff-admin.test.ts`. Deploy with `supabase functions deploy admin-users --project-ref hilieyehhecrlccdveta`.
