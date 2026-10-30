@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Users as UsersIcon, KeyRound, Mail } from 'lucide-react';
+import { Users as UsersIcon, KeyRound, Mail, Plus } from 'lucide-react';
 import { ListPage } from '../components/ui/ListPage';
 import { Table, type TableColumn } from '../components/ui/Table';
 import { Badge } from '../components/ui/Badge';
@@ -10,6 +10,8 @@ import { TableSkeleton } from '../components/ui/TableSkeleton';
 import { USERS_COLUMNS } from '../components/ui/PageSkeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useMinimumVisible } from '../hooks/useMinimumVisible';
+import { useSession } from '../auth/SessionProvider';
+import { UserEditDialog } from './UserEditDialog';
 import { useSubmittedSearch } from '../lib/quickSearch';
 import { EMPTY_CELL } from '../lib/format';
 import { localSearchHints } from '../lib/searchHints';
@@ -30,7 +32,9 @@ function fmtWhen(value: string | null): string {
 }
 
 export function UsersPage() {
+  const { staff } = useSession();
   const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [editing, setEditing] = useState<AdminUserRow | 'new' | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -167,6 +171,11 @@ export function UsersPage() {
           iconOnly
           items={[
             {
+              label: 'Edit user',
+              onSelect: () => setEditing(u),
+              disabled: busyId !== null,
+            },
+            {
               label: busyId === u.staffId ? 'Working…' : 'Generate temporary password',
               onSelect: () => void tempPassword(u),
               disabled: busyId !== null || !u.email,
@@ -195,6 +204,12 @@ export function UsersPage() {
       icon={<UsersIcon size={32} />}
       description="Everyone with a staff record, whether or not they can sign in yet. Issue a temporary password or send a reset when someone is locked out."
       flush
+      actions={
+        <Button variant="primary" onClick={() => setEditing('new')}>
+          <Plus size={20} aria-hidden="true" />
+          Add user
+        </Button>
+      }
       search={searchInput}
       onSearchChange={setSearchInput}
       onSearchSubmit={submitSearch}
@@ -229,6 +244,20 @@ export function UsersPage() {
           rowKey={(u) => u.staffId}
           busy={loading}
           emptyText="No users."
+        />
+      )}
+
+      {editing !== null && (
+        <UserEditDialog
+          user={editing === 'new' ? null : editing}
+          currentStaffId={staff?.id ?? null}
+          onClose={() => setEditing(null)}
+          onSaved={(message) => {
+            setEditing(null);
+            setError(null);
+            setNotice(message);
+            void load();
+          }}
         />
       )}
 
