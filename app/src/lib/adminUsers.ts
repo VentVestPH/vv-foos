@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { StaffRole } from './database.types';
 
 export interface AdminUserRow {
   staffId: string;
@@ -42,6 +43,36 @@ async function invoke<T>(body: Record<string, unknown>): Promise<EdgeResult<T>> 
 
 export function listUsers() {
   return invoke<{ users: AdminUserRow[] }>({ action: 'list' });
+}
+
+export interface StaffChangeInput {
+  fullName?: string;
+  email?: string;
+  title?: string | null;
+  role?: StaffRole;
+  isActive?: boolean;
+}
+
+export interface NewUserInput {
+  fullName: string;
+  email: string;
+  title: string | null;
+  role: StaffRole;
+}
+
+export function updateUser(staffId: string, change: StaffChangeInput) {
+  return invoke<{ updated: boolean; staffId: string; loginEmailChanged: boolean }>({
+    action: 'update',
+    staffId,
+    ...change,
+  });
+}
+
+export function createUser(input: NewUserInput) {
+  return invoke<{ staffId: string; email: string; loginCreated: boolean }>({
+    action: 'create',
+    ...input,
+  });
 }
 
 export function issueTempPassword(staffId: string) {
