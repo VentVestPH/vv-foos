@@ -370,17 +370,15 @@ test.describe('C: paging and the date field', () => {
     }
     await expect(details).toHaveAttribute('data-open', 'true', { timeout: 15000 });
 
-    const editable = details.locator(
-      '.info-form-grid input:not([disabled]), .info-form-grid textarea:not([disabled])',
-    );
+    const trigger = details.getByRole('button', { name: 'Edit Current title', exact: true });
     await expect(
-      editable.first(),
-      'the profile fields are live the moment the section is open',
+      trigger,
+      'the profile fields are click-to-edit the moment the section is open',
     ).toBeVisible({ timeout: 15000 });
-    await editable.first().focus();
-    expect(
-      await page.evaluate(() => document.activeElement?.closest('.info-form-grid') !== null),
-    ).toBe(true);
+    await trigger.click();
+    const input = details.getByLabel('Current title', { exact: true });
+    await expect(input).toBeFocused();
+    await input.press('Escape');
   });
 
   test('C8: the calendar sits inside the date field, everywhere', async ({ page }) => {
@@ -388,10 +386,10 @@ test.describe('C: paging and the date field', () => {
 
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.getByRole('button', { name: /^More Details/ }).click();
-    await page.waitForSelector('#more-details .info-form-grid .date-field-row');
+    await page.waitForSelector('#more-details .info-group .date-field-row');
 
     const inset = await page.evaluate(() => {
-      const row = document.querySelector('#more-details .info-form-grid .date-field-row') as HTMLElement;
+      const row = document.querySelector('#more-details .info-group .date-field-row') as HTMLElement;
       const input = row.querySelector('input') as HTMLElement;
       const button = row.querySelector('.date-field-btn') as HTMLElement;
       return {
@@ -578,11 +576,11 @@ test.describe('C: grading', () => {
     await admin.from('candidate_profiles').update({ star_grade: null }).eq('person_id', person);
   });
 
-  test('C13: Amir Grade leads the grading group on its own line', async ({ page }) => {
+  test('C13: Amir Grade leads the grading group on its own row', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.getByRole('button', { name: /^More Details/ }).click();
-    await page.waitForSelector('#more-details .cand-grade-row');
+    await page.waitForSelector('#more-details .info-group');
 
     const shape = await page.evaluate(() => {
       const group = Array.from(document.querySelectorAll('#more-details .info-group')).find(
@@ -590,27 +588,23 @@ test.describe('C: grading', () => {
           (g.querySelector('.info-group-label') as HTMLElement | null)?.innerText ===
           'Grading and salary',
       ) as HTMLElement;
-      const row = group.querySelector('.cand-grade-row') as HTMLElement;
-      const grid = group.querySelector('.info-form-grid') as HTMLElement;
+      const grid = group.querySelector('.info-grid') as HTMLElement;
+      const firstRow = grid.querySelector('.info-item') as HTMLElement;
       return {
         order: Array.from(group.children).map((c) => (c as HTMLElement).className.split(' ')[0]),
-        gradeBeforeFields: row.compareDocumentPosition(grid) === 4,
-        sameWidth:
-          Math.round(row.getBoundingClientRect().width) ===
-          Math.round(grid.getBoundingClientRect().width),
-        firstField: (grid.querySelector('.field-label') as HTMLElement | null)?.innerText,
-        starsInGrid: grid.querySelectorAll('.star-grade, [class*="star"]').length,
+        firstLabel: (firstRow.querySelector('dt') as HTMLElement).innerText,
+        starsInFirstRow: firstRow.querySelectorAll('.star-grade').length,
+        formGrids: group.querySelectorAll('.info-form-grid').length,
       };
     });
 
     expect(
       shape.order,
-      `the group reads label, description, grade, then fields; got ${shape.order.join(' > ')}`,
-    ).toEqual(['info-group-label', 'info-group-hint', 'field', 'info-form-grid']);
-    expect(shape.gradeBeforeFields, 'the grade comes before the field grid').toBe(true);
-    expect(shape.sameWidth, 'and it takes its own full-width line').toBe(true);
-    expect(shape.firstField, 'so the grid now opens on Initial date').toBe('Initial date');
-    expect(shape.starsInGrid, 'no star control is left inside the field grid').toBe(0);
+      `the group reads label, description, then the value grid; got ${shape.order.join(' > ')}`,
+    ).toEqual(['info-group-label', 'info-group-hint', 'info-grid']);
+    expect(shape.firstLabel, 'the grade is the first row').toBe('Amir Grade');
+    expect(shape.starsInFirstRow, 'and it holds the star control').toBe(1);
+    expect(shape.formGrids, 'there is no separate form grid any more').toBe(0);
   });
 });
 
@@ -639,11 +633,14 @@ test.describe('C: the candidate record sections', () => {
     ).toBe(0);
     expect(
       await page.locator('#more-details .info-form-grid').count(),
-      'the editable fields get a form grid, not the label/value grid',
-    ).toBe(1);
+      'the profile fields share the label/value grid with everything else',
+    ).toBe(0);
     expect(
-      await page.locator('#more-details .info-form-grid .field-wide textarea').count(),
-      'the grade comment spans the full width instead of squeezing into a column',
+      await page
+        .locator('#more-details')
+        .getByRole('button', { name: 'Edit Sourcer Grade (grade comment)', exact: true })
+        .count(),
+      'the grade comment is click-to-edit like the rest',
     ).toBe(1);
   });
 

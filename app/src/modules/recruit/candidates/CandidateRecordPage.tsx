@@ -34,7 +34,6 @@ import { useRole, useSession } from '../../../auth/SessionProvider';
 import { ActionMenu, type ActionMenuItem } from '../../../components/ui/ActionMenu';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { RecordPage, RecordSection } from '../../../components/ui/RecordPage';
@@ -70,7 +69,6 @@ import { CURRENCIES, linkHost } from '../../../lib/format';
 import { supabase } from '../../../lib/supabase';
 import { type Application, type CandidateProfile, type Person, type Requisition, errMsg, fmtDate, personEducation, personEmails, personExperience, personName, personPhones } from '../lib';
 import { useIsMobile, useLookups } from '../hooks';
-import { EMPTY_CELL } from '../../../lib/format';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
 import { CandidateEraseDialog } from './CandidateEraseDialog';
 import { CandidateMergeDialog } from './CandidateMergeDialog';
@@ -79,7 +77,10 @@ import { usePrintRecord } from '../../../hooks/usePrintRecord';
 import { CandidateOutreachDialogs } from './CandidateOutreachDialogs';
 import { ConfirmDeleteDialog } from '../../../components/ui/ConfirmDeleteDialog';
 import { useCandidateOutreach } from './useCandidateOutreach';
-import { toDraft, useCandidateProfileDraft } from './useCandidateProfileDraft';
+import { CandidateHistoryGroups } from './CandidateHistoryGroups';
+import { toDraft, useCandidateProfileDraft, type InlineProfileKey, type InlineProfileValue } from './useCandidateProfileDraft';
+import { InlineField } from '../../../components/ui/InlineField';
+import type { Json } from '../../../lib/database.types';
 
 export function CandidateRecordPage() {
   const listHref = useListReturnHref('/recruit/candidates');
@@ -135,8 +136,39 @@ export function CandidateRecordPage() {
     if (err) setError(err.message);
     else reload();
   }, [profile, reload]);
-  const { draft, setDraft, canEditProfile, canGrade, saved, saveProfile } =
-    useCandidateProfileDraft({ profile, role, staff, mobile, onSaved: reload, onError: setError });
+  const { draft, setDraft, canEditProfile, canGrade, saved, saveProfile, saveField } =
+    useCandidateProfileDraft({
+      profile,
+      role,
+      staff,
+      mobile,
+      onSaved: reload,
+      onError: setError,
+      onFieldSaved: (patch) => setProfile((current) => (current ? { ...current, ...patch } : current)),
+    });
+  const saveProfileField = useCallback(
+    async (key: InlineProfileKey, value: InlineProfileValue) => {
+      try {
+        await saveField(key, value);
+        setError(null);
+      } catch (e) {
+        setError(errMsg(e));
+      }
+    },
+    [saveField],
+  );
+  const saveHistory = useCallback(
+    async (column: 'education' | 'experience', next: Record<string, Json | undefined>[]) => {
+      const value = next as unknown as Json;
+      const { error: err } = await supabase
+        .from('people')
+        .update(column === 'education' ? { education: value } : { experience: value })
+        .eq('id', personId);
+      if (err) throw new Error(err.message);
+      setPerson((current) => (current ? { ...current, [column]: value } : current));
+    },
+    [personId],
+  );
 
   const removeFromRequisition = async () => {
     if (!removingApplication) return;
@@ -671,173 +703,158 @@ export function CandidateRecordPage() {
     'More Details': (
       <RecordSection title="More Details" id="more-details" hidden={prefs.isHidden('More Details')} defaultOpen={opensOnLoad('More Details')}>
         <div className="info-groups">
-        {personEducation(person).length > 0 && (
-          <InfoGroup label="Education">
-            <dl className="info-grid">
-              {personEducation(person).map((ed, i) => (
-                <Fragment key={`edu-${i}`}>
-                  {ed.bachelor_discipline && (
-                    <div className="info-item">
-                      <dt>Bachelor Discipline{i > 0 ? ` (${i + 1})` : ''}</dt>
-                      <dd>{ed.bachelor_discipline}</dd>
-                    </div>
-                  )}
-                  {ed.university && (
-                    <div className="info-item">
-                      <dt>University{i > 0 ? ` (${i + 1})` : ''}</dt>
-                      <dd>{ed.university}</dd>
-                    </div>
-                  )}
-                  {ed.year && (
-                    <div className="info-item">
-                      <dt>Year{i > 0 ? ` (${i + 1})` : ''}</dt>
-                      <dd>{ed.year}</dd>
-                    </div>
-                  )}
-                  {ed.higher_degrees && (
-                    <div className="info-item">
-                      <dt>Higher Degrees{i > 0 ? ` (${i + 1})` : ''}</dt>
-                      <dd>{ed.higher_degrees}</dd>
-                    </div>
-                  )}
-                  {ed.other_degrees && (
-                    <div className="info-item">
-                      <dt>Other Degrees{i > 0 ? ` (${i + 1})` : ''}</dt>
-                      <dd>{ed.other_degrees}</dd>
-                    </div>
-                  )}
-                </Fragment>
-              ))}
-            </dl>
-          </InfoGroup>
-        )}
-
-        <InfoGroup label="Experience">
-          {personExperience(person).length === 0 ? (
-            <p className="info-group-hint">
-              No employment history on file yet — pending a fuller Zoho Experience
-              Details export.
-            </p>
-          ) : (
-            <dl className="info-grid">
-              {personExperience(person).map((exp, i) => (
-                <div className="info-item" key={`exp-${i}`}>
-                  <dt>Experience {i + 1}</dt>
-                  <dd>
-                    {Object.entries(exp)
-                      .filter(([, v]) => v)
-                      .map(([k, v]) => `${k}: ${String(v)}`)
-                      .join(' · ') || EMPTY_CELL}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </InfoGroup>
+        <CandidateHistoryGroups
+          education={personEducation(person) as unknown as Record<string, Json | undefined>[]}
+          experience={personExperience(person)}
+          editable={canEditProfile}
+          onSaveEducation={(next) => saveHistory('education', next)}
+          onSaveExperience={(next) => saveHistory('experience', next)}
+        />
         {profile && draft && (
           <InfoGroup
             label="Grading and salary"
-            hint="Editable. Use Save profile in the action bar to keep these."
+            hint="Click a value to edit it. Changes save as you make them."
           >
-            <div className="field cand-grade-row">
-              <span className="field-label">Amir Grade (star grade)</span>
-              {canGrade ? (
-                <StarGrade
-                  value={draft.star_grade}
-                  subject={personName(person)}
-                  onChange={(v) => setDraft({ ...draft, star_grade: v })}
-                />
-              ) : (
-                <StarGrade value={draft.star_grade} subject={personName(person)} />
-              )}
-            </div>
-            <div className="info-form-grid">
-              <DateField
-                label="Initial date"
-                value={draft.initial_date}
-                disabled={!canEditProfile}
-                onChange={(e) => setDraft({ ...draft, initial_date: e.target.value })}
-              />
-              <Input
-                label="Current title"
-                value={draft.current_title}
-                disabled={!canEditProfile}
-                onChange={(e) => setDraft({ ...draft, current_title: e.target.value })}
-              />
-              <Input
-                label="Current employer"
-                value={draft.current_employer}
-                disabled={!canEditProfile}
-                onChange={(e) =>
-                  setDraft({ ...draft, current_employer: e.target.value })
-                }
-              />
-              <Input
-                label="Tenure note"
-                value={draft.tenure_note}
-                disabled={!canEditProfile}
-                onChange={(e) => setDraft({ ...draft, tenure_note: e.target.value })}
-              />
-              <Input
-                label="Expected salary"
-                type="number"
-                value={draft.expected_salary}
-                disabled={!canEditProfile}
-                onChange={(e) =>
-                  setDraft({ ...draft, expected_salary: e.target.value })
-                }
-              />
-              <Input
-                label="Current salary"
-                type="number"
-                value={draft.current_salary}
-                disabled={!canEditProfile}
-                onChange={(e) =>
-                  setDraft({ ...draft, current_salary: e.target.value })
-                }
-              />
-              <Select
-                label="Salary currency"
-                placeholder="Not set"
-                options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-                value={draft.salary_currency}
-                disabled={!canEditProfile}
-                onChange={(e) =>
-                  setDraft({ ...draft, salary_currency: e.target.value })
-                }
-              />
-              <Input
-                label="Salary flag"
-                value={draft.salary_flag}
-                disabled={!canEditProfile}
-                onChange={(e) => setDraft({ ...draft, salary_flag: e.target.value })}
-              />
-              <div className="field field-wide">
-                <label className="field-label" htmlFor="grade-comment">
-                  Sourcer Grade (grade comment)
-                </label>
-                <textarea
-                  id="grade-comment"
-                  rows={4}
-                  value={draft.grade_comment}
-                  disabled={!canGrade}
-                  onChange={(e) =>
-                    setDraft({ ...draft, grade_comment: e.target.value })
-                  }
-                />
+            <dl className="info-grid">
+              <div className="info-item">
+                <dt>Amir Grade</dt>
+                <dd>
+                  {canGrade ? (
+                    <StarGrade
+                      value={draft.star_grade}
+                      subject={personName(person)}
+                      onChange={(v) => void saveProfileField('star_grade', v)}
+                    />
+                  ) : (
+                    <StarGrade value={draft.star_grade} subject={personName(person)} />
+                  )}
+                </dd>
               </div>
-              <label className="checkline field-wide">
-                <input
-                  type="checkbox"
-                  checked={draft.do_not_contact}
-                  disabled={!canEditProfile}
-                  onChange={(e) =>
-                    setDraft({ ...draft, do_not_contact: e.target.checked })
-                  }
-                />
-                Do not contact
-              </label>
-            </div>
+              <div className="info-item">
+                <dt>Initial date</dt>
+                <dd>
+                  <InlineField
+                    label="Initial date"
+                    kind="date"
+                    value={draft.initial_date}
+                    display={draft.initial_date === '' ? undefined : fmtDate(draft.initial_date)}
+                    editable={canEditProfile}
+                    onCommit={(next) => saveField('initial_date', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Current title</dt>
+                <dd>
+                  <InlineField
+                    label="Current title"
+                    kind="text"
+                    value={draft.current_title}
+                    editable={canEditProfile}
+                    onCommit={(next) => saveField('current_title', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Current employer</dt>
+                <dd>
+                  <InlineField
+                    label="Current employer"
+                    kind="text"
+                    value={draft.current_employer}
+                    editable={canEditProfile}
+                    onCommit={(next) => saveField('current_employer', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Tenure note</dt>
+                <dd>
+                  <InlineField
+                    label="Tenure note"
+                    kind="text"
+                    value={draft.tenure_note}
+                    editable={canEditProfile}
+                    onCommit={(next) => saveField('tenure_note', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Expected salary</dt>
+                <dd>
+                  <InlineField
+                    label="Expected salary"
+                    kind="number"
+                    value={draft.expected_salary}
+                    editable={canEditProfile}
+                    onCommit={(next) => saveField('expected_salary', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Current salary</dt>
+                <dd>
+                  <InlineField
+                    label="Current salary"
+                    kind="number"
+                    value={draft.current_salary}
+                    editable={canEditProfile}
+                    onCommit={(next) => saveField('current_salary', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Salary currency</dt>
+                <dd>
+                  <InlineField
+                    label="Salary currency"
+                    kind="select"
+                    value={draft.salary_currency}
+                    options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+                    editable={canEditProfile}
+                    onCommit={(next) => saveField('salary_currency', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Salary flag</dt>
+                <dd>
+                  <InlineField
+                    label="Salary flag"
+                    kind="text"
+                    value={draft.salary_flag}
+                    editable={canEditProfile}
+                    onCommit={(next) => saveField('salary_flag', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Sourcer Grade</dt>
+                <dd>
+                  <InlineField
+                    label="Sourcer Grade (grade comment)"
+                    kind="textarea"
+                    value={draft.grade_comment}
+                    editable={canGrade}
+                    onCommit={(next) => saveField('grade_comment', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Do not contact</dt>
+                <dd>
+                  <label className="checkline">
+                    <input
+                      type="checkbox"
+                      checked={draft.do_not_contact}
+                      disabled={!canEditProfile}
+                      onChange={(e) => void saveProfileField('do_not_contact', e.target.checked)}
+                    />
+                    {draft.do_not_contact ? 'Yes' : 'No'}
+                  </label>
+                </dd>
+              </div>
+            </dl>
           </InfoGroup>
         )}
         </div>

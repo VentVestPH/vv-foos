@@ -67,6 +67,7 @@ export interface CandRow extends Record<string, unknown> {
   initial_date: string;
   sourcer: string;
   requisitions: string;
+  requisition_names: string[];
   flags: string;
   emails: string;
 }
@@ -99,10 +100,10 @@ export const DEFAULT_COLUMN_KEYS = ALL_COLUMN_KEYS.filter(
 export interface CandidateRowInput {
   rows: CandidateListRow[];
   apps: Application[];
-  reqCode: Map<string, string>;
+  reqName: Map<string, string>;
 }
 
-export function buildCandidateRows({ rows, apps, reqCode }: CandidateRowInput): CandRow[] {
+export function buildCandidateRows({ rows, apps, reqName }: CandidateRowInput): CandRow[] {
   const appsByPerson = new Map<string, Application[]>();
   for (const a of apps) {
     const list = appsByPerson.get(a.person_id) ?? [];
@@ -110,6 +111,9 @@ export function buildCandidateRows({ rows, apps, reqCode }: CandidateRowInput): 
     appsByPerson.set(a.person_id, list);
   }
   return rows.map((row) => {
+    const requisitionNames = (appsByPerson.get(row.person_id) ?? [])
+      .map((a) => reqName.get(a.requisition_id) ?? '')
+      .filter(Boolean);
     const flags: string[] = [];
     if (row.do_not_contact) flags.push('Do not contact');
     return {
@@ -128,10 +132,8 @@ export function buildCandidateRows({ rows, apps, reqCode }: CandidateRowInput): 
       source: row.source_name ?? '',
       initial_date: row.initial_date ?? '',
       sourcer: row.sourcer_name ?? '',
-      requisitions: (appsByPerson.get(row.person_id) ?? [])
-        .map((a) => reqCode.get(a.requisition_id) ?? '')
-        .filter(Boolean)
-        .join(', '),
+      requisitions: requisitionNames.join(', '),
+      requisition_names: requisitionNames,
       flags: flags.join(' \u00b7 '),
       emails: rowEmails(row)
         .map((e) => e.address)
