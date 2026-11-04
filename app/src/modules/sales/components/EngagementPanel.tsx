@@ -8,7 +8,9 @@ import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { SidePanelTabs } from '../../../components/ui/SidePanelTabs';
 import { Timeline, type TimelineItem } from '../../../components/ui/Timeline';
-import { useStaffList } from '../hooks';
+import { useCanEditCrm, useStaffList } from '../hooks';
+import { InlineField } from '../../../components/ui/InlineField';
+import { InlineDateTime } from '../../../components/ui/InlineDateTime';
 import {
   fmtDate,
   TASK_PRIORITIES,
@@ -19,7 +21,7 @@ import {
 } from '../lib';
 import { Modal } from './Modal';
 import { isPendingFile, PENDING_FILE_LABEL, PENDING_FILE_REASON } from '../../../lib/attachments';
-import { htmlToText } from '../../../lib/format';
+import { EMPTY_CELL, formatDateTime, htmlToText } from '../../../lib/format';
 import { BellRing, ListChecks, MessageSquare, Paperclip, Plus } from 'lucide-react';
 import { EmptyState } from '../../../components/ui/EmptyState';
 
@@ -51,10 +53,14 @@ function ActivityList({
   items,
   emptyText,
   note,
+  authorOf,
+  onUpdate,
 }: {
   items: Activity[];
   emptyText: string;
   note?: string;
+  authorOf: (id: string | null) => string;
+  onUpdate?: (a: Activity, patch: { subject?: string; occurred_at?: string }) => Promise<void>;
 }) {
   return (
     <>
@@ -70,13 +76,39 @@ function ActivityList({
           {items.map((a) => (
             <li key={a.id} className="sales-panel-item">
               <div className="sales-panel-item-head">
-                <span className="sales-panel-item-title">
-                  {a.subject ?? '(no subject)'}
-                </span>
+                {onUpdate ? (
+                  <span className="sales-panel-item-title">
+                    <InlineField
+                      label="Event subject"
+                      kind="text"
+                      editable
+                      required
+                      value={a.subject ?? ''}
+                      onCommit={(next) => onUpdate(a, { subject: next })}
+                    />
+                  </span>
+                ) : (
+                  <span className="sales-panel-item-title">
+                    {a.subject ?? '(no subject)'}
+                  </span>
+                )}
                 <span className="sales-panel-item-meta">
-                  {fmtDate(a.occurred_at)}
+                  {onUpdate ? (
+                    <InlineDateTime
+                      label="Event date and time"
+                      value={a.occurred_at}
+                      display={formatDateTime(a.occurred_at)}
+                      editable
+                      onCommit={(occurred_at) => onUpdate(a, { occurred_at })}
+                    />
+                  ) : (
+                    fmtDate(a.occurred_at)
+                  )}
                 </span>
               </div>
+              {authorOf(a.created_by) !== EMPTY_CELL && (
+                <div className="sales-panel-item-meta">Added by {authorOf(a.created_by)}</div>
+              )}
               {a.body && (
                 <div className="sales-panel-item-body">{htmlToText(a.body)}</div>
               )}
@@ -98,6 +130,7 @@ export function EngagementPanel({
 }: EngagementPanelProps) {
   const { staff } = useSession();
   const { staffName } = useStaffList();
+  const canEditCrm = useCanEditCrm();
 
   const [activities, setActivities] = useState<Activity[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -216,6 +249,34 @@ export function EngagementPanel({
     await refresh();
   };
 
+  const updateEvent = async (
+    a: Activity,
+    patch: { subject?: string; occurred_at?: string },
+  ) => {
+    const { data, error } = await supabase
+      .from('activities')
+      .update(patch)
+      .eq('id', a.id)
+      .select('id');
+    if (error) throw new Error(error.message);
+    if (!data?.length) throw new Error('You do not have permission to edit this event.');
+    await refresh();
+  };
+
+  const updateTask = async (
+    t: TaskRow,
+    patch: { subject?: string; due_date?: string | null },
+  ) => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(patch)
+      .eq('id', t.id)
+      .select('id');
+    if (error) throw new Error(error.message);
+    if (!data?.length) throw new Error('You do not have permission to edit this task.');
+    await refresh();
+  };
+
   const dismissReminder = async (r: Reminder) => {
     await supabase
       .from('reminders')
@@ -276,14 +337,14 @@ export function EngagementPanel({
               key: 'notes',
               label: 'Notes',
               count: notes.length,
-              content: <ActivityList items={notes} emptyText="No notes yet." />,
+              content: <ActivityList items={notes} emptyText="No notes yet." authorOf={staffName} />,
             },
             {
               key: 'calls',
               label: 'Calls',
               count: calls.length,
               content: (
-                <ActivityList items={calls} emptyText="No calls logged." />
+                <ActivityList items={calls} emptyText="No calls logged." authorOf={staffName} />
               ),
             },
             {
@@ -294,6 +355,7 @@ export function EngagementPanel({
                 <ActivityList
                   items={meetings}
                   emptyText="No meetings yet."
+                  authorOf={staffName}
                   note="Calendar-synced meetings arrive via the Google Calendar integration."
                 />
               ),
@@ -306,6 +368,8 @@ export function EngagementPanel({
                 <ActivityList
                   items={events}
                   emptyText="No calendar events with attendees."
+                  authorOf={staffName}
+                  {...(canEditCrm ? { onUpdate: updateEvent } : {})}
                 />
               ),
             },
@@ -317,6 +381,7 @@ export function EngagementPanel({
                 <ActivityList
                   items={emails}
                   emptyText="No linked emails."
+                  authorOf={staffName}
                   note="Emails sync from Gmail (Agent 6); manual link/unlink lands with that integration."
                 />
               ),
@@ -338,12 +403,38 @@ export function EngagementPanel({
                     {tasks.map((t) => (
                       <li key={t.id} className="sales-panel-item">
                         <div className="sales-panel-item-head">
-                          <span className="sales-panel-item-title">
-                            {t.subject}
-                          </span>
-                          <span className="sales-panel-item-meta">
-                            {fmtDate(t.due_date)}
-                          </span>
+                          {canEditCrm ? (
+                            <>
+                              <span className="sales-panel-item-title">
+                                <InlineField
+                                  label="Task subject"
+                                  kind="text"
+                                  editable
+                                  required
+                                  value={t.subject}
+                                  onCommit={(next) => updateTask(t, { subject: next })}
+                                />
+                              </span>
+                              <span className="sales-panel-item-meta">
+                                <InlineField
+                                  label="Task due date"
+                                  kind="date"
+                                  editable
+                                  value={t.due_date ?? ''}
+                                  onCommit={(next) => updateTask(t, { due_date: next || null })}
+                                />
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="sales-panel-item-title">
+                                {t.subject}
+                              </span>
+                              <span className="sales-panel-item-meta">
+                                {fmtDate(t.due_date)}
+                              </span>
+                            </>
+                          )}
                         </div>
                         <div className="sales-panel-item-head">
                           <span className="sales-panel-item-meta">
