@@ -1030,6 +1030,24 @@ export interface Database {
         >;
         Relationships: [];
       };
+      ats_view_defaults: {
+        Row: {
+          staff_id: string;
+          entity: string;
+          view_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          staff_id: string;
+          entity: string;
+          view_id?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database['public']['Tables']['ats_view_defaults']['Insert']
+        >;
+        Relationships: [];
+      };
       intake_mapping_templates: {
         Row: {
           id: string;
