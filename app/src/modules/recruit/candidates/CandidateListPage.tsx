@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useListLink } from '../../../lib/listReturn';
 import { useSubmittedSearch, searchWords } from '../../../lib/quickSearch';
@@ -81,7 +81,7 @@ export function CandidateListPage() {
   const canAdd = !mobile && (role === 'admin' || role === 'recruiter');
   const canImport = !mobile && (canAdd || role === 'sourcer');
   const lookups = useLookups();
-  const savedViews = useSavedViews('candidate');
+  const savedViews = useSavedViews('candidate', true);
   const [params] = useSearchParams();
 
   const {
@@ -531,6 +531,15 @@ export function CandidateListPage() {
     setSort(state.sort);
   }, []);
 
+  const initialViewApplied = useRef(false);
+  const { initialView } = savedViews;
+  useEffect(() => {
+    if (initialViewApplied.current || initialView === undefined) return;
+    initialViewApplied.current = true;
+    if (initialView === null || params.toString() !== '') return;
+    applyView(initialView.state);
+  }, [initialView, params, applyView]);
+
   const columnHeader = useMemo(
     () => new Map(COLUMN_DEFS.map((c) => [c.key, c.header])),
     [],
@@ -581,6 +590,8 @@ export function CandidateListPage() {
           onSave={savedViews.save}
           onDelete={savedViews.remove}
           ownStaffId={staff?.id}
+          selectedId={savedViews.selectedId}
+          onSelect={savedViews.choose}
         />
       }
       exportRows={exportFilteredRows}

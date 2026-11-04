@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useListLink } from '../../../lib/listReturn';
 import { useSubmittedSearch } from '../../../lib/quickSearch';
@@ -142,7 +142,7 @@ export function RequisitionListPage() {
   const { staff } = useSession();
   const mobile = useIsMobile();
   const lookups = useLookups();
-  const savedViews = useSavedViews('requisition');
+  const savedViews = useSavedViews('requisition', true);
   const [params] = useSearchParams();
 
   const {
@@ -447,6 +447,15 @@ export function RequisitionListPage() {
     setSort(state.sort);
   }, []);
 
+  const initialViewApplied = useRef(false);
+  const { initialView } = savedViews;
+  useEffect(() => {
+    if (initialViewApplied.current || initialView === undefined) return;
+    initialViewApplied.current = true;
+    if (initialView === null || params.toString() !== '') return;
+    applyView(initialView.state);
+  }, [initialView, params, applyView]);
+
   const exportColumns = visibleCols
     .map((key) => COLUMN_DEFS.find((c) => c.key === key))
     .filter((c): c is (typeof COLUMN_DEFS)[number] => c !== undefined);
@@ -532,6 +541,8 @@ export function RequisitionListPage() {
           onSave={savedViews.save}
           onDelete={savedViews.remove}
           ownStaffId={staff?.id}
+          selectedId={savedViews.selectedId}
+          onSelect={savedViews.choose}
         />
       }
       actions={

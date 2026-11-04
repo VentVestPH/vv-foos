@@ -24,6 +24,15 @@ export interface ViewState {
   sort: { key: string; dir: 'asc' | 'desc' } | null;
 }
 
+export interface InitialView {
+  id: string;
+  state: ViewState;
+}
+
+function isSharedDefault(view: SavedView): boolean {
+  return view.is_shared && view.name.trim().toLowerCase() === 'default';
+}
+
 function parseViewState(view: SavedView): ViewState {
   const filters =
     view.filters && typeof view.filters === 'object' && !Array.isArray(view.filters)
@@ -37,10 +46,14 @@ function parseViewState(view: SavedView): ViewState {
   return { filters, columns, sort };
 }
 
-export function useSavedViews(entity: SavedViewEntity) {
+export function useSavedViews(entity: SavedViewEntity, remember = false) {
   const { staff } = useSession();
   const [views, setViews] = useState<SavedView[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState('');
+  const [initialView, setInitialView] = useState<InitialView | null | undefined>(
+    remember ? undefined : null,
+  );
 
   const refresh = useCallback(async () => {
     if (!staff) return;
@@ -61,25 +74,76 @@ export function useSavedViews(entity: SavedViewEntity) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!remember || !staff) return undefined;
+    let cancelled = false;
+    void (async () => {
+      const [list, pref] = await Promise.all([
+        supabase
+          .from('ats_saved_views')
+          .select('*')
+          .eq('entity', entity)
+          .or(`staff_id.eq.${staff.id},is_shared.is.true`)
+          .order('created_at'),
+        supabase
+          .from('ats_view_defaults')
+          .select('view_id')
+          .eq('staff_id', staff.id)
+          .eq('entity', entity)
+          .maybeSingle(),
+      ]);
+      if (cancelled) return;
+      const rows = list.error ? [] : (list.data ?? []);
+      const remembered = pref.error ? null : (pref.data?.view_id ?? null);
+      const chosen =
+        rows.find((v) => v.id === remembered) ?? rows.find(isSharedDefault) ?? null;
+      if (chosen) setSelectedId(chosen.id);
+      setInitialView(chosen ? { id: chosen.id, state: parseViewState(chosen) } : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entity, remember, staff]);
+
+  const choose = useCallback(
+    async (id: string) => {
+      setSelectedId(id);
+      if (!remember || !staff || id === '') return;
+      const { error: err } = await supabase
+        .from('ats_view_defaults')
+        .upsert(
+          { staff_id: staff.id, entity, view_id: id, updated_at: new Date().toISOString() },
+          { onConflict: 'staff_id,entity' },
+        );
+      if (err) setError(err.message);
+    },
+    [entity, remember, staff],
+  );
+
   const save = useCallback(
     async (name: string, state: ViewState, shared = false) => {
       if (!staff) return;
-      const { error: err } = await supabase.from('ats_saved_views').insert({
-        staff_id: staff.id,
-        entity,
-        name,
-        is_shared: shared,
-        filters: (state.filters ?? {}) as unknown as Json,
-        columns: (state.columns ?? []) as unknown as Json,
-        sort: (state.sort ?? []) as unknown as Json,
-      });
+      const { data, error: err } = await supabase
+        .from('ats_saved_views')
+        .insert({
+          staff_id: staff.id,
+          entity,
+          name,
+          is_shared: shared,
+          filters: (state.filters ?? {}) as unknown as Json,
+          columns: (state.columns ?? []) as unknown as Json,
+          sort: (state.sort ?? []) as unknown as Json,
+        })
+        .select('id')
+        .single();
       if (err) {
         setError(err.message);
       } else {
         await refresh();
+        if (remember && data) await choose(data.id);
       }
     },
-    [entity, staff, refresh],
+    [entity, staff, refresh, remember, choose],
   );
 
   const remove = useCallback(
@@ -88,13 +152,14 @@ export function useSavedViews(entity: SavedViewEntity) {
       if (err) {
         setError(err.message);
       } else {
+        setSelectedId((current) => (current === id ? '' : current));
         await refresh();
       }
     },
     [refresh],
   );
 
-  return { views, save, remove, error };
+  return { views, save, remove, error, selectedId, choose, initialView };
 }
 
 interface SavedViewsControlProps {
@@ -105,6 +170,8 @@ interface SavedViewsControlProps {
   onSave: (name: string, state: ViewState, shared: boolean) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
   ownStaffId?: string | undefined;
+  selectedId?: string | undefined;
+  onSelect?: ((id: string) => void | Promise<void>) | undefined;
 }
 
 export function SavedViewsControl({
@@ -114,8 +181,15 @@ export function SavedViewsControl({
   onSave,
   onDelete,
   ownStaffId,
+  selectedId: controlledId,
+  onSelect,
 }: SavedViewsControlProps) {
-  const [selectedId, setSelectedId] = useState('');
+  const [localId, setLocalId] = useState('');
+  const selectedId = controlledId ?? localId;
+  const setSelectedId = (id: string) => {
+    setLocalId(id);
+    if (onSelect) void onSelect(id);
+  };
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
   const [shared, setShared] = useState(false);
