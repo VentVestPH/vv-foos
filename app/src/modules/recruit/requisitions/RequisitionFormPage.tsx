@@ -21,6 +21,7 @@ import { CollapseAllButton } from '../../../components/ui/SectionCollapse';
 import { PlaceholderAction } from '../../../shell/Placeholder';
 import { Briefcase as BriefcaseIcon, Eye as EyeIcon, PencilLine as PencilIcon } from 'lucide-react';
 import { CURRENCIES } from '../../../lib/format';
+import { BUDGET_STATUSES, EMPLOYMENT_TYPES, REOPEN_REASONS } from './requisitionOptions';
 import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSummary';
 import { supabase } from '../../../lib/supabase';
 import { type ApproverRow, errMsg, todayIso } from '../lib';
@@ -72,9 +73,6 @@ interface ApproverDraft {
   approver_type: ApproverType;
 }
 
-const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship'];
-const BUDGET_STATUSES = ['Approved', 'Pending', 'Not budgeted'];
-const REASONS = ['New position', 'Replacement', 'Expansion', 'Other'];
 
 const REQ_FORM_SECTIONS = [
   'Requisition Owner(s):',
@@ -459,7 +457,7 @@ export function RequisitionFormPage({ dialogId, onClose, onSaved }: RequisitionF
             <Select
               label="Reason for opening"
               placeholder="Select…"
-              options={REASONS.map((v) => ({ value: v, label: v }))}
+              options={REOPEN_REASONS.map((v) => ({ value: v, label: v }))}
               value={form.reason_for_opening}
               onChange={(e) => set('reason_for_opening', e.target.value)}
             />

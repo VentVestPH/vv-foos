@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import type { RequisitionStatus, TablesUpdate } from '../../../lib/database.types';
@@ -41,7 +41,9 @@ import { type ApproverRow, type OwnerRow, REQ_ACTION_LABELS, REQ_PRIMARY_ACTION,
 import { useIsMobile, useLookups } from '../hooks';
 import { ApplicationPipeline } from './ApplicationPipeline';
 import { RequisitionFormPage } from './RequisitionFormPage';
-import { EMPTY_CELL, sentenceCase } from '../../../lib/format';
+import { CURRENCIES, EMPTY_CELL, sentenceCase } from '../../../lib/format';
+import { InlineField } from '../../../components/ui/InlineField';
+import { BUDGET_STATUSES, EMPLOYMENT_TYPES, REOPEN_REASONS, optionsWithCurrent } from './requisitionOptions';
 
 const REQ_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
   'Requisition Owner(s):': true,
@@ -367,48 +369,40 @@ export function RequisitionRecordPage() {
     <span className="text-secondary">Read-only</span>
   );
 
-  return (
-    <RecordPage
-      code={req.display_code}
-      title={req.title}
-      icon={<BriefcaseIcon size={32} />}
-      breadcrumbs={[
-        { label: 'Home', to: '/' },
-        { label: 'Requisitions', to: listHref },
-        { label: req.display_code },
-      ]}
-      headerActions={
-        <SettingsButton
-          label="Section settings"
-          title="Choose which sections appear"
-          onClick={() => setSettingsOpen(true)}
-        />
-      }
-      titleExtras={
-        <>
-          <StatusBadge status={req.status} />
-          {req.is_published && <Badge tone="primary">Published</Badge>}
-          {req.is_test && <Badge tone="outline">Test record</Badge>}
-        </>
-      }
-      actionBar={actionBarContent}
-    >
-      {error && <p className="form-error" role="alert">{error}</p>}
+  const saveReq = async (patch: TablesUpdate<'requisitions'>) => {
+    const { error: saveError } = await supabase
+      .from('requisitions')
+      .update(patch)
+      .eq('id', req.id);
+    if (saveError) throw new Error(saveError.message);
+    await load();
+  };
 
-      <div className="fo-next-steps">
-        <span className="fo-next-steps-label">Next Steps:</span>
-        <button type="button" className="link-btn" onClick={scrollToPipeline}>
-          Candidates ({pipelineCount})
-        </button>
-        {canEdit ? (
-          <button type="button" className="link-btn" onClick={() => setAddSignal((n) => n + 1)}>
-            Add new candidate
-          </button>
-        ) : (
-          <span className="fo-next-step-disabled">Add new candidate</span>
-        )}
-      </div>
+  const savePay = async (column: 'pay_min' | 'pay_max', raw: string) => {
+    const label = column === 'pay_min' ? 'Pay min' : 'Pay max';
+    const next = raw === '' ? null : Number(raw);
+    if (next !== null && Number.isNaN(next)) throw new Error(`${label} must be a number.`);
+    const min = column === 'pay_min' ? next : req.pay_min;
+    const max = column === 'pay_max' ? next : req.pay_max;
+    if (min != null && max != null && min > max) throw new Error('Pay min cannot exceed pay max.');
+    await saveReq({ [column]: next });
+  };
 
+  const saveOpenings = async (raw: string) => {
+    const next = Math.floor(Number(raw));
+    if (Number.isNaN(next) || next < 1) throw new Error('# of openings must be at least 1.');
+    await saveReq({ num_openings: next });
+  };
+
+  const reqRow = (label: string, control: ReactNode) => (
+    <div className="info-item" key={label}>
+      <dt>{label}</dt>
+      <dd>{control}</dd>
+    </div>
+  );
+
+  const sectionNodes: Record<string, ReactNode> = {
+    'Requisition Owner(s):': (
       <RecordSection title="Requisition Owner(s):" hidden={prefs.isHidden('Requisition Owner(s):')} defaultOpen={opensOnLoad('Requisition Owner(s):')}>
         {owners.length === 0 ? (
           <EmptyState
@@ -427,8 +421,59 @@ export function RequisitionRecordPage() {
           </div>
         )}
       </RecordSection>
-
+    ),
+    'Requisition Information:': (
       <RecordSection title="Requisition Information:" hidden={prefs.isHidden('Requisition Information:')} defaultOpen={opensOnLoad('Requisition Information:')}>
+        {canEdit ? (
+          <dl className="info-grid">
+            {reqRow('Opened Date',
+              <InlineField label="Opened Date" kind="date" editable value={req.opened_date ?? ''}
+                onCommit={(v) => saveReq({ opened_date: v || null })} />)}
+            {reqRow('Budget Status',
+              <InlineField label="Budget Status" kind="select" editable value={req.budget_status ?? ''}
+                options={optionsWithCurrent(BUDGET_STATUSES, req.budget_status)}
+                onCommit={(v) => saveReq({ budget_status: v || null })} />)}
+            {reqRow('Job Code',
+              <InlineField label="Job Code" kind="text" editable value={req.job_code ?? ''}
+                onCommit={(v) => saveReq({ job_code: v || null })} />)}
+            {reqRow('Reason for Opening',
+              <InlineField label="Reason for Opening" kind="select" editable value={req.reason_for_opening ?? ''}
+                options={optionsWithCurrent(REOPEN_REASONS, req.reason_for_opening)}
+                onCommit={(v) => saveReq({ reason_for_opening: v || null })} />)}
+            {reqRow('Title',
+              <InlineField label="Title" kind="text" editable required value={req.title ?? ''}
+                onCommit={(v) => saveReq({ title: v })} />)}
+            {reqRow('Replacement for',
+              <InlineField label="Replacement for" kind="text" editable value={req.replacement_for ?? ''}
+                onCommit={(v) => saveReq({ replacement_for: v || null })} />)}
+            {reqRow('Location',
+              <InlineField label="Location" kind="text" editable value={req.location ?? ''}
+                onCommit={(v) => saveReq({ location: v || null })} />)}
+            {reqRow('Employment duration',
+              <InlineField label="Employment duration" kind="select" editable value={req.employment_type ?? ''}
+                options={optionsWithCurrent(EMPLOYMENT_TYPES, req.employment_type)}
+                onCommit={(v) => saveReq({ employment_type: v || null })} />)}
+            {reqRow('Status', <span className="fo-inline-value">{sentenceCase(req.status ?? '') || EMPTY_CELL}</span>)}
+            {reqRow('Pay min',
+              <InlineField label="Pay min" kind="number" editable value={req.pay_min == null ? '' : String(req.pay_min)}
+                onCommit={(v) => savePay('pay_min', v)} />)}
+            {reqRow('Pay max',
+              <InlineField label="Pay max" kind="number" editable value={req.pay_max == null ? '' : String(req.pay_max)}
+                onCommit={(v) => savePay('pay_max', v)} />)}
+            {reqRow('Pay currency',
+              <InlineField label="Pay currency" kind="select" editable value={req.pay_currency ?? ''}
+                options={optionsWithCurrent(CURRENCIES, req.pay_currency)}
+                onCommit={(v) => saveReq({ pay_currency: v || null })} />)}
+            {reqRow('# of openings',
+              <InlineField label="# of openings" kind="number" editable required value={String(req.num_openings)}
+                onCommit={(v) => saveOpenings(v)} />)}
+            {reqRow('Pay notes',
+              <InlineField label="Pay notes" kind="text" editable value={req.pay_notes ?? ''}
+                onCommit={(v) => saveReq({ pay_notes: v || null })} />)}
+            {req.filled_date &&
+              reqRow('Filled date', <span className="fo-inline-value">{fmtDate(req.filled_date)}</span>)}
+          </dl>
+        ) : (
         <dl className="info-grid">
           {[
             ['Opened Date', fmtDate(req.opened_date)],
@@ -458,8 +503,10 @@ export function RequisitionRecordPage() {
               </div>
             ))}
         </dl>
+        )}
       </RecordSection>
-
+    ),
+    'Description:': (
       <RecordSection title="Description:" hidden={prefs.isHidden('Description:')} defaultOpen={opensOnLoad('Description:')}>
         {req.description ? (
           looksLikeHtml(req.description) ? (
@@ -479,7 +526,8 @@ export function RequisitionRecordPage() {
           />
         )}
       </RecordSection>
-
+    ),
+    'Attachments': (
       <RecordSection title="Attachments" hidden={prefs.isHidden('Attachments')} defaultOpen={opensOnLoad('Attachments')}>
         <AttachmentsPanel
           items={engagement.attachments}
@@ -488,7 +536,8 @@ export function RequisitionRecordPage() {
           onChanged={engagement.refresh}
         />
       </RecordSection>
-
+    ),
+    'Accounts / Company': (
       <RecordSection title="Accounts / Company" hidden={prefs.isHidden('Accounts / Company')} defaultOpen={opensOnLoad('Accounts / Company')}>
         {company ? (
           <dl className="info-grid">
@@ -514,7 +563,8 @@ export function RequisitionRecordPage() {
           />
         )}
       </RecordSection>
-
+    ),
+    'Company contacts': (
       <RecordSection
         title={req.company_id ? `Company contacts (${companyContacts.length})` : 'Company contacts'}
         hidden={prefs.isHidden('Company contacts')}
@@ -554,7 +604,8 @@ export function RequisitionRecordPage() {
           </ul>
         )}
       </RecordSection>
-
+    ),
+    'Tasks': (
       <RecordSection title="Tasks" hidden={prefs.isHidden('Tasks')} defaultOpen={opensOnLoad('Tasks')}>
         <TasksPanel
           items={engagement.tasks}
@@ -562,9 +613,11 @@ export function RequisitionRecordPage() {
           onCreate={engagement.addTask}
           onToggle={engagement.toggleTask}
           onDelete={!mobile ? engagement.deleteTask : undefined}
+          onUpdate={!mobile ? engagement.updateTask : undefined}
         />
       </RecordSection>
-
+    ),
+    'Reminders': (
       <RecordSection title="Reminders" hidden={prefs.isHidden('Reminders')} defaultOpen={opensOnLoad('Reminders')}>
         <RemindersPanel
           items={engagement.reminders}
@@ -574,7 +627,8 @@ export function RequisitionRecordPage() {
           onDelete={!mobile ? engagement.deleteReminder : undefined}
         />
       </RecordSection>
-
+    ),
+    'Comments': (
       <RecordSection title="Comments" hidden={prefs.isHidden('Comments')} defaultOpen={opensOnLoad('Comments')}>
         <ActivityPanel
           items={engagement.activities.filter((a) => a.kind === 'note')}
@@ -586,16 +640,19 @@ export function RequisitionRecordPage() {
                   onDelete={!mobile ? engagement.deleteActivity : undefined}
         />
       </RecordSection>
-
+    ),
+    'Status History': (
       <RecordSection title="Status History" hidden={prefs.isHidden('Status History')} defaultOpen={opensOnLoad('Status History')}>
         <StatusHistory changes={engagement.activities.filter((a) => a.kind === 'status_change')} />
       </RecordSection>
-
+    ),
+    'History Log / Timeline': (
       <RecordSection title="History Log / Timeline" hidden={prefs.isHidden('History Log / Timeline')} defaultOpen={opensOnLoad('History Log / Timeline')}>
         <Timeline items={timelineItems} />
         {engagement.error && <p className="form-error" role="alert">{engagement.error}</p>}
       </RecordSection>
-
+    ),
+    'Tracking:': (
       <RecordSection title="Tracking:" hidden={prefs.isHidden('Tracking:')} defaultOpen={opensOnLoad('Tracking:')}>
         <dl className="info-grid">
           <div className="info-item">
@@ -612,7 +669,8 @@ export function RequisitionRecordPage() {
           </div>
         </dl>
       </RecordSection>
-
+    ),
+    'Approvals:': (
       <RecordSection title="Approvals:" hidden={prefs.isHidden('Approvals:')} defaultOpen={opensOnLoad('Approvals:')}>
         {approvers.length === 0 && (
           <EmptyState
@@ -671,7 +729,8 @@ export function RequisitionRecordPage() {
           </p>
         )}
       </RecordSection>
-
+    ),
+    'Application Pipeline': (
       <RecordSection title="Application Pipeline" hidden={prefs.isHidden('Application Pipeline')} defaultOpen={opensOnLoad('Application Pipeline')}>
         <div ref={pipelineRef} id="application-pipeline">
           <ApplicationPipeline
@@ -683,6 +742,56 @@ export function RequisitionRecordPage() {
           />
         </div>
       </RecordSection>
+    ),
+  };
+
+  const sectionOrder = prefs.orderFor(REQ_RECORD_SECTIONS);
+
+  return (
+    <RecordPage
+      code={req.display_code}
+      title={req.title}
+      icon={<BriefcaseIcon size={32} />}
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Requisitions', to: listHref },
+        { label: req.display_code },
+      ]}
+      headerActions={
+        <SettingsButton
+          label="Section settings"
+          title="Choose which sections appear"
+          onClick={() => setSettingsOpen(true)}
+        />
+      }
+      titleExtras={
+        <>
+          <StatusBadge status={req.status} />
+          {req.is_published && <Badge tone="primary">Published</Badge>}
+          {req.is_test && <Badge tone="outline">Test record</Badge>}
+        </>
+      }
+      actionBar={actionBarContent}
+    >
+      {error && <p className="form-error" role="alert">{error}</p>}
+
+      <div className="fo-next-steps">
+        <span className="fo-next-steps-label">Next Steps:</span>
+        <button type="button" className="link-btn" onClick={scrollToPipeline}>
+          Candidates ({pipelineCount})
+        </button>
+        {canEdit ? (
+          <button type="button" className="link-btn" onClick={() => setAddSignal((n) => n + 1)}>
+            Add new candidate
+          </button>
+        ) : (
+          <span className="fo-next-step-disabled">Add new candidate</span>
+        )}
+      </div>
+
+      {sectionOrder.map((name) => (
+        <Fragment key={name}>{sectionNodes[name]}</Fragment>
+      ))}
 
 
       {rejecting && (
@@ -729,8 +838,9 @@ export function RequisitionRecordPage() {
       {settingsOpen && (
         <SectionSettingsDialog
           title="Section settings"
-          hint="Choose which sections appear on this requisition. The choice is saved to your account."
+          hint="Choose which sections appear on this requisition, the order they appear in, and which open when the page loads. The choice is saved to your account."
           sections={REQ_RECORD_SECTIONS}
+          defaultOrder={REQ_RECORD_SECTIONS}
           prefs={prefs}
           defaultOpenFor={(section) => REQ_SECTION_DEFAULT_OPEN[section] ?? true}
           onClose={() => setSettingsOpen(false)}

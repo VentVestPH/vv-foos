@@ -14,6 +14,8 @@ import { useSectionPrefs } from '../../../hooks/useSectionPrefs';
 import { useMinimumVisible } from '../../../hooks/useMinimumVisible';
 import { ContactDeleteDialog } from '../components/ContactDeleteDialog';
 import { ContactEditDialog } from '../components/ContactEditDialog';
+import { contactEditFields, contactEditValues, saveContact } from '../components/contactEdit';
+import { InlineRecordField } from '../../../components/ui/InlineField';
 import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { Table } from '../../../components/ui/Table';
 import { Contact as ContactCardIcon, PencilLine } from 'lucide-react';
@@ -41,6 +43,26 @@ const CONTACT_RECORD_SECTIONS = [
   'Engagement',
 ];
 
+const PERSON_INLINE = [
+  { key: 'first_name', label: 'First name' },
+  { key: 'last_name', label: 'Last name' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'street', label: 'Street' },
+  { key: 'city', label: 'City' },
+  { key: 'state', label: 'State / region' },
+  { key: 'postal_code', label: 'Postal code' },
+  { key: 'country', label: 'Country' },
+  { key: 'linkedin_public_url', label: 'LinkedIn' },
+];
+
+const PROFILE_INLINE = [
+  { key: 'company_id', label: 'Company' },
+  { key: 'title', label: 'Title' },
+  { key: 'since_date', label: 'Contact since' },
+  { key: 'headline', label: 'Headline' },
+];
+
 const CONTACT_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
   'Person Details': true,
   'Contact Profile': true,
@@ -52,7 +74,7 @@ export function ContactRecordPage() {
   const { personId } = useParams<{ personId: string }>();
   const canEdit = useCanEditCrm();
   const { record } = useRecentlyViewed();
-  const { companyName } = useCompanyOptions();
+  const { companyName, companyOptions } = useCompanyOptions();
 
   const [person, setPerson] = useState<Person | null>(null);
   const [profile, setProfile] = useState<ContactProfile | null>(null);
@@ -137,6 +159,40 @@ export function ContactRecordPage() {
     );
   }
   if (!person || !profile) return null;
+
+  const contactFields = contactEditFields(person, companyOptions);
+  const contactValues = contactEditValues(person, profile);
+  const inlineRow = (key: string, label: string) => {
+    const field = contactFields.find((f) => f.key === key);
+    if (!field) return null;
+    const href = key === 'linkedin_public_url' ? person.linkedin_public_url : null;
+    return (
+      <div key={key}>
+        <dt>{label}</dt>
+        <dd>
+          <InlineRecordField
+            field={field}
+            values={contactValues}
+            editable
+            label={label}
+            {...(href
+              ? {
+                  display: (
+                    <a href={href} target="_blank" rel="noreferrer">
+                      Profile
+                    </a>
+                  ),
+                }
+              : {})}
+            onSave={async (draft) => {
+              await saveContact(person, draft);
+              await load();
+            }}
+          />
+        </dd>
+      </div>
+    );
+  };
 
   const emails = emailList(person.emails);
   const phones = phoneList(person.phones);
@@ -278,6 +334,23 @@ export function ContactRecordPage() {
         hidden={prefs.isHidden('Person Details')}
         defaultOpen={opensOnLoad('Person Details')}
       >
+        {canEdit ? (
+          <dl className="sales-record-meta">
+            {PERSON_INLINE.map(({ key, label }) => inlineRow(key, label))}
+            {emails.length > 1 && (
+              <div>
+                <dt>Other emails</dt>
+                <dd>{emails.slice(1).map((e) => `${e.address} (${e.type})`).join(', ')}</dd>
+              </div>
+            )}
+            {phones.length > 1 && (
+              <div>
+                <dt>Other phones</dt>
+                <dd>{phones.slice(1).map((p) => `${p.number} (${p.type})`).join(', ')}</dd>
+              </div>
+            )}
+          </dl>
+        ) : (
         <dl className="sales-record-meta">
           <div>
             <dt>Emails</dt>
@@ -316,6 +389,7 @@ export function ContactRecordPage() {
             </dd>
           </div>
         </dl>
+        )}
       </RecordSection>
 
       <RecordSection
@@ -323,6 +397,11 @@ export function ContactRecordPage() {
         hidden={prefs.isHidden('Contact Profile')}
         defaultOpen={opensOnLoad('Contact Profile')}
       >
+        {canEdit ? (
+          <dl className="sales-record-meta">
+            {PROFILE_INLINE.map(({ key, label }) => inlineRow(key, label))}
+          </dl>
+        ) : (
         <dl className="sales-record-meta">
           <div>
             <dt>Company</dt>
@@ -341,6 +420,7 @@ export function ContactRecordPage() {
             <dd>{person.headline ?? EMPTY_CELL}</dd>
           </div>
         </dl>
+        )}
       </RecordSection>
 
       {deals.length > 0 && (

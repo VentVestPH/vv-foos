@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/SessionProvider';
 import { supabase } from '../lib/supabase';
+import { mergeSectionOrder } from '../lib/sectionOrder';
 
 export interface SectionPrefs {
   hidden: string[];
@@ -9,6 +10,10 @@ export interface SectionPrefs {
   showAll: () => void;
   opensOnLoad: (section: string, fallback: boolean) => boolean;
   toggleOpensOnLoad: (section: string, fallback: boolean) => void;
+  order: string[];
+  orderFor: (defaults: string[]) => string[];
+  setOrder: (next: string[]) => void;
+  resetOrder: () => void;
   ready: boolean;
   error: string | null;
 }
@@ -31,12 +36,20 @@ function readHidden(value: unknown): string[] {
   return raw.filter((entry): entry is string => typeof entry === 'string');
 }
 
+function readOrder(value: unknown): string[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  const raw = (value as Record<string, unknown>).order;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((entry): entry is string => typeof entry === 'string');
+}
+
 export function useSectionPrefs(scope: string): SectionPrefs {
   const { staff } = useSession();
   const staffId = staff?.id ?? null;
   const key = `ui.sections.${scope}`;
   const [hidden, setHidden] = useState<string[]>([]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [order, setOrderState] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const rowIdRef = useRef<string | null>(null);
@@ -49,6 +62,7 @@ export function useSectionPrefs(scope: string): SectionPrefs {
     if (!staffId) {
       setHidden([]);
       setOpen({});
+      setOrderState([]);
       setReady(true);
       queueRef.current = Promise.resolve();
       return;
@@ -68,6 +82,7 @@ export function useSectionPrefs(scope: string): SectionPrefs {
         if (!changedRef.current) {
           setHidden(readHidden(data?.value));
           setOpen(readOpen(data?.value));
+          setOrderState(readOrder(data?.value));
         }
         setReady(true);
       });
@@ -78,12 +93,13 @@ export function useSectionPrefs(scope: string): SectionPrefs {
   }, [staffId, key]);
 
   const persist = useCallback(
-    (next: string[], nextOpen: Record<string, boolean>) => {
+    (next: string[], nextOpen: Record<string, boolean>, nextOrder: string[]) => {
       changedRef.current = true;
       setHidden(next);
       setOpen(nextOpen);
+      setOrderState(nextOrder);
       if (!staffId) return;
-      const value = { hidden: next, open: nextOpen };
+      const value = { hidden: next, open: nextOpen, order: nextOrder };
       queueRef.current = queueRef.current.then(async () => {
         if (rowIdRef.current) {
           const { error: updateError } = await supabase
@@ -118,12 +134,13 @@ export function useSectionPrefs(scope: string): SectionPrefs {
           ? hidden.filter((entry) => entry !== section)
           : [...hidden, section],
         open,
+        order,
       );
     },
-    [hidden, open, persist],
+    [hidden, open, order, persist],
   );
 
-  const showAll = useCallback(() => persist([], open), [open, persist]);
+  const showAll = useCallback(() => persist([], open, order), [open, order, persist]);
 
   const opensOnLoad = useCallback(
     (section: string, fallback: boolean) => open[section] ?? fallback,
@@ -132,9 +149,21 @@ export function useSectionPrefs(scope: string): SectionPrefs {
 
   const toggleOpensOnLoad = useCallback(
     (section: string, fallback: boolean) => {
-      persist(hidden, { ...open, [section]: !(open[section] ?? fallback) });
+      persist(hidden, { ...open, [section]: !(open[section] ?? fallback) }, order);
     },
+    [hidden, open, order, persist],
+  );
+
+  const setOrder = useCallback(
+    (next: string[]) => persist(hidden, open, next),
     [hidden, open, persist],
+  );
+
+  const resetOrder = useCallback(() => persist(hidden, open, []), [hidden, open, persist]);
+
+  const orderFor = useCallback(
+    (defaults: string[]) => mergeSectionOrder(order, defaults),
+    [order],
   );
 
   const hiddenSet = useMemo(() => new Set(hidden), [hidden]);
@@ -150,6 +179,10 @@ export function useSectionPrefs(scope: string): SectionPrefs {
     showAll,
     opensOnLoad,
     toggleOpensOnLoad,
+    order,
+    orderFor,
+    setOrder,
+    resetOrder,
     ready,
     error,
   };

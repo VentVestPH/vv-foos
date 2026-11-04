@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../../auth/SessionProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { InlineField } from '../../../components/ui/InlineField';
+import { InlineDateTime } from '../../../components/ui/InlineDateTime';
+import { useStaffNames } from '../../../hooks/useStaffNames';
 import { DateField } from '../../../components/ui/DateField';
 import { Select } from '../../../components/ui/Select';
 import { FileField } from '../../../components/ui/FileField';
@@ -146,6 +149,34 @@ export function useEngagement(parentType: EngagementParentType, parentId: string
     [refresh],
   );
 
+  const updateTask = useCallback(
+    async (task: TaskRow, patch: { subject?: string; due_date?: string | null }) => {
+      const { data, error: err } = await supabase
+        .from('tasks')
+        .update(patch)
+        .eq('id', task.id)
+        .select('id');
+      if (err) throw new Error(err.message);
+      if (!data?.length) throw new Error('You do not have permission to edit this task.');
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const updateEvent = useCallback(
+    async (event: Activity, patch: { subject?: string; occurred_at?: string }) => {
+      const { data, error: err } = await supabase
+        .from('activities')
+        .update(patch)
+        .eq('id', event.id)
+        .select('id');
+      if (err) throw new Error(err.message);
+      if (!data?.length) throw new Error('You do not have permission to edit this event.');
+      await refresh();
+    },
+    [refresh],
+  );
+
   const addReminder = useCallback(
     async (subject: string, remindAt: string) => {
       if (!staff) return;
@@ -232,6 +263,8 @@ export function useEngagement(parentType: EngagementParentType, parentId: string
     addActivity,
     addTask,
     toggleTask,
+    updateTask,
+    updateEvent,
     addReminder,
     dismissReminder,
     updateActivity,
@@ -352,6 +385,7 @@ function ActivityItem({ activity: a, kindLabel, onDelete, onUpdate }: ActivityIt
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const noun = kindLabel.toLowerCase();
+  const author = useStaffNames()(a.created_by);
 
   const startEdit = () => {
     setSubject(a.subject ?? '');
@@ -406,6 +440,7 @@ function ActivityItem({ activity: a, kindLabel, onDelete, onUpdate }: ActivityIt
       <div className="panel-item-head">
         <span className="panel-item-title">{a.subject ?? kindLabel}</span>
         <span className="panel-item-meta">
+          {author && <span className="text-secondary">Added by {author}</span>}
           <span className="text-secondary">{fmtDateTime(a.occurred_at)}</span>
           {onUpdate && a.kind !== 'status_change' && (
             <button
@@ -494,7 +529,12 @@ export function ActivityPanel({
   );
 }
 
-export function EventsPanel({ items }: { items: Activity[] }) {
+interface EventsPanelProps {
+  items: Activity[];
+  onUpdate?: ((event: Activity, patch: { subject?: string; occurred_at?: string }) => Promise<void>) | undefined;
+}
+
+export function EventsPanel({ items, onUpdate }: EventsPanelProps) {
   if (items.length === 0) {
     return (
       <EmptyState
@@ -507,6 +547,11 @@ export function EventsPanel({ items }: { items: Activity[] }) {
   }
   return (
     <div className="panel-stack">
+      {onUpdate && (
+        <p className="text-secondary">
+          Edits here change this record only. They are not sent to Google Calendar.
+        </p>
+      )}
       {items.map((a) => {
         const attendees = Array.isArray(a.attendees)
           ? (a.attendees as unknown[])
@@ -523,8 +568,27 @@ export function EventsPanel({ items }: { items: Activity[] }) {
         return (
           <div key={a.id} className="panel-item">
             <div className="panel-item-head">
-              <span className="panel-item-title">{a.subject ?? 'Event'}</span>
-              <span className="text-secondary">{fmtDateTime(a.occurred_at)}</span>
+              {onUpdate ? (
+                <span className="panel-item-title">
+                  <InlineField
+                    label="Event subject"
+                    kind="text"
+                    editable
+                    required
+                    value={a.subject ?? ''}
+                    onCommit={(next) => onUpdate(a, { subject: next })}
+                  />
+                </span>
+              ) : (
+                <span className="panel-item-title">{a.subject ?? 'Event'}</span>
+              )}
+              <InlineDateTime
+                label="Event date and time"
+                value={a.occurred_at}
+                display={fmtDateTime(a.occurred_at)}
+                editable={onUpdate !== undefined}
+                onCommit={(occurred_at) => onUpdate?.(a, { occurred_at }) ?? Promise.resolve()}
+              />
             </div>
             {attendees && (
               <p className="panel-item-body">Attendees: {attendees}</p>
@@ -543,9 +607,10 @@ interface TasksPanelProps {
   onCreate: (subject: string, dueDate: string) => Promise<void>;
   onToggle: (task: TaskRow) => Promise<void>;
   onDelete?: ((id: string) => Promise<void>) | undefined;
+  onUpdate?: ((task: TaskRow, patch: { subject?: string; due_date?: string | null }) => Promise<void>) | undefined;
 }
 
-export function TasksPanel({ items, allowCreate, onCreate, onToggle, onDelete }: TasksPanelProps) {
+export function TasksPanel({ items, allowCreate, onCreate, onToggle, onDelete, onUpdate }: TasksPanelProps) {
   const [subject, setSubject] = useState('');
   const [due, setDue] = useState('');
   return (
@@ -598,19 +663,50 @@ export function TasksPanel({ items, allowCreate, onCreate, onToggle, onDelete }:
       {items.map((t) => (
         <div key={t.id} className="panel-item">
           <div className="panel-item-head">
-            <label className="checkline">
-              <input
-                type="checkbox"
-                checked={t.status === 'done'}
-                onChange={() => void onToggle(t)}
-                aria-label={`Mark task ${t.subject} ${t.status === 'done' ? 'open' : 'done'}`}
-              />
-              <span className="panel-item-title">{t.subject}</span>
-            </label>
-            <span className="panel-item-meta">
-              <span className="text-secondary">
-                {t.due_date ? `Due ${fmtDate(t.due_date)}` : ''}
+            {onUpdate ? (
+              <span className="checkline">
+                <input
+                  type="checkbox"
+                  checked={t.status === 'done'}
+                  onChange={() => void onToggle(t)}
+                  aria-label={`Mark task ${t.subject} ${t.status === 'done' ? 'open' : 'done'}`}
+                />
+                <span className="panel-item-title">
+                  <InlineField
+                    label="Task subject"
+                    kind="text"
+                    editable
+                    required
+                    value={t.subject}
+                    onCommit={(next) => onUpdate(t, { subject: next })}
+                  />
+                </span>
               </span>
+            ) : (
+              <label className="checkline">
+                <input
+                  type="checkbox"
+                  checked={t.status === 'done'}
+                  onChange={() => void onToggle(t)}
+                  aria-label={`Mark task ${t.subject} ${t.status === 'done' ? 'open' : 'done'}`}
+                />
+                <span className="panel-item-title">{t.subject}</span>
+              </label>
+            )}
+            <span className="panel-item-meta">
+              {onUpdate ? (
+                <InlineField
+                  label="Task due date"
+                  kind="date"
+                  editable
+                  value={t.due_date ?? ''}
+                  onCommit={(next) => onUpdate(t, { due_date: next || null })}
+                />
+              ) : (
+                <span className="text-secondary">
+                  {t.due_date ? `Due ${fmtDate(t.due_date)}` : ''}
+                </span>
+              )}
               {onDelete && (
                 <PanelDelete
                   label="Delete this task"

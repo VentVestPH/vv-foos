@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useListReturnHref, useRecordSiblings } from '../../../lib/listReturn';
 import { candidateNeighbours, type CandidateNeighbours } from './candidateSiblings';
@@ -12,20 +12,21 @@ import { useSectionPrefs } from '../../../hooks/useSectionPrefs';
 const CAND_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
   'Requisition Summary': false,
   'Candidate Information': true,
-  'More Details': false,
   'Main Status Details': true,
+  'Contact Log': false,
+  'More Details': false,
   'Resume and Cover Letter': true,
   Resumes: false,
+  Tasks: true,
+  Events: false,
+  Reminders: true,
+  'Status History': false,
   Attachments: false,
+  'Application Attachments': false,
+  'History Log / Timeline': false,
   'Web Links': false,
   Source: false,
   Tracking: false,
-  'Contact Log': false,
-  Events: false,
-  Tasks: true,
-  Reminders: true,
-  'Status History': false,
-  'History Log / Timeline': false,
 };
 
 const CAND_RECORD_SECTIONS = Object.keys(CAND_SECTION_DEFAULT_OPEN);
@@ -55,6 +56,7 @@ import {
 } from 'lucide-react';
 import { StarGrade } from '../../../components/ui/StarGrade';
 import { PersonEditDialog } from '../../../components/ui/PersonEditDialog';
+import { PersonInlineField } from '../../../components/ui/PersonInlineField';
 import {
   ActivityPanel,
   attachmentUrl,
@@ -397,80 +399,44 @@ export function CandidateRecordPage() {
     </>
   );
 
-  return (
-    <RecordPage
-      breadcrumbs={[
-        { label: 'Home', to: '/' },
-        { label: 'Candidates', to: listHref },
-        { label: personName(person) },
-      ]}
-      title={personName(person)}
-      icon={<PersonIcon size={32} />}
-      headerActions={
-        <SettingsButton
-          label="Section settings"
-          title="Choose which sections appear"
-          onClick={() => setSettingsOpen(true)}
-        />
-      }
-      titleExtras={
-        <>
-          {draft ? (
-            <span className="cand-header-grade">
-              {canGrade ? (
-                <StarGrade
-                  value={draft.star_grade}
-                  subject={personName(person)}
-                  onChange={(v) => setDraft({ ...draft, star_grade: v })}
-                />
-              ) : (
-                <StarGrade value={draft.star_grade} subject={personName(person)} />
-              )}
-            </span>
-          ) : (
-            profile?.star_grade != null && <StarGrade value={profile.star_grade} />
-          )}
-          {person.is_test && <Badge tone="outline">Test record</Badge>}
-          <button
-            type="button"
-            className="cand-flag-toggle"
-            data-on={dnc ? 'true' : 'false'}
-            aria-pressed={dnc}
-            disabled={!canEditProfile || flagBusy}
-            title={
-              !canEditProfile
-                ? 'Only an admin or a recruiter can change this flag'
-                : dnc
-                  ? 'Flagged do not contact. Click to clear it.'
-                  : 'Flag this candidate as do not contact'
-            }
-            onClick={() => void toggleDoNotContact()}
-          >
-            <FlagIcon size={20} aria-hidden="true" />
-            <span className="visually-hidden">
-              {dnc ? 'Clear the do not contact flag' : 'Flag as do not contact'}
-            </span>
-          </button>
-          <RecordPager
-            noun="candidate"
-            position={siblings.position}
-            total={siblings.total}
-            previousId={previousId}
-            nextId={nextId}
-            onGo={siblings.go}
+  const personRow = (key: string, label: string, linkText?: string) => {
+    const current = (person as unknown as Record<string, unknown>)[key];
+    const present = key === 'email'
+      ? personEmails(person).length > 0
+      : key === 'phone'
+        ? personPhones(person).length > 0
+        : typeof current === 'string' && current !== '';
+    if (!canEditProfile && !present) return null;
+    const href = typeof current === 'string' ? current : '';
+    return (
+      <div className="info-item" key={key}>
+        <dt>{label}</dt>
+        <dd>
+          <PersonInlineField
+            person={person}
+            fieldKey={key}
+            kind="candidate"
+            editable={canEditProfile}
+            label={label}
+            {...(linkText !== undefined && href !== ''
+              ? {
+                  display: (
+                    <a href={href} target="_blank" rel="noreferrer">
+                      {linkText}
+                    </a>
+                  ),
+                }
+              : {})}
+            onSaved={() => void reload()}
           />
-        </>
-      }
-      actionBar={actionBarContent}
-    >
-      {dnc && (
-        <div className="dnc-banner" role="alert">
-          Do not contact — outreach to this person is blocked.
-        </div>
-      )}
-      {error && <p className="form-error" role="alert">{error}</p>}
+        </dd>
+      </div>
+    );
+  };
 
-      <RecordSection title="Requisition Summary" id="requisition-summary" hidden={prefs.isHidden("Requisition Summary")} defaultOpen={opensOnLoad("Requisition Summary")}>
+  const sectionNodes: Record<string, ReactNode> = {
+    'Requisition Summary': (
+      <RecordSection title="Requisition Summary" id="requisition-summary" count={apps.length} hidden={prefs.isHidden("Requisition Summary")} defaultOpen={opensOnLoad("Requisition Summary")}>
         {canEditProfile && (
           <Button size="sm" variant="secondary" onClick={() => setSubmitting(true)}>
             Add to requisition
@@ -512,47 +478,34 @@ export function CandidateRecordPage() {
           );
         })}
       </RecordSection>
-
+    ),
+    'Candidate Information': (
       <RecordSection title="Candidate Information" id="candidate-information" hidden={prefs.isHidden("Candidate Information")} defaultOpen={opensOnLoad("Candidate Information")}>
         <div className="info-groups">
         <InfoGroup label="Name">
           <dl className="info-grid">
-            <div className="info-item">
-              <dt>First name</dt>
-              <dd>{person.first_name || EMPTY_CELL}</dd>
-            </div>
-            {person.middle_name && (
-              <div className="info-item">
-                <dt>Middle</dt>
-                <dd>{person.middle_name}</dd>
-              </div>
-            )}
-            <div className="info-item">
-              <dt>Last name</dt>
-              <dd>{person.last_name || EMPTY_CELL}</dd>
-            </div>
-            {person.headline && (
-              <div className="info-item">
-                <dt>Headline</dt>
-                <dd>{person.headline}</dd>
-              </div>
-            )}
+            {personRow('first_name', 'First name')}
+            {personRow('middle_name', 'Middle')}
+            {personRow('last_name', 'Last name')}
+            {personRow('headline', 'Headline')}
           </dl>
         </InfoGroup>
 
         <InfoGroup label="Contact">
-          {personEmails(person).length === 0 && personPhones(person).length === 0 ? (
+          {!canEditProfile && personEmails(person).length === 0 && personPhones(person).length === 0 ? (
             <p className="info-group-hint">No email or phone on file.</p>
           ) : (
             <dl className="info-grid">
-              {personEmails(person).map((e, i) => (
-                <div className="info-item" key={`email-${i}`}>
+              {personRow('email', `Email (${personEmails(person)[0]?.type ?? 'work'})`)}
+              {personEmails(person).slice(1).map((e, i) => (
+                <div className="info-item" key={`email-${i + 1}`}>
                   <dt>Email ({e.type})</dt>
                   <dd>{e.address}</dd>
                 </div>
               ))}
-              {personPhones(person).map((p, i) => (
-                <div className="info-item" key={`phone-${i}`}>
+              {personRow('phone', `Phone (${personPhones(person)[0]?.type ?? 'work'})`)}
+              {personPhones(person).slice(1).map((p, i) => (
+                <div className="info-item" key={`phone-${i + 1}`}>
                   <dt>Phone ({p.type})</dt>
                   <dd>{p.number}</dd>
                 </div>
@@ -561,82 +514,32 @@ export function CandidateRecordPage() {
           )}
         </InfoGroup>
 
-        {(person.street ||
+        {(canEditProfile ||
+          person.street ||
           person.city ||
           person.state ||
           person.postal_code ||
           person.country) && (
           <InfoGroup label="Location">
             <dl className="info-grid">
-              {person.street && (
-                <div className="info-item">
-                  <dt>Street</dt>
-                  <dd>{person.street}</dd>
-                </div>
-              )}
-              {person.city && (
-                <div className="info-item">
-                  <dt>City</dt>
-                  <dd>{person.city}</dd>
-                </div>
-              )}
-              {person.state && (
-                <div className="info-item">
-                  <dt>State/Territory</dt>
-                  <dd>{person.state}</dd>
-                </div>
-              )}
-              {person.postal_code && (
-                <div className="info-item">
-                  <dt>ZIP/Postal code</dt>
-                  <dd>{person.postal_code}</dd>
-                </div>
-              )}
-              {person.country && (
-                <div className="info-item">
-                  <dt>Country</dt>
-                  <dd>{person.country}</dd>
-                </div>
-              )}
+              {personRow('street', 'Street')}
+              {personRow('city', 'City')}
+              {personRow('state', 'State/Territory')}
+              {personRow('postal_code', 'ZIP/Postal code')}
+              {personRow('country', 'Country')}
             </dl>
           </InfoGroup>
         )}
 
-        {(person.linkedin_public_url ||
+        {(canEditProfile ||
+          person.linkedin_public_url ||
           person.linkedin_recruiter_url ||
           person.online_resume_url) && (
           <InfoGroup label="Profiles">
             <dl className="info-grid">
-              {person.linkedin_public_url && (
-                <div className="info-item">
-                  <dt>LinkedIn</dt>
-                  <dd>
-                    <a href={person.linkedin_public_url} target="_blank" rel="noreferrer">
-                      Public profile
-                    </a>
-                  </dd>
-                </div>
-              )}
-              {person.linkedin_recruiter_url && (
-                <div className="info-item">
-                  <dt>LinkedIn Recruiter</dt>
-                  <dd>
-                    <a href={person.linkedin_recruiter_url} target="_blank" rel="noreferrer">
-                      Recruiter profile
-                    </a>
-                  </dd>
-                </div>
-              )}
-              {person.online_resume_url && (
-                <div className="info-item">
-                  <dt>Online resume</dt>
-                  <dd>
-                    <a href={person.online_resume_url} target="_blank" rel="noreferrer">
-                      Link
-                    </a>
-                  </dd>
-                </div>
-              )}
+              {personRow('linkedin_public_url', 'LinkedIn', 'Public profile')}
+              {personRow('linkedin_recruiter_url', 'LinkedIn Recruiter', 'Recruiter profile')}
+              {personRow('online_resume_url', 'Online resume', 'Link')}
             </dl>
           </InfoGroup>
         )}
@@ -659,8 +562,8 @@ export function CandidateRecordPage() {
           )}
         </div>
       </RecordSection>
-
-      {profile && draft ? (
+    ),
+    'Main Status Details': profile && draft ? (
         <RecordSection
           title="Main Status Details"
           id="main-status-details"
@@ -688,80 +591,84 @@ export function CandidateRecordPage() {
             No candidate profile on this person yet.
           </p>
         </RecordSection>
-      )}
-
-      <RecordSection title="Resume and Cover Letter" hidden={prefs.isHidden("Resume and Cover Letter")} defaultOpen={opensOnLoad("Resume and Cover Letter")}>
-        <dl className="info-grid">
-          {person.linkedin_public_url && (
-            <div className="info-item">
-              <dt>LinkedIn PUBLIC Profile</dt>
-              <dd>
-                <a href={person.linkedin_public_url} target="_blank" rel="noreferrer">
-                  {person.linkedin_public_url}
-                </a>
-              </dd>
-            </div>
-          )}
-          {person.linkedin_recruiter_url && (
-            <div className="info-item">
-              <dt>LinkedIn RECRUITER URL</dt>
-              <dd>
-                <a
-                  href={person.linkedin_recruiter_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {person.linkedin_recruiter_url}
-                </a>
-              </dd>
-            </div>
-          )}
-          {person.online_resume_url && (
-            <div className="info-item">
-              <dt>Online Resume URL</dt>
-              <dd>
-                <a href={person.online_resume_url} target="_blank" rel="noreferrer">
-                  {person.online_resume_url}
-                </a>
-              </dd>
-            </div>
-          )}
-          {Array.isArray(person.other_urls) &&
-            (person.other_urls as unknown[]).map((u, i) => {
-              const url = String(u);
-              return (
-                <div className="info-item" key={`url-${i}`}>
-                  <dt>ZI/Twitter{i > 0 ? ` (${i + 1})` : ''}</dt>
-                  <dd>
-                    <a href={url} target="_blank" rel="noreferrer">
-                      {url}
-                    </a>
-                  </dd>
-                </div>
-              );
-            })}
-          {!person.linkedin_public_url &&
-            !person.linkedin_recruiter_url &&
-            !person.online_resume_url &&
-            (!Array.isArray(person.other_urls) || person.other_urls.length === 0) && (
-              <div className="info-item">
-                <dt>Links</dt>
-                <dd className="text-secondary">No links on file.</dd>
-              </div>
-            )}
-        </dl>
-      </RecordSection>
-
-      <RecordSection title="Resumes" count={resumes.length} empty={resumes.length === 0} hidden={prefs.isHidden("Resumes")} defaultOpen={opensOnLoad("Resumes")}>
-        <AttachmentsPanel
-          items={resumes}
-          parent={{ type: 'person', id: person.id }}
-          fixedKind="resume"
-          allowUpload={allowCreate}
-          onChanged={engagement.refresh}
+      ),
+    'Contact Log': (
+      <RecordSection title="Contact Log" count={calls.length} hidden={prefs.isHidden("Contact Log")} defaultOpen={opensOnLoad("Contact Log")}>
+        <SidePanelTabs
+          tabs={[
+            {
+              key: 'calls',
+              label: 'Calls',
+              count: calls.length,
+              content: (
+                <ActivityPanel
+                  items={calls}
+                  kind="call"
+                  kindLabel="Call"
+                  emptyText="No calls logged yet."
+                  allowCreate={allowCreate}
+                  onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
+                />
+              ),
+            },
+            {
+              key: 'notes',
+              label: 'Notes',
+              count: notes.length,
+              content: (
+                <ActivityPanel
+                  items={notes}
+                  kind="note"
+                  kindLabel="Note"
+                  emptyText="No notes yet."
+                  allowCreate={allowCreate}
+                  onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
+                />
+              ),
+            },
+            {
+              key: 'meetings',
+              label: 'Meetings',
+              count: plainMeetings.length,
+              content: (
+                <ActivityPanel
+                  items={plainMeetings}
+                  kind="meeting"
+                  kindLabel="Meeting"
+                  emptyText="No meetings yet."
+                  allowCreate={allowCreate}
+                  onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
+                />
+              ),
+            },
+            {
+              key: 'emails',
+              label: 'Emails',
+              count: emails.length,
+              content: (
+                <ActivityPanel
+                  items={emails}
+                  kind="email"
+                  kindLabel="Email"
+                  emptyText="No linked emails yet — Gmail sync (Agent 6) matches them by participant address."
+                  allowCreate={false}
+                  onCreate={engagement.addActivity}
+                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
+                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
+                />
+              ),
+            },
+          ]}
         />
       </RecordSection>
-
+    ),
+    'More Details': (
       <RecordSection title="More Details" id="more-details" hidden={prefs.isHidden('More Details')} defaultOpen={opensOnLoad('More Details')}>
         <div className="info-groups">
         {personEducation(person).length > 0 && (
@@ -935,82 +842,121 @@ export function CandidateRecordPage() {
         )}
         </div>
       </RecordSection>
-
-      <RecordSection title="Contact Log" hidden={prefs.isHidden("Contact Log")} defaultOpen={opensOnLoad("Contact Log")}>
-        <SidePanelTabs
-          tabs={[
-            {
-              key: 'notes',
-              label: 'Notes',
-              count: notes.length,
-              content: (
-                <ActivityPanel
-                  items={notes}
-                  kind="note"
-                  kindLabel="Note"
-                  emptyText="No notes yet."
-                  allowCreate={allowCreate}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
-                />
-              ),
-            },
-            {
-              key: 'calls',
-              label: 'Calls',
-              count: calls.length,
-              content: (
-                <ActivityPanel
-                  items={calls}
-                  kind="call"
-                  kindLabel="Call"
-                  emptyText="No calls logged yet."
-                  allowCreate={allowCreate}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
-                />
-              ),
-            },
-            {
-              key: 'meetings',
-              label: 'Meetings',
-              count: plainMeetings.length,
-              content: (
-                <ActivityPanel
-                  items={plainMeetings}
-                  kind="meeting"
-                  kindLabel="Meeting"
-                  emptyText="No meetings yet."
-                  allowCreate={allowCreate}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
-                />
-              ),
-            },
-            {
-              key: 'emails',
-              label: 'Emails',
-              count: emails.length,
-              content: (
-                <ActivityPanel
-                  items={emails}
-                  kind="email"
-                  kindLabel="Email"
-                  emptyText="No linked emails yet — Gmail sync (Agent 6) matches them by participant address."
-                  allowCreate={false}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
-                />
-              ),
-            },
-          ]}
+    ),
+    'Resume and Cover Letter': (
+      <RecordSection title="Resume and Cover Letter" hidden={prefs.isHidden("Resume and Cover Letter")} defaultOpen={opensOnLoad("Resume and Cover Letter")}>
+        <dl className="info-grid">
+          {person.linkedin_public_url && (
+            <div className="info-item">
+              <dt>LinkedIn PUBLIC Profile</dt>
+              <dd>
+                <a href={person.linkedin_public_url} target="_blank" rel="noreferrer">
+                  {person.linkedin_public_url}
+                </a>
+              </dd>
+            </div>
+          )}
+          {person.linkedin_recruiter_url && (
+            <div className="info-item">
+              <dt>LinkedIn RECRUITER URL</dt>
+              <dd>
+                <a
+                  href={person.linkedin_recruiter_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {person.linkedin_recruiter_url}
+                </a>
+              </dd>
+            </div>
+          )}
+          {person.online_resume_url && (
+            <div className="info-item">
+              <dt>Online Resume URL</dt>
+              <dd>
+                <a href={person.online_resume_url} target="_blank" rel="noreferrer">
+                  {person.online_resume_url}
+                </a>
+              </dd>
+            </div>
+          )}
+          {Array.isArray(person.other_urls) &&
+            (person.other_urls as unknown[]).map((u, i) => {
+              const url = String(u);
+              return (
+                <div className="info-item" key={`url-${i}`}>
+                  <dt>ZI/Twitter{i > 0 ? ` (${i + 1})` : ''}</dt>
+                  <dd>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      {url}
+                    </a>
+                  </dd>
+                </div>
+              );
+            })}
+          {!person.linkedin_public_url &&
+            !person.linkedin_recruiter_url &&
+            !person.online_resume_url &&
+            (!Array.isArray(person.other_urls) || person.other_urls.length === 0) && (
+              <div className="info-item">
+                <dt>Links</dt>
+                <dd className="text-secondary">No links on file.</dd>
+              </div>
+            )}
+        </dl>
+      </RecordSection>
+    ),
+    'Resumes': (
+      <RecordSection title="Resumes" count={resumes.length} empty={resumes.length === 0} hidden={prefs.isHidden("Resumes")} defaultOpen={opensOnLoad("Resumes")}>
+        <AttachmentsPanel
+          items={resumes}
+          parent={{ type: 'person', id: person.id }}
+          fixedKind="resume"
+          allowUpload={allowCreate}
+          onChanged={engagement.refresh}
         />
       </RecordSection>
-
+    ),
+    'Tasks': (
+      <RecordSection title="Tasks" count={engagement.tasks.length} hidden={prefs.isHidden("Tasks")} defaultOpen={opensOnLoad("Tasks")}>
+        <TasksPanel
+          items={engagement.tasks}
+          allowCreate={allowCreate}
+          onCreate={engagement.addTask}
+          onToggle={engagement.toggleTask}
+          onDelete={allowCreate ? engagement.deleteTask : undefined}
+          onUpdate={allowCreate ? engagement.updateTask : undefined}
+        />
+      </RecordSection>
+    ),
+    'Events': (
+      <RecordSection title="Events" count={events.length} empty={events.length === 0} hidden={prefs.isHidden("Events")} defaultOpen={opensOnLoad("Events")}>
+        <EventsPanel items={events} onUpdate={allowCreate ? engagement.updateEvent : undefined} />
+      </RecordSection>
+    ),
+    'Reminders': (
+      <RecordSection title="Reminders" count={engagement.reminders.length} hidden={prefs.isHidden("Reminders")} defaultOpen={opensOnLoad("Reminders")}>
+        <RemindersPanel
+          items={engagement.reminders}
+          allowCreate={allowCreate}
+          onCreate={engagement.addReminder}
+          onDismiss={engagement.dismissReminder}
+          onDelete={allowCreate ? engagement.deleteReminder : undefined}
+        />
+      </RecordSection>
+    ),
+    'Status History': (
+      <RecordSection
+        title="Status History"
+        hidden={prefs.isHidden('Status History')}
+        defaultOpen={opensOnLoad('Status History')}
+        count={activities.filter((a) => a.kind === 'status_change').length}
+        empty={activities.filter((a) => a.kind === 'status_change').length === 0}
+      >
+        <StatusHistory changes={activities.filter((a) => a.kind === 'status_change')} />
+      </RecordSection>
+    ),
+    'Attachments': (
       <RecordSection title="Attachments" count={files.length} empty={files.length === 0} hidden={prefs.isHidden("Attachments")} defaultOpen={opensOnLoad("Attachments")}>
         <AttachmentsPanel
           items={files}
@@ -1019,11 +965,12 @@ export function CandidateRecordPage() {
           onChanged={engagement.refresh}
         />
       </RecordSection>
-
-      {viewedApplicationId && (
+    ),
+    'Application Attachments': viewedApplicationId ? (
         <RecordSection
           title="Application Attachments"
-          defaultOpen={applicationEngagement.attachments.length > 0}
+          hidden={prefs.isHidden('Application Attachments')}
+          defaultOpen={prefs.opensOnLoad('Application Attachments', applicationEngagement.attachments.length > 0)}
         >
           <AttachmentsPanel
             items={applicationEngagement.attachments}
@@ -1032,9 +979,13 @@ export function CandidateRecordPage() {
             onChanged={applicationEngagement.refresh}
           />
         </RecordSection>
-      )}
-
-
+      ) : null,
+    'History Log / Timeline': (
+      <RecordSection title="History Log / Timeline" hidden={prefs.isHidden("History Log / Timeline")} defaultOpen={opensOnLoad("History Log / Timeline")}>
+        <Timeline items={timelineItems} />
+      </RecordSection>
+    ),
+    'Web Links': (
       <RecordSection title="Web Links" hidden={prefs.isHidden("Web Links")} defaultOpen={opensOnLoad("Web Links")}>
         <p className="info-group-hint">
           Search links are built from this candidate&rsquo;s name, so nothing here can
@@ -1145,7 +1096,8 @@ export function CandidateRecordPage() {
           )}
         </ul>
       </RecordSection>
-
+    ),
+    'Source': (
       <RecordSection title="Source" hidden={prefs.isHidden("Source")} defaultOpen={opensOnLoad("Source")}>
         {profile && draft ? (
           <div className="panel-stack">
@@ -1181,7 +1133,8 @@ export function CandidateRecordPage() {
           />
         )}
       </RecordSection>
-
+    ),
+    'Tracking': (
       <RecordSection title="Tracking" hidden={prefs.isHidden("Tracking")} defaultOpen={opensOnLoad("Tracking")}>
         <dl className="info-grid">
           <div className="info-item">
@@ -1190,42 +1143,87 @@ export function CandidateRecordPage() {
           </div>
         </dl>
       </RecordSection>
+    ),
+  };
 
-      <RecordSection title="Events" count={events.length} empty={events.length === 0} hidden={prefs.isHidden("Events")} defaultOpen={opensOnLoad("Events")}>
-        <EventsPanel items={events} />
-      </RecordSection>
+  const sectionOrder = prefs.orderFor(CAND_RECORD_SECTIONS);
 
-      <RecordSection title="Tasks" count={engagement.tasks.length} hidden={prefs.isHidden("Tasks")} defaultOpen={opensOnLoad("Tasks")}>
-        <TasksPanel
-          items={engagement.tasks}
-          allowCreate={allowCreate}
-          onCreate={engagement.addTask}
-          onToggle={engagement.toggleTask}
-          onDelete={allowCreate ? engagement.deleteTask : undefined}
+  return (
+    <RecordPage
+      breadcrumbs={[
+        { label: 'Home', to: '/' },
+        { label: 'Candidates', to: listHref },
+        { label: personName(person) },
+      ]}
+      title={personName(person)}
+      icon={<PersonIcon size={32} />}
+      headerActions={
+        <SettingsButton
+          label="Section settings"
+          title="Choose which sections appear"
+          onClick={() => setSettingsOpen(true)}
         />
-      </RecordSection>
+      }
+      titleExtras={
+        <>
+          {draft ? (
+            <span className="cand-header-grade">
+              {canGrade ? (
+                <StarGrade
+                  value={draft.star_grade}
+                  subject={personName(person)}
+                  onChange={(v) => setDraft({ ...draft, star_grade: v })}
+                />
+              ) : (
+                <StarGrade value={draft.star_grade} subject={personName(person)} />
+              )}
+            </span>
+          ) : (
+            profile?.star_grade != null && <StarGrade value={profile.star_grade} />
+          )}
+          {person.is_test && <Badge tone="outline">Test record</Badge>}
+          <button
+            type="button"
+            className="cand-flag-toggle"
+            data-on={dnc ? 'true' : 'false'}
+            aria-pressed={dnc}
+            disabled={!canEditProfile || flagBusy}
+            title={
+              !canEditProfile
+                ? 'Only an admin or a recruiter can change this flag'
+                : dnc
+                  ? 'Flagged do not contact. Click to clear it.'
+                  : 'Flag this candidate as do not contact'
+            }
+            onClick={() => void toggleDoNotContact()}
+          >
+            <FlagIcon size={20} aria-hidden="true" />
+            <span className="visually-hidden">
+              {dnc ? 'Clear the do not contact flag' : 'Flag as do not contact'}
+            </span>
+          </button>
+          <RecordPager
+            noun="candidate"
+            position={siblings.position}
+            total={siblings.total}
+            previousId={previousId}
+            nextId={nextId}
+            onGo={siblings.go}
+          />
+        </>
+      }
+      actionBar={actionBarContent}
+    >
+      {dnc && (
+        <div className="dnc-banner" role="alert">
+          Do not contact — outreach to this person is blocked.
+        </div>
+      )}
+      {error && <p className="form-error" role="alert">{error}</p>}
 
-      <RecordSection title="Reminders" count={engagement.reminders.length} hidden={prefs.isHidden("Reminders")} defaultOpen={opensOnLoad("Reminders")}>
-        <RemindersPanel
-          items={engagement.reminders}
-          allowCreate={allowCreate}
-          onCreate={engagement.addReminder}
-          onDismiss={engagement.dismissReminder}
-          onDelete={allowCreate ? engagement.deleteReminder : undefined}
-        />
-      </RecordSection>
-
-      <RecordSection
-        title="Status History"
-        count={activities.filter((a) => a.kind === 'status_change').length}
-        empty={activities.filter((a) => a.kind === 'status_change').length === 0}
-      >
-        <StatusHistory changes={activities.filter((a) => a.kind === 'status_change')} />
-      </RecordSection>
-
-      <RecordSection title="History Log / Timeline" hidden={prefs.isHidden("History Log / Timeline")} defaultOpen={opensOnLoad("History Log / Timeline")}>
-        <Timeline items={timelineItems} />
-      </RecordSection>
+      {sectionOrder.map((name) => (
+        <Fragment key={name}>{sectionNodes[name]}</Fragment>
+      ))}
 
       {engagement.error && <p className="form-error" role="alert">{engagement.error}</p>}
 
@@ -1234,8 +1232,9 @@ export function CandidateRecordPage() {
       {settingsOpen && (
         <SectionSettingsDialog
           title="Section settings"
-          hint="Choose which sections appear on this candidate, and which open when the page loads. The choice is saved to your account."
+          hint="Choose which sections appear on this candidate, the order they appear in, and which open when the page loads. The choice is saved to your account."
           sections={CAND_RECORD_SECTIONS}
+          defaultOrder={CAND_RECORD_SECTIONS}
           prefs={prefs}
           defaultOpenFor={(section) => CAND_SECTION_DEFAULT_OPEN[section] ?? true}
           onClose={() => setSettingsOpen(false)}

@@ -1233,6 +1233,35 @@ select:focus-visible {
   text-align: center;
 }
 
+.fo-section-table[data-reorder='true'] .fo-section-row {
+  grid-template-columns: var(--control-h) minmax(0, 1fr) 72px 112px;
+  padding-left: 0;
+}
+
+.fo-section-table[data-reorder='true'] .fo-section-row > .fo-section-name,
+.fo-section-table[data-reorder='true'] .fo-section-row-head > :nth-child(2) {
+  justify-self: start;
+  text-align: left;
+}
+
+.fo-section-row[data-dragging='true'] {
+  opacity: 0.4;
+}
+
+.fo-section-row[data-over='true'] {
+  background: var(--fo-row-hover);
+  box-shadow: inset 0 2px 0 var(--fo-primary);
+}
+
+.fo-section-row.is-dragging {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--fo-primary);
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  padding-right: var(--sp-2);
+}
+
 .fo-section-list {
   max-height: 360px;
   overflow-y: auto;
@@ -1353,6 +1382,87 @@ select:focus-visible {
 
 .fo-column-grip:hover {
   color: var(--fo-primary);
+}
+
+.fo-inline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-quarter);
+  min-width: 0;
+}
+
+.fo-inline-view {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-half);
+  min-width: 0;
+}
+
+.fo-inline-trigger {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--sp-half);
+  margin-inline: calc(var(--sp-half) * -1);
+  border: 1px solid transparent;
+  border-radius: var(--fo-radius);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: text;
+}
+
+.fo-inline-trigger:hover,
+.fo-inline-trigger:focus-visible {
+  border-color: var(--fo-field-border);
+  background: var(--fo-surface);
+}
+
+.fo-inline-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fo-inline-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.fo-inline-edit:hover,
+.fo-inline-edit:focus-visible {
+  color: var(--fo-primary);
+}
+
+.fo-inline-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.fo-inline-datetime {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.fo-inline-time {
+  width: auto;
+}
+
+textarea.fo-inline-input {
+  min-height: calc(var(--control-h) * 2);
+  resize: vertical;
 }
 
 .saved-views {

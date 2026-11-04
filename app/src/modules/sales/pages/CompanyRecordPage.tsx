@@ -19,6 +19,8 @@ import { useSectionPrefs } from '../../../hooks/useSectionPrefs';
 import { EngagementPanel } from '../components/EngagementPanel';
 import { CompanyDeleteDialog } from '../components/CompanyDeleteDialog';
 import { CompanyEditDialog } from '../components/CompanyEditDialog';
+import { companyEditFields, companyEditValues, saveCompany } from '../components/companyEdit';
+import { InlineRecordField } from '../../../components/ui/InlineField';
 import { useCanEditCrm } from '../hooks';
 import { useStaffList } from '../hooks';
 import {
@@ -64,6 +66,23 @@ const COMPANY_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
   Activity: true,
 };
 
+const INLINE_COMPANY_FIELDS = [
+  { key: 'name', label: 'Name' },
+  { key: 'account_number', label: 'Account number' },
+  { key: 'industry', label: 'Industry' },
+  { key: 'website', label: 'Website' },
+  { key: 'site', label: 'Site' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'street', label: 'Street' },
+  { key: 'city', label: 'City' },
+  { key: 'state', label: 'State / region' },
+  { key: 'postal_code', label: 'Postal code' },
+  { key: 'country', label: 'Country' },
+  { key: 'owner_id', label: 'Owner' },
+  { key: 'description', label: 'Description' },
+];
+
 export function CompanyRecordPage() {
   const prefs = useSectionPrefs('sales.company.record');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -77,7 +96,7 @@ export function CompanyRecordPage() {
   const { id } = useParams<{ id: string }>();
   const role = useRole();
   const { record } = useRecentlyViewed();
-  const { staffName } = useStaffList();
+  const { staffName, staffOptions } = useStaffList();
 
   const [company, setCompany] = useState<Company | null>(null);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
@@ -180,6 +199,9 @@ export function CompanyRecordPage() {
     );
   }
   if (!company) return null;
+
+  const companyFields = companyEditFields(company, staffOptions);
+  const companyValues = companyEditValues(company);
 
   const contactColumns: TableColumn<ContactRow>[] = [
     {
@@ -293,24 +315,51 @@ export function CompanyRecordPage() {
         hidden={prefs.isHidden('Details')}
         defaultOpen={opensOnLoad('Details')}
       >
-        <dl className="sales-record-meta">
-          <div>
-            <dt>Website</dt>
-            <dd>{company.website ?? EMPTY_CELL}</dd>
-          </div>
-          <div>
-            <dt>Phone</dt>
-            <dd>{company.phone ?? EMPTY_CELL}</dd>
-          </div>
-          <div>
-            <dt>Location</dt>
-            <dd>{locationLabel(company) || EMPTY_CELL}</dd>
-          </div>
-          <div>
-            <dt>Owner</dt>
-            <dd>{staffName(company.owner_id)}</dd>
-          </div>
-        </dl>
+        {canEdit ? (
+          <dl className="sales-record-meta">
+            {INLINE_COMPANY_FIELDS.map(({ key, label }) => {
+              const field = companyFields.find((f) => f.key === key);
+              if (!field) return null;
+              return (
+                <div key={key} className={key === 'description' ? 'sales-record-meta-wide' : undefined}>
+                  <dt>{label}</dt>
+                  <dd>
+                    <InlineRecordField
+                      field={field}
+                      values={companyValues}
+                      editable
+                      label={label}
+                      required={key === 'name'}
+                      onSave={async (draft) => {
+                        await saveCompany(company, draft);
+                        setReloadKey((k) => k + 1);
+                      }}
+                    />
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        ) : (
+          <dl className="sales-record-meta">
+            <div>
+              <dt>Website</dt>
+              <dd>{company.website ?? EMPTY_CELL}</dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd>{company.phone ?? EMPTY_CELL}</dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd>{locationLabel(company) || EMPTY_CELL}</dd>
+            </div>
+            <div>
+              <dt>Owner</dt>
+              <dd>{staffName(company.owner_id)}</dd>
+            </div>
+          </dl>
+        )}
       </RecordSection>
 
       <RecordSection
