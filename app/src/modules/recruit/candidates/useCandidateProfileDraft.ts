@@ -41,6 +41,40 @@ export function toDraft(p: CandidateProfile): ProfileDraft {
   };
 }
 
+export type InlineProfileKey =
+  | 'star_grade'
+  | 'grade_comment'
+  | 'current_title'
+  | 'current_employer'
+  | 'tenure_note'
+  | 'salary_flag'
+  | 'expected_salary'
+  | 'current_salary'
+  | 'salary_currency'
+  | 'initial_date'
+  | 'do_not_contact';
+
+export type InlineProfileValue = string | number | boolean | null;
+
+const NUMBER_KEYS: readonly InlineProfileKey[] = ['expected_salary', 'current_salary'];
+
+function columnValue(key: InlineProfileKey, value: InlineProfileValue): InlineProfileValue {
+  if (key === 'star_grade' || key === 'do_not_contact') return value;
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (NUMBER_KEYS.includes(key)) {
+    if (text === '') return null;
+    const n = Number(text);
+    if (Number.isNaN(n)) throw new Error('Enter a number.');
+    return n;
+  }
+  return text === '' ? null : text;
+}
+
+function draftValue(key: InlineProfileKey, stored: InlineProfileValue): string | number | boolean | null {
+  if (key === 'star_grade' || key === 'do_not_contact') return stored;
+  return stored === null ? '' : String(stored);
+}
+
 export interface CandidateProfileDraft {
   draft: ProfileDraft | null;
   setDraft: (next: ProfileDraft | null) => void;
@@ -48,6 +82,7 @@ export interface CandidateProfileDraft {
   canGrade: boolean;
   saved: boolean;
   saveProfile: () => Promise<void>;
+  saveField: (key: InlineProfileKey, value: InlineProfileValue) => Promise<void>;
 }
 
 export interface CandidateProfileDraftInput {
@@ -57,6 +92,7 @@ export interface CandidateProfileDraftInput {
   mobile: boolean;
   onSaved: () => Promise<void>;
   onError: (message: string | null) => void;
+  onFieldSaved: (patch: Partial<CandidateProfile>) => void;
 }
 
 export function useCandidateProfileDraft({
@@ -66,6 +102,7 @@ export function useCandidateProfileDraft({
   mobile,
   onSaved,
   onError,
+  onFieldSaved,
 }: CandidateProfileDraftInput): CandidateProfileDraft {
   const [draft, setDraft] = useState<ProfileDraft | null>(null);
   const [saved, setSaved] = useState(false);
@@ -121,5 +158,23 @@ export function useCandidateProfileDraft({
     }
   }, [profile, draft, canEditProfile, onSaved, onError]);
 
-  return { draft, setDraft, canEditProfile, canGrade, saved, saveProfile };
+  const saveField = useCallback(
+    async (key: InlineProfileKey, value: InlineProfileValue) => {
+      if (!profile) return;
+      const stored = columnValue(key, value);
+      const patch = { [key]: stored } as Partial<CandidateProfile>;
+      const { error: err } = await supabase
+        .from('candidate_profiles')
+        .update(patch)
+        .eq('person_id', profile.person_id);
+      if (err) throw new Error(err.message);
+      setDraft((current) =>
+        current === null ? current : { ...current, [key]: draftValue(key, stored) },
+      );
+      onFieldSaved(patch);
+    },
+    [profile, onFieldSaved],
+  );
+
+  return { draft, setDraft, canEditProfile, canGrade, saved, saveProfile, saveField };
 }

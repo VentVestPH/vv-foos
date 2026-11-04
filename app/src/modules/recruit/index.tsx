@@ -16,6 +16,10 @@ const RequisitionRecordPage = lazy(() =>
   })),
 );
 
+const CandidateNewPage = lazy(() =>
+  import('./candidates/CandidateNewPage').then((m) => ({ default: m.CandidateNewPage })),
+);
+
 const CandidateRecordPage = lazy(() =>
   import('./candidates/CandidateRecordPage').then((m) => ({ default: m.CandidateRecordPage })),
 );
@@ -50,6 +54,14 @@ export function RecruitRoutes() {
         }
       />
       <Route path="candidates" element={<CandidateListPage />} />
+      <Route
+        path="candidates/new"
+        element={
+          <Suspense fallback={<RouteSkeleton />}>
+            <CandidateNewPage />
+          </Suspense>
+        }
+      />
       <Route
         path="candidates/:id"
         element={

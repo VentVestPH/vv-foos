@@ -55,6 +55,7 @@ test('K8: no action group offers more than one primary button', async ({ page })
 test('K8: a list page with a create action makes it the primary', async ({ page }) => {
   await signIn(page, PERSONA_EMAILS.admin);
   for (const [name, path, label] of [
+    ['candidates', '/recruit/candidates', 'Add Candidate'],
     ['deals', '/sales/deals', 'New Deal'],
     ['intake', '/intake', 'Paste URLs'],
   ] as const) {

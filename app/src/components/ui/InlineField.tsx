@@ -5,7 +5,6 @@ import { Input } from './Input';
 import { Select } from './Select';
 import type { EditField, EditValue } from './RecordEditDialog';
 import { errMsg } from '../../lib/errMsg';
-import { EMPTY_CELL } from '../../lib/format';
 
 type InlineKind = 'text' | 'email' | 'url' | 'number' | 'textarea' | 'date' | 'select';
 
@@ -127,7 +126,7 @@ export function InlineField({
       </span>
     );
 
-  const shown = display ?? (value === '' ? EMPTY_CELL : value);
+  const shown = display ?? (value === '' ? <span className="fo-inline-empty">-</span> : value);
 
   if (!editable) return <span className="fo-inline-value">{shown}</span>;
 
@@ -254,7 +253,7 @@ export function InlineRecordField({
   const text = typeof current === 'string' ? current : '';
 
   if (field.kind === 'checkbox' || field.kind === 'checkgroup') {
-    return <span className="fo-inline-value">{display ?? (text === '' ? EMPTY_CELL : text)}</span>;
+    return <span className="fo-inline-value">{display ?? (text === '' ? <span className="fo-inline-empty">-</span> : text)}</span>;
   }
 
   return (

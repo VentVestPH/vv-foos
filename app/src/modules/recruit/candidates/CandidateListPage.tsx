@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useListLink } from '../../../lib/listReturn';
 import { useSubmittedSearch, searchWords } from '../../../lib/quickSearch';
 import { candidateSearchHints } from '../../../lib/searchHints';
@@ -12,7 +12,7 @@ import { Pager } from '../../../components/ui/Pager';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialog';
 import { SettingsButton } from '../../../components/ui/SettingsButton';
-import { FileText as ResumeIcon, Flag as FlagIcon, User as PersonIcon } from 'lucide-react';
+import { FileText as ResumeIcon, Flag as FlagIcon, Plus, User as PersonIcon } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import { StarGrade } from '../../../components/ui/StarGrade';
 import { realtimeChannel } from '../../../lib/realtimeChannel';
@@ -74,9 +74,12 @@ function likeLiteral(value: string): string {
 
 export function CandidateListPage() {
   const openRecord = useListLink();
+  const navigate = useNavigate();
   const role = useRole();
   const { staff } = useSession();
   const mobile = useIsMobile();
+  const canAdd = !mobile && (role === 'admin' || role === 'recruiter');
+  const canImport = !mobile && (canAdd || role === 'sourcer');
   const lookups = useLookups();
   const savedViews = useSavedViews('candidate');
   const [params] = useSearchParams();
@@ -260,8 +263,8 @@ export function CandidateListPage() {
     };
   }, [reloadSoon]);
 
-  const reqCode = useMemo(
-    () => new Map(reqs.map((r) => [r.id, r.display_code])),
+  const reqName = useMemo(
+    () => new Map(reqs.map((r) => [r.id, r.title])),
     [reqs],
   );
 
@@ -320,27 +323,27 @@ export function CandidateListPage() {
       exportApps.push(...(data ?? []));
     }
 
-    const exportReqCode = new Map<string, string>();
+    const exportReqName = new Map<string, string>();
     const reqIds = [...new Set(exportApps.map((a) => a.requisition_id))];
     for (let i = 0; i < reqIds.length; i += APP_LOOKUP_CHUNK) {
       const { data, error: reqErr } = await supabase
         .from('requisitions')
-        .select('id, display_code')
+        .select('id, title')
         .in('id', reqIds.slice(i, i + APP_LOOKUP_CHUNK));
       if (reqErr) {
         setError(reqErr.message);
         return [];
       }
-      for (const r of data ?? []) exportReqCode.set(r.id, r.display_code);
+      for (const r of data ?? []) exportReqName.set(r.id, r.title);
     }
 
     setError(null);
-    return buildCandidateRows({ rows: collected, apps: exportApps, reqCode: exportReqCode });
+    return buildCandidateRows({ rows: collected, apps: exportApps, reqName: exportReqName });
   }, [applyFilters, applyWhere]);
 
   const rows = useMemo<CandRow[]>(
-    () => buildCandidateRows({ rows: profiles, apps, reqCode }),
-    [profiles, apps, reqCode],
+    () => buildCandidateRows({ rows: profiles, apps, reqName }),
+    [profiles, apps, reqName],
   );
 
   const pageIds = useMemo(() => rows.map((r) => r.id), [rows]);
@@ -473,14 +476,11 @@ export function CandidateListPage() {
         header: 'Requisitions',
         render: (r) => (
           <span className="chip-row">
-            {r.requisitions
-              .split(', ')
-              .filter(Boolean)
-              .map((code) => (
-                <span key={code} className="chip">
-                  {code}
-                </span>
-              ))}
+            {r.requisition_names.map((name, i) => (
+              <span key={`${name}-${i}`} className="chip chip-truncate" title={name}>
+                {name}
+              </span>
+            ))}
           </span>
         ),
       },
@@ -553,11 +553,25 @@ export function CandidateListPage() {
       searchPlaceholder="Search name, email, title, employer…"
       searchHints={candidateSearchHints}
       actions={
-        <SettingsButton
-          label="Column settings"
-          title="Choose the column order and which columns show"
-          onClick={() => setSettingsOpen(true)}
-        />
+        <>
+          {canAdd && (
+            <Button variant="primary" onClick={() => navigate('/recruit/candidates/new')}>
+              <Plus size={20} aria-hidden="true" />
+              Add Candidate
+            </Button>
+          )}
+          {canImport && (
+            <Button onClick={() => navigate('/intake/sheet')}>
+              <Plus size={20} aria-hidden="true" />
+              Import from Sheets
+            </Button>
+          )}
+          <SettingsButton
+            label="Column settings"
+            title="Choose the column order and which columns show"
+            onClick={() => setSettingsOpen(true)}
+          />
+        </>
       }
       savedViewsSlot={
         <SavedViewsControl
