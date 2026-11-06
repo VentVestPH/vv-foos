@@ -4,7 +4,7 @@ import { personName } from '../lib';
 
 export type CandidateListRow = Omit<
   Database['public']['Views']['candidate_list']['Row'],
-  'search_text' | 'requisition_codes'
+  'search_text' | 'requisition_codes' | 'requisition_search' | 'star_grade'
 >;
 
 export const SORT_COLUMNS: Record<string, string> = {
@@ -14,7 +14,9 @@ export const SORT_COLUMNS: Record<string, string> = {
   location: 'city',
   source: 'source_name',
   initial_date: 'initial_date',
-  star_grade: 'star_grade',
+  sourcer_grade: 'sourcer_grade',
+  manager_grade: 'manager_grade',
+  sourcer_initials: 'sourcer_name',
   grade_comment: 'grade_comment',
   status: 'status_label',
   current_title: 'current_title',
@@ -32,7 +34,8 @@ export interface CandFilters {
   firstName: string;
   lastName: string;
   statusId: string;
-  starGrade: string;
+  sourcerGrade: string;
+  managerGrade: string;
   sourceId: string;
   sourcerId: string;
   dateFrom: string;
@@ -43,7 +46,8 @@ export const EMPTY_FILTERS: CandFilters = {
   firstName: '',
   lastName: '',
   statusId: '',
-  starGrade: '',
+  sourcerGrade: '',
+  managerGrade: '',
   sourceId: '',
   sourcerId: '',
   dateFrom: '',
@@ -58,7 +62,9 @@ export interface CandRow extends Record<string, unknown> {
   updated_at: string;
   has_resume: boolean;
   location: string;
-  star_grade: number | null;
+  sourcer_grade: string;
+  manager_grade: string;
+  sourcer_initials: string;
   grade_comment: string;
   current_title: string;
   current_employer: string;
@@ -75,15 +81,17 @@ export interface CandRow extends Record<string, unknown> {
 export const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
   { key: 'flags', header: 'Flags' },
   { key: 'name', header: 'Name' },
-  { key: 'updated_at', header: 'Last updated' },
-  { key: 'has_resume', header: 'Resume' },
   { key: 'location', header: 'Location' },
-  { key: 'source', header: 'Source' },
-  { key: 'initial_date', header: 'Initial date' },
-  { key: 'star_grade', header: 'Grade' },
-  { key: 'grade_comment', header: 'Grade comment' },
+  { key: 'sourcer_grade', header: 'Sourcer grade' },
+  { key: 'sourcer_initials', header: 'Sourcer initials' },
+  { key: 'manager_grade', header: 'Manager grade' },
   { key: 'status', header: 'Main status' },
   { key: 'requisitions', header: 'Requisitions' },
+  { key: 'initial_date', header: 'Initial date' },
+  { key: 'updated_at', header: 'Last updated' },
+  { key: 'has_resume', header: 'Resume' },
+  { key: 'source', header: 'Source' },
+  { key: 'grade_comment', header: 'Grade comment' },
   { key: 'current_title', header: 'Current title' },
   { key: 'current_employer', header: 'Current employer' },
   { key: 'sourcer', header: 'Sourcer' },
@@ -91,11 +99,21 @@ export const COLUMN_DEFS: { key: keyof CandRow & string; header: string }[] = [
 
 export const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
 
-const OFF_BY_DEFAULT_COLUMN_KEYS = ['current_title', 'current_employer'];
+const OFF_BY_DEFAULT_COLUMN_KEYS = ['current_title', 'current_employer', 'sourcer'];
 
 export const DEFAULT_COLUMN_KEYS = ALL_COLUMN_KEYS.filter(
   (k) => !OFF_BY_DEFAULT_COLUMN_KEYS.includes(k),
 );
+
+function initialsOf(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+}
 
 export interface CandidateRowInput {
   rows: CandidateListRow[];
@@ -124,7 +142,9 @@ export function buildCandidateRows({ rows, apps, reqName }: CandidateRowInput): 
       updated_at: row.person_updated_at,
       has_resume: row.has_resume,
       location: [row.city, row.state, row.country].filter(Boolean).join(', '),
-      star_grade: row.star_grade,
+      sourcer_grade: row.sourcer_grade ?? '',
+      manager_grade: row.manager_grade ?? '',
+      sourcer_initials: initialsOf(row.sourcer_name ?? ''),
       grade_comment: row.grade_comment ?? '',
       current_title: row.current_title ?? '',
       current_employer: row.current_employer ?? '',

@@ -8,7 +8,7 @@ import { ErrorSummary, type FieldError } from '../../../components/ui/ErrorSumma
 import { Input } from '../../../components/ui/Input';
 import { RecordPage } from '../../../components/ui/RecordPage';
 import { Select } from '../../../components/ui/Select';
-import { StarGrade } from '../../../components/ui/StarGrade';
+import { GRADE_OPTIONS } from '../../../components/ui/LetterGrade';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { CURRENCIES } from '../../../lib/format';
 import { errMsg } from '../../../lib/errMsg';
@@ -101,7 +101,8 @@ export function CandidateNewPage() {
   const lookups = useLookups();
 
   const [form, setForm] = useState<Form>({ ...EMPTY_FORM, initialDate: todayIso() });
-  const [starGrade, setStarGrade] = useState<number | null>(null);
+  const [sourcerGrade, setSourcerGrade] = useState('');
+  const [managerGrade, setManagerGrade] = useState('');
   const [doNotContact, setDoNotContact] = useState(false);
   const [requisitions, setRequisitions] = useState<RequisitionChoice[]>([]);
   const [requisitionId, setRequisitionId] = useState('');
@@ -333,7 +334,8 @@ export function CandidateNewPage() {
         current_salary: form.currentSalary.trim() ? Number(form.currentSalary) : null,
         salary_currency: nullable(form.salaryCurrency),
         salary_flag: nullable(form.salaryFlag),
-        star_grade: starGrade,
+        sourcer_grade: sourcerGrade || null,
+        manager_grade: managerGrade || null,
         grade_comment: nullable(form.gradeComment),
         do_not_contact: doNotContact,
       });
@@ -612,12 +614,22 @@ export function CandidateNewPage() {
             </div>
             <h3 className="cand-step-subhead">Grading</h3>
             <div className="cand-step-grid">
-              <div className="field">
-                <span className="field-label">Amir Grade (star grade)</span>
-                <StarGrade value={starGrade} onChange={setStarGrade} />
-              </div>
+              <Select
+                label="Sourcer grade"
+                placeholder="Not graded"
+                options={GRADE_OPTIONS}
+                value={sourcerGrade}
+                onChange={(e) => setSourcerGrade(e.target.value)}
+              />
+              <Select
+                label="Manager grade"
+                placeholder="Not graded"
+                options={GRADE_OPTIONS}
+                value={managerGrade}
+                onChange={(e) => setManagerGrade(e.target.value)}
+              />
               <Input
-                label="Sourcer Grade (grade comment)"
+                label="Grade comment"
                 value={form.gradeComment}
                 onChange={(e) => set('gradeComment', e.target.value)}
               />

@@ -536,47 +536,31 @@ test.describe('C: loading', () => {
 });
 
 test.describe('C: grading', () => {
-  test('C12: the page-head star is permanent, unlabelled, and saves', async ({ page }) => {
+  test('C12: the page head shows the sourcer and manager letter grades', async ({ page }) => {
     const admin = await clientAs('admin');
-    await admin.from('candidate_profiles').update({ star_grade: null }).eq('person_id', person);
+    await admin
+      .from('candidate_profiles')
+      .update({ sourcer_grade: 'A', manager_grade: 'B' })
+      .eq('person_id', person);
 
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.waitForSelector('.record-action-bar');
 
     const header = page.locator('.fo-page-head .cand-header-grade');
-    await expect(
-      header,
-      'the star is permanent, so it shows even before anyone has graded',
-    ).toBeVisible({ timeout: 25000 });
-    await expect(
-      page.locator('.fo-page-head'),
-      'the label was removed; the stars carry themselves next to the title',
-    ).not.toContainText('Amir Grade');
+    await expect(header, 'graded candidates show both grades next to the title').toBeVisible({
+      timeout: 25000,
+    });
+    await expect(header).toContainText('Sourcer A');
+    await expect(header).toContainText('Manager B');
 
-    const stars = header.locator('button');
-    await expect(stars, 'a three-star scale').toHaveCount(3);
-    await stars.nth(2).click();
-    await page.getByRole('button', { name: 'Save profile' }).click();
-
-    await expect
-      .poll(
-        async () => {
-          const { data } = await admin
-            .from('candidate_profiles')
-            .select('star_grade')
-            .eq('person_id', person)
-            .single();
-          return data?.star_grade ?? null;
-        },
-        { timeout: 15000, message: 'grading from the header must reach the database' },
-      )
-      .toBe(3);
-
-    await admin.from('candidate_profiles').update({ star_grade: null }).eq('person_id', person);
+    await admin
+      .from('candidate_profiles')
+      .update({ sourcer_grade: null, manager_grade: null })
+      .eq('person_id', person);
   });
 
-  test('C13: Amir Grade leads the grading group on its own row', async ({ page }) => {
+  test('C13: Sourcer Grade and Manager Grade lead the grading group', async ({ page }) => {
     await signIn(page, PERSONA_EMAILS.admin);
     await gotoAsSignedIn(page, `/recruit/candidates/${person}`);
     await page.getByRole('button', { name: /^More Details/ }).click();
@@ -593,7 +577,9 @@ test.describe('C: grading', () => {
       return {
         order: Array.from(group.children).map((c) => (c as HTMLElement).className.split(' ')[0]),
         firstLabel: (firstRow.querySelector('dt') as HTMLElement).innerText,
-        starsInFirstRow: firstRow.querySelectorAll('.star-grade').length,
+        secondLabel: (
+          grid.querySelectorAll('.info-item')[1]?.querySelector('dt') as HTMLElement | null
+        )?.innerText,
         formGrids: group.querySelectorAll('.info-form-grid').length,
       };
     });
@@ -602,8 +588,8 @@ test.describe('C: grading', () => {
       shape.order,
       `the group reads label, description, then the value grid; got ${shape.order.join(' > ')}`,
     ).toEqual(['info-group-label', 'info-group-hint', 'info-grid']);
-    expect(shape.firstLabel, 'the grade is the first row').toBe('Amir Grade');
-    expect(shape.starsInFirstRow, 'and it holds the star control').toBe(1);
+    expect(shape.firstLabel, 'the sourcer grade is the first row').toBe('Sourcer Grade');
+    expect(shape.secondLabel, 'the manager grade follows it').toBe('Manager Grade');
     expect(shape.formGrids, 'there is no separate form grid any more').toBe(0);
   });
 });
@@ -638,7 +624,7 @@ test.describe('C: the candidate record sections', () => {
     expect(
       await page
         .locator('#more-details')
-        .getByRole('button', { name: 'Edit Sourcer Grade (grade comment)', exact: true })
+        .getByRole('button', { name: 'Edit Grade comment', exact: true })
         .count(),
       'the grade comment is click-to-edit like the rest',
     ).toBe(1);

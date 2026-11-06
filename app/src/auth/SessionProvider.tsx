@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { forgetSsoEmail, rememberSsoEmail } from '../lib/lastSso';
 import { supabase } from '../lib/supabase';
 import type { StaffRole, Tables } from '../lib/database.types';
 
@@ -75,7 +76,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      (event, newSession) => {
+        if (
+          event === 'SIGNED_IN' &&
+          newSession?.user.app_metadata.provider === 'google' &&
+          newSession.user.email
+        ) {
+          rememberSsoEmail(newSession.user.email);
+        }
         setSession(newSession);
         void syncStaff(newSession);
       },
@@ -88,6 +96,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    forgetSsoEmail();
     await supabase.auth.signOut();
     setStaff(null);
     setStaffResolvedFor(null);

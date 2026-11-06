@@ -13,9 +13,9 @@ const CAND_SECTION_DEFAULT_OPEN: Record<string, boolean> = {
   'Requisition Summary': false,
   'Candidate Information': true,
   'Main Status Details': true,
-  'Contact Log': false,
-  'More Details': false,
-  'Resume and Cover Letter': true,
+  'Contact Log': true,
+  'More Details': true,
+  'Resume and Cover Letter': false,
   Resumes: false,
   Tasks: true,
   Events: false,
@@ -53,7 +53,7 @@ import {
   User as PersonIcon,
   PencilLine,
 } from 'lucide-react';
-import { StarGrade } from '../../../components/ui/StarGrade';
+import { GRADE_OPTIONS } from '../../../components/ui/LetterGrade';
 import { PersonEditDialog } from '../../../components/ui/PersonEditDialog';
 import { PersonInlineField } from '../../../components/ui/PersonInlineField';
 import {
@@ -136,7 +136,7 @@ export function CandidateRecordPage() {
     if (err) setError(err.message);
     else reload();
   }, [profile, reload]);
-  const { draft, setDraft, canEditProfile, canGrade, saved, saveProfile, saveField } =
+  const { draft, setDraft, canEditProfile, canGrade, canGradeAsManager, saved, saveProfile, saveField } =
     useCandidateProfileDraft({
       profile,
       role,
@@ -296,14 +296,12 @@ export function CandidateRecordPage() {
   }
 
   const activities = engagement.activities;
-  const notes = activities.filter((a) => a.kind === 'note');
-  const calls = activities.filter((a) => a.kind === 'call');
-  const meetings = activities.filter((a) => a.kind === 'meeting');
-  const events = meetings.filter(
-    (a) => Array.isArray(a.attendees) && (a.attendees as unknown[]).length > 0,
-  );
-
-  const plainMeetings = meetings.filter((a) => !events.includes(a));
+  const byNewest = (a: { occurred_at: string }, b: { occurred_at: string }) =>
+    b.occurred_at.localeCompare(a.occurred_at);
+  const notes = activities
+    .filter((a) => a.kind === 'note' || a.kind === 'call')
+    .sort(byNewest);
+  const events = activities.filter((a) => a.kind === 'meeting').sort(byNewest);
   const emails = activities.filter((a) => a.kind === 'email');
   const files = engagement.attachments;
   const resumes = files.filter((a) => a.kind === 'resume');
@@ -625,26 +623,9 @@ export function CandidateRecordPage() {
         </RecordSection>
       ),
     'Contact Log': (
-      <RecordSection title="Contact Log" count={calls.length} hidden={prefs.isHidden("Contact Log")} defaultOpen={opensOnLoad("Contact Log")}>
+      <RecordSection title="Contact Log" count={notes.length} hidden={prefs.isHidden("Contact Log")} defaultOpen={opensOnLoad("Contact Log")}>
         <SidePanelTabs
           tabs={[
-            {
-              key: 'calls',
-              label: 'Calls',
-              count: calls.length,
-              content: (
-                <ActivityPanel
-                  items={calls}
-                  kind="call"
-                  kindLabel="Call"
-                  emptyText="No calls logged yet."
-                  allowCreate={allowCreate}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
-                />
-              ),
-            },
             {
               key: 'notes',
               label: 'Notes',
@@ -655,23 +636,6 @@ export function CandidateRecordPage() {
                   kind="note"
                   kindLabel="Note"
                   emptyText="No notes yet."
-                  allowCreate={allowCreate}
-                  onCreate={engagement.addActivity}
-                  onDelete={allowCreate ? engagement.deleteActivity : undefined}
-                  onUpdate={allowCreate ? engagement.updateActivity : undefined}
-                />
-              ),
-            },
-            {
-              key: 'meetings',
-              label: 'Meetings',
-              count: plainMeetings.length,
-              content: (
-                <ActivityPanel
-                  items={plainMeetings}
-                  kind="meeting"
-                  kindLabel="Meeting"
-                  emptyText="No meetings yet."
                   allowCreate={allowCreate}
                   onCreate={engagement.addActivity}
                   onDelete={allowCreate ? engagement.deleteActivity : undefined}
@@ -717,17 +681,29 @@ export function CandidateRecordPage() {
           >
             <dl className="info-grid">
               <div className="info-item">
-                <dt>Amir Grade</dt>
+                <dt>Sourcer Grade</dt>
                 <dd>
-                  {canGrade ? (
-                    <StarGrade
-                      value={draft.star_grade}
-                      subject={personName(person)}
-                      onChange={(v) => void saveProfileField('star_grade', v)}
-                    />
-                  ) : (
-                    <StarGrade value={draft.star_grade} subject={personName(person)} />
-                  )}
+                  <InlineField
+                    label="Sourcer Grade"
+                    kind="select"
+                    options={GRADE_OPTIONS}
+                    value={draft.sourcer_grade}
+                    editable={canGrade}
+                    onCommit={(next) => saveField('sourcer_grade', next)}
+                  />
+                </dd>
+              </div>
+              <div className="info-item">
+                <dt>Manager Grade</dt>
+                <dd>
+                  <InlineField
+                    label="Manager Grade"
+                    kind="select"
+                    options={GRADE_OPTIONS}
+                    value={draft.manager_grade}
+                    editable={canGradeAsManager}
+                    onCommit={(next) => saveField('manager_grade', next)}
+                  />
                 </dd>
               </div>
               <div className="info-item">
@@ -829,10 +805,10 @@ export function CandidateRecordPage() {
                 </dd>
               </div>
               <div className="info-item">
-                <dt>Sourcer Grade</dt>
+                <dt>Grade comment</dt>
                 <dd>
                   <InlineField
-                    label="Sourcer Grade (grade comment)"
+                    label="Grade comment"
                     kind="textarea"
                     value={draft.grade_comment}
                     editable={canGrade}
@@ -1183,20 +1159,11 @@ export function CandidateRecordPage() {
       }
       titleExtras={
         <>
-          {draft ? (
+          {(draft?.sourcer_grade || draft?.manager_grade) && (
             <span className="cand-header-grade">
-              {canGrade ? (
-                <StarGrade
-                  value={draft.star_grade}
-                  subject={personName(person)}
-                  onChange={(v) => setDraft({ ...draft, star_grade: v })}
-                />
-              ) : (
-                <StarGrade value={draft.star_grade} subject={personName(person)} />
-              )}
+              {draft.sourcer_grade && <Badge tone="outline">Sourcer {draft.sourcer_grade}</Badge>}
+              {draft.manager_grade && <Badge tone="outline">Manager {draft.manager_grade}</Badge>}
             </span>
-          ) : (
-            profile?.star_grade != null && <StarGrade value={profile.star_grade} />
           )}
           {person.is_test && <Badge tone="outline">Test record</Badge>}
           <button

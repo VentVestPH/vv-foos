@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { FilterFoot, FilterGroup } from '../../../components/ui/FilterGroup';
 import { DateField } from '../../../components/ui/DateField';
+import { GRADE_OPTIONS } from '../../../components/ui/LetterGrade';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import type { Lookups } from '../hooks';
@@ -80,22 +81,28 @@ export function CandidateFilterRail({
       <Select
         label="Status"
         placeholder="All statuses"
-        options={lookups.statuses
-          .filter((s) => s.is_active)
-          .map((s) => ({ value: s.id, label: s.label }))}
+        options={[
+          ...lookups.statuses.filter((s) => s.is_active).map((s) => ({ value: s.id, label: s.label })),
+          ...lookups.statuses
+            .filter((s) => !s.is_active)
+            .map((s) => ({ value: s.id, label: `${s.label} (retired)` })),
+        ]}
         value={filters.statusId}
         onChange={(e) => setFilters({ ...filters, statusId: e.target.value })}
       />
       <Select
-        label="Grade"
+        label="Sourcer grade"
         placeholder="Any grade"
-        options={[
-          { value: '1', label: '1 star' },
-          { value: '2', label: '2 stars' },
-          { value: '3', label: '3 stars' },
-        ]}
-        value={filters.starGrade}
-        onChange={(e) => setFilters({ ...filters, starGrade: e.target.value })}
+        options={GRADE_OPTIONS}
+        value={filters.sourcerGrade}
+        onChange={(e) => setFilters({ ...filters, sourcerGrade: e.target.value })}
+      />
+      <Select
+        label="Manager grade"
+        placeholder="Any grade"
+        options={GRADE_OPTIONS}
+        value={filters.managerGrade}
+        onChange={(e) => setFilters({ ...filters, managerGrade: e.target.value })}
       />
       <Select
         label="Source"
