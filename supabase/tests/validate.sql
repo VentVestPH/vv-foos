@@ -319,17 +319,17 @@ begin
   -- which is a migration or a reset dropping seeded lookup values.
   if (select count(*) from sources) < 28 then raise exception 'FAIL 9: sources count'; end if;
   if (select count(*) from candidate_statuses) < 30 then raise exception 'FAIL 9: candidate_statuses count'; end if;
-  -- Assert the ORIGINAL four labels are intact and still first in sort order,
-  -- rather than pinning the whole list. candidate_statuses is admin-editable by
-  -- design (architecture section 2.2), so asserting an exact full list would
-  -- break the moment an admin adds a status, which is sanctioned behaviour.
+  -- Assert the ORIGINAL four labels still exist under their seeded names,
+  -- rather than pinning the whole list or its order. candidate_statuses is
+  -- admin-editable by design (architecture section 2.2), so an exact list breaks
+  -- the moment an admin adds a status, and migration 20261105000002 deliberately
+  -- reorders the list and retires three of these four for new entries.
   -- What actually matters is the invariant that seeded labels are never
-  -- renamed, so migrated history stays readable in the team's own vocabulary.
-  if (select array_agg(label order by sort_order) from (
-        select label, sort_order from candidate_statuses order by sort_order limit 4
-      ) t)
-     <> array['Resume Provided by Third Party', 'Candidate to Review Info', 'Sent InMail I (Linkedin)', 'Placed'] then
-    raise exception 'FAIL 9: the four originally seeded candidate_statuses labels were renamed or reordered';
+  -- renamed or deleted, so migrated history stays readable in the team's own
+  -- vocabulary.
+  if (select count(distinct label) from candidate_statuses
+       where label in ('Resume Provided by Third Party', 'Candidate to Review Info', 'Sent InMail I (Linkedin)', 'Placed')) <> 4 then
+    raise exception 'FAIL 9: the four originally seeded candidate_statuses labels were renamed or removed';
   end if;
   if not exists (select 1 from staff where email = 'john@ventvest.com' and role = 'admin' and is_active) then
     raise exception 'FAIL 9: admin staff row for john@ventvest.com missing';
