@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useRole, useSession } from '../../../auth/SessionProvider';
 import type { RequisitionStatus, TablesUpdate } from '../../../lib/database.types';
 import { Button } from '../../../components/ui/Button';
@@ -95,6 +95,16 @@ export function RequisitionRecordPage() {
   const opensOnLoad = (section: string) =>
     prefs.opensOnLoad(section, REQ_SECTION_DEFAULT_OPEN[section] ?? true);
   const pipelineRef = useRef<HTMLDivElement>(null);
+  const [searchParams] = useSearchParams();
+  const jumpToCandidates = searchParams.get('show') === 'candidates';
+
+  useEffect(() => {
+    if (!jumpToCandidates || !loaded) return;
+    const timer = window.setTimeout(() => {
+      pipelineRef.current?.scrollIntoView({ block: 'start' });
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [jumpToCandidates, loaded]);
 
   const engagement = useEngagement('requisition', requisitionId);
 
@@ -731,7 +741,7 @@ export function RequisitionRecordPage() {
       </RecordSection>
     ),
     'Application Pipeline': (
-      <RecordSection title="Application Pipeline" hidden={prefs.isHidden('Application Pipeline')} defaultOpen={opensOnLoad('Application Pipeline')}>
+      <RecordSection title="Application Pipeline" hidden={prefs.isHidden('Application Pipeline')} defaultOpen={jumpToCandidates || opensOnLoad('Application Pipeline')}>
         <div ref={pipelineRef} id="application-pipeline">
           <ApplicationPipeline
             requisition={req}

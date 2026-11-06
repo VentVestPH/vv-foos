@@ -14,7 +14,7 @@ import { ColumnSettingsDialog } from '../../../components/ui/ColumnSettingsDialo
 import { SettingsButton } from '../../../components/ui/SettingsButton';
 import { FileText as ResumeIcon, Flag as FlagIcon, Plus, User as PersonIcon } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
-import { StarGrade } from '../../../components/ui/StarGrade';
+import { LetterGradeSelect } from '../../../components/ui/LetterGrade';
 import { realtimeChannel } from '../../../lib/realtimeChannel';
 import { supabase } from '../../../lib/supabase';
 import { useCoalescedReload } from '../../../lib/useCoalescedReload';
@@ -53,7 +53,7 @@ const EXPORT_ROW_CAP = 10000;
 const APP_LOOKUP_CHUNK = 200;
 
 const CANDIDATE_VIEW_COLUMNS =
-  'person_id, first_name, middle_name, last_name, full_name, emails, city, state, country, person_updated_at, status_id, star_grade, grade_comment, current_title, current_employer, initial_date, source_id, sourcer_id, do_not_contact, status_label, source_name, sourcer_name, has_resume';
+  'person_id, first_name, middle_name, last_name, full_name, emails, city, state, country, person_updated_at, status_id, sourcer_grade, manager_grade, grade_comment, current_title, current_employer, initial_date, source_id, sourcer_id, do_not_contact, status_label, source_name, sourcer_name, has_resume';
 
 function candidateBaseQuery() {
   return supabase.from('candidate_list').select(CANDIDATE_VIEW_COLUMNS);
@@ -70,6 +70,10 @@ type CandidateQuery = ReturnType<typeof candidateBaseQuery>;
 
 function likeLiteral(value: string): string {
   return value.replace(/([\\%_])/g, '\\$1');
+}
+
+function orValue(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 export function CandidateListPage() {
@@ -95,7 +99,8 @@ export function CandidateListPage() {
     firstName: params.get('first_name') ?? '',
     lastName: params.get('last_name') ?? '',
     statusId: params.get('status') ?? '',
-    starGrade: params.get('star_grade') ?? '',
+    sourcerGrade: params.get('sourcer_grade') ?? '',
+    managerGrade: params.get('manager_grade') ?? '',
     sourceId: params.get('source_id') ?? '',
     sourcerId: params.get('sourcer_id') ?? '',
     dateFrom: params.get('date_from') ?? '',
@@ -129,13 +134,19 @@ export function CandidateListPage() {
       if (filters.firstName.trim()) out = out.ilike('first_name', `%${likeLiteral(filters.firstName.trim())}%`);
       if (filters.lastName.trim()) out = out.ilike('last_name', `%${likeLiteral(filters.lastName.trim())}%`);
       if (filters.statusId) out = out.eq('status_id', filters.statusId);
-      if (filters.starGrade) out = out.eq('star_grade', Number(filters.starGrade));
+      if (filters.sourcerGrade) out = out.eq('sourcer_grade', filters.sourcerGrade);
+      if (filters.managerGrade) out = out.eq('manager_grade', filters.managerGrade);
       if (filters.sourceId) out = out.eq('source_id', filters.sourceId);
       if (filters.sourcerId) out = out.eq('sourcer_id', filters.sourcerId);
       if (filters.dateFrom) out = out.gte('initial_date', filters.dateFrom);
       if (filters.dateTo) out = out.lte('initial_date', filters.dateTo);
-      for (const word of searchWords(search)) {
-        out = out.ilike('search_text', `%${likeLiteral(word)}%`);
+      const words = searchWords(search);
+      if (words.length > 0) {
+        const everyWord = words
+          .map((word) => `search_text.ilike.${orValue(`%${likeLiteral(word)}%`)}`)
+          .join(',');
+        const phrase = `%${likeLiteral(words.join(' '))}%`;
+        out = out.or(`and(${everyWord}),requisition_search.ilike.${orValue(phrase)}`);
       }
       return out;
     },
@@ -349,7 +360,10 @@ export function CandidateListPage() {
   const pageIds = useMemo(() => rows.map((r) => r.id), [rows]);
 
   const updateGrade = useCallback(
-    async (personId: string, patch: { star_grade?: number | null; grade_comment?: string | null }) => {
+    async (
+      personId: string,
+      patch: { sourcer_grade?: string | null; manager_grade?: string | null; grade_comment?: string | null },
+    ) => {
       const { error: err } = await supabase
         .from('candidate_profiles')
         .update(patch)
@@ -426,22 +440,56 @@ export function CandidateListPage() {
         render: (r) => fmtDate(r.initial_date),
       },
       {
-        key: 'star_grade',
-        width: '92px',
-        header: 'Grade',
-        sortValue: (r) => r.star_grade ?? 0,
+        key: 'sourcer_grade',
+        header: 'Sourcer grade',
+        nowrap: true,
         render: (r) => {
           const prof = profiles.find((p) => p.person_id === r.id);
-          return prof && canGrade(prof) ? (
-            <StarGrade
-              value={r.star_grade}
-              subject={r.name}
-              onChange={(v) => void updateGrade(r.id, { star_grade: v })}
-            />
-          ) : (
-            <StarGrade value={r.star_grade} subject={r.name} />
+          return (
+            <span onClick={(e) => e.stopPropagation()}>
+              {prof && canGrade(prof) ? (
+                <LetterGradeSelect
+                  className="grade-select"
+                  label={`Sourcer grade for ${r.name}`}
+                  value={r.sourcer_grade}
+                  onChange={(v) => void updateGrade(r.id, { sourcer_grade: v || null })}
+                />
+              ) : (
+                r.sourcer_grade || EMPTY_CELL
+              )}
+            </span>
           );
         },
+      },
+      {
+        key: 'sourcer_initials',
+        header: 'Sourcer initials',
+        nowrap: true,
+        render: (r) =>
+          r.sourcer_initials ? (
+            <span title={r.sourcer}>{r.sourcer_initials}</span>
+          ) : (
+            EMPTY_CELL
+          ),
+      },
+      {
+        key: 'manager_grade',
+        header: 'Manager grade',
+        nowrap: true,
+        render: (r) => (
+          <span onClick={(e) => e.stopPropagation()}>
+            {canBulkEdit ? (
+              <LetterGradeSelect
+                className="grade-select"
+                label={`Manager grade for ${r.name}`}
+                value={r.manager_grade}
+                onChange={(v) => void updateGrade(r.id, { manager_grade: v || null })}
+              />
+            ) : (
+              r.manager_grade || EMPTY_CELL
+            )}
+          </span>
+        ),
       },
       {
         key: 'grade_comment',
@@ -492,7 +540,7 @@ export function CandidateListPage() {
     return visibleCols
       .map((key) => byKey.get(key))
       .filter((c): c is TableColumn<CandRow> => c !== undefined);
-  }, [visibleCols, profiles, canGrade, updateGrade, openRecord, pageIds]);
+  }, [visibleCols, profiles, canGrade, canBulkEdit, updateGrade, openRecord, pageIds]);
 
   const pageCount =
     total === null

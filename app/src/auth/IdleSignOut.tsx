@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { forgetSsoEmail } from '../lib/lastSso';
 import { supabase } from '../lib/supabase';
 
-const IDLE_LIMIT_MS = 60 * 60 * 1000;
+const IDLE_LIMIT_MS = 7 * 24 * 60 * 60 * 1000;
 const IDLE_WARNING_MS = 2 * 60 * 1000;
 const LAST_ACTIVITY_KEY = 'foos.lastActivity';
 const TICK_MS = 1000;
@@ -98,7 +99,10 @@ export function IdleSignOut() {
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => void supabase.auth.signOut()}
+            onClick={() => {
+              forgetSsoEmail();
+              void supabase.auth.signOut();
+            }}
           >
             Sign out now
           </button>

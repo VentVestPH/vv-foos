@@ -10,6 +10,11 @@
   white-space: nowrap;
 }
 
+.fo-pager-size {
+  width: 88px;
+  margin-right: var(--sp-1);
+}
+
 .fo-pager-controls {
   display: inline-flex;
   align-items: center;

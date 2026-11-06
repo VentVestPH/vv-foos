@@ -25,7 +25,7 @@ const OFF_PAGE_LIMIT = 200;
 const RESUME_SCAN_LIMIT = 500;
 
 const BULK_COLUMNS =
-  'person_id, first_name, middle_name, last_name, emails, do_not_contact, current_title, current_employer, city, country, status_label, star_grade, grade_comment';
+  'person_id, first_name, middle_name, last_name, emails, do_not_contact, current_title, current_employer, city, country, status_label, sourcer_grade, manager_grade, grade_comment';
 
 type BulkProfile = Pick<
   CandidateListRow,
@@ -40,7 +40,8 @@ type BulkProfile = Pick<
   | 'city'
   | 'country'
   | 'status_label'
-  | 'star_grade'
+  | 'sourcer_grade'
+  | 'manager_grade'
   | 'grade_comment'
 >;
 
@@ -396,8 +397,12 @@ export function CandidateBulkActions({
                     <dd>{profile?.status_label ?? EMPTY_CELL}</dd>
                   </div>
                   <div className="info-item">
-                    <dt>Amir Grade</dt>
-                    <dd>{profile?.star_grade != null ? `${profile.star_grade} of 3` : EMPTY_CELL}</dd>
+                    <dt>Sourcer grade</dt>
+                    <dd>{profile?.sourcer_grade ?? EMPTY_CELL}</dd>
+                  </div>
+                  <div className="info-item">
+                    <dt>Manager grade</dt>
+                    <dd>{profile?.manager_grade ?? EMPTY_CELL}</dd>
                   </div>
                 </dl>
                 {profile?.grade_comment != null && profile.grade_comment !== '' && (

@@ -5,6 +5,7 @@ import { useSession } from './SessionProvider';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { readLastSsoEmail } from '../lib/lastSso';
 import { EMAIL_PATTERN } from '../lib/personValidation';
 
 export function LoginPage() {
@@ -31,12 +32,16 @@ export function LoginPage() {
 
   const signInWithGoogle = async () => {
     setAuthError(null);
+    const lastEmail = readLastSsoEmail();
     try {
       const { error: err } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
-          queryParams: { hd: 'ventvest.com', prompt: 'select_account' },
+          queryParams:
+            lastEmail !== null
+              ? { hd: 'ventvest.com', login_hint: lastEmail }
+              : { hd: 'ventvest.com', prompt: 'select_account' },
         },
       });
       if (err) setAuthError(authErrorMessage(err));

@@ -5,6 +5,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
+import { PAGE_SIZE_CHOICES, type PageSizeChoice } from '../../hooks/usePageSizePref';
+import { Select } from './Select';
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -43,9 +45,11 @@ interface PagerProps {
   totalPending?: boolean;
   countLabel?: string;
   disabled?: boolean;
+  sizeChoice?: PageSizeChoice;
+  onSizeChange?: (choice: PageSizeChoice) => void;
 }
 
-export function Pager({ from, to, total, page, pageCount, onPage, totalPending, countLabel: countLabelOverride, disabled = false }: PagerProps) {
+export function Pager({ from, to, total, page, pageCount, onPage, totalPending, countLabel: countLabelOverride, disabled = false, sizeChoice, onSizeChange }: PagerProps) {
   const single = pageCount <= 1;
   const empty = total === 0;
   const atStart = page === 0;
@@ -75,6 +79,17 @@ export function Pager({ from, to, total, page, pageCount, onPage, totalPending, 
 
   return (
     <div className="fo-pager">
+      {sizeChoice !== undefined && onSizeChange !== undefined && (
+        <Select
+          className="fo-pager-size"
+          aria-label="Rows per page"
+          title="Rows per page"
+          value={sizeChoice}
+          options={PAGE_SIZE_CHOICES.map((c) => ({ value: c.value, label: c.label }))}
+          disabled={disabled}
+          onChange={(e) => onSizeChange(e.target.value as PageSizeChoice)}
+        />
+      )}
       <span className="fo-pager-controls">
         <button
           type="button"

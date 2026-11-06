@@ -365,6 +365,8 @@ export interface Database {
           person_id: string;
           status_id: string | null;
           star_grade: number | null;
+          sourcer_grade: string | null;
+          manager_grade: string | null;
           grade_comment: string | null;
           current_title: string | null;
           current_employer: string | null;
@@ -384,6 +386,8 @@ export interface Database {
           person_id: string;
           status_id?: string | null;
           star_grade?: number | null;
+          sourcer_grade?: string | null;
+          manager_grade?: string | null;
           grade_comment?: string | null;
           current_title?: string | null;
           current_employer?: string | null;
@@ -1259,6 +1263,9 @@ export interface Database {
           source_name: string | null;
           unviewed: boolean;
           stage_rank: number;
+          sourcer_grade: string | null;
+          manager_grade: string | null;
+          sourcer_name: string | null;
         };
         Relationships: [];
       };
@@ -1298,6 +1305,9 @@ export interface Database {
           sourcer_name: string | null;
           has_resume: boolean;
           requisition_codes: string | null;
+          sourcer_grade: string | null;
+          manager_grade: string | null;
+          requisition_search: string | null;
         };
         Relationships: [];
       };

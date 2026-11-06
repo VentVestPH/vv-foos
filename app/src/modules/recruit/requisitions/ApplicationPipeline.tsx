@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, Star, UserMinus } from 'lucide-react';
+import { Download, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../../auth/SessionProvider';
 import {
@@ -16,6 +16,7 @@ import { KanbanBoard } from '../../../components/ui/KanbanBoard';
 import { ActionMenu } from '../../../components/ui/ActionMenu';
 import { ConfirmDeleteDialog } from '../../../components/ui/ConfirmDeleteDialog';
 import { Pager } from '../../../components/ui/Pager';
+import { usePageSizePref } from '../../../hooks/usePageSizePref';
 import { SegmentedToggle } from '../../../components/ui/SegmentedToggle';
 import { Table2 as TableIcon, Columns3 as KanbanIcon } from 'lucide-react';
 import { downloadCsv } from '../../../lib/csv';
@@ -40,10 +41,9 @@ interface PipelineProps {
 }
 
 const CARDS_PER_STAGE = 25;
-const TABLE_PAGE_SIZE = 25;
 
 const PIPELINE_COLUMNS =
-  'id, display_code, requisition_id, person_id, stage, next_step, rejection_reason, is_shortlisted, rank, source_id, applied_at, stage_changed_at, candidate_name, source_name, unviewed, stage_rank';
+  'id, display_code, requisition_id, person_id, stage, next_step, rejection_reason, source_id, applied_at, stage_changed_at, candidate_name, source_name, unviewed, stage_rank, sourcer_grade, manager_grade, sourcer_name';
 
 type PipelineViewRow = Pick<
   Database['public']['Views']['application_pipeline']['Row'],
@@ -54,8 +54,6 @@ type PipelineViewRow = Pick<
   | 'stage'
   | 'next_step'
   | 'rejection_reason'
-  | 'is_shortlisted'
-  | 'rank'
   | 'source_id'
   | 'applied_at'
   | 'stage_changed_at'
@@ -63,6 +61,9 @@ type PipelineViewRow = Pick<
   | 'source_name'
   | 'unviewed'
   | 'stage_rank'
+  | 'sourcer_grade'
+  | 'manager_grade'
+  | 'sourcer_name'
 >;
 type StageSummaryRow = Database['public']['Views']['application_stage_summary']['Row'];
 
@@ -70,7 +71,9 @@ const TABLE_SORT_COLUMNS: Record<string, string> = {
   name: 'candidate_name',
   stage: 'stage',
   next_step: 'next_step',
-  rank: 'rank',
+  sourcer_grade: 'sourcer_grade',
+  manager_grade: 'manager_grade',
+  sourcer_initials: 'sourcer_name',
   source: 'source_name',
   applied_at: 'applied_at',
   stage_changed_at: 'stage_changed_at',
@@ -82,8 +85,9 @@ interface AppRow extends Record<string, unknown> {
   name: string;
   stage: ApplicationStage;
   next_step: string;
-  is_shortlisted: boolean;
-  rank: number | null;
+  sourcer_grade: string;
+  manager_grade: string;
+  sourcer_initials: string;
   source: string;
   applied_at: string;
   stage_changed_at: string;
@@ -95,8 +99,9 @@ const EXPORT_COLUMNS = [
   { key: 'name', header: 'Candidate' },
   { key: 'stage', header: 'Stage' },
   { key: 'next_step', header: 'Next step' },
-  { key: 'is_shortlisted', header: 'Shortlisted' },
-  { key: 'rank', header: 'Rank' },
+  { key: 'sourcer_grade', header: 'Sourcer grade' },
+  { key: 'sourcer_initials', header: 'Sourcer initials' },
+  { key: 'manager_grade', header: 'Manager grade' },
   { key: 'source', header: 'Source' },
   { key: 'applied_at', header: 'Applied' },
   { key: 'stage_changed_at', header: 'Stage changed' },
@@ -119,6 +124,8 @@ export function ApplicationPipeline({
   const [summary, setSummary] = useState<StageSummaryRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
+  const pageSize = usePageSizePref('pipeline');
+  const tablePageSize = pageSize.rows;
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -161,8 +168,8 @@ export function ApplicationPipeline({
       tableQuery = sortColumn
         ? tableQuery.order(sortColumn, { ascending: sort?.dir === 'asc', nullsFirst: false })
         : tableQuery.order('applied_at', { ascending: false, nullsFirst: false });
-      const start = page * TABLE_PAGE_SIZE;
-      tableQuery = tableQuery.order('id', { ascending: true }).range(start, start + TABLE_PAGE_SIZE - 1);
+      const start = page * tablePageSize;
+      tableQuery = tableQuery.order('id', { ascending: true }).range(start, start + tablePageSize - 1);
 
       const wantCards = view === 'kanban' && !mobile;
       const sum = await summaryQuery;
@@ -187,11 +194,15 @@ export function ApplicationPipeline({
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [requisition.id, view, mobile, page, sort, beginLoad]);
+  }, [requisition.id, view, mobile, page, sort, beginLoad, tablePageSize]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setPage(0);
+  }, [tablePageSize]);
+
+  useEffect(() => {
+    if (pageSize.ready) void load();
+  }, [load, pageSize.ready]);
 
   useEffect(() => {
     const channel = realtimeChannel(`recruit-pipeline-${requisition.id}`)
@@ -219,8 +230,15 @@ export function ApplicationPipeline({
         name: a.candidate_name || '\u2026',
         stage: a.stage,
         next_step: a.next_step ?? '',
-        is_shortlisted: a.is_shortlisted,
-        rank: a.rank,
+        sourcer_grade: a.sourcer_grade ?? '',
+        manager_grade: a.manager_grade ?? '',
+        sourcer_initials: (a.sourcer_name ?? '')
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 3)
+          .map((part) => part.charAt(0).toUpperCase())
+          .join(''),
         source: a.source_name ?? '',
         applied_at: a.applied_at,
         stage_changed_at: a.stage_changed_at,
@@ -338,34 +356,6 @@ export function ApplicationPipeline({
     }
   }, [promoteTarget, promoteCompanyId]);
 
-  const toggleShortlist = useCallback(
-    async (row: AppRow) => {
-      if (!canEdit) return;
-      const { error: err } = await supabase
-        .from('applications')
-        .update({ is_shortlisted: !row.is_shortlisted })
-        .eq('id', row.id);
-      if (err) setError(err.message);
-      else await load();
-    },
-    [canEdit, load],
-  );
-
-  const setRank = useCallback(
-    async (row: AppRow, value: string) => {
-      if (!canEdit) return;
-      const rank = value === '' ? null : parseInt(value, 10);
-      if (rank !== null && Number.isNaN(rank)) return;
-      const { error: err } = await supabase
-        .from('applications')
-        .update({ rank })
-        .eq('id', row.id);
-      if (err) setError(err.message);
-      else await load();
-    },
-    [canEdit, load],
-  );
-
   const setNextStep = useCallback(
     async (row: AppRow, value: string) => {
       if (!canEdit || value === row.next_step) return;
@@ -434,51 +424,9 @@ export function ApplicationPipeline({
             r.next_step
           ),
       },
-      {
-        key: 'is_shortlisted',
-        hideWhenEmpty: true,
-        header: 'Shortlist',
-        sortValue: (r) => (r.is_shortlisted ? 1 : 0),
-        render: (r) => (
-          <button
-            type="button"
-            className={r.is_shortlisted ? 'shortlist-btn on' : 'shortlist-btn'}
-            title="Shortlist (ACE flag)"
-            aria-label={
-              r.is_shortlisted
-                ? `Remove ${r.name} from shortlist`
-                : `Add ${r.name} to shortlist`
-            }
-            onClick={(e) => {
-              e.stopPropagation();
-              void toggleShortlist(r);
-            }}
-          >
-            <Star size={20} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
-          </button>
-        ),
-      },
-      {
-        key: 'rank',
-        hideWhenEmpty: true,
-        header: 'Rank',
-        sortValue: (r) => r.rank ?? 9999,
-        render: (r) =>
-          canEdit && editRowFields ? (
-            <span className="rank-input" onClick={(e) => e.stopPropagation()}>
-              <Input
-                key={`${r.id}-${r.rank ?? ''}`}
-                type="number"
-                min={1}
-                defaultValue={r.rank ?? ''}
-                aria-label={`Rank for ${r.name}`}
-                onBlur={(e) => void setRank(r, e.target.value)}
-              />
-            </span>
-          ) : (
-            (r.rank ?? '')
-          ),
-      },
+      { key: 'sourcer_grade', header: 'Sourcer grade', nowrap: true, hideWhenEmpty: true },
+      { key: 'sourcer_initials', header: 'Sourcer initials', nowrap: true, hideWhenEmpty: true },
+      { key: 'manager_grade', header: 'Manager grade', nowrap: true, hideWhenEmpty: true },
       { key: 'source', header: 'Source', hideWhenEmpty: true },
       {
         key: 'applied_at',
@@ -529,7 +477,7 @@ export function ApplicationPipeline({
           ]
         : []),
     ],
-    [canEdit, editRowFields, openCandidate, toggleShortlist, setRank, setNextStep],
+    [canEdit, editRowFields, openCandidate, setNextStep],
   );
 
   const kanbanCards = useMemo(
@@ -548,27 +496,13 @@ export function ApplicationPipeline({
             </button>
             <div className="kanban-card-meta">
               {r.unviewed && <span className="unviewed-dot" role="img" aria-label="Unviewed" />}
-              <button
-                type="button"
-                className={r.is_shortlisted ? 'shortlist-btn on' : 'shortlist-btn'}
-                title="Shortlist (ACE flag)"
-                aria-label={
-                  r.is_shortlisted
-                    ? `Remove ${r.name} from shortlist`
-                    : `Add ${r.name} to shortlist`
-                }
-                onClick={() => void toggleShortlist(r)}
-              >
-                <Star size={20} fill={r.is_shortlisted ? 'currentColor' : 'none'} />
-              </button>
-              {r.rank != null && <span>#{r.rank}</span>}
               {r.next_step && <span>{r.next_step}</span>}
               {r.source && <span>{r.source}</span>}
             </div>
           </div>
         ),
       })),
-    [rows, openCandidate, toggleShortlist],
+    [rows, openCandidate],
   );
 
   const unviewedByStage = useMemo(
@@ -596,7 +530,7 @@ export function ApplicationPipeline({
             ...(canEdit
               ? [
                   {
-                    label: editRowFields ? 'Done editing' : 'Edit next step and rank',
+                    label: editRowFields ? 'Done editing' : 'Edit next step',
                     onSelect: () => setEditRowFields((v) => !v),
                   },
                 ]
@@ -630,13 +564,15 @@ export function ApplicationPipeline({
           ]}
         />}
         <Pager
-          from={total === 0 ? 0 : page * TABLE_PAGE_SIZE + 1}
-          to={Math.min(total, (page + 1) * TABLE_PAGE_SIZE)}
+          from={total === 0 ? 0 : page * tablePageSize + 1}
+          to={Math.min(total, (page + 1) * tablePageSize)}
           total={total}
           page={page}
-          pageCount={Math.max(1, Math.ceil(total / TABLE_PAGE_SIZE))}
+          pageCount={Math.max(1, Math.ceil(total / tablePageSize))}
           onPage={setPage}
           disabled={showKanban}
+          sizeChoice={pageSize.choice}
+          onSizeChange={pageSize.save}
         />
       </div>
 

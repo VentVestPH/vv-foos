@@ -15,6 +15,7 @@ import { ListPage } from '../../../components/ui/ListPage';
 import { FilterFoot, FilterGroup } from '../../../components/ui/FilterGroup';
 import { Table, CappedCell, type TableColumn } from '../../../components/ui/Table';
 import { Pager } from '../../../components/ui/Pager';
+import { usePageSizePref } from '../../../hooks/usePageSizePref';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { Briefcase as BriefcaseIcon, Plus, User as PersonIcon } from 'lucide-react';
 import type { Database, RequisitionStatus } from '../../../lib/database.types';
@@ -56,7 +57,6 @@ const EMPTY_FILTERS: ReqFilters = {
   dateTo: '',
 };
 
-const REQ_PAGE_SIZE = 20;
 const REQ_EXPORT_PAGE_SIZE = 1000;
 const REQ_EXPORT_ROW_CAP = 10000;
 
@@ -108,12 +108,12 @@ const COLUMN_DEFS: { key: keyof ReqRow & string; header: string }[] = [
   { key: 'job_code', header: 'Job Code' },
   { key: 'display_code', header: 'ID' },
   { key: 'title', header: 'Title' },
-  { key: 'applications', header: 'Candidates' },
+  { key: 'applications', header: 'Total Candidates' },
   { key: 'updated_at', header: 'Last updated' },
   { key: 'location', header: 'Location' },
   { key: 'status', header: 'Status' },
   { key: 'owners', header: 'Owners' },
-  { key: 'unviewed', header: 'Next Steps' },
+  { key: 'unviewed', header: 'Unviewed Candidates' },
   { key: 'company', header: 'Company' },
   { key: 'num_openings', header: 'Openings' },
   { key: 'opened_date', header: 'Opened' },
@@ -172,6 +172,8 @@ export function RequisitionListPage() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
+  const pageSize = usePageSizePref('requisitions');
+  const reqPageRows = pageSize.rows;
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -206,10 +208,10 @@ export function RequisitionListPage() {
     const isCurrent = beginLoad();
     setLoading(true);
     try {
-      const start = page * REQ_PAGE_SIZE;
+      const start = page * reqPageRows;
       const { data, count, error: listErr } = await applyReqFilters(requisitionBaseQuery()).range(
         start,
-        start + REQ_PAGE_SIZE - 1,
+        start + reqPageRows - 1,
       );
       if (listErr) throw new Error(listErr.message);
       if (!isCurrent()) return;
@@ -223,15 +225,15 @@ export function RequisitionListPage() {
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [applyReqFilters, page, beginLoad]);
+  }, [applyReqFilters, page, beginLoad, reqPageRows]);
 
   useEffect(() => {
     setPage(0);
-  }, [filters, searchTerm, sort]);
+  }, [filters, searchTerm, sort, reqPageRows]);
 
   useEffect(() => {
-    void loadPage();
-  }, [loadPage]);
+    if (pageSize.ready) void loadPage();
+  }, [loadPage, pageSize.ready]);
 
   const reloadSoon = useCoalescedReload(loadPage);
 
@@ -293,14 +295,14 @@ export function RequisitionListPage() {
 
   const showSkeleton = useMinimumVisible(loading);
 
-  const pageCount = Math.max(1, Math.ceil(total / REQ_PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / reqPageRows));
   const pager = {
     page,
     setPage,
     pageCount,
     total,
-    from: total === 0 ? 0 : page * REQ_PAGE_SIZE + 1,
-    to: Math.min(total, (page + 1) * REQ_PAGE_SIZE),
+    from: total === 0 ? 0 : page * reqPageRows + 1,
+    to: Math.min(total, (page + 1) * reqPageRows),
     pageRows: rows,
   };
 
@@ -368,10 +370,18 @@ export function RequisitionListPage() {
         header: COLUMN_HEADER.applications,
         sortValue: (r) => r.applications,
         render: (r) => (
-          <span className="fo-candidates-cell">
+          <button
+            type="button"
+            className="link-btn fo-candidates-cell"
+            aria-label={`Open the ${r.applications} candidates on ${r.title}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              openRecord(`/recruit/requisitions/${r.id}?show=candidates`);
+            }}
+          >
             <PersonIcon size={20} />
             <Badge tone="count">{r.applications}</Badge>
-          </span>
+          </button>
         ),
       },
       {
@@ -396,16 +406,16 @@ export function RequisitionListPage() {
         sortValue: (r) => r.unviewed,
         render: (r) => (
           <span className="fo-next-steps-cell">
-            <UnviewedBadge count={r.unviewed} />
             <button
               type="button"
               className="link-btn"
+              aria-label={`Open the ${r.unviewed} unviewed candidates on ${r.title}`}
               onClick={(e) => {
                 e.stopPropagation();
-                openRecord(`/recruit/requisitions/${r.id}`);
+                openRecord(`/recruit/requisitions/${r.id}?show=candidates`);
               }}
             >
-              Candidates ({r.applications})
+              <UnviewedBadge count={r.unviewed} />
             </button>
           </span>
         ),
@@ -706,6 +716,8 @@ export function RequisitionListPage() {
         page={pager.page}
         pageCount={pager.pageCount}
         onPage={pager.setPage}
+        sizeChoice={pageSize.choice}
+        onSizeChange={pageSize.save}
       />
 
       {showSkeleton ? (
@@ -736,6 +748,8 @@ export function RequisitionListPage() {
         page={pager.page}
         pageCount={pager.pageCount}
         onPage={pager.setPage}
+        sizeChoice={pageSize.choice}
+        onSizeChange={pageSize.save}
       />
       {settingsOpen && (
         <ColumnSettingsDialog

@@ -522,6 +522,11 @@
 .cand-header-grade {
   display: inline-flex;
   align-items: center;
+  gap: var(--sp-half);
+}
+
+.grade-select {
+  width: 72px;
 }
 
 .cand-grade-row {

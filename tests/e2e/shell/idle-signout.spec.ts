@@ -1,16 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { PERSONA_EMAILS, signIn } from '../../support/e2e-helpers';
 
-const HOUR = 60 * 60 * 1000;
+const WEEK = 7 * 24 * 60 * 60 * 1000;
 
 test.describe('O5: an idle session signs out instead of staying open forever', () => {
-  test('warns two minutes out and signs out at the hour', async ({ page }) => {
+  test('warns two minutes out and signs out after a week', async ({ page }) => {
     await page.clock.install();
     await signIn(page, PERSONA_EMAILS.recruiter);
     await page.goto('/recruit/candidates');
     await expect(page.locator('.table-wrap').first()).toBeVisible({ timeout: 25000 });
 
-    await page.clock.fastForward(HOUR - 90 * 1000);
+    await page.clock.fastForward(WEEK - 90 * 1000);
     const warning = page.getByRole('alertdialog', { name: 'Still there?' });
     await expect(warning).toBeVisible({ timeout: 10000 });
     await expect(warning).toContainText('signs out in');
@@ -26,9 +26,9 @@ test.describe('O5: an idle session signs out instead of staying open forever', (
     await page.goto('/recruit/candidates');
     await expect(page.locator('.table-wrap').first()).toBeVisible({ timeout: 25000 });
 
-    await page.clock.fastForward(HOUR - 5 * 60 * 1000);
+    await page.clock.fastForward(WEEK - 5 * 60 * 1000);
     await page.mouse.click(5, 400);
-    await page.clock.fastForward(HOUR - 5 * 60 * 1000);
+    await page.clock.fastForward(WEEK - 5 * 60 * 1000);
 
     await expect(page.getByRole('alertdialog', { name: 'Still there?' })).toBeHidden();
     await expect(page).not.toHaveURL(/\/login/);
@@ -40,7 +40,7 @@ test.describe('O5: an idle session signs out instead of staying open forever', (
     await page.goto('/recruit/candidates');
     await expect(page.locator('.table-wrap').first()).toBeVisible({ timeout: 25000 });
 
-    await page.clock.fastForward(HOUR - 90 * 1000);
+    await page.clock.fastForward(WEEK - 90 * 1000);
     const warning = page.getByRole('alertdialog', { name: 'Still there?' });
     await expect(warning).toBeVisible({ timeout: 10000 });
 

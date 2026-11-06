@@ -5,7 +5,8 @@ import type { CandidateProfile, StaffRow } from '../lib';
 
 export interface ProfileDraft {
   status_id: string;
-  star_grade: number | null;
+  sourcer_grade: string;
+  manager_grade: string;
   grade_comment: string;
   current_title: string;
   current_employer: string;
@@ -24,7 +25,8 @@ export interface ProfileDraft {
 export function toDraft(p: CandidateProfile): ProfileDraft {
   return {
     status_id: p.status_id ?? '',
-    star_grade: p.star_grade,
+    sourcer_grade: p.sourcer_grade ?? '',
+    manager_grade: p.manager_grade ?? '',
     grade_comment: p.grade_comment ?? '',
     current_title: p.current_title ?? '',
     current_employer: p.current_employer ?? '',
@@ -42,7 +44,8 @@ export function toDraft(p: CandidateProfile): ProfileDraft {
 }
 
 export type InlineProfileKey =
-  | 'star_grade'
+  | 'sourcer_grade'
+  | 'manager_grade'
   | 'grade_comment'
   | 'current_title'
   | 'current_employer'
@@ -59,7 +62,7 @@ export type InlineProfileValue = string | number | boolean | null;
 const NUMBER_KEYS: readonly InlineProfileKey[] = ['expected_salary', 'current_salary'];
 
 function columnValue(key: InlineProfileKey, value: InlineProfileValue): InlineProfileValue {
-  if (key === 'star_grade' || key === 'do_not_contact') return value;
+  if (key === 'do_not_contact') return value;
   const text = typeof value === 'string' ? value.trim() : '';
   if (NUMBER_KEYS.includes(key)) {
     if (text === '') return null;
@@ -71,7 +74,7 @@ function columnValue(key: InlineProfileKey, value: InlineProfileValue): InlinePr
 }
 
 function draftValue(key: InlineProfileKey, stored: InlineProfileValue): string | number | boolean | null {
-  if (key === 'star_grade' || key === 'do_not_contact') return stored;
+  if (key === 'do_not_contact') return stored;
   return stored === null ? '' : String(stored);
 }
 
@@ -80,6 +83,7 @@ export interface CandidateProfileDraft {
   setDraft: (next: ProfileDraft | null) => void;
   canEditProfile: boolean;
   canGrade: boolean;
+  canGradeAsManager: boolean;
   saved: boolean;
   saveProfile: () => Promise<void>;
   saveField: (key: InlineProfileKey, value: InlineProfileValue) => Promise<void>;
@@ -115,13 +119,16 @@ export function useCandidateProfileDraft({
       role === 'recruiter' ||
       (role === 'sourcer' && staff != null && profile?.sourcer_id === staff.id));
 
+  const canGradeAsManager = canEditProfile;
+
   const saveProfile = useCallback(async () => {
     if (!profile || !draft) return;
 
     const patch = canEditProfile
       ? {
           status_id: draft.status_id || null,
-          star_grade: draft.star_grade,
+          sourcer_grade: draft.sourcer_grade || null,
+          manager_grade: draft.manager_grade || null,
           grade_comment: draft.grade_comment.trim() || null,
           current_title: draft.current_title.trim() || null,
           current_employer: draft.current_employer.trim() || null,
@@ -141,7 +148,7 @@ export function useCandidateProfileDraft({
           do_not_contact: draft.do_not_contact,
         }
       : {
-          star_grade: draft.star_grade,
+          sourcer_grade: draft.sourcer_grade || null,
           grade_comment: draft.grade_comment.trim() || null,
         };
     const { error: err } = await supabase
@@ -176,5 +183,5 @@ export function useCandidateProfileDraft({
     [profile, onFieldSaved],
   );
 
-  return { draft, setDraft, canEditProfile, canGrade, saved, saveProfile, saveField };
+  return { draft, setDraft, canEditProfile, canGrade, canGradeAsManager, saved, saveProfile, saveField };
 }
